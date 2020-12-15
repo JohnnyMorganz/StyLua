@@ -1,6 +1,6 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
-    Assignment, Expression, LocalAssignment, Value, Var
+    Assignment, Expression, LocalAssignment, Value, Var,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
@@ -10,14 +10,81 @@ use std::boxed::Box;
 #[derive(Default)]
 pub struct AssignmentFormatter;
 
-// TODO: Can we simplify these three functions into one, general function?
-
-/// Formats a punctuated list of Expressions
-fn format_punctuated_expression<'a>(
-    old: Punctuated<'a, Expression<'a>>,
+/// Formats an expression, adding any wanted trailing trivia
+fn format_expression<'a>(
+    expression: Expression<'a>,
     wanted_trailing_trivia: Vec<Token<'a>>,
-) -> Punctuated<'a, Expression<'a>> {
-    let mut formatted: Punctuated<Expression<'a>> = Punctuated::new();
+) -> Expression<'a> {
+    match expression {
+        Expression::Value { value, binop } => Expression::Value {
+            value: Box::new(match *value {
+                Value::String(token_reference) => Value::String(Cow::Owned(TokenReference::new(
+                    Vec::new(),
+                    token_reference.token().to_owned(),
+                    wanted_trailing_trivia,
+                ))),
+                Value::Number(token_reference) => Value::Number(Cow::Owned(TokenReference::new(
+                    Vec::new(),
+                    token_reference.token().to_owned(),
+                    wanted_trailing_trivia,
+                ))),
+                Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(TokenReference::new(
+                    Vec::new(),
+                    token_reference.token().to_owned(),
+                    wanted_trailing_trivia,
+                ))),
+                // TODO: Handle the remainder of these
+                _ => *value,
+                // Value::Function(token_reference) => *value, // Value::Function(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
+                // Value::FunctionCall(function_call) => *value, //Value::FunctionCall(Fun),
+                // Value::TableConstructor(token_reference) => *value, // Value::TableConstructor(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
+                // Value::ParseExpression(token_reference) => *value, // Value::ParseExpression(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
+                // Value::Var(token_reference) => *value, // Value::Var(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
+            }),
+            binop,
+        },
+        // TODO: Handle the remainder of these
+        Expression::Parentheses {
+            contained,
+            expression,
+        } => Expression::Parentheses {
+            contained,
+            expression,
+        },
+        Expression::UnaryOperator { unop, expression } => {
+            Expression::UnaryOperator { unop, expression }
+        }
+    }
+}
+
+fn format_token_reference<'a>(
+    token_reference: Cow<'a, TokenReference<'a>>,
+    wanted_trailing_trivia: Vec<Token<'a>>,
+) -> Cow<'a, TokenReference<'a>> {
+    Cow::Owned(TokenReference::new(
+        Vec::new(),
+        token_reference.token().to_owned(),
+        wanted_trailing_trivia,
+    ))
+}
+
+fn format_var<'a>(var: Var<'a>, wanted_trailing_trivia: Vec<Token<'a>>) -> Var<'a> {
+    match var {
+        Var::Name(token_ref) => Var::Name(Cow::Owned(TokenReference::new(
+            Vec::new(),
+            token_ref.token().to_owned(),
+            wanted_trailing_trivia,
+        ))),
+        _ => panic!("problem!"),
+    }
+}
+
+fn format_punctuated<'a, T>(
+    old: Punctuated<'a, T>,
+    value_formatter: &dyn Fn(T, Vec<Token<'a>>) -> T,
+    wanted_trailing_trivia: Vec<Token<'a>>,
+) -> Punctuated<'a, T> {
+    let mut formatted: Punctuated<T> = Punctuated::new();
     for pair in old.into_pairs() {
         // Format Punctuation
         match pair {
@@ -27,103 +94,13 @@ fn format_punctuated_expression<'a>(
                     punctuation.token().to_owned(),
                     vec![Token::new(TokenType::spaces(1))], // Single space whitespace
                 ));
-        
+
                 // Format Value
-                let formatted_value = match value {
-                    Expression::Value { value, binop } => Expression::Value {
-                        value: Box::new(match *value {
-                            Value::String(token_reference) => {
-                                Value::String(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    Vec::new(),
-                                )))
-                            }
-                            Value::Number(token_reference) => {
-                                Value::Number(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    Vec::new(),
-                                )))
-                            }
-                            Value::Symbol(token_reference) => {
-                                Value::Symbol(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    Vec::new(),
-                                )))
-                            }
-                            // TODO: Handle the remainder of these
-                            _ => *value,
-                            // Value::Function(token_reference) => *value, // Value::Function(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::FunctionCall(function_call) => *value, //Value::FunctionCall(Fun),
-                            // Value::TableConstructor(token_reference) => *value, // Value::TableConstructor(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::ParseExpression(token_reference) => *value, // Value::ParseExpression(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::Var(token_reference) => *value, // Value::Var(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                        }),
-                        binop,
-                    },
-                    // TODO: Handle the remainder of these
-                    Expression::Parentheses {
-                        contained,
-                        expression,
-                    } => Expression::Parentheses {
-                        contained,
-                        expression,
-                    },
-                    Expression::UnaryOperator { unop, expression } => {
-                        Expression::UnaryOperator { unop, expression }
-                    }
-                };
+                let formatted_value = value_formatter(value, vec![]);
                 formatted.push(Pair::new(formatted_value, Some(formatted_punctuation)));
-            },
+            }
             Pair::End(value) => {
-                let formatted_value = match value {
-                    Expression::Value { value, binop } => Expression::Value {
-                        value: Box::new(match *value {
-                            Value::String(token_reference) => {
-                                Value::String(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    wanted_trailing_trivia.clone(),
-                                )))
-                            }
-                            Value::Number(token_reference) => {
-                                Value::Number(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    wanted_trailing_trivia.clone(),
-                                )))
-                            }
-                            Value::Symbol(token_reference) => {
-                                Value::Symbol(Cow::Owned(TokenReference::new(
-                                    Vec::new(),
-                                    token_reference.token().to_owned(),
-                                    wanted_trailing_trivia.clone(),
-                                )))
-                            }
-                            // TODO: Handle the remainder of these
-                            _ => *value,
-                            // Value::Function(token_reference) => *value, // Value::Function(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::FunctionCall(function_call) => *value, //Value::FunctionCall(Fun),
-                            // Value::TableConstructor(token_reference) => *value, // Value::TableConstructor(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::ParseExpression(token_reference) => *value, // Value::ParseExpression(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                            // Value::Var(token_reference) => *value, // Value::Var(Cow::Owned(TokenReference::new(Vec::new(), token_reference.token().clone(), Vec::new()))),
-                        }),
-                        binop,
-                    },
-                    // TODO: Handle the remainder of these
-                    Expression::Parentheses {
-                        contained,
-                        expression,
-                    } => Expression::Parentheses {
-                        contained,
-                        expression,
-                    },
-                    Expression::UnaryOperator { unop, expression } => {
-                        Expression::UnaryOperator { unop, expression }
-                    }
-                };
+                let formatted_value = value_formatter(value, wanted_trailing_trivia.to_owned());
                 formatted.push(Pair::new(formatted_value, None));
             }
         }
@@ -132,92 +109,16 @@ fn format_punctuated_expression<'a>(
     formatted
 }
 
-/// Formats a punctuated list of token references
-fn format_punctuated_tokens<'a>(
-    old: Punctuated<'a, Cow<'a, TokenReference<'a>>>,
-) -> Punctuated<'a, Cow<'a, TokenReference<'a>>> {
-    let mut formatted: Punctuated<Cow<'a, TokenReference<'a>>> = Punctuated::new();
-    for pair in old.into_pairs() {
-        // Format Punctuation
-        let punc = match pair.punctuation() {
-            Some(value) => {
-                let whitespace = vec![Token::new(TokenType::spaces(1))];
-
-                Some(Cow::Owned(TokenReference::new(
-                    Vec::new(),
-                    value.token().to_owned(),
-                    whitespace,
-                )))
-            }
-            None => None,
-        };
-
-        // Format Value
-        // let formatted_value = match pair.into_value() {
-        //     TokenReference { leading_trivia, token, trailing_trivia } => {
-        //         Cow::Owned(TokenReference::new(Vec::new(), token.clone(), Vec::new()))
-        //     },
-        //     // Expression::Value(value) => {
-        //     //     match value {
-        //     //         Expression::Value::String(value) => Cow::Owned(TokenReference::new(Vec::new(), value.token().clone(), Vec::new()))
-        //     //     }
-        //     // }
-        // };
-
-        // // Clear any trailing_trivia in value
-        // //println!("{:?}", value);
-        // let value = Cow::Owned(TokenReference::new(Vec::new(), pair.into_value(), Vec::new()));
-        let value = pair.into_value();
-        let formatted_value = Cow::Owned(TokenReference::new(
-            Vec::new(),
-            value.into_owned().token().to_owned(),
-            Vec::new(),
-        ));
-        formatted.push(Pair::new(formatted_value, punc));
-    }
-
-    formatted
-}
-
-/// Formats a punctuated list of Vars
-fn format_punctuated<'a>(old: Punctuated<'a, Var<'a>>) -> Punctuated<'a, Var<'a>> {
-    let mut formatted: Punctuated<Var<'a>> = Punctuated::new();
-    for pair in old.into_pairs() {
-        // Format Punctuation
-        let punc = match pair.punctuation() {
-            Some(value) => {
-                println!("{}", value);
-                let whitespace = vec![Token::new(TokenType::spaces(1))];
-
-                Some(Cow::Owned(TokenReference::new(
-                    Vec::new(),
-                    value.token().to_owned(),
-                    whitespace,
-                )))
-            }
-            None => None,
-        };
-
-        // Format Value
-        let formatted_value = match pair.into_value() {
-            Var::Name(token_ref) => {
-                Var::Name(Cow::Owned(TokenReference::new(Vec::new(), token_ref.token().to_owned(), Vec::new())))
-            },
-            _ => panic!("problem!")
-        };
-
-        formatted.push(Pair::new(formatted_value, punc));
-    }
-
-    formatted
-}
-
 impl AssignmentFormatter {
     fn format_assignment<'ast>(&mut self, assignment: Assignment<'ast>) -> Assignment<'ast> {
-        let var_list = format_punctuated(assignment.var_list().to_owned());
-        let expr_list = format_punctuated_expression(assignment.expr_list().to_owned(), vec![Token::new(TokenType::Whitespace {
-            characters: Cow::Owned(String::from("\n")),
-        })]);
+        let var_list = format_punctuated(assignment.var_list().to_owned(), &format_var, vec![]);
+        let expr_list = format_punctuated(
+            assignment.expr_list().to_owned(),
+            &format_expression,
+            vec![Token::new(TokenType::Whitespace {
+                characters: Cow::Owned(String::from("\n")),
+            })],
+        );
 
         assignment
             .with_var_list(var_list)
@@ -229,18 +130,32 @@ impl AssignmentFormatter {
         &mut self,
         assignment: LocalAssignment<'ast>,
     ) -> LocalAssignment<'ast> {
-        let name_list = format_punctuated_tokens(assignment.name_list().to_owned());
-
         if assignment.expr_list().is_empty() {
+            let name_list = format_punctuated(
+                assignment.name_list().to_owned(),
+                &format_token_reference,
+                vec![Token::new(TokenType::Whitespace {
+                    characters: Cow::Owned(String::from("\n")),
+                })],
+            );
             assignment
                 .with_local_token(Cow::Owned(TokenReference::symbol("local ").unwrap()))
                 .with_name_list(name_list)
                 .with_equal_token(None)
                 .with_expr_list(Punctuated::new())
         } else {
-            let expr_list = format_punctuated_expression(assignment.expr_list().to_owned(), vec![Token::new(TokenType::Whitespace {
-                characters: Cow::Owned(String::from("\n")),
-            })]);
+            let name_list = format_punctuated(
+                assignment.name_list().to_owned(),
+                &format_token_reference,
+                vec![],
+            );
+            let expr_list = format_punctuated(
+                assignment.expr_list().to_owned(),
+                &format_expression,
+                vec![Token::new(TokenType::Whitespace {
+                    characters: Cow::Owned(String::from("\n")),
+                })],
+            );
 
             assignment
                 .with_local_token(Cow::Owned(TokenReference::symbol("local ").unwrap()))
