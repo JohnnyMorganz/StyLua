@@ -1,8 +1,9 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Assignment, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index, LocalAssignment,
-    MethodCall, Suffix, TableConstructor, Value, Var, VarExpression,
+    Assignment, BinOpRhs, Call, Do, ElseIf, Expression, FunctionArgs, FunctionBody, FunctionCall,
+    FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction, MethodCall,
+    NumericFor, Prefix, Repeat, Suffix, TableConstructor, Value, Var, VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
@@ -35,7 +36,8 @@ pub fn function_call_add_trivia<'ast>(
     leading_trivia: Vec<Token<'ast>>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> FunctionCall<'ast> {
-    function_call_add_trailing_trivia(function_call, trailing_trivia)
+    let prefix = prefix_add_leading_trivia(function_call.prefix().to_owned(), leading_trivia);
+    function_call_add_trailing_trivia(function_call.with_prefix(prefix), trailing_trivia)
 }
 
 pub fn local_assignment_add_trivia<'ast>(
@@ -43,7 +45,12 @@ pub fn local_assignment_add_trivia<'ast>(
     leading_trivia: Vec<Token<'ast>>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> LocalAssignment<'ast> {
-    // TODO: Add trailing trivia
+    let local_token = token_reference_add_trivia(
+        local_assignment.local_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+
     // Add newline at the end of LocalAssignment expression list
     // Expression list should already be formatted
     let mut formatted_expression_list = local_assignment.expr_list().to_owned();
@@ -59,24 +66,309 @@ pub fn local_assignment_add_trivia<'ast>(
         }
     }
 
-    local_assignment.with_expr_list(formatted_expression_list)
+    local_assignment
+        .with_local_token(Cow::Owned(local_token))
+        .with_expr_list(formatted_expression_list)
+}
+
+pub fn do_block_add_trivia<'ast>(
+    do_block: Do<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> Do<'ast> {
+    let do_token = token_reference_add_trivia(
+        do_block.do_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        do_block.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    do_block
+        .with_do_token(Cow::Owned(do_token))
+        .with_end_token(Cow::Owned(end_token))
+}
+
+pub fn generic_for_add_trivia<'ast>(
+    generic_for: GenericFor<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> GenericFor<'ast> {
+    let for_token = token_reference_add_trivia(
+        generic_for.for_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+    let do_token = token_reference_add_trivia(
+        generic_for.do_token().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        generic_for.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    generic_for
+        .with_for_token(Cow::Owned(for_token))
+        .with_do_token(Cow::Owned(do_token))
+        .with_end_token(Cow::Owned(end_token))
+}
+
+fn else_if_block_add_trivia<'ast>(
+    else_if_block: ElseIf<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> ElseIf<'ast> {
+    let else_if_token = token_reference_add_trivia(
+        else_if_block.else_if_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+    let then_token = token_reference_add_trivia(
+        else_if_block.then_token().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+
+    else_if_block
+        .with_else_if_token(Cow::Owned(else_if_token))
+        .with_then_token(Cow::Owned(then_token))
+}
+
+pub fn if_block_add_trivia<'ast>(
+    if_block: If<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> If<'ast> {
+    let if_token = token_reference_add_trivia(
+        if_block.if_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+    let then_token = token_reference_add_trivia(
+        if_block.then_token().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        if_block.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+
+    let else_if_block = match if_block.else_if() {
+        Some(else_if) => Some(
+            else_if
+                .iter()
+                .map(|else_if| {
+                    else_if_block_add_trivia(
+                        else_if.to_owned(),
+                        leading_trivia.to_owned(),
+                        trailing_trivia.to_owned(),
+                    )
+                })
+                .collect(),
+        ),
+        None => None,
+    };
+
+    let else_token = match if_block.else_token() {
+        Some(else_token) => Some(Cow::Owned(token_reference_add_trivia(
+            else_token.to_owned(),
+            Some(leading_trivia.to_owned()),
+            Some(trailing_trivia.to_owned()),
+        ))),
+        None => None,
+    };
+
+    if_block
+        .with_if_token(Cow::Owned(if_token))
+        .with_then_token(Cow::Owned(then_token))
+        .with_else_if(else_if_block)
+        .with_else_token(else_token)
+        .with_end_token(Cow::Owned(end_token))
+}
+
+pub fn function_declaration_add_trivia<'ast>(
+    function_declaration: FunctionDeclaration<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> FunctionDeclaration<'ast> {
+    let function_token = token_reference_add_trivia(
+        function_declaration.function_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+
+    let function_body = function_declaration.body().to_owned();
+    let parameters_parentheses = contained_span_add_trailing_trivia(
+        function_body.parameters_parentheses().to_owned(),
+        trailing_trivia.to_owned(),
+    );
+    let end_token = token_reference_add_trivia(
+        function_body.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+
+    function_declaration
+        .with_function_token(Cow::Owned(function_token))
+        .with_body(
+            function_body
+                .with_parameters_parentheses(parameters_parentheses)
+                .with_end_token(Cow::Owned(end_token)),
+        )
+}
+
+pub fn local_function_add_trivia<'ast>(
+    local_function: LocalFunction<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> LocalFunction<'ast> {
+    let local_token = token_reference_add_trivia(
+        local_function.local_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+
+    let function_body = local_function.func_body().to_owned();
+    let parameters_parentheses = contained_span_add_trivia(
+        function_body.parameters_parentheses().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        function_body.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+
+    local_function
+        .with_local_token(Cow::Owned(local_token))
+        .with_func_body(
+            function_body
+                .with_parameters_parentheses(parameters_parentheses)
+                .with_end_token(Cow::Owned(end_token)),
+        )
+}
+
+pub fn numeric_for_add_trivia<'ast>(
+    numeric_for: NumericFor<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> NumericFor<'ast> {
+    // TODO: This is a copy of generic_for, can we reduce this?
+    let for_token = token_reference_add_trivia(
+        numeric_for.for_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+    let do_token = token_reference_add_trivia(
+        numeric_for.do_token().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        numeric_for.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    numeric_for
+        .with_for_token(Cow::Owned(for_token))
+        .with_do_token(Cow::Owned(do_token))
+        .with_end_token(Cow::Owned(end_token))
+}
+
+pub fn repeat_block_add_trivia<'ast>(
+    repeat_block: Repeat<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> Repeat<'ast> {
+    let repeat_token = token_reference_add_trivia(
+        repeat_block.repeat_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    let until_token = token_reference_add_trivia(
+        repeat_block.until_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    repeat_block
+        .with_repeat_token(Cow::Owned(repeat_token))
+        .with_until_token(Cow::Owned(until_token))
+}
+
+pub fn while_block_add_trivia<'ast>(
+    while_block: While<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> While<'ast> {
+    let while_token = token_reference_add_trivia(
+        while_block.while_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        None,
+    );
+    let do_token = token_reference_add_trivia(
+        while_block.do_token().to_owned(),
+        None,
+        Some(trailing_trivia.to_owned()),
+    );
+    let end_token = token_reference_add_trivia(
+        while_block.end_token().to_owned(),
+        Some(leading_trivia.to_owned()),
+        Some(trailing_trivia.to_owned()),
+    );
+    while_block
+        .with_while_token(Cow::Owned(while_token))
+        .with_do_token(Cow::Owned(do_token))
+        .with_end_token(Cow::Owned(end_token))
 }
 
 // Remainder of Nodes
 
+/// Adds trailing trivia at the end of a BinOpRhs expression
+pub fn binop_rhs_add_trailing_trivia<'ast>(
+    binop_rhs: BinOpRhs<'ast>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> BinOpRhs<'ast> {
+    let rhs = std::boxed::Box::new(expression_add_trailing_trivia(
+        binop_rhs.rhs().to_owned(),
+        trailing_trivia,
+    ));
+    binop_rhs.with_rhs(rhs)
+}
+
 /// Adds trailing trivia at the end of a ContainedSpan node
+pub fn contained_span_add_trivia<'ast>(
+    contained_span: ContainedSpan<'ast>,
+    leading_trivia: Option<Vec<Token<'ast>>>,
+    trailing_trivia: Option<Vec<Token<'ast>>>,
+) -> ContainedSpan<'ast> {
+    let (start_token, end_token) = contained_span.tokens();
+    ContainedSpan::new(
+        Cow::Owned(token_reference_add_trivia(
+            start_token.to_owned(),
+            leading_trivia,
+            None,
+        )),
+        Cow::Owned(token_reference_add_trivia(
+            end_token.to_owned(),
+            None,
+            trailing_trivia,
+        )),
+    )
+}
+
+#[deprecated]
 pub fn contained_span_add_trailing_trivia<'ast>(
     contained_span: ContainedSpan<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> ContainedSpan<'ast> {
-    let (start_token, end_token) = contained_span.tokens();
-    ContainedSpan::new(
-        Cow::Owned(start_token.to_owned()),
-        Cow::Owned(token_reference_add_trailing_trivia(
-            end_token.to_owned(),
-            trailing_trivia,
-        )),
-    )
+    contained_span_add_trivia(contained_span, None, Some(trailing_trivia))
 }
 
 /// Adds trailing trivia at the end of a Call node
@@ -101,10 +393,19 @@ pub fn expression_add_trailing_trivia<'ast>(
     trailing_trivia: Vec<Token<'ast>>,
 ) -> Expression<'ast> {
     match expression {
-        Expression::Value { value, binop } => Expression::Value {
-            value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
-            binop,
-        },
+        Expression::Value { value, binop } => {
+            if let Some(binop) = binop {
+                Expression::Value {
+                    value,
+                    binop: Some(binop_rhs_add_trailing_trivia(binop, trailing_trivia)),
+                }
+            } else {
+                Expression::Value {
+                    value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
+                    binop,
+                }
+            }
+        }
 
         // Add trailing trivia to the end of parentheses
         Expression::Parentheses {
@@ -213,6 +514,24 @@ pub fn method_call_add_trailing_trivia<'ast>(
     ))
 }
 
+/// Adds leading trivia to the start of a Prefix node
+pub fn prefix_add_leading_trivia<'ast>(
+    prefix: Prefix<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> Prefix<'ast> {
+    match prefix {
+        Prefix::Name(token_reference) => Prefix::Name(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        Prefix::Expression(expression) => {
+            println!("WARNING: Prefix(Expression) leading trivia not implemented"); // TODO: Implement
+            Prefix::Expression(expression)
+        }
+    }
+}
+
 /// Adds trailing trivia at the end of a Suffix node
 pub fn suffix_add_trailing_trivia<'ast>(
     suffix: Suffix<'ast>,
@@ -236,20 +555,41 @@ pub fn table_constructor_add_trailing_trivia<'ast>(
     ))
 }
 
-/// Adds trailing trivia at the end of a TokenReference node
+/// Adds trivia to a TokenReferenece
+pub fn token_reference_add_trivia<'ast>(
+    token_reference: TokenReference<'ast>,
+    leading_trivia: Option<Vec<Token<'ast>>>,
+    trailing_trivia: Option<Vec<Token<'ast>>>,
+) -> TokenReference<'ast> {
+    let added_leading_trivia = match leading_trivia {
+        Some(trivia) => trivia,
+        None => token_reference
+            .leading_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+    };
+
+    let added_trailing_trivia = match trailing_trivia {
+        Some(trivia) => trivia,
+        None => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+    };
+
+    TokenReference::new(
+        added_leading_trivia,
+        token_reference.token().to_owned(),
+        added_trailing_trivia,
+    )
+}
+
+#[deprecated]
 pub fn token_reference_add_trailing_trivia<'ast>(
     token_reference: TokenReference<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> TokenReference<'ast> {
-    let leading_trivia = token_reference
-        .leading_trivia()
-        .map(|x| x.to_owned())
-        .collect();
-    TokenReference::new(
-        leading_trivia,
-        token_reference.token().to_owned(),
-        trailing_trivia,
-    )
+    token_reference_add_trivia(token_reference, None, Some(trailing_trivia))
 }
 
 /// Adds trailing trivia at the end of a Value node
