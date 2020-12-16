@@ -85,10 +85,10 @@ pub fn format_function_args<'ast>(function_args: FunctionArgs<'ast>) -> Function
 pub fn format_function_body<'ast>(function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
     let parameters_parentheses = ContainedSpan::new(
         Cow::Owned(TokenReference::symbol("(").unwrap()),
-        Cow::Owned(TokenReference::symbol(")\n").unwrap()),
+        Cow::Owned(TokenReference::symbol(")\n").unwrap()), // TODO: Handle newline trivia properly
     );
     let formatted_parameters = format_parameters(function_body.to_owned());
-    let end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
+    let end_token = Cow::Owned(TokenReference::symbol("end").unwrap()); // TODO: Handle indent leading trivia for end token
 
     function_body
         .with_parameters_parentheses(parameters_parentheses)
@@ -165,7 +165,7 @@ pub fn format_local_function<'ast>(local_function: LocalFunction<'ast>) -> Local
 /// Formats a MethodCall node
 pub fn format_method_call<'ast>(method_call: MethodCall<'ast>) -> MethodCall<'ast> {
     let formatted_colon_token = format_plain_token_reference(method_call.colon_token().to_owned());
-    let formatted_name = format_plain_token_reference(method_call.colon_token().to_owned());
+    let formatted_name = format_plain_token_reference(method_call.name().to_owned());
     let formatted_function_args = format_function_args(method_call.args().to_owned());
     method_call
         .with_colon_token(Cow::Owned(formatted_colon_token))

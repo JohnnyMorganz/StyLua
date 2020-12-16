@@ -109,9 +109,10 @@ pub fn format_suffix<'ast>(suffix: Suffix<'ast>) -> Suffix<'ast> {
 /// Formats a Value Node
 pub fn format_value<'ast>(value: Value<'ast>) -> Value<'ast> {
     match value {
-        Value::Function((function_token, function_body)) => {
-            Value::Function((function_token, function_body))
-        } // TODO
+        Value::Function((_, function_body)) => Value::Function((
+            Cow::Owned(TokenReference::symbol("function").unwrap()),
+            functions_formatter::format_function_body(function_body),
+        )),
         Value::FunctionCall(function_call) => {
             Value::FunctionCall(functions_formatter::format_function_call(function_call))
         }
