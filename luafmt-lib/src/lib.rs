@@ -12,8 +12,7 @@ pub fn format_code(code: &str) -> String {
     // };
 
     let mut ast = full_moon::parse(&code).expect("error parse").owned();
-
-    ast = formatters::FileFormatter::default().visit_ast(ast);
+    ast = formatters::CodeFormatter::default().visit_ast(ast);
 
     full_moon::print(&ast)
 }

@@ -1,12 +1,13 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
-    Assignment, Block, FunctionCall, LocalAssignment,
+    Block,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 
 pub mod assignment_formatter;
+pub mod block_formatter;
 pub mod eof_formatter;
 pub mod expression_formatter;
 pub mod functions_formatter;
@@ -14,7 +15,7 @@ pub mod table_formatter;
 pub mod trivia_formatter;
 
 #[derive(Default)]
-pub struct FileFormatter {
+pub struct CodeFormatter {
     indent_level: usize,
 }
 
@@ -72,93 +73,14 @@ pub fn format_punctuated<'a, T>(
     formatted
 }
 
-// Indents will increase at the start of a new block, or within tables, and decrease at the end of them
-// New lines will occur at the end of assignments
-
-// The following visitors are unnecessary to use, as they should be handled by other visitors:
-// visit_expression -> Never present on its own, part of larger syntax
-// visit_value -> Part of expression
-// visit_bin_op -> Part of Expression::Value
-// visit_table_constructor -> Always presented within an expression, handled by Value
-// visit_var -> Always handled by assignments or values
-// visit_var_expression -> Part of Var
-// visit_suffix -> Handled by FunctionCall/VarExpression
-// visit_call -> Handled within FunctionCall
-// visit_anonymous_call -> Part of Call
-// visit_method_call -> Part of Call
-// visit_function_args -> Part of MethodCall
-
-impl<'ast> VisitorMut<'ast> for FileFormatter {
+impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.indent_level += 1;
-        node
+        block_formatter::format_block(node, &self.indent_level)
     }
 
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.indent_level -= 1;
         node
-    }
-
-    fn visit_assignment(&mut self, node: Assignment<'ast>) -> Assignment<'ast> {
-        assignment_formatter::format_assignment(node)
-    }
-
-    fn visit_assignment_end(&mut self, node: Assignment<'ast>) -> Assignment<'ast> {
-        // Add newline at the end of Assignment expression list
-        // Expression list should already be formatted
-        let mut formatted_expression_list = node.expr_list().to_owned();
-
-        // Retrieve last item and add new line to it
-        if let Some(last_pair) = formatted_expression_list.pop() {
-            match last_pair {
-                Pair::End(value) => {
-                    let expression = trivia_formatter::expression_add_trailing_trivia(
-                        value,
-                        vec![create_newline_trivia()],
-                    );
-                    formatted_expression_list.push(Pair::End(expression));
-                }
-                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
-            }
-        }
-
-        node.with_expr_list(formatted_expression_list)
-    }
-
-    fn visit_local_assignment(&mut self, node: LocalAssignment<'ast>) -> LocalAssignment<'ast> {
-        assignment_formatter::format_local_assignment(node)
-    }
-
-    fn visit_local_assignment_end(&mut self, node: LocalAssignment<'ast>) -> LocalAssignment<'ast> {
-        // Add newline at the end of LocalAssignment expression list
-        // Expression list should already be formatted
-        let mut formatted_expression_list = node.expr_list().to_owned();
-
-        // Retrieve last item and add new line to it
-        if let Some(last_pair) = formatted_expression_list.pop() {
-            match last_pair {
-                Pair::End(value) => {
-                    let expression = trivia_formatter::expression_add_trailing_trivia(
-                        value,
-                        vec![create_newline_trivia()],
-                    );
-                    formatted_expression_list.push(Pair::End(expression));
-                }
-                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
-            }
-        }
-
-        node.with_expr_list(formatted_expression_list)
-    }
-
-    fn visit_function_call(&mut self, function_call: FunctionCall<'ast>) -> FunctionCall<'ast> {
-        // TODO: There is a bit of overlap with this and Assignment/LocalAssignment, is there any way we can resolve this?
-        // Have to keep this for general calls, eg. "call(x)", but its already formatted in assigments, eg. "local x = call(y)"
-        functions_formatter::format_function_call(function_call)
-    }
-
-    fn visit_function_call_end(&mut self, function_call: FunctionCall<'ast>) -> FunctionCall<'ast> {
-        // TODO: This *definitely* has an overlap with assignment_end, causing two newlines. Need to resolve this
-        trivia_formatter::function_call_add_trailing_trivia(function_call, vec![create_newline_trivia()])
     }
 }
