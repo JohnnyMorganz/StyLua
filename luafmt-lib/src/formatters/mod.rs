@@ -1,6 +1,6 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
-    Block,
+    Block, FunctionBody,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
@@ -82,5 +82,23 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.indent_level -= 1;
         node
+    }
+
+    // Special case where trivia needs to be added, and it isn't handled elsewhere
+    fn visit_function_body_end(&mut self, function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
+        let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+            function_body.parameters_parentheses().to_owned(),
+            None,
+            Some(vec![create_newline_trivia()]),
+        );
+        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            function_body.end_token().to_owned(),
+            Some(vec![create_indent_trivia(&self.indent_level)]),
+            None,
+        ));
+
+        function_body
+            .with_parameters_parentheses(parameters_parentheses)
+            .with_end_token(end_token)
     }
 }

@@ -85,10 +85,10 @@ pub fn format_function_args<'ast>(function_args: FunctionArgs<'ast>) -> Function
 pub fn format_function_body<'ast>(function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
     let parameters_parentheses = ContainedSpan::new(
         Cow::Owned(TokenReference::symbol("(").unwrap()),
-        Cow::Owned(TokenReference::symbol(")\n").unwrap()), // TODO: Handle newline trivia properly
+        Cow::Owned(TokenReference::symbol(")").unwrap()),
     );
     let formatted_parameters = format_parameters(function_body.to_owned());
-    let end_token = Cow::Owned(TokenReference::symbol("end").unwrap()); // TODO: Handle indent leading trivia for end token
+    let end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
 
     function_body
         .with_parameters_parentheses(parameters_parentheses)
