@@ -247,6 +247,17 @@ pub fn var_expression_add_trailing_trivia<'ast>(
     var_expression: VarExpression<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> VarExpression<'ast> {
-    // TODO: Complete this
-    var_expression
+    // TODO: This is copied from FunctionCall, can we combine them?
+    let mut new_suffixes: Vec<Suffix<'ast>> = var_expression
+        .iter_suffixes()
+        .map(|x| x.to_owned())
+        .collect();
+    if let Some(last_suffix) = new_suffixes.last() {
+        new_suffixes.push(suffix_add_trailing_trivia(
+            last_suffix.to_owned(),
+            trailing_trivia,
+        ))
+    }
+
+    var_expression.with_suffixes(new_suffixes)
 }
