@@ -109,7 +109,7 @@ pub fn function_call_add_trailing_trivia<'ast>(
         .iter_suffixes()
         .map(|x| x.to_owned())
         .collect();
-    if let Some(last_suffix) = new_suffixes.last() {
+    if let Some(last_suffix) = new_suffixes.pop() {
         new_suffixes.push(suffix_add_trailing_trivia(
             last_suffix.to_owned(),
             trailing_trivia,
@@ -252,7 +252,7 @@ pub fn var_expression_add_trailing_trivia<'ast>(
         .iter_suffixes()
         .map(|x| x.to_owned())
         .collect();
-    if let Some(last_suffix) = new_suffixes.last() {
+    if let Some(last_suffix) = new_suffixes.pop() {
         new_suffixes.push(suffix_add_trailing_trivia(
             last_suffix.to_owned(),
             trailing_trivia,
