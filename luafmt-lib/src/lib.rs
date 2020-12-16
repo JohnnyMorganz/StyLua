@@ -1,9 +1,9 @@
-use full_moon::ast::{owned::Owned};
+use full_moon::ast::owned::Owned;
 use full_moon::visitors::VisitorMut;
 
 mod formatters;
 
-pub fn format_code(code: &'static str) -> String {
+pub fn format_code(code: &str) -> String {
     // let ast = match full_moon::parse(&code) {
     //     Ok(ast) => ast.owned(),
     //     Err(error) => {
@@ -13,10 +13,7 @@ pub fn format_code(code: &'static str) -> String {
 
     let mut ast = full_moon::parse(&code).expect("error parse").owned();
 
-    // We must do these in specific order, so that the latter formattings have less work to do
-    ast = formatters::value_formatter::ValueFormatter::default().visit_ast(ast);
-    ast = formatters::assignment_formatter::AssignmentFormatter::default().visit_ast(ast);
-    ast = formatters::eof_formatter::EofFormatter::default().visit_ast(ast);
+    ast = formatters::FileFormatter::default().visit_ast(ast);
 
     full_moon::print(&ast)
 }
