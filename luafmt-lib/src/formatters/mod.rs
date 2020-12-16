@@ -1,6 +1,6 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
-    Assignment, Block, FunctionArgs, LocalAssignment,
+    Assignment, Block, FunctionCall, LocalAssignment,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
@@ -151,8 +151,14 @@ impl<'ast> VisitorMut<'ast> for FileFormatter {
         node.with_expr_list(formatted_expression_list)
     }
 
-    // TODO: Remove this, we will never have FunctionArgs by themselves. This should be handled in FunctionCall
-    fn visit_function_args(&mut self, function_args: FunctionArgs<'ast>) -> FunctionArgs<'ast> {
-        functions_formatter::format_function_args(function_args)
+    fn visit_function_call(&mut self, function_call: FunctionCall<'ast>) -> FunctionCall<'ast> {
+        // TODO: There is a bit of overlap with this and Assignment/LocalAssignment, is there any way we can resolve this?
+        // Have to keep this for general calls, eg. "call(x)", but its already formatted in assigments, eg. "local x = call(y)"
+        functions_formatter::format_function_call(function_call)
+    }
+
+    fn visit_function_call_end(&mut self, function_call: FunctionCall<'ast>) -> FunctionCall<'ast> {
+        // TODO: This *definitely* has an overlap with assignment_end, causing two newlines. Need to resolve this
+        trivia_formatter::function_call_add_trailing_trivia(function_call, vec![create_newline_trivia()])
     }
 }
