@@ -20,7 +20,7 @@ pub struct CodeFormatter {
 }
 
 pub fn create_indent_trivia<'ast>(indent_level: &usize) -> Token<'ast> {
-    Token::new(TokenType::tabs(*indent_level))
+    Token::new(TokenType::tabs(*indent_level - 1)) // indent_level starts at 1
 }
 
 pub fn create_newline_trivia<'ast>() -> Token<'ast> {
