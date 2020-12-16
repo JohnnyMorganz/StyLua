@@ -43,13 +43,21 @@ pub fn format_field<'ast>(field: &Field<'ast>) -> Field<'ast> {
 pub fn format_table_constructor<'ast>(
     table_constructor: TableConstructor<'ast>,
 ) -> TableConstructor<'ast> {
-    let braces = ContainedSpan::new(
-        Cow::Owned(TokenReference::symbol("{ ").unwrap()), // TODO: No whitespace if multiline table
-        Cow::Owned(TokenReference::symbol(" }").unwrap()),
-    );
-
     let mut fields = Punctuated::new();
     let mut current_fields = table_constructor.iter_fields().peekable();
+
+    let braces = match current_fields.peek() {
+        Some(_) => ContainedSpan::new(
+            Cow::Owned(TokenReference::symbol("{ ").unwrap()), // TODO: No whitespace if multiline table
+            Cow::Owned(TokenReference::symbol(" }").unwrap()),
+        ),
+
+        // Table is empty, so don't add spaces in between braces
+        None => ContainedSpan::new(
+            Cow::Owned(TokenReference::symbol("{").unwrap()),
+            Cow::Owned(TokenReference::symbol("}").unwrap()),
+        ),
+    };
 
     // TODO: Determine if to make a single or multi-line table
     // TODO: Should we sort NameKey/ExpressionKey tables?

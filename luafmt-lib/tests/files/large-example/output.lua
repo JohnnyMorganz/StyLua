@@ -3,7 +3,7 @@ local ERROR_NON_LIST = "Please pass a list of promises to %s"
 local ERROR_NON_FUNCTION = "Please pass a handler function to %s!"
 local MODE_KEY_METATABLE = { __mode = "k" }
 local function makeEnum(enumName, members)
-	local enum = {  }
+	local enum = {}
 	for _, memberName in ipairs(members) do
 		enum[memberName] = memberName
 	end
@@ -18,7 +18,7 @@ do
 	Error = { Kind = makeEnum("Promise.Error.Kind", { "ExecutionError", "AlreadyCancelled", "NotResolvedInTime", "TimedOut" }) }
 	Error.__index = Error
 	function Error.new(options, parent)
-		options = options or {  }
+		options = options or {}
 		return setmetatable({ error = tostring(options.error) or "[This error has no error text.]", trace = options.trace, context = options.context, kind = options.kind, parent = parent, createdTick = os.clock(), createdTrace = debug.traceback() }, Error)
 	end
 	function Error.is(anything)
@@ -35,7 +35,7 @@ do
 		return Error.is(anything) and anything.kind == kind
 	end
 	function Error:extend(options)
-		options = options or {  }
+		options = options or {}
 		options.kind = options.kind or self.kind
 		return Error.new(options, self)
 	end
@@ -86,13 +86,13 @@ local function isEmpty(t)
 	return next(t) == nil
 end
 local Promise = { Error = Error, Status = makeEnum("Promise.Status", { "Started", "Resolved", "Rejected", "Cancelled" }), _getTime = os.clock, _timeEvent = game:GetService("RunService").Heartbeat }
-Promise.prototype = {  }
+Promise.prototype = {}
 Promise.__index = Promise.prototype
 function Promise._new(traceback, callback, parent)
 	if parent ~= nil and not Promise.is(parent) then
 		error("Argument #2 to Promise.new must be a promise or nil", 2)
 	end
-	local self = { _source = traceback, _status = Promise.Status.Started, _values = nil, _valuesLength = -1, _unhandledRejection = true, _queuedResolve = {  }, _queuedReject = {  }, _queuedFinally = {  }, _cancellationHook = nil, _parent = parent, _consumers = setmetatable({  }, MODE_KEY_METATABLE) }
+	local self = { _source = traceback, _status = Promise.Status.Started, _values = nil, _valuesLength = -1, _unhandledRejection = true, _queuedResolve = {}, _queuedReject = {}, _queuedFinally = {}, _cancellationHook = nil, _parent = parent, _consumers = setmetatable({}, MODE_KEY_METATABLE) }
 	if parent and parent._status == Promise.Status.Started then
 		parent._consumers[self] = true
 	end
@@ -174,11 +174,11 @@ function Promise._all(traceback, promises, amount)
 		end
 	end
 	if #promises == 0 or amount == 0 then
-		return Promise.resolve({  })
+		return Promise.resolve({})
 	end
 	return Promise._new(traceback, function(resolve, reject, onCancel)
-		local resolvedValues = {  }
-		local newPromises = {  }
+		local resolvedValues = {}
+		local newPromises = {}
 		local resolvedCount = 0
 		local rejectedCount = 0
 		local done = false
@@ -253,11 +253,11 @@ function Promise.allSettled(promises)
 		end
 	end
 	if #promises == 0 then
-		return Promise.resolve({  })
+		return Promise.resolve({})
 	end
 	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
-		local fates = {  }
-		local newPromises = {  }
+		local fates = {}
+		local newPromises = {}
 		local finishedCount = 0
 		local function resolveOne(i, ...)
 			finishedCount = finishedCount + 1
@@ -284,7 +284,7 @@ function Promise.race(promises)
 		assert(Promise.is(promise), string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.race", tostring(i)))
 	end
 	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
-		local newPromises = {  }
+		local newPromises = {}
 		local finished = false
 		local function cancel()
 			for _, promise in ipairs(newPromises) do
@@ -313,8 +313,8 @@ function Promise.each(list, predicate)
 	assert(type(list) == "table", string.format(ERROR_NON_LIST, "Promise.each"))
 	assert(type(predicate) == "function", string.format(ERROR_NON_FUNCTION, "Promise.each"))
 	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
-		local results = {  }
-		local promisesToCancel = {  }
+		local results = {}
+		local promisesToCancel = {}
 		local cancelled = false
 		local function cancel()
 			for _, promiseToCancel in ipairs(promisesToCancel) do
@@ -325,7 +325,7 @@ function Promise.each(list, predicate)
 			cancelled = true
 			cancel()
 		end)
-		local preprocessedList = {  }
+		local preprocessedList = {}
 		for index, value in ipairs(list) do
 			if Promise.is(value) then
 				if value:getStatus() == Promise.Status.Cancelled then
