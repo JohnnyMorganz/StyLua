@@ -1,17 +1,56 @@
 use full_moon::ast::{
-    span::ContainedSpan, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
+    span::ContainedSpan, BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
+    VarExpression,
 };
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
-use std::borrow::Cow;
+use std::{borrow::Cow, boxed::Box};
 
 use crate::formatters::{format_token_reference, functions_formatter, table_formatter};
 
+pub fn format_binop<'ast>(binop: BinOp<'ast>) -> BinOp<'ast> {
+    match binop {
+        BinOp::And(_) => BinOp::And(Cow::Owned(TokenReference::symbol(" and ").unwrap())),
+        BinOp::Caret(_) => BinOp::Caret(Cow::Owned(TokenReference::symbol(" ^ ").unwrap())),
+        BinOp::GreaterThan(_) => {
+            BinOp::GreaterThan(Cow::Owned(TokenReference::symbol(" > ").unwrap()))
+        }
+        BinOp::GreaterThanEqual(_) => {
+            BinOp::GreaterThanEqual(Cow::Owned(TokenReference::symbol(" >= ").unwrap()))
+        }
+        BinOp::LessThan(_) => BinOp::LessThan(Cow::Owned(TokenReference::symbol(" < ").unwrap())),
+        BinOp::LessThanEqual(_) => {
+            BinOp::LessThanEqual(Cow::Owned(TokenReference::symbol(" <= ").unwrap()))
+        }
+        BinOp::Minus(_) => BinOp::Minus(Cow::Owned(TokenReference::symbol(" - ").unwrap())),
+        BinOp::Or(_) => BinOp::Or(Cow::Owned(TokenReference::symbol(" or ").unwrap())),
+        BinOp::Percent(_) => BinOp::Percent(Cow::Owned(TokenReference::symbol(" % ").unwrap())),
+        BinOp::Plus(_) => BinOp::Plus(Cow::Owned(TokenReference::symbol(" + ").unwrap())),
+        BinOp::Slash(_) => BinOp::Slash(Cow::Owned(TokenReference::symbol(" / ").unwrap())),
+        BinOp::Star(_) => BinOp::Star(Cow::Owned(TokenReference::symbol(" * ").unwrap())),
+        BinOp::TildeEqual(_) => {
+            BinOp::TildeEqual(Cow::Owned(TokenReference::symbol(" ~= ").unwrap()))
+        }
+        BinOp::TwoDots(_) => BinOp::TwoDots(Cow::Owned(TokenReference::symbol(" .. ").unwrap())),
+        BinOp::TwoEqual(_) => BinOp::TwoEqual(Cow::Owned(TokenReference::symbol(" == ").unwrap())),
+    }
+}
+
+pub fn format_bin_op_rhs<'ast>(bin_op_rhs: BinOpRhs<'ast>) -> BinOpRhs<'ast> {
+    BinOpRhs::new(
+        format_binop(bin_op_rhs.bin_op().to_owned()),
+        Box::new(format_expression(bin_op_rhs.rhs().to_owned())),
+    )
+}
+
 /// Formats an Expression node
-pub fn format_expression<'a>(expression: Expression<'a>) -> Expression<'a> {
+pub fn format_expression<'ast>(expression: Expression<'ast>) -> Expression<'ast> {
     match expression {
         Expression::Value { value, binop } => Expression::Value {
             value: Box::new(format_value(*value)),
-            binop,
+            binop: match binop {
+                Some(value) => Some(format_bin_op_rhs(value)),
+                None => None,
+            },
         },
         Expression::Parentheses {
             contained: _,
