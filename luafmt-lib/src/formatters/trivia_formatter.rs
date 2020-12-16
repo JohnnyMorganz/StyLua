@@ -80,7 +80,7 @@ pub fn function_args_add_trailing_trivia<'ast>(
 
         // Add for completeness
         FunctionArgs::String(token_reference) => FunctionArgs::String(Cow::Owned(
-            token_reference_add_trailing_trivia(*token_reference, trailing_trivia),
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
         )),
         FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
             table_constructor_add_trailing_trivia(table_constructor, trailing_trivia),
@@ -93,8 +93,9 @@ pub fn function_body_add_trailing_trivia<'ast>(
     function_body: FunctionBody<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> FunctionBody<'ast> {
+    let function_body_token = function_body.end_token().to_owned();
     function_body.with_end_token(Cow::Owned(token_reference_add_trailing_trivia(
-        function_body.end_token().to_owned(),
+        function_body_token,
         trailing_trivia,
     )))
 }
@@ -104,7 +105,7 @@ pub fn function_call_add_trailing_trivia<'ast>(
     function_call: FunctionCall<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> FunctionCall<'ast> {
-    let new_suffixes: Vec<Suffix<'ast>> = function_call
+    let mut new_suffixes: Vec<Suffix<'ast>> = function_call
         .iter_suffixes()
         .map(|x| x.to_owned())
         .collect();
@@ -133,7 +134,10 @@ pub fn index_add_trailing_trivia<'ast>(
         },
         Index::Dot { dot, name } => Index::Dot {
             dot,
-            name: Cow::Owned(token_reference_add_trailing_trivia(*name, trailing_trivia)),
+            name: Cow::Owned(token_reference_add_trailing_trivia(
+                name.into_owned(),
+                trailing_trivia,
+            )),
         },
     }
 }
@@ -143,8 +147,9 @@ pub fn method_call_add_trailing_trivia<'ast>(
     method_call: MethodCall<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> MethodCall<'ast> {
+    let method_call_args = method_call.args().to_owned();
     method_call.with_args(function_args_add_trailing_trivia(
-        method_call.args().to_owned(),
+        method_call_args,
         trailing_trivia,
     ))
 }
@@ -165,8 +170,9 @@ pub fn table_constructor_add_trailing_trivia<'ast>(
     table_constructor: TableConstructor<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> TableConstructor<'ast> {
+    let table_constructor_braces = table_constructor.braces().to_owned();
     table_constructor.with_braces(contained_span_add_trailing_trivia(
-        table_constructor.braces().to_owned(),
+        table_constructor_braces,
         trailing_trivia,
     ))
 }
@@ -194,13 +200,13 @@ pub fn value_add_trailing_trivia<'ast>(
 ) -> Value<'ast> {
     match value {
         Value::String(token_reference) => Value::String(Cow::Owned(
-            token_reference_add_trailing_trivia(*token_reference, trailing_trivia),
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
         )),
         Value::Number(token_reference) => Value::Number(Cow::Owned(
-            token_reference_add_trailing_trivia(*token_reference, trailing_trivia),
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
         )),
         Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(
-            token_reference_add_trailing_trivia(*token_reference, trailing_trivia),
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
         )),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
@@ -226,7 +232,7 @@ pub fn var_add_trailing_trivia<'ast>(
 ) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trailing_trivia(
-            *token_reference,
+            token_reference.into_owned(),
             trailing_trivia,
         ))),
         Var::Expression(var_expression) => Var::Expression(var_expression_add_trailing_trivia(
