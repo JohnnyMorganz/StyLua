@@ -28,14 +28,14 @@ pub fn create_newline_trivia<'ast>() -> Token<'ast> {
     })
 }
 
+pub fn format_plain_token_reference<'a>(token_reference: TokenReference<'a>) -> TokenReference<'a> {
+    TokenReference::new(Vec::new(), token_reference.token().to_owned(), Vec::new())
+}
+
 pub fn format_token_reference<'a>(
     token_reference: Cow<'a, TokenReference<'a>>,
 ) -> Cow<'a, TokenReference<'a>> {
-    Cow::Owned(TokenReference::new(
-        Vec::new(),
-        token_reference.token().to_owned(),
-        Vec::new(),
-    ))
+    Cow::Owned(format_plain_token_reference(token_reference.into_owned()))
 }
 
 pub fn format_punctuation<'ast>(
