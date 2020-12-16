@@ -174,9 +174,9 @@ pub fn format_var_expression<'ast>(var_expression: VarExpression<'ast>) -> VarEx
 /// Formats an UnOp Node
 pub fn format_unop<'ast>(unop: UnOp<'ast>) -> UnOp<'ast> {
     match unop {
-        UnOp::Minus(token_reference) => UnOp::Minus(format_token_reference(token_reference)),
-        UnOp::Not(token_reference) => UnOp::Not(format_token_reference(token_reference)),
-        UnOp::Hash(token_reference) => UnOp::Hash(format_token_reference(token_reference)),
+        UnOp::Minus(_) => UnOp::Minus(Cow::Owned(TokenReference::symbol("-").unwrap())),
+        UnOp::Not(_) => UnOp::Not(Cow::Owned(TokenReference::symbol("not ").unwrap())),
+        UnOp::Hash(_) => UnOp::Hash(Cow::Owned(TokenReference::symbol("#").unwrap())),
     }
 }
 
