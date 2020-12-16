@@ -1,6 +1,6 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
-    Assignment, Block, LocalAssignment,
+    Assignment, Block, FunctionArgs, LocalAssignment,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
@@ -75,6 +75,19 @@ pub fn format_punctuated<'a, T>(
 // Indents will increase at the start of a new block, or within tables, and decrease at the end of them
 // New lines will occur at the end of assignments
 
+// The following visitors are unnecessary to use, as they should be handled by other visitors:
+// visit_expression -> Never present on its own, part of larger syntax
+// visit_value -> Part of expression
+// visit_bin_op -> Part of Expression::Value
+// visit_table_constructor -> Always presented within an expression, handled by Value
+// visit_var -> Always handled by assignments or values
+// visit_var_expression -> Part of Var
+// visit_suffix -> Handled by FunctionCall/VarExpression
+// visit_call -> Handled within FunctionCall
+// visit_anonymous_call -> Part of Call
+// visit_method_call -> Part of Call
+// visit_function_args -> Part of MethodCall
+
 impl<'ast> VisitorMut<'ast> for FileFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.indent_level += 1;
@@ -136,5 +149,10 @@ impl<'ast> VisitorMut<'ast> for FileFormatter {
         }
 
         node.with_expr_list(formatted_expression_list)
+    }
+
+    // TODO: Remove this, we will never have FunctionArgs by themselves. This should be handled in FunctionCall
+    fn visit_function_args(&mut self, function_args: FunctionArgs<'ast>) -> FunctionArgs<'ast> {
+        functions_formatter::format_function_args(function_args)
     }
 }

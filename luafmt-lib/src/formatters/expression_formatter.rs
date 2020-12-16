@@ -2,7 +2,7 @@ use full_moon::ast::{span::ContainedSpan, Expression, UnOp, Value, Var};
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
 use std::borrow::Cow;
 
-use crate::formatters::format_token_reference;
+use crate::formatters::{format_token_reference, table_formatter};
 
 /// Formats a Var Node
 pub fn format_var<'ast>(var: Var<'ast>) -> Var<'ast> {
@@ -44,6 +44,9 @@ pub fn format_value<'ast>(value: Value<'ast>) -> Value<'ast> {
 
         Value::Number(token_reference) => Value::Number(format_token_reference(token_reference)),
         Value::Symbol(token_reference) => Value::Symbol(format_token_reference(token_reference)),
+        Value::TableConstructor(table_constructor) => {
+            Value::TableConstructor(table_formatter::format_table_constructor(table_constructor))
+        }
         Value::Var(var) => Value::Var(format_var(var)),
         // TODO: Handle remainder
         _ => value,
