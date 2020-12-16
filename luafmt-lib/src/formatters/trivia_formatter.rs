@@ -14,6 +14,31 @@ pub fn assignment_add_trivia<'ast>(
     leading_trivia: Vec<Token<'ast>>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> Assignment<'ast> {
+    let mut formatted_var_list = Punctuated::new();
+    let mut iterator = assignment.var_list().pairs();
+
+    // Retrieve first item and add indent to trailing trivia
+    if let Some(first_pair) = iterator.next() {
+        match first_pair {
+            Pair::End(value) => {
+                formatted_var_list.push(Pair::new(
+                    var_add_leading_trivia(value.to_owned(), leading_trivia),
+                    None,
+                ));
+            }
+            Pair::Punctuated(value, punctuation) => {
+                formatted_var_list.push(Pair::new(
+                    var_add_leading_trivia(value.to_owned(), leading_trivia),
+                    Some(punctuation.to_owned()),
+                ));
+            }
+        }
+    }
+
+    for pair in iterator {
+        formatted_var_list.push(pair.to_owned())
+    }
+
     // TODO: Add leading trivia
     let mut formatted_expression_list = assignment.expr_list().to_owned();
 
@@ -28,7 +53,9 @@ pub fn assignment_add_trivia<'ast>(
         }
     }
 
-    assignment.with_expr_list(formatted_expression_list)
+    assignment
+        .with_var_list(formatted_var_list)
+        .with_expr_list(formatted_expression_list)
 }
 
 pub fn function_call_add_trivia<'ast>(
@@ -51,24 +78,49 @@ pub fn local_assignment_add_trivia<'ast>(
         None,
     );
 
-    // Add newline at the end of LocalAssignment expression list
-    // Expression list should already be formatted
-    let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+    // TODO: Can we simplify the following?
+    if local_assignment.expr_list().is_empty() {
+        // Unassigned local variable
+        let mut formatted_name_list = local_assignment.name_list().to_owned();
 
-    // Retrieve last item and add new line to it
-    if let Some(last_pair) = formatted_expression_list.pop() {
-        match last_pair {
-            Pair::End(value) => {
-                let expression = expression_add_trailing_trivia(value, trailing_trivia);
-                formatted_expression_list.push(Pair::End(expression));
+        // Retrieve last item and add new line to it
+        if let Some(last_pair) = formatted_name_list.pop() {
+            match last_pair {
+                Pair::End(value) => {
+                    let value = Cow::Owned(token_reference_add_trivia(
+                        value.into_owned(),
+                        None,
+                        Some(trailing_trivia),
+                    ));
+                    formatted_name_list.push(Pair::End(value));
+                }
+                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
             }
-            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
         }
-    }
 
-    local_assignment
-        .with_local_token(Cow::Owned(local_token))
-        .with_expr_list(formatted_expression_list)
+        local_assignment
+            .with_local_token(Cow::Owned(local_token))
+            .with_name_list(formatted_name_list)
+    } else {
+        // Add newline at the end of LocalAssignment expression list
+        // Expression list should already be formatted
+        let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+
+        // Retrieve last item and add new line to it
+        if let Some(last_pair) = formatted_expression_list.pop() {
+            match last_pair {
+                Pair::End(value) => {
+                    let expression = expression_add_trailing_trivia(value, trailing_trivia);
+                    formatted_expression_list.push(Pair::End(expression));
+                }
+                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+            }
+        }
+
+        local_assignment
+            .with_local_token(Cow::Owned(local_token))
+            .with_expr_list(formatted_expression_list)
+    }
 }
 
 pub fn do_block_add_trivia<'ast>(
@@ -624,6 +676,20 @@ pub fn value_add_trailing_trivia<'ast>(
     }
 }
 
+pub fn var_add_leading_trivia<'ast>(var: Var<'ast>, leading_trivia: Vec<Token<'ast>>) -> Var<'ast> {
+    match var {
+        Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        Var::Expression(var_expresion) => Var::Expression(var_expression_add_leading_trivia(
+            var_expresion,
+            leading_trivia,
+        )),
+    }
+}
+
 /// Adds trailing trivia at the end of a Var node
 pub fn var_add_trailing_trivia<'ast>(
     var: Var<'ast>,
@@ -639,6 +705,14 @@ pub fn var_add_trailing_trivia<'ast>(
             trailing_trivia,
         )),
     }
+}
+
+pub fn var_expression_add_leading_trivia<'ast>(
+    var_expresion: VarExpression<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> VarExpression<'ast> {
+    let prefix = prefix_add_leading_trivia(var_expresion.prefix().to_owned(), leading_trivia);
+    var_expresion.with_prefix(prefix)
 }
 
 /// Adds trailing trivia at the end of a VarExpression node
