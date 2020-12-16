@@ -110,8 +110,23 @@ pub fn format_function_call<'ast>(function_call: FunctionCall<'ast>) -> Function
 
 /// Formats a FunctionName node
 pub fn format_function_name<'ast>(function_name: FunctionName<'ast>) -> FunctionName<'ast> {
-    let formatted_names =
-        format_punctuated(function_name.names().to_owned(), &format_token_reference);
+    // TODO: This is based off formatters::format_punctuated - can we merge them into one?
+    let mut formatted_names = Punctuated::new();
+    for pair in function_name.names().to_owned().into_pairs() {
+        // Format Punctuation
+        match pair {
+            Pair::Punctuated(value, _) => {
+                let formatted_punctuation = Cow::Owned(TokenReference::symbol(".").unwrap());
+                let formatted_value = format_token_reference(value);
+                formatted_names.push(Pair::new(formatted_value, Some(formatted_punctuation)));
+            }
+            Pair::End(value) => {
+                let formatted_value = format_token_reference(value);
+                formatted_names.push(Pair::new(formatted_value, None));
+            }
+        }
+    }
+
     let mut formatted_method: Option<(
         Cow<'ast, TokenReference<'ast>>,
         Cow<'ast, TokenReference<'ast>>,
