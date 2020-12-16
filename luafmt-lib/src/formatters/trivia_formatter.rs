@@ -1,9 +1,68 @@
 use full_moon::ast::{
-    span::ContainedSpan, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index,
+    punctuated::{Pair, Punctuated},
+    span::ContainedSpan,
+    Assignment, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index, LocalAssignment,
     MethodCall, Suffix, TableConstructor, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
+
+// Special Case for Statements
+pub fn assignment_add_trivia<'ast>(
+    assignment: Assignment<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> Assignment<'ast> {
+    // TODO: Add leading trivia
+    let mut formatted_expression_list = assignment.expr_list().to_owned();
+
+    // Retrieve last item and add new line to it
+    if let Some(last_pair) = formatted_expression_list.pop() {
+        match last_pair {
+            Pair::End(value) => {
+                let expression = expression_add_trailing_trivia(value, trailing_trivia);
+                formatted_expression_list.push(Pair::End(expression));
+            }
+            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+        }
+    }
+
+    assignment.with_expr_list(formatted_expression_list)
+}
+
+pub fn function_call_add_trivia<'ast>(
+    function_call: FunctionCall<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> FunctionCall<'ast> {
+    function_call_add_trailing_trivia(function_call, trailing_trivia)
+}
+
+pub fn local_assignment_add_trivia<'ast>(
+    local_assignment: LocalAssignment<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> LocalAssignment<'ast> {
+    // TODO: Add trailing trivia
+    // Add newline at the end of LocalAssignment expression list
+    // Expression list should already be formatted
+    let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+
+    // Retrieve last item and add new line to it
+    if let Some(last_pair) = formatted_expression_list.pop() {
+        match last_pair {
+            Pair::End(value) => {
+                let expression = expression_add_trailing_trivia(value, trailing_trivia);
+                formatted_expression_list.push(Pair::End(expression));
+            }
+            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+        }
+    }
+
+    local_assignment.with_expr_list(formatted_expression_list)
+}
+
+// Remainder of Nodes
 
 /// Adds trailing trivia at the end of a ContainedSpan node
 pub fn contained_span_add_trailing_trivia<'ast>(
