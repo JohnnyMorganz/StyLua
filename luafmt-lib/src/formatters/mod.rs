@@ -3,7 +3,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Block, FunctionBody,
 };
-use full_moon::tokenizer::{Token, TokenReference, TokenType};
+use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 
@@ -30,8 +30,54 @@ pub fn create_newline_trivia<'ast>() -> Token<'ast> {
     })
 }
 
+pub fn format_token<'ast>(token: Token<'ast>) -> Token<'ast> {
+    let token_type = match token.token_type() {
+        TokenType::StringLiteral {
+            literal,
+            multi_line,
+            quote_type: _,
+        } => TokenType::StringLiteral {
+            literal: literal.to_owned(),
+            multi_line: match multi_line {
+                Some(size) => Some(*size),
+                None => None,
+            },
+            quote_type: StringLiteralQuoteType::Double,
+        },
+        TokenType::SingleLineComment { comment } => {
+            let mut new_str = comment.to_owned().into_owned();
+            new_str.push('\n');
+            TokenType::SingleLineComment {
+                comment: Cow::Owned(new_str),
+            }
+        }
+        TokenType::Whitespace { characters } => TokenType::Whitespace {
+            characters: characters.to_owned(),
+        }, // TODO
+        _ => token.token_type().to_owned(),
+    };
+
+    Token::new(token_type)
+}
+
 pub fn format_plain_token_reference<'a>(token_reference: TokenReference<'a>) -> TokenReference<'a> {
-    TokenReference::new(Vec::new(), token_reference.token().to_owned(), Vec::new())
+    // Preserve comments in leading/trailing trivia
+    let formatted_leading_trivia: Vec<Token<'a>> = token_reference
+        .leading_trivia()
+        .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
+        .map(|x| format_token(x.to_owned()))
+        .collect();
+    let formatted_trailing_trivia: Vec<Token<'a>> = token_reference
+        .trailing_trivia()
+        .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
+        .map(|x| format_token(x.to_owned()))
+        .collect();
+
+    TokenReference::new(
+        formatted_leading_trivia,
+        format_token(token_reference.token().to_owned()),
+        formatted_trailing_trivia,
+    )
 }
 
 pub fn format_token_reference<'a>(
@@ -81,6 +127,47 @@ pub fn format_contained_span<'ast>(contained_span: ContainedSpan<'ast>) -> Conta
         Cow::Owned(format_plain_token_reference(start_token.to_owned())),
         Cow::Owned(format_plain_token_reference(end_token.to_owned())),
     )
+}
+
+/// Formats a special TokenReference which is a symbol
+/// Used to preserve the comments around the symbol
+pub fn format_symbol<'ast>(
+    current_symbol: TokenReference<'ast>,
+    wanted_symbol: TokenReference<'ast>,
+) -> Cow<'ast, TokenReference<'ast>> {
+    // TODO: This is copied from format_token_reference, can we simplify this?
+    // Preserve comments in leading/trailing trivia
+    let mut formatted_leading_trivia: Vec<Token<'ast>> = current_symbol
+        .leading_trivia()
+        .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
+        .map(|x| format_token(x.to_owned()))
+        .collect();
+    let mut formatted_trailing_trivia: Vec<Token<'ast>> = current_symbol
+        .trailing_trivia()
+        .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
+        .map(|x| format_token(x.to_owned()))
+        .collect();
+
+    // Add on any whitespace created in the new symbol
+    // The wanted leading trivia should be added to the end of formatted_leading_trivia
+    // whilst the wanted trailing trivia should be added to the start of formatted_trailing_trivia
+    // so that the token is "wrapped" around
+    let mut wanted_leading_trivia: Vec<Token<'ast>> = wanted_symbol
+        .leading_trivia()
+        .map(|x| x.to_owned())
+        .collect();
+    let wanted_trailing_trivia: Vec<Token<'ast>> = wanted_symbol
+        .trailing_trivia()
+        .map(|x| x.to_owned())
+        .collect();
+    wanted_leading_trivia.append(&mut formatted_trailing_trivia);
+    formatted_leading_trivia.append(&mut wanted_leading_trivia);
+
+    Cow::Owned(TokenReference::new(
+        formatted_leading_trivia,
+        wanted_symbol.token().to_owned(),
+        wanted_trailing_trivia,
+    ))
 }
 
 impl<'ast> VisitorMut<'ast> for CodeFormatter {
