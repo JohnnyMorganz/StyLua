@@ -9,7 +9,8 @@ use std::borrow::Cow;
 use std::boxed::Box;
 
 use crate::formatters::{
-    expression_formatter, format_plain_token_reference, format_punctuated, format_token_reference,
+    expression_formatter, format_contained_span, format_plain_token_reference, format_punctuated,
+    format_token_reference,
 };
 
 /// Formats a Call node
@@ -26,17 +27,14 @@ pub fn format_call<'ast>(call: Call<'ast>) -> Call<'ast> {
 pub fn format_function_args<'ast>(function_args: FunctionArgs<'ast>) -> FunctionArgs<'ast> {
     match function_args {
         FunctionArgs::Parentheses {
-            parentheses: _,
+            parentheses,
             arguments,
         } => {
             let formatted_arguments =
                 format_punctuated(arguments, &expression_formatter::format_expression);
 
             FunctionArgs::Parentheses {
-                parentheses: ContainedSpan::new(
-                    Cow::Owned(TokenReference::symbol("(").unwrap()),
-                    Cow::Owned(TokenReference::symbol(")").unwrap()),
-                ),
+                parentheses: format_contained_span(parentheses),
                 arguments: formatted_arguments,
             }
         }
@@ -83,10 +81,8 @@ pub fn format_function_args<'ast>(function_args: FunctionArgs<'ast>) -> Function
 
 /// Formats a FunctionBody node
 pub fn format_function_body<'ast>(function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
-    let parameters_parentheses = ContainedSpan::new(
-        Cow::Owned(TokenReference::symbol("(").unwrap()),
-        Cow::Owned(TokenReference::symbol(")").unwrap()),
-    );
+    let parameters_parentheses =
+        format_contained_span(function_body.parameters_parentheses().to_owned());
     let formatted_parameters = format_parameters(function_body.to_owned());
     let end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
 

@@ -1,5 +1,6 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
+    span::ContainedSpan,
     Block, FunctionBody,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -71,6 +72,15 @@ pub fn format_punctuated<'a, T>(
     }
 
     formatted
+}
+
+pub fn format_contained_span<'ast>(contained_span: ContainedSpan<'ast>) -> ContainedSpan<'ast> {
+    let (start_token, end_token) = contained_span.tokens();
+
+    ContainedSpan::new(
+        Cow::Owned(format_plain_token_reference(start_token.to_owned())),
+        Cow::Owned(format_plain_token_reference(end_token.to_owned())),
+    )
 }
 
 impl<'ast> VisitorMut<'ast> for CodeFormatter {

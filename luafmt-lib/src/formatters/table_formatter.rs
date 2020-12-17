@@ -1,4 +1,4 @@
-use crate::formatters::expression_formatter::format_expression;
+use crate::formatters::{expression_formatter::format_expression, format_contained_span};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -10,15 +10,12 @@ use std::borrow::Cow;
 pub fn format_field<'ast>(field: &Field<'ast>) -> Field<'ast> {
     match field {
         Field::ExpressionKey {
-            brackets: _,
+            brackets,
             key,
             equal: _,
             value,
         } => Field::ExpressionKey {
-            brackets: ContainedSpan::new(
-                Cow::Owned(TokenReference::symbol("[").unwrap()),
-                Cow::Owned(TokenReference::symbol("]").unwrap()),
-            ),
+            brackets: format_contained_span(brackets.to_owned()),
             key: key.to_owned(),
             equal: Cow::Owned(TokenReference::symbol(" = ").unwrap()),
             value: value.to_owned(),

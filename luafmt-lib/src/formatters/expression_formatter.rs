@@ -1,11 +1,12 @@
 use full_moon::ast::{
-    span::ContainedSpan, BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
-    VarExpression,
+    BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
 use std::{borrow::Cow, boxed::Box};
 
-use crate::formatters::{format_token_reference, functions_formatter, table_formatter};
+use crate::formatters::{
+    format_contained_span, format_token_reference, functions_formatter, table_formatter,
+};
 
 pub fn format_binop<'ast>(binop: BinOp<'ast>) -> BinOp<'ast> {
     match binop {
@@ -53,13 +54,10 @@ pub fn format_expression<'ast>(expression: Expression<'ast>) -> Expression<'ast>
             },
         },
         Expression::Parentheses {
-            contained: _,
+            contained,
             expression,
         } => Expression::Parentheses {
-            contained: ContainedSpan::new(
-                Cow::Owned(TokenReference::symbol("(").unwrap()),
-                Cow::Owned(TokenReference::symbol(")").unwrap()),
-            ),
+            contained: format_contained_span(contained),
             expression: Box::new(format_expression(*expression)),
         },
         Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
@@ -73,13 +71,10 @@ pub fn format_expression<'ast>(expression: Expression<'ast>) -> Expression<'ast>
 pub fn format_index<'ast>(index: Index<'ast>) -> Index<'ast> {
     match index {
         Index::Brackets {
-            brackets: _,
+            brackets,
             expression,
         } => Index::Brackets {
-            brackets: ContainedSpan::new(
-                Cow::Owned(TokenReference::symbol("[").unwrap()),
-                Cow::Owned(TokenReference::symbol("]").unwrap()),
-            ),
+            brackets: format_contained_span(brackets),
             expression: format_expression(expression),
         },
 
