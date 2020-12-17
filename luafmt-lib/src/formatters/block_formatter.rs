@@ -1,5 +1,6 @@
 use crate::formatters::{
-    self, assignment_formatter, expression_formatter, functions_formatter, trivia_formatter,
+    self, assignment_formatter, expression_formatter, format_symbol, functions_formatter,
+    trivia_formatter,
 };
 use full_moon::ast::{
     punctuated::Pair, Block, Do, ElseIf, GenericFor, If, LastStmt, NumericFor, Repeat, Return,
@@ -10,37 +11,66 @@ use std::borrow::Cow;
 
 /// Format a Do node
 pub fn format_do_block<'ast>(do_block: Do<'ast>) -> Do<'ast> {
-    do_block
-        .with_do_token(Cow::Owned(TokenReference::symbol("do").unwrap())) // TODO: Should we add new line here?
-        .with_end_token(Cow::Owned(TokenReference::symbol("end").unwrap()))
+    let do_token = format_symbol(
+        do_block.do_token().to_owned(),
+        TokenReference::symbol("do").unwrap(),
+    );
+    let end_token = format_symbol(
+        do_block.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
+
+    do_block.with_do_token(do_token).with_end_token(end_token)
 }
 
 /// Format a GenericFor node
 pub fn format_generic_for<'ast>(generic_for: GenericFor<'ast>) -> GenericFor<'ast> {
+    let for_token = format_symbol(
+        generic_for.for_token().to_owned(),
+        TokenReference::symbol("for ").unwrap(),
+    );
     let formatted_names = formatters::format_punctuated(
         generic_for.names().to_owned(),
         &formatters::format_token_reference,
+    );
+    let in_token = format_symbol(
+        generic_for.in_token().to_owned(),
+        TokenReference::symbol(" in ").unwrap(),
     );
     let formatted_expr_list = formatters::format_punctuated(
         generic_for.expr_list().to_owned(),
         &expression_formatter::format_expression,
     );
+    let do_token = format_symbol(
+        generic_for.do_token().to_owned(),
+        TokenReference::symbol(" do").unwrap(),
+    );
+    let end_token = format_symbol(
+        generic_for.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
 
     generic_for
-        .with_for_token(Cow::Owned(TokenReference::symbol("for ").unwrap()))
+        .with_for_token(for_token)
         .with_names(formatted_names)
-        .with_in_token(Cow::Owned(TokenReference::symbol(" in ").unwrap()))
+        .with_in_token(in_token)
         .with_expr_list(formatted_expr_list)
-        .with_do_token(Cow::Owned(TokenReference::symbol(" do").unwrap()))
-        .with_end_token(Cow::Owned(TokenReference::symbol("end").unwrap()))
+        .with_do_token(do_token)
+        .with_end_token(end_token)
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
 fn format_else_if<'ast>(else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
-    let formatted_else_if_token = Cow::Owned(TokenReference::symbol("elseif ").unwrap());
+    let formatted_else_if_token = format_symbol(
+        else_if_node.else_if_token().to_owned(),
+        TokenReference::symbol("elseif ").unwrap(),
+    );
     let formatted_condition =
         expression_formatter::format_expression(else_if_node.condition().to_owned());
-    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then").unwrap());
+    let formatted_then_token = format_symbol(
+        else_if_node.then_token().to_owned(),
+        TokenReference::symbol(" then").unwrap(),
+    );
 
     else_if_node
         .with_else_if_token(formatted_else_if_token)
@@ -50,11 +80,20 @@ fn format_else_if<'ast>(else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
 
 /// Format an If node
 pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
-    let formatted_if_token = Cow::Owned(TokenReference::symbol("if ").unwrap());
+    let formatted_if_token = format_symbol(
+        if_node.if_token().to_owned(),
+        TokenReference::symbol("if ").unwrap(),
+    );
     let formatted_condition =
         expression_formatter::format_expression(if_node.condition().to_owned());
-    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then").unwrap());
-    let formatted_end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
+    let formatted_then_token = format_symbol(
+        if_node.then_token().to_owned(),
+        TokenReference::symbol(" then").unwrap(),
+    );
+    let formatted_end_token = format_symbol(
+        if_node.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
 
     let formatted_else_if = match if_node.else_if() {
         Some(else_if) => Some(
@@ -67,7 +106,10 @@ pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
     };
 
     let formatted_else_token = match if_node.else_token() {
-        Some(_) => Some(Cow::Owned(TokenReference::symbol("else").unwrap())),
+        Some(token) => Some(format_symbol(
+            token.to_owned(),
+            TokenReference::symbol("else").unwrap(),
+        )),
         None => None,
     };
 
@@ -82,54 +124,99 @@ pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
 
 /// Format a NumericFor node
 pub fn format_numeric_for<'ast>(numeric_for: NumericFor<'ast>) -> NumericFor<'ast> {
-    let formatted_index_variable =
-        formatters::format_plain_token_reference(numeric_for.index_variable().to_owned());
+    let for_token = format_symbol(
+        numeric_for.for_token().to_owned(),
+        TokenReference::symbol("for ").unwrap(),
+    );
+    let formatted_index_variable = Cow::Owned(formatters::format_plain_token_reference(
+        numeric_for.index_variable().to_owned(),
+    ));
+    let equal_token = format_symbol(
+        numeric_for.equal_token().to_owned(),
+        TokenReference::symbol(" = ").unwrap(),
+    );
     let formatted_start_expression =
         expression_formatter::format_expression(numeric_for.start().to_owned());
+    let start_end_comma = format_symbol(
+        numeric_for.start_end_comma().to_owned(),
+        TokenReference::symbol(", ").unwrap(),
+    );
     let formatted_end_expression =
         expression_formatter::format_expression(numeric_for.end().to_owned());
 
     let (end_step_comma, formatted_step_expression) = match numeric_for.step() {
         Some(step) => (
-            Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
+            Some(format_symbol(
+                numeric_for.end_step_comma().unwrap().to_owned(),
+                TokenReference::symbol(", ").unwrap(),
+            )),
             Some(expression_formatter::format_expression(step.to_owned())),
         ),
         None => (None, None),
     };
 
+    let do_token = format_symbol(
+        numeric_for.do_token().to_owned(),
+        TokenReference::symbol(" do").unwrap(),
+    );
+    let end_token = format_symbol(
+        numeric_for.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
+
     numeric_for
-        .with_for_token(Cow::Owned(TokenReference::symbol("for ").unwrap()))
-        .with_index_variable(Cow::Owned(formatted_index_variable))
-        .with_equal_token(Cow::Owned(TokenReference::symbol(" = ").unwrap()))
+        .with_for_token(for_token)
+        .with_index_variable(formatted_index_variable)
+        .with_equal_token(equal_token)
         .with_start(formatted_start_expression)
-        .with_start_end_comma(Cow::Owned(TokenReference::symbol(", ").unwrap()))
+        .with_start_end_comma(start_end_comma)
         .with_end(formatted_end_expression)
         .with_end_step_comma(end_step_comma)
         .with_step(formatted_step_expression)
-        .with_do_token(Cow::Owned(TokenReference::symbol(" do").unwrap()))
-        .with_end_token(Cow::Owned(TokenReference::symbol("end").unwrap()))
+        .with_do_token(do_token)
+        .with_end_token(end_token)
 }
 
 /// Format a Repeat node
 pub fn format_repeat_block<'ast>(repeat_block: Repeat<'ast>) -> Repeat<'ast> {
+    let repeat_token = format_symbol(
+        repeat_block.repeat_token().to_owned(),
+        TokenReference::symbol("repeat").unwrap(),
+    );
+    let until_token = format_symbol(
+        repeat_block.until_token().to_owned(),
+        TokenReference::symbol("until ").unwrap(),
+    );
     let formatted_until = expression_formatter::format_expression(repeat_block.until().to_owned());
 
     repeat_block
-        .with_repeat_token(Cow::Owned(TokenReference::symbol("repeat").unwrap()))
-        .with_until_token(Cow::Owned(TokenReference::symbol("until ").unwrap()))
+        .with_repeat_token(repeat_token)
+        .with_until_token(until_token)
         .with_until(formatted_until)
 }
 
 /// Format a While node
 pub fn format_while_block<'ast>(while_block: While<'ast>) -> While<'ast> {
+    let while_token = format_symbol(
+        while_block.while_token().to_owned(),
+        TokenReference::symbol("while ").unwrap(),
+    );
     let formatted_condition =
         expression_formatter::format_expression(while_block.condition().to_owned());
+    let do_token = format_symbol(
+        while_block.do_token().to_owned(),
+        TokenReference::symbol(" do").unwrap(),
+    );
+    let end_token = format_symbol(
+        while_block.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
 
     while_block
-        .with_while_token(Cow::Owned(TokenReference::symbol("while ").unwrap()))
+        .with_while_token(while_token)
         .with_condition(formatted_condition)
-        .with_do_token(Cow::Owned(TokenReference::symbol(" do").unwrap()))
-        .with_end_token(Cow::Owned(TokenReference::symbol("end").unwrap()))
+        .with_do_token(do_token)
+        .with_end_token(end_token)
 }
 
 pub fn format_stmt<'ast>(stmt: Stmt<'ast>) -> Stmt<'ast> {
@@ -230,12 +317,12 @@ pub fn format_return<'ast>(return_node: Return<'ast>) -> Return<'ast> {
         return_node.returns().to_owned(),
         &expression_formatter::format_expression,
     );
-    let formatted_token: Cow<'ast, TokenReference<'ast>> =
-        Cow::Owned(if formatted_returns.is_empty() {
-            TokenReference::symbol("return").unwrap()
-        } else {
-            TokenReference::symbol("return ").unwrap()
-        });
+    let wanted_token: TokenReference<'ast> = if formatted_returns.is_empty() {
+        TokenReference::symbol("return").unwrap()
+    } else {
+        TokenReference::symbol("return ").unwrap()
+    };
+    let formatted_token = format_symbol(return_node.token().to_owned(), wanted_token);
     return_node
         .with_token(formatted_token)
         .with_returns(formatted_returns)
@@ -243,7 +330,10 @@ pub fn format_return<'ast>(return_node: Return<'ast>) -> Return<'ast> {
 
 pub fn format_last_stmt<'ast>(last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
     match last_stmt {
-        LastStmt::Break(_) => LastStmt::Break(Cow::Owned(TokenReference::symbol("break").unwrap())),
+        LastStmt::Break(token) => LastStmt::Break(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol("break").unwrap(),
+        )),
         LastStmt::Return(return_node) => LastStmt::Return(format_return(return_node)),
     }
 }

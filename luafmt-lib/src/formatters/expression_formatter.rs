@@ -1,38 +1,76 @@
 use full_moon::ast::{
     BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
 };
-use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
-use std::{borrow::Cow, boxed::Box};
+use full_moon::tokenizer::TokenReference;
+use std::boxed::Box;
 
 use crate::formatters::{
-    format_contained_span, format_token_reference, functions_formatter, table_formatter,
+    format_contained_span, format_symbol, format_token_reference, functions_formatter,
+    table_formatter,
 };
 
 pub fn format_binop<'ast>(binop: BinOp<'ast>) -> BinOp<'ast> {
     match binop {
-        BinOp::And(_) => BinOp::And(Cow::Owned(TokenReference::symbol(" and ").unwrap())),
-        BinOp::Caret(_) => BinOp::Caret(Cow::Owned(TokenReference::symbol(" ^ ").unwrap())),
-        BinOp::GreaterThan(_) => {
-            BinOp::GreaterThan(Cow::Owned(TokenReference::symbol(" > ").unwrap()))
-        }
-        BinOp::GreaterThanEqual(_) => {
-            BinOp::GreaterThanEqual(Cow::Owned(TokenReference::symbol(" >= ").unwrap()))
-        }
-        BinOp::LessThan(_) => BinOp::LessThan(Cow::Owned(TokenReference::symbol(" < ").unwrap())),
-        BinOp::LessThanEqual(_) => {
-            BinOp::LessThanEqual(Cow::Owned(TokenReference::symbol(" <= ").unwrap()))
-        }
-        BinOp::Minus(_) => BinOp::Minus(Cow::Owned(TokenReference::symbol(" - ").unwrap())),
-        BinOp::Or(_) => BinOp::Or(Cow::Owned(TokenReference::symbol(" or ").unwrap())),
-        BinOp::Percent(_) => BinOp::Percent(Cow::Owned(TokenReference::symbol(" % ").unwrap())),
-        BinOp::Plus(_) => BinOp::Plus(Cow::Owned(TokenReference::symbol(" + ").unwrap())),
-        BinOp::Slash(_) => BinOp::Slash(Cow::Owned(TokenReference::symbol(" / ").unwrap())),
-        BinOp::Star(_) => BinOp::Star(Cow::Owned(TokenReference::symbol(" * ").unwrap())),
-        BinOp::TildeEqual(_) => {
-            BinOp::TildeEqual(Cow::Owned(TokenReference::symbol(" ~= ").unwrap()))
-        }
-        BinOp::TwoDots(_) => BinOp::TwoDots(Cow::Owned(TokenReference::symbol(" .. ").unwrap())),
-        BinOp::TwoEqual(_) => BinOp::TwoEqual(Cow::Owned(TokenReference::symbol(" == ").unwrap())),
+        BinOp::And(token) => BinOp::And(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" and ").unwrap(),
+        )),
+        BinOp::Caret(token) => BinOp::Caret(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" ^ ").unwrap(),
+        )),
+        BinOp::GreaterThan(token) => BinOp::GreaterThan(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" > ").unwrap(),
+        )),
+        BinOp::GreaterThanEqual(token) => BinOp::GreaterThanEqual(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" >= ").unwrap(),
+        )),
+        BinOp::LessThan(token) => BinOp::LessThan(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" < ").unwrap(),
+        )),
+        BinOp::LessThanEqual(token) => BinOp::LessThanEqual(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" <= ").unwrap(),
+        )),
+        BinOp::Minus(token) => BinOp::Minus(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" - ").unwrap(),
+        )),
+        BinOp::Or(token) => BinOp::Or(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" or ").unwrap(),
+        )),
+        BinOp::Percent(token) => BinOp::Percent(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" % ").unwrap(),
+        )),
+        BinOp::Plus(token) => BinOp::Plus(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" + ").unwrap(),
+        )),
+        BinOp::Slash(token) => BinOp::Slash(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" / ").unwrap(),
+        )),
+        BinOp::Star(token) => BinOp::Star(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" * ").unwrap(),
+        )),
+        BinOp::TildeEqual(token) => BinOp::TildeEqual(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" ~= ").unwrap(),
+        )),
+        BinOp::TwoDots(token) => BinOp::TwoDots(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" .. ").unwrap(),
+        )),
+        BinOp::TwoEqual(token) => BinOp::TwoEqual(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol(" == ").unwrap(),
+        )),
     }
 }
 
@@ -104,8 +142,11 @@ pub fn format_suffix<'ast>(suffix: Suffix<'ast>) -> Suffix<'ast> {
 /// Formats a Value Node
 pub fn format_value<'ast>(value: Value<'ast>) -> Value<'ast> {
     match value {
-        Value::Function((_, function_body)) => Value::Function((
-            Cow::Owned(TokenReference::symbol("function").unwrap()),
+        Value::Function((token_reference, function_body)) => Value::Function((
+            format_symbol(
+                token_reference.into_owned(),
+                TokenReference::symbol("function").unwrap(),
+            ),
             functions_formatter::format_function_body(function_body),
         )),
         Value::FunctionCall(function_call) => {
@@ -113,33 +154,7 @@ pub fn format_value<'ast>(value: Value<'ast>) -> Value<'ast> {
         }
         Value::Number(token_reference) => Value::Number(format_token_reference(token_reference)),
         Value::ParseExpression(expression) => Value::ParseExpression(format_expression(expression)),
-        Value::String(token_reference) => {
-            // TODO: Should this be handled through format_token_reference instead?
-            let old_token_info = &*token_reference.token_type();
-
-            match old_token_info {
-                TokenType::StringLiteral {
-                    literal,
-                    multi_line,
-                    ..
-                } => {
-                    let string_token = Token::new(TokenType::StringLiteral {
-                        literal: literal.clone(),
-                        multi_line: match multi_line {
-                            Some(size) => Some(*size),
-                            None => None,
-                        },
-                        quote_type: StringLiteralQuoteType::Double,
-                    });
-                    Value::String(Cow::Owned(TokenReference::new(
-                        Vec::new(),
-                        string_token,
-                        Vec::new(),
-                    )))
-                }
-                _ => panic!("have string with a non string-literal token kind"),
-            }
-        }
+        Value::String(token_reference) => Value::String(format_token_reference(token_reference)),
         Value::Symbol(token_reference) => Value::Symbol(format_token_reference(token_reference)),
         Value::TableConstructor(table_constructor) => {
             Value::TableConstructor(table_formatter::format_table_constructor(table_constructor))
@@ -170,8 +185,17 @@ pub fn format_var_expression<'ast>(var_expression: VarExpression<'ast>) -> VarEx
 /// Formats an UnOp Node
 pub fn format_unop<'ast>(unop: UnOp<'ast>) -> UnOp<'ast> {
     match unop {
-        UnOp::Minus(_) => UnOp::Minus(Cow::Owned(TokenReference::symbol("-").unwrap())),
-        UnOp::Not(_) => UnOp::Not(Cow::Owned(TokenReference::symbol("not ").unwrap())),
-        UnOp::Hash(_) => UnOp::Hash(Cow::Owned(TokenReference::symbol("#").unwrap())),
+        UnOp::Minus(token) => UnOp::Minus(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol("-").unwrap(),
+        )),
+        UnOp::Not(token) => UnOp::Not(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol("not ").unwrap(),
+        )),
+        UnOp::Hash(token) => UnOp::Hash(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol("#").unwrap(),
+        )),
     }
 }

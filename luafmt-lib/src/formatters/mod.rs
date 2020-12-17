@@ -46,8 +46,19 @@ pub fn format_token<'ast>(token: Token<'ast>) -> Token<'ast> {
         },
         TokenType::SingleLineComment { comment } => {
             let mut new_str = comment.to_owned().into_owned();
-            new_str.push('\n');
+            // TODO: If leading trivia, the comment needs to be indented
+            // TODO: This new line should only be added if this comment trivia is leading, rather than trailing (otherwise two new lines would be created)
+            new_str.push('\n'); // TODO: This should use the standardised newline from create_newline_trivia
             TokenType::SingleLineComment {
+                comment: Cow::Owned(new_str),
+            }
+        }
+        TokenType::MultiLineComment { blocks, comment } => {
+            let mut new_str = comment.to_owned().into_owned();
+            // TODO: Same as above
+            new_str.push('\n');
+            TokenType::MultiLineComment {
+                blocks: *blocks,
                 comment: Cow::Owned(new_str),
             }
         }
@@ -156,11 +167,11 @@ pub fn format_symbol<'ast>(
         .leading_trivia()
         .map(|x| x.to_owned())
         .collect();
-    let wanted_trailing_trivia: Vec<Token<'ast>> = wanted_symbol
+    let mut wanted_trailing_trivia: Vec<Token<'ast>> = wanted_symbol
         .trailing_trivia()
         .map(|x| x.to_owned())
         .collect();
-    wanted_leading_trivia.append(&mut formatted_trailing_trivia);
+    wanted_trailing_trivia.append(&mut formatted_trailing_trivia);
     formatted_leading_trivia.append(&mut wanted_leading_trivia);
 
     Cow::Owned(TokenReference::new(

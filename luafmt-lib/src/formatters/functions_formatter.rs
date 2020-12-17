@@ -10,7 +10,7 @@ use std::boxed::Box;
 
 use crate::formatters::{
     expression_formatter, format_contained_span, format_plain_token_reference, format_punctuated,
-    format_token_reference,
+    format_symbol, format_token_reference,
 };
 
 /// Formats a Call node
@@ -84,7 +84,10 @@ pub fn format_function_body<'ast>(function_body: FunctionBody<'ast>) -> Function
     let parameters_parentheses =
         format_contained_span(function_body.parameters_parentheses().to_owned());
     let formatted_parameters = format_parameters(function_body.to_owned());
-    let end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
+    let end_token = format_symbol(
+        function_body.end_token().to_owned(),
+        TokenReference::symbol("end").unwrap(),
+    );
 
     function_body
         .with_parameters_parentheses(parameters_parentheses)
@@ -111,8 +114,11 @@ pub fn format_function_name<'ast>(function_name: FunctionName<'ast>) -> Function
     for pair in function_name.names().to_owned().into_pairs() {
         // Format Punctuation
         match pair {
-            Pair::Punctuated(value, _) => {
-                let formatted_punctuation = Cow::Owned(TokenReference::symbol(".").unwrap());
+            Pair::Punctuated(value, punctuation) => {
+                let formatted_punctuation = format_symbol(
+                    punctuation.into_owned(),
+                    TokenReference::symbol(".").unwrap(),
+                );
                 let formatted_value = format_token_reference(value);
                 formatted_names.push(Pair::new(formatted_value, Some(formatted_punctuation)));
             }
@@ -129,11 +135,14 @@ pub fn format_function_name<'ast>(function_name: FunctionName<'ast>) -> Function
     )> = None;
 
     match function_name.method_colon() {
-        Some(_) => {
+        Some(method_colon) => {
             match function_name.method_name() {
                 Some(token_reference) => {
                     formatted_method = Some((
-                        Cow::Owned(TokenReference::symbol(":").unwrap()),
+                        format_symbol(
+                            method_colon.to_owned(),
+                            TokenReference::symbol(":").unwrap(),
+                        ),
                         Cow::Owned(format_plain_token_reference(token_reference.to_owned())),
                     ));
                 }
@@ -152,24 +161,38 @@ pub fn format_function_name<'ast>(function_name: FunctionName<'ast>) -> Function
 pub fn format_function_declaration<'ast>(
     function_declaration: FunctionDeclaration<'ast>,
 ) -> FunctionDeclaration<'ast> {
+    let function_token = format_symbol(
+        function_declaration.function_token().to_owned(),
+        TokenReference::symbol("function ").unwrap(),
+    );
     let formatted_function_name = format_function_name(function_declaration.name().to_owned());
     let formatted_function_body = format_function_body(function_declaration.body().to_owned());
 
     function_declaration
-        .with_function_token(Cow::Owned(TokenReference::symbol("function ").unwrap()))
+        .with_function_token(function_token)
         .with_name(formatted_function_name)
         .with_body(formatted_function_body)
 }
 
 /// Formats a LocalFunction node
 pub fn format_local_function<'ast>(local_function: LocalFunction<'ast>) -> LocalFunction<'ast> {
-    let formatted_name = format_plain_token_reference(local_function.name().to_owned());
+    let local_token = format_symbol(
+        local_function.local_token().to_owned(),
+        TokenReference::symbol("local ").unwrap(),
+    );
+    let function_token = format_symbol(
+        local_function.function_token().to_owned(),
+        TokenReference::symbol("function ").unwrap(),
+    );
+    let formatted_name = Cow::Owned(format_plain_token_reference(
+        local_function.name().to_owned(),
+    ));
     let formatted_function_body = format_function_body(local_function.func_body().to_owned());
 
     local_function
-        .with_local_token(Cow::Owned(TokenReference::symbol("local ").unwrap()))
-        .with_function_token(Cow::Owned(TokenReference::symbol("function ").unwrap()))
-        .with_name(Cow::Owned(formatted_name))
+        .with_local_token(local_token)
+        .with_function_token(function_token)
+        .with_name(formatted_name)
         .with_func_body(formatted_function_body)
 }
 
@@ -187,9 +210,10 @@ pub fn format_method_call<'ast>(method_call: MethodCall<'ast>) -> MethodCall<'as
 /// Formats a single Parameter node
 pub fn format_parameter<'ast>(parameter: Parameter<'ast>) -> Parameter<'ast> {
     match parameter {
-        Parameter::Ellipse(_) => {
-            Parameter::Ellipse(Cow::Owned(TokenReference::symbol("...").unwrap()))
-        }
+        Parameter::Ellipse(token) => Parameter::Ellipse(format_symbol(
+            token.into_owned(),
+            TokenReference::symbol("...").unwrap(),
+        )),
         Parameter::Name(token_reference) => {
             Parameter::Name(format_token_reference(token_reference))
         }
@@ -217,37 +241,3 @@ fn format_parameters<'ast>(function_body: FunctionBody<'ast>) -> Punctuated<'ast
     }
     formatted_parameters
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::formatters::functions_formatter::FunctionsFormatter;
-//     use full_moon::visitors::VisitorMut;
-//     use full_moon::{parse, print};
-//     #[test]
-//     fn test_function_args_string() {
-//         let mut visitor = FunctionsFormatter::default();
-//         let ast = parse("foo'bar'").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "foo('bar')");
-//     }
-
-//     #[test]
-//     fn test_function_args_table_constructor() {
-//         let mut visitor = FunctionsFormatter::default();
-//         let ast = parse("foo{bar = 'baz'}").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "foo({bar = 'baz'})");
-//     }
-
-//     #[test]
-//     fn test_function_args_single_argument() {
-//         let mut visitor = FunctionsFormatter::default();
-//         let ast = parse("foo(   bar )").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "foo(bar)");
-//     }
-
-//     #[test]
-//     fn test_function_args_multiple_arguments() {
-//         let mut visitor = FunctionsFormatter::default();
-//         let ast = parse("foo(bar,baz     ,    foo)").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "foo(bar, baz, foo)");
-//     }
-// }

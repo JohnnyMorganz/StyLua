@@ -1,4 +1,6 @@
-use crate::formatters::{expression_formatter::format_expression, format_contained_span};
+use crate::formatters::{
+    expression_formatter::format_expression, format_contained_span, format_token_reference,
+};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -16,20 +18,16 @@ pub fn format_field<'ast>(field: &Field<'ast>) -> Field<'ast> {
             value,
         } => Field::ExpressionKey {
             brackets: format_contained_span(brackets.to_owned()),
-            key: key.to_owned(),
+            key: format_expression(key.to_owned()),
             equal: Cow::Owned(TokenReference::symbol(" = ").unwrap()),
-            value: value.to_owned(),
+            value: format_expression(value.to_owned()),
         },
         Field::NameKey {
             key,
             equal: _,
             value,
         } => Field::NameKey {
-            key: Cow::Owned(TokenReference::new(
-                Vec::new(),
-                key.token().to_owned(),
-                Vec::new(),
-            )),
+            key: format_token_reference(key.to_owned()),
             equal: Cow::Owned(TokenReference::symbol(" = ").unwrap()),
             value: format_expression(value.to_owned()),
         },
