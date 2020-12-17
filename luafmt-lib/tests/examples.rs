@@ -11,7 +11,12 @@ fn test_folder<P: AsRef<Path>>(folder: P) {
         let path = entry.path();
         let input = fs::read_to_string(path.join("input.lua")).expect("couldn't read input.lua");
 
-        let formatted_code = format_code(&input);
+        let formatted_code = match format_code(&input) {
+            Ok(code) => code,
+            Err(error) => {
+                eprintln!("error formatting {}: {}", path.display(), error)
+            }
+        };
 
         let output_path = path.join("output.lua");
 
