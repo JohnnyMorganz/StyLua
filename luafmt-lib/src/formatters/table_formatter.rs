@@ -79,17 +79,3 @@ pub fn format_table_constructor<'ast>(
         .with_braces(braces)
         .with_fields(fields)
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::formatters::table_formatter::TableFormatter;
-//     use full_moon::visitors::VisitorMut;
-//     use full_moon::{parse, print};
-
-//     #[test]
-//     fn test_table_no_key_small() {
-//         let mut visitor = TableFormatter::default();
-//         let ast = parse("local foo = {a,b,c}").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "local foo = { a, b, c }");
-//     }
-// }

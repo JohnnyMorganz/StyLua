@@ -175,16 +175,3 @@ pub fn format_unop<'ast>(unop: UnOp<'ast>) -> UnOp<'ast> {
         UnOp::Hash(_) => UnOp::Hash(Cow::Owned(TokenReference::symbol("#").unwrap())),
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::formatters::value_formatter::ValueFormatter;
-//     use full_moon::visitors::VisitorMut;
-//     use full_moon::{parse, print};
-//     #[test]
-//     fn test_string_value_formatter() {
-//         let mut visitor = ValueFormatter::default();
-//         let ast = parse("local x = 'test'      ").unwrap();
-//         assert_eq!(print(&visitor.visit_ast(ast)), "local x = \"test\"");
-//     }
-// }
