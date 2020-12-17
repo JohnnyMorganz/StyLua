@@ -40,7 +40,7 @@ fn format_else_if<'ast>(else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
     let formatted_else_if_token = Cow::Owned(TokenReference::symbol("elseif ").unwrap());
     let formatted_condition =
         expression_formatter::format_expression(else_if_node.condition().to_owned());
-    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then\n").unwrap());
+    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then").unwrap());
 
     else_if_node
         .with_else_if_token(formatted_else_if_token)
@@ -53,7 +53,7 @@ pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
     let formatted_if_token = Cow::Owned(TokenReference::symbol("if ").unwrap());
     let formatted_condition =
         expression_formatter::format_expression(if_node.condition().to_owned());
-    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then\n").unwrap());
+    let formatted_then_token = Cow::Owned(TokenReference::symbol(" then").unwrap());
     let formatted_end_token = Cow::Owned(TokenReference::symbol("end").unwrap());
 
     let formatted_else_if = match if_node.else_if() {

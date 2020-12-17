@@ -5,7 +5,7 @@ use full_moon::ast::{
     FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction, MethodCall,
     NumericFor, Prefix, Repeat, Suffix, TableConstructor, Value, Var, VarExpression, While,
 };
-use full_moon::tokenizer::{Token, TokenReference};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 
 // Special Case for Statements
@@ -578,7 +578,10 @@ pub fn prefix_add_leading_trivia<'ast>(
             None,
         ))),
         Prefix::Expression(expression) => {
-            println!("WARNING: Prefix(Expression) leading trivia not implemented"); // TODO: Implement
+            println!(
+                "WARNING: Prefix(Expression) leading trivia not implemented for {}",
+                expression
+            ); // TODO: Implement
             Prefix::Expression(expression)
         }
     }
@@ -614,7 +617,15 @@ pub fn token_reference_add_trivia<'ast>(
     trailing_trivia: Option<Vec<Token<'ast>>>,
 ) -> TokenReference<'ast> {
     let added_leading_trivia = match leading_trivia {
-        Some(trivia) => trivia,
+        Some(trivia) => {
+            let mut current: Vec<Token<'ast>> = token_reference
+                .leading_trivia()
+                .filter(|x| x.token_kind() == TokenKind::SingleLineComment)
+                .map(|x| x.to_owned())
+                .collect();
+            current.extend(trivia);
+            current
+        }
         None => token_reference
             .leading_trivia()
             .map(|x| x.to_owned())
@@ -622,7 +633,15 @@ pub fn token_reference_add_trivia<'ast>(
     };
 
     let added_trailing_trivia = match trailing_trivia {
-        Some(trivia) => trivia,
+        Some(trivia) => {
+            let mut current: Vec<Token<'ast>> = token_reference
+                .trailing_trivia()
+                .filter(|x| x.token_kind() == TokenKind::SingleLineComment)
+                .map(|x| x.to_owned())
+                .collect();
+            current.extend(trivia);
+            current
+        }
         None => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
