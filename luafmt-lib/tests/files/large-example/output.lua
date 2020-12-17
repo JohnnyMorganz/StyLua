@@ -63,6 +63,8 @@ end
 local function makeErrorHandler(traceback)
 	assert(traceback ~= nil)
 	return function(err)
+-- If the error object is already a table, forward it directly.
+-- Should we extend the error here and add our own trace?
 		if type(err) == "table" then
 			return err
 		end
@@ -92,7 +94,19 @@ function Promise._new(traceback, callback, parent)
 	if parent ~= nil and not Promise.is(parent) then
 		error("Argument #2 to Promise.new must be a promise or nil", 2)
 	end
-	local self = { _source = traceback, _status = Promise.Status.Started, _values = nil, _valuesLength = -1, _unhandledRejection = true, _queuedResolve = {}, _queuedReject = {}, _queuedFinally = {}, _cancellationHook = nil, _parent = parent, _consumers = setmetatable({}, MODE_KEY_METATABLE) }
+	local self = { -- Used to locate where a promise was created
+_source = traceback, _status = Promise.Status.Started, -- A table containing a list of all results, whether success or failure.
+-- Only valid if _status is set to something besides Started
+_values = nil, -- Lua doesn't like sparse arrays very much, so we explicitly store the
+-- length of _values to handle middle nils.
+_valuesLength = -1, -- Tracks if this Promise has no error observers..
+_unhandledRejection = true, -- Queues representing functions we should invoke when we update!
+_queuedResolve = {}, _queuedReject = {}, _queuedFinally = {}, -- The function to run when/if this promise is cancelled.
+_cancellationHook = nil, -- The "parent" of this promise in a promise chain. Required for
+-- cancellation propagation upstream.
+_parent = parent, -- Consumers are Promises that have chained onto this one.
+-- We track them for cancellation propagation downstream.
+_consumers = setmetatable({}, MODE_KEY_METATABLE) }
 	if parent and parent._status == Promise.Status.Started then
 		parent._consumers[self] = true
 	end
@@ -142,6 +156,7 @@ function Promise.defer(callback)
 	end)
 	return promise
 end
+-- Backwards compatibility
 Promise.async = Promise.defer
 function Promise.resolve(...)
 	local length, values = pack(...)
@@ -168,17 +183,23 @@ function Promise._all(traceback, promises, amount)
 	if type(promises) ~= "table" then
 		error(string.format(ERROR_NON_LIST, "Promise.all"), 3)
 	end
+-- We need to check that each value is a promise here so that we can produce
+-- a proper error rather than a rejected promise with our error.
 	for i, promise in pairs(promises) do
 		if not Promise.is(promise) then
 			error(string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.all", tostring(i)), 3)
 		end
 	end
+-- If there are no values then return an already resolved promise.
 	if #promises == 0 or amount == 0 then
 		return Promise.resolve({})
 	end
 	return Promise._new(traceback, function(resolve, reject, onCancel)
+-- An array to contain our resolved values from the given promises.
 		local resolvedValues = {}
 		local newPromises = {}
+-- Keep a count of resolved promises because just checking the resolved
+-- values length wouldn't account for promises that resolve with nil.
 		local resolvedCount = 0
 		local rejectedCount = 0
 		local done = false
@@ -187,6 +208,7 @@ function Promise._all(traceback, promises, amount)
 				promise:cancel()
 			end
 		end
+-- Called when a single value is resolved and resolves if all are done.
 		local function resolveOne(i, ...)
 			if done then
 				return
@@ -204,6 +226,8 @@ function Promise._all(traceback, promises, amount)
 			end
 		end
 		onCancel(cancel)
+-- We can assume the values inside `promises` are all promises since we
+-- checked above.
 		for i, promise in ipairs(promises) do
 			newPromises[i] = promise:andThen(function(...)
 				resolveOne(i, ...)
@@ -247,18 +271,25 @@ function Promise.allSettled(promises)
 	if type(promises) ~= "table" then
 		error(string.format(ERROR_NON_LIST, "Promise.allSettled"), 2)
 	end
+-- We need to check that each value is a promise here so that we can produce
+-- a proper error rather than a rejected promise with our error.
 	for i, promise in pairs(promises) do
 		if not Promise.is(promise) then
 			error(string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.allSettled", tostring(i)), 2)
 		end
 	end
+-- If there are no values then return an already resolved promise.
 	if #promises == 0 then
 		return Promise.resolve({})
 	end
 	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+-- An array to contain our resolved values from the given promises.
 		local fates = {}
 		local newPromises = {}
+-- Keep a count of resolved promises because just checking the resolved
+-- values length wouldn't account for promises that resolve with nil.
 		local finishedCount = 0
+-- Called when a single value is resolved and resolves if all are done.
 		local function resolveOne(i, ...)
 			finishedCount = finishedCount + 1
 			fates[i] = ...
@@ -271,6 +302,8 @@ function Promise.allSettled(promises)
 				promise:cancel()
 			end
 		end)
+-- We can assume the values inside `promises` are all promises since we
+-- checked above.
 		for i, promise in ipairs(promises) do
 			newPromises[i] = promise:finally(function(...)
 				resolveOne(i, ...)
@@ -325,6 +358,11 @@ function Promise.each(list, predicate)
 			cancelled = true
 			cancel()
 		end)
+-- We need to preprocess the list of values and look for Promises.
+-- If we find some, we must register our andThen calls now, so that those Promises have a consumer
+-- from us registered. If we don't do this, those Promises might get cancelled by something else
+-- before we get to them in the series because it's not possible to tell that we plan to use it
+-- unless we indicate it here.
 		local preprocessedList = {}
 		for index, value in ipairs(list) do
 			if Promise.is(value) then
@@ -335,6 +373,7 @@ function Promise.each(list, predicate)
 					cancel()
 					return reject(select(2, value:await()))
 				end
+-- Chain a new Promise from this one so we only cancel ours
 				local ourPromise = value:andThen(function(...)
 					return ...
 				end)
@@ -374,10 +413,13 @@ function Promise.is(object)
 	end
 	local objectMetatable = getmetatable(object)
 	if objectMetatable == Promise then
+-- The Promise came from this library.
 		return true
 	elseif objectMetatable == nil then
+-- No metatable, but we should still chain onto tables with andThen methods
 		return type(object.andThen) == "function"
 	elseif type(objectMetatable) == "table" and type(rawget(objectMetatable, "__index")) == "table" and type(rawget(rawget(objectMetatable, "__index"), "andThen")) == "function" then
+-- Maybe this came from a different or older Promise library.
 		return true
 	end
 	return false
@@ -388,10 +430,14 @@ function Promise.promisify(callback)
 	end
 end
 do
+-- uses a sorted doubly linked list (queue) to achieve O(1) remove operations and O(n) for insert
+-- the initial node in the linked list
 	local first
 	local connection
 	function Promise.delay(seconds)
 		assert(type(seconds) == "number", "Bad argument #1 to Promise.delay, must be a number.")
+-- If seconds is -INF, INF, NaN, or less than 1 / 60, assume seconds is 1 / 60.
+-- This mirrors the behavior of wait()
 		if not (seconds >= 1 / 60) or seconds == math.huge then
 			seconds = 1 / 60
 		end
@@ -399,7 +445,8 @@ do
 			local startTime = Promise._getTime()
 			local endTime = startTime + seconds
 			local node = { resolve = resolve, startTime = startTime, endTime = endTime }
-			if connection == nil then
+			if connection == nil then-- first is nil when connection is nil
+
 				first = node
 				connection = Promise._timeEvent:Connect(function()
 					local threadStart = Promise._getTime()
@@ -415,14 +462,19 @@ do
 						current.resolve(Promise._getTime() - current.startTime)
 					end
 				end)
-			else
-				if first.endTime < endTime then
+			else-- first is non-nil
+
+				if first.endTime < endTime then-- if `node` should be placed after `first`
+
+-- we will insert `node` between `current` and `next`
+-- (i.e. after `current` if `next` is nil)
 					local current = first
 					local next = current.next
 					while next ~= nil and next.endTime < endTime do
 						current = next
 						next = current.next
 					end
+-- `current` must be non-nil, but `next` could be `nil` (i.e. last item in list)
 					current.next = node
 					node.previous = current
 					if next ~= nil then
@@ -430,23 +482,28 @@ do
 						next.previous = node
 					end
 				else
+-- set `node` to `first`
 					node.next = first
 					first.previous = node
 					first = node
 				end
 			end
 			onCancel(function()
+-- remove node from queue
 				local next = node.next
 				if first == node then
-					if next == nil then
+					if next == nil then-- if `node` is the first and last
+
 						connection:Disconnect()
 						connection = nil
-					else
+					else-- if `node` is `first` and not the last
+
 						next.previous = nil
 					end
 					first = next
 				else
 					local previous = node.previous
+-- since `node` is not `first`, then we know `previous` is non-nil
 					previous.next = next
 					if next ~= nil then
 						next.previous = previous
@@ -467,7 +524,10 @@ function Promise.prototype:getStatus()
 end
 function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 	self._unhandledRejection = false
+-- Create a new promise to follow this part of the chain
 	return Promise._new(traceback, function(resolve, reject)
+-- Our default callbacks just pass values onto the next promise.
+-- This lets success and failure cascade correctly!
 		local successCallback = resolve
 		if successHandler then
 			successCallback = createAdvancer(traceback, successHandler, resolve, reject)
@@ -477,13 +537,18 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 			failureCallback = createAdvancer(traceback, failureHandler, resolve, reject)
 		end
 		if self._status == Promise.Status.Started then
+-- If we haven't resolved yet, put ourselves into the queue
 			table.insert(self._queuedResolve, successCallback)
 			table.insert(self._queuedReject, failureCallback)
 		elseif self._status == Promise.Status.Resolved then
+-- This promise has already resolved! Trigger success immediately.
 			successCallback(unpack(self._values, 1, self._valuesLength))
 		elseif self._status == Promise.Status.Rejected then
+-- This promise died a terrible death! Trigger failure immediately.
 			failureCallback(unpack(self._values, 1, self._valuesLength))
 		elseif self._status == Promise.Status.Cancelled then
+-- We don't want to call the success handler or the failure handler,
+-- we just reject this promise outright.
 			reject(Error.new({ error = "Promise is cancelled", kind = Error.Kind.AlreadyCancelled, context = "Promise created at\n\n" .. traceback }))
 		end
 	end, self)
@@ -552,6 +617,7 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 	if not onlyOk then
 		self._unhandledRejection = false
 	end
+-- Return a promise chained off of this promise
 	return Promise._new(traceback, function(resolve, reject)
 		local finallyCallback = resolve
 		if finallyHandler then
@@ -567,8 +633,10 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 			end
 		end
 		if self._status == Promise.Status.Started then
+-- The promise is not settled, so queue this.
 			table.insert(self._queuedFinally, finallyCallback)
 		else
+-- The promise already settled or was cancelled, run the callback now.
 			finallyCallback(self._status)
 		end
 	end, self)
@@ -639,6 +707,7 @@ end
 function Promise.prototype:expect()
 	return expectHelper(self:awaitStatus())
 end
+-- Backwards compatibility
 Promise.prototype.awaitValue = Promise.prototype.expect
 function Promise.prototype:_unwrap()
 	if self._status == Promise.Status.Started then
@@ -650,11 +719,13 @@ end
 function Promise.prototype:_resolve(...)
 	if self._status ~= Promise.Status.Started then
 		if Promise.is((...)) then
-(...):_consumerCancelled(self)
+			(...):_consumerCancelled(self)
 		end
 		return
 	end
+-- If the resolved value was a Promise, we chain onto it!
 	if Promise.is((...)) then
+-- Without this warning, arguments sometimes mysteriously disappear
 		if select("#", ...) > 1 then
 			local message = string.format("When returning a Promise from andThen, extra arguments are " .. "discarded! See:\n\n%s", self._source)
 			warn(message)
@@ -664,6 +735,7 @@ function Promise.prototype:_resolve(...)
 			self:_resolve(...)
 		end, function(...)
 			local maybeRuntimeError = chainedPromise._values[1]
+-- Backwards compatibility < v2
 			if chainedPromise._error then
 				maybeRuntimeError = Error.new({ error = chainedPromise._error, kind = Error.Kind.ExecutionError, context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]" })
 			end
@@ -675,6 +747,7 @@ function Promise.prototype:_resolve(...)
 		if promise._status == Promise.Status.Cancelled then
 			self:cancel()
 		elseif promise._status == Promise.Status.Started then
+-- Adopt ourselves into promise for cancellation propagation.
 			self._parent = promise
 			promise._consumers[self] = true
 		end
@@ -682,6 +755,7 @@ function Promise.prototype:_resolve(...)
 	end
 	self._status = Promise.Status.Resolved
 	self._valuesLength, self._values = pack(...)
+-- We assume that these callbacks will not throw errors.
 	for _, callback in ipairs(self._queuedResolve) do
 		coroutine.wrap(callback)(...)
 	end
@@ -693,19 +767,28 @@ function Promise.prototype:_reject(...)
 	end
 	self._status = Promise.Status.Rejected
 	self._valuesLength, self._values = pack(...)
+-- If there are any rejection handlers, call those!
 	if not isEmpty(self._queuedReject) then
+-- We assume that these callbacks will not throw errors.
 		for _, callback in ipairs(self._queuedReject) do
 			coroutine.wrap(callback)(...)
 		end
 	else
+-- At this point, no one was able to observe the error.
+-- An error handler might still be attached if the error occurred
+-- synchronously. We'll wait one tick, and if there are still no
+-- observers, then we should put a message in the console.
 		local err = tostring((...))
 		coroutine.wrap(function()
 			Promise._timeEvent:Wait()
+-- Someone observed the error, hooray!
 			if not self._unhandledRejection then
 				return
 			end
+-- Build a reasonable message
 			local message = string.format("Unhandled Promise rejection:\n\n%s\n\n%s", err, self._source)
 			if Promise.TEST then
+-- Don't spam output when we're running tests.
 				return
 			end
 			warn(message)
@@ -715,11 +798,15 @@ function Promise.prototype:_reject(...)
 end
 function Promise.prototype:_finalize()
 	for _, callback in ipairs(self._queuedFinally) do
+-- Purposefully not passing values to callbacks here, as it could be the
+-- resolved values, or rejected errors. If the developer needs the values,
+-- they should use :andThen or :catch explicitly.
 		coroutine.wrap(callback)(self._status)
 	end
 	self._queuedFinally = nil
 	self._queuedReject = nil
 	self._queuedResolve = nil
+-- Clear references to other Promises to allow gc
 	if not Promise.TEST then
 		self._parent = nil
 		self._consumers = nil
@@ -758,6 +845,9 @@ function Promise.fromEvent(event, predicate)
 			connection:Disconnect()
 			connection = nil
 		end
+-- We use shouldDisconnect because if the callback given to Connect is called before
+-- Connect returns, connection will still be nil. This happens with events that queue up
+-- events when there's nothing connected, such as RemoteEvents
 		connection = event:Connect(function(...)
 			local callbackValue = predicate(...)
 			if callbackValue == true then

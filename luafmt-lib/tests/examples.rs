@@ -14,7 +14,7 @@ fn test_folder<P: AsRef<Path>>(folder: P) {
         let formatted_code = match format_code(&input) {
             Ok(code) => code,
             Err(error) => {
-                eprintln!("error formatting {}: {}", path.display(), error)
+                panic!("error formatting {}: {}", path.display(), error)
             }
         };
 
