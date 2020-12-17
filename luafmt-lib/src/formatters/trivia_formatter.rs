@@ -3,12 +3,11 @@ use full_moon::ast::{
     span::ContainedSpan,
     Assignment, BinOpRhs, Call, Do, ElseIf, Expression, FunctionArgs, FunctionBody, FunctionCall,
     FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction, MethodCall,
-    NumericFor, Prefix, Repeat, Suffix, TableConstructor, Value, Var, VarExpression, While,
+    NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
 };
-use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference};
 use std::borrow::Cow;
 
-// Special Case for Statements
 pub fn assignment_add_trivia<'ast>(
     assignment: Assignment<'ast>,
     leading_trivia: Vec<Token<'ast>>,
@@ -39,7 +38,6 @@ pub fn assignment_add_trivia<'ast>(
         formatted_var_list.push(pair.to_owned())
     }
 
-    // TODO: Add leading trivia
     let mut formatted_expression_list = assignment.expr_list().to_owned();
 
     // Retrieve last item and add new line to it
@@ -63,8 +61,10 @@ pub fn function_call_add_trivia<'ast>(
     leading_trivia: Vec<Token<'ast>>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> FunctionCall<'ast> {
-    let prefix = prefix_add_leading_trivia(function_call.prefix().to_owned(), leading_trivia);
-    function_call_add_trailing_trivia(function_call.with_prefix(prefix), trailing_trivia)
+    function_call_add_trailing_trivia(
+        function_call_add_leading_trivia(function_call, leading_trivia),
+        trailing_trivia,
+    )
 }
 
 pub fn local_assignment_add_trivia<'ast>(
@@ -439,6 +439,30 @@ pub fn call_add_trailing_trivia<'ast>(
     }
 }
 
+/// Adds leading trivia to the start of an Expression node
+pub fn expression_add_leading_trivia<'ast>(
+    expression: Expression<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> Expression<'ast> {
+    match expression {
+        Expression::Parentheses {
+            contained,
+            expression,
+        } => Expression::Parentheses {
+            contained: contained_span_add_trivia(contained, Some(leading_trivia), None),
+            expression,
+        },
+        Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
+            unop: unop_add_leading_trivia(unop, leading_trivia),
+            expression,
+        },
+        Expression::Value { value, binop } => Expression::Value {
+            value: Box::new(value_add_leading_trivia(*value, leading_trivia)),
+            binop,
+        },
+    }
+}
+
 /// Adds traviling trivia at the end of an Expression node
 pub fn expression_add_trailing_trivia<'ast>(
     expression: Expression<'ast>,
@@ -500,16 +524,39 @@ pub fn function_args_add_trailing_trivia<'ast>(
     }
 }
 
+/// Adds leading trivia to the start of a FunctionBody node
+pub fn function_body_add_leading_trivia<'ast>(
+    function_body: FunctionBody<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> FunctionBody<'ast> {
+    let parameters_parentheses = contained_span_add_trivia(
+        function_body.parameters_parentheses().to_owned(),
+        Some(leading_trivia),
+        None,
+    );
+    function_body.with_parameters_parentheses(parameters_parentheses)
+}
+
 /// Adds trailing trivia at the end of a FunctionBody node
 pub fn function_body_add_trailing_trivia<'ast>(
     function_body: FunctionBody<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> FunctionBody<'ast> {
     let function_body_token = function_body.end_token().to_owned();
-    function_body.with_end_token(Cow::Owned(token_reference_add_trailing_trivia(
+    function_body.with_end_token(Cow::Owned(token_reference_add_trivia(
         function_body_token,
-        trailing_trivia,
+        None,
+        Some(trailing_trivia),
     )))
+}
+
+/// Adds leading trivia to the start of a FunctionCall node
+pub fn function_call_add_leading_trivia<'ast>(
+    function_call: FunctionCall<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> FunctionCall<'ast> {
+    let prefix = prefix_add_leading_trivia(function_call.prefix().to_owned(), leading_trivia);
+    function_call.with_prefix(prefix)
 }
 
 /// Adds trailing trivia at the end of a FunctionCall node
@@ -578,11 +625,7 @@ pub fn prefix_add_leading_trivia<'ast>(
             None,
         ))),
         Prefix::Expression(expression) => {
-            println!(
-                "WARNING: Prefix(Expression) leading trivia not implemented for {}",
-                expression
-            ); // TODO: Implement
-            Prefix::Expression(expression)
+            Prefix::Expression(expression_add_leading_trivia(expression, leading_trivia))
         }
     }
 }
@@ -598,16 +641,36 @@ pub fn suffix_add_trailing_trivia<'ast>(
     }
 }
 
+/// Adds trivia to a TableConstructor node
+pub fn table_constructor_add_trivia<'ast>(
+    table_constructor: TableConstructor<'ast>,
+    leading_trivia: Option<Vec<Token<'ast>>>,
+    trailing_trivia: Option<Vec<Token<'ast>>>,
+) -> TableConstructor<'ast> {
+    let table_constructor_braces = contained_span_add_trivia(
+        table_constructor.braces().to_owned(),
+        leading_trivia,
+        trailing_trivia,
+    );
+    table_constructor.with_braces(table_constructor_braces)
+}
+
+/// Adds leading trivia to the start of a TableConstructor node
+#[deprecated(note = "Please use table_constructor_add_trivia")]
+pub fn table_constructor_add_leading_trivia<'ast>(
+    table_constructor: TableConstructor<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> TableConstructor<'ast> {
+    table_constructor_add_trivia(table_constructor, Some(leading_trivia), None)
+}
+
 /// Adds trailing trivia at the end of a TableConstructor node
+#[deprecated(note = "Please use table_constructor_add_trivia")]
 pub fn table_constructor_add_trailing_trivia<'ast>(
     table_constructor: TableConstructor<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> TableConstructor<'ast> {
-    let table_constructor_braces = table_constructor.braces().to_owned();
-    table_constructor.with_braces(contained_span_add_trailing_trivia(
-        table_constructor_braces,
-        trailing_trivia,
-    ))
+    table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia))
 }
 
 /// Adds trivia to a TokenReferenece
@@ -663,38 +726,100 @@ pub fn token_reference_add_trailing_trivia<'ast>(
     token_reference_add_trivia(token_reference, None, Some(trailing_trivia))
 }
 
+/// Adds leading trivia to the start of an UnOp node
+pub fn unop_add_leading_trivia<'ast>(
+    unop: UnOp<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> UnOp<'ast> {
+    match unop {
+        UnOp::Hash(token_reference) => UnOp::Hash(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        UnOp::Minus(token_reference) => UnOp::Minus(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        UnOp::Not(token_reference) => UnOp::Not(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+    }
+}
+
+pub fn value_add_leading_trivia<'ast>(
+    value: Value<'ast>,
+    leading_trivia: Vec<Token<'ast>>,
+) -> Value<'ast> {
+    match value {
+        Value::Function((token, function_body)) => Value::Function((
+            token,
+            function_body_add_leading_trivia(function_body, leading_trivia),
+        )),
+        Value::FunctionCall(function_call) => Value::FunctionCall(
+            function_call_add_leading_trivia(function_call, leading_trivia),
+        ),
+        Value::Number(token_reference) => Value::Number(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        Value::ParseExpression(expression) => {
+            Value::ParseExpression(expression_add_leading_trivia(expression, leading_trivia))
+        }
+        Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            Some(leading_trivia),
+            None,
+        ))),
+        Value::TableConstructor(table_constructor) => Value::TableConstructor(
+            table_constructor_add_trivia(table_constructor, Some(leading_trivia), None),
+        ),
+        Value::Var(var) => Value::Var(var_add_leading_trivia(var, leading_trivia)),
+    }
+}
+
 /// Adds trailing trivia at the end of a Value node
 pub fn value_add_trailing_trivia<'ast>(
     value: Value<'ast>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> Value<'ast> {
     match value {
-        Value::String(token_reference) => Value::String(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+        Value::Function((token, function_body)) => Value::Function((
+            token,
+            function_body_add_trailing_trivia(function_body, trailing_trivia),
         )),
+        Value::FunctionCall(function_call) => Value::FunctionCall(
+            function_call_add_trailing_trivia(function_call, trailing_trivia),
+        ),
         Value::Number(token_reference) => Value::Number(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
-        )),
-        Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(
             token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
         )),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
         }
-        Value::FunctionCall(function_call) => Value::FunctionCall(
-            function_call_add_trailing_trivia(function_call, trailing_trivia),
-        ),
+        Value::String(token_reference) => Value::String(Cow::Owned(
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+        )),
+        Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(
+            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+        )),
         Value::TableConstructor(table_constructor) => Value::TableConstructor(
             table_constructor_add_trailing_trivia(table_constructor, trailing_trivia),
         ),
         Value::Var(var) => Value::Var(var_add_trailing_trivia(var, trailing_trivia)),
-        Value::Function((token, function_body)) => Value::Function((
-            token,
-            function_body_add_trailing_trivia(function_body, trailing_trivia),
-        )),
     }
 }
 
+/// Adds leading trivia to the start of a Var node
 pub fn var_add_leading_trivia<'ast>(var: Var<'ast>, leading_trivia: Vec<Token<'ast>>) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trivia(
@@ -726,6 +851,7 @@ pub fn var_add_trailing_trivia<'ast>(
     }
 }
 
+/// Adds leading trivia to the start of a VarExpression node
 pub fn var_expression_add_leading_trivia<'ast>(
     var_expresion: VarExpression<'ast>,
     leading_trivia: Vec<Token<'ast>>,
