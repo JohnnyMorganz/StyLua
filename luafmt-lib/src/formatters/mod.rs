@@ -73,6 +73,14 @@ impl CodeFormatter {
         }
     }
 
+    pub fn increment_indent_level(&mut self) {
+        self.indent_level += 1;
+    }
+
+    pub fn decrement_indent_level(&mut self) {
+        self.indent_level -= 1;
+    }
+
     /// Creates a new Token containing whitespace for indents, used for trivia
     pub fn create_indent_trivia<'ast>(&self, indent_level: Option<usize>) -> Token<'ast> {
         // self.indent_level starts at 1
@@ -94,9 +102,51 @@ impl CodeFormatter {
         })
     }
 
+    fn format_single_line_comment_string(
+        &self,
+        comment: String,
+        format_token_type: &FormatTokenType,
+    ) -> String {
+        let comment = comment.trim();
+        let mut formatted_comment = String::from(" "); // Add space before comment begins
+        formatted_comment += comment;
+
+        match format_token_type {
+            FormatTokenType::LeadingTrivia => {
+                formatted_comment += &get_line_ending_character(&self.config.line_endings);
+                // Add new line before end of comment if its leading trivia
+            }
+            _ => (),
+        }
+
+        formatted_comment
+    }
+
+    fn format_multi_line_comment_string(&self, comment: String) -> String {
+        let comment = comment.trim();
+        let mut formatted_comment = get_line_ending_character(&self.config.line_endings); // Put starting braces seperately on its own line
+        formatted_comment += comment.trim_end_matches('-'); // Remove any "--" already present before the closing braces: TODO: Do we want to do this?
+        formatted_comment += &get_line_ending_character(&self.config.line_endings); // Put closing braces on a new line
+        formatted_comment += "--"; // Add "--" before closing braces: TODO: Do we want to do this?
+
+        formatted_comment
+    }
+
     /// Formats a Token Node
+    /// Also returns any extra leading or trailing trivia to add for the Token node
     /// This should only ever be called from format_token_reference
-    fn format_token<'ast>(&self, token: Token<'ast>, format_type: FormatTokenType) -> Token<'ast> {
+    fn format_token<'ast>(
+        &self,
+        token: Token<'ast>,
+        format_type: &FormatTokenType,
+    ) -> (
+        Token<'ast>,
+        Option<Vec<Token<'ast>>>,
+        Option<Vec<Token<'ast>>>,
+    ) {
+        let mut leading_trivia: Option<Vec<Token<'ast>>> = None;
+        let mut trailing_trivia: Option<Vec<Token<'ast>>> = None;
+
         let token_type = match token.token_type() {
             TokenType::StringLiteral {
                 literal,
@@ -111,39 +161,38 @@ impl CodeFormatter {
                 quote_type: StringLiteralQuoteType::Double,
             },
             TokenType::SingleLineComment { comment } => {
-                let mut new_str = comment.to_owned().into_owned();
+                let comment = self.format_single_line_comment_string(
+                    comment.to_owned().into_owned(),
+                    format_type,
+                );
+
                 match format_type {
-                    FormatTokenType::LeadingTrivia => {
-                        // TODO: We need to add trivia to indent the comment, how can we pass this along?
-                        // Add a newline character
-                        new_str.push_str(&get_line_ending_character(&self.config.line_endings));
-                    }
                     FormatTokenType::TrailingTrivia => {
-                        // TODO: We need to add a single space trivia to separate the comment and the code, how can we pass this along?
+                        // Add a space before the comment
+                        leading_trivia = Some(vec![Token::new(TokenType::spaces(1))]);
                     }
                     _ => (),
                 }
+
                 TokenType::SingleLineComment {
-                    comment: Cow::Owned(new_str),
+                    comment: Cow::Owned(comment),
                 }
             }
             TokenType::MultiLineComment { blocks, comment } => {
-                // TODO: This is copied from above, can we abstract it out?
-                let mut new_str = comment.to_owned().into_owned();
+                let comment =
+                    self.format_multi_line_comment_string(comment.to_owned().into_owned());
+
                 match format_type {
                     FormatTokenType::LeadingTrivia => {
-                        // TODO: We need to add trivia to indent the comment, how can we pass this along?
-                        // Add a newline character
-                        new_str.push_str(&get_line_ending_character(&self.config.line_endings));
-                    }
-                    FormatTokenType::TrailingTrivia => {
-                        // TODO: We need to add a single space trivia to separate the comment and the code, how can we pass this along?
+                        // Add a new line once the comment is completed
+                        trailing_trivia = Some(vec![self.create_newline_trivia()]);
                     }
                     _ => (),
                 }
+
                 TokenType::MultiLineComment {
                     blocks: *blocks,
-                    comment: Cow::Owned(new_str),
+                    comment: Cow::Owned(comment),
                 }
             }
             TokenType::Whitespace { characters } => TokenType::Whitespace {
@@ -152,7 +201,35 @@ impl CodeFormatter {
             _ => token.token_type().to_owned(),
         };
 
-        Token::new(token_type)
+        (Token::new(token_type), leading_trivia, trailing_trivia)
+    }
+
+    fn load_token_trivia<'ast>(
+        &self,
+        current_trivia: Vec<&Token<'ast>>,
+        format_token_type: FormatTokenType,
+    ) -> Vec<Token<'ast>> {
+        let mut token_trivia = Vec::new();
+
+        for trivia in current_trivia {
+            if trivia.token_kind() == TokenKind::Whitespace {
+                continue;
+            }
+
+            let (token, leading_trivia, trailing_trivia) =
+                self.format_token(trivia.to_owned(), &format_token_type);
+            if let Some(mut trivia) = leading_trivia {
+                token_trivia.append(&mut trivia);
+            }
+
+            token_trivia.push(token);
+
+            if let Some(mut trivia) = trailing_trivia {
+                token_trivia.append(&mut trivia)
+            }
+        }
+
+        token_trivia
     }
 
     fn format_plain_token_reference<'a>(
@@ -160,28 +237,40 @@ impl CodeFormatter {
         token_reference: TokenReference<'a>,
     ) -> TokenReference<'a> {
         // Preserve comments in leading/trailing trivia
-        let formatted_leading_trivia: Vec<Token<'a>> = token_reference
-            .leading_trivia()
-            .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
-            .map(|x| self.format_token(x.to_owned(), FormatTokenType::LeadingTrivia))
-            .collect();
-        let formatted_trailing_trivia: Vec<Token<'a>> = token_reference
-            .trailing_trivia()
-            .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
-            .map(|x| self.format_token(x.to_owned(), FormatTokenType::TrailingTrivia))
-            .collect();
+        let formatted_leading_trivia: Vec<Token<'a>> = self.load_token_trivia(
+            token_reference.leading_trivia().collect(),
+            FormatTokenType::LeadingTrivia,
+        );
+        let formatted_trailing_trivia: Vec<Token<'a>> = self.load_token_trivia(
+            token_reference.trailing_trivia().collect(),
+            FormatTokenType::TrailingTrivia,
+        );
 
-        TokenReference::new(
-            formatted_leading_trivia,
-            self.format_token(token_reference.token().to_owned(), FormatTokenType::Token),
-            formatted_trailing_trivia,
-        )
+        let (token, _leading_trivia, _trailing_trivia) =
+            self.format_token(token_reference.token().to_owned(), &FormatTokenType::Token);
+        // TODO: is it possible for leading/trailing trivia to be present here?
+        // if let Some(trivia) = leading_trivia {
+        //     formatted_leading_trivia.append(trivia);
+        // }
+
+        // if let Some(trivia) = trailing_trivia {
+        //     formatted_leading_trivia.append(trivia);
+        // }
+
+        TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
     }
 
     pub fn format_token_reference<'a>(
         &self,
         token_reference: Cow<'a, TokenReference<'a>>,
     ) -> Cow<'a, TokenReference<'a>> {
+        Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
+    }
+
+    pub fn format_token_reference_mut<'ast>(
+        &mut self,
+        token_reference: Cow<'ast, TokenReference<'ast>>,
+    ) -> Cow<'ast, TokenReference<'ast>> {
         Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
     }
 
@@ -197,9 +286,9 @@ impl CodeFormatter {
     }
 
     pub fn format_punctuated<'a, T>(
-        &self,
+        &mut self,
         old: Punctuated<'a, T>,
-        value_formatter: &dyn Fn(&Self, T) -> T,
+        value_formatter: &dyn Fn(&mut Self, T) -> T,
         // wanted_trailing_trivia: Vec<Token<'a>>,
     ) -> Punctuated<'a, T> {
         let mut formatted: Punctuated<T> = Punctuated::new();
@@ -240,18 +329,15 @@ impl CodeFormatter {
         current_symbol: TokenReference<'ast>,
         wanted_symbol: TokenReference<'ast>,
     ) -> Cow<'ast, TokenReference<'ast>> {
-        // TODO: This is copied from format_token_reference, can we simplify this?
         // Preserve comments in leading/trailing trivia
-        let mut formatted_leading_trivia: Vec<Token<'ast>> = current_symbol
-            .leading_trivia()
-            .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
-            .map(|x| self.format_token(x.to_owned(), FormatTokenType::LeadingTrivia))
-            .collect();
-        let mut formatted_trailing_trivia: Vec<Token<'ast>> = current_symbol
-            .trailing_trivia()
-            .filter(|trivia| trivia.token_kind() != TokenKind::Whitespace)
-            .map(|x| self.format_token(x.to_owned(), FormatTokenType::TrailingTrivia))
-            .collect();
+        let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
+            current_symbol.leading_trivia().collect(),
+            FormatTokenType::LeadingTrivia,
+        );
+        let mut formatted_trailing_trivia: Vec<Token<'ast>> = self.load_token_trivia(
+            current_symbol.trailing_trivia().collect(),
+            FormatTokenType::TrailingTrivia,
+        );
 
         // Add on any whitespace created in the new symbol
         // The wanted leading trivia should be added to the end of formatted_leading_trivia
@@ -278,30 +364,30 @@ impl CodeFormatter {
 
 impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
-        self.indent_level += 1;
-        block_formatter::format_block(&self, node)
+        self.increment_indent_level();
+        block_formatter::format_block(self, node)
     }
 
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
-        self.indent_level -= 1;
+        self.decrement_indent_level();
         node
     }
 
     // Special case where trivia needs to be added, and it isn't handled elsewhere
     fn visit_function_body_end(&mut self, function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
-        let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
-            function_body.parameters_parentheses().to_owned(),
-            None,
-            Some(vec![self.create_newline_trivia()]),
-        );
-        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            function_body.end_token().to_owned(),
-            Some(vec![self.create_indent_trivia(None)]),
-            None,
-        ));
+        // let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+        //     function_body.parameters_parentheses().to_owned(),
+        //     None,
+        //     Some(vec![self.create_newline_trivia()]),
+        // );
+        // let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+        //     function_body.end_token().to_owned(),
+        //     Some(vec![self.create_indent_trivia(None)]),
+        //     None,
+        // ));
 
         function_body
-            .with_parameters_parentheses(parameters_parentheses)
-            .with_end_token(end_token)
+        // .with_parameters_parentheses(parameters_parentheses)
+        // .with_end_token(end_token)
     }
 }

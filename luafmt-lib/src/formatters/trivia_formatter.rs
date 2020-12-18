@@ -683,7 +683,6 @@ pub fn token_reference_add_trivia<'ast>(
         Some(trivia) => {
             let mut current: Vec<Token<'ast>> = token_reference
                 .leading_trivia()
-                .filter(|x| x.token_kind() == TokenKind::SingleLineComment)
                 .map(|x| x.to_owned())
                 .collect();
             current.extend(trivia);
@@ -699,7 +698,6 @@ pub fn token_reference_add_trivia<'ast>(
         Some(trivia) => {
             let mut current: Vec<Token<'ast>> = token_reference
                 .trailing_trivia()
-                .filter(|x| x.token_kind() == TokenKind::SingleLineComment)
                 .map(|x| x.to_owned())
                 .collect();
             current.extend(trivia);
