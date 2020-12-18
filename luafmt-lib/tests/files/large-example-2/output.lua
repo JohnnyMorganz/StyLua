@@ -1,8 +1,10 @@
 -- Version 2 1.02 I fixed some problems caused by the updates.
 adminlist = { "Person299" } -- Add in the names of the people you want to be able to use the command script here.
 -- Please keep my name in there. ;)
+
 bannedlist = { "someoneyouhate", "noob" } -- If you want someone not to be able to enter your place, put thier name in here.
 texture = "" -- If you want someone wearing a certain t-shirt to be an admin, put the t-shirt's texture in here.
+
 --[[
 	I update this command script alot, so if you want to get the newest version of the script, go to http://www.roblox.com/Item.aspx?ID=5277383 every once in a while.
 
@@ -208,6 +210,7 @@ texture = "" -- If you want someone wearing a certain t-shirt to be an admin, pu
 namelist = {}
 variablelist = {}
 flist = {}
+
 local source = script:FindFirstChild("source")
 if source ~= nil then
 	sbbu = script.source:clone()
@@ -215,6 +218,7 @@ if source ~= nil then
 else
 	print("source doesnt exist, your command script may malfunction")
 end
+
 tools = Instance.new("Model")
 c = game.Lighting:GetChildren()
 for i = 1, #c do
@@ -225,6 +229,7 @@ for i = 1, #c do
 		c[i]:clone().Parent = tools
 	end
 end
+
 function findplayer(name, speaker)
 	if string.lower(name) == "all" then
 		local chars = {}
@@ -405,6 +410,7 @@ function findplayer(name, speaker)
 		end
 	end
 end -- I really like the way the ends look when they're all on the same line better, dont you?
+
 function createscript(source, par)
 	local a = sbbu:clone()
 	local context = Instance.new("StringValue")
@@ -419,6 +425,7 @@ function createscript(source, par)
 	b.Name = "Is A Created Script"
 	b.Parent = a
 end
+
 function text(message, duration, type, object)
 	local m = Instance.new(type)
 	m.Text = message
@@ -428,6 +435,7 @@ function text(message, duration, type, object)
 		m:remove()
 	end
 end
+
 function foc(msg, speaker)
 	if string.lower(msg) == "fix" then
 		for i = 1, #namelist do
@@ -449,6 +457,7 @@ function foc(msg, speaker)
 		table.insert(flist, tfv)
 	end
 end
+
 function PERSON299(name)
 	for i = 1, #adminlist do
 		if adminlist[i] == name then
@@ -457,7 +466,9 @@ function PERSON299(name)
 	end
 	return false
 end
+
 function oc(msg, speaker)
+
 	if string.sub(string.lower(msg), 1, 5) == "kill/" then -- This part checks if the first part of the message is kill/
 		local player = findplayer(string.sub(msg, 6), speaker) -- This part refers to the findplayer function for a list of people associated with the input after kill/
 		if player ~= 0 then -- This part makes sure that the findplayer function found someone, as it returns 0 when it hasnt
@@ -471,16 +482,21 @@ function oc(msg, speaker)
 			end
 		end
 	end -- This line contains the ends for all the if statements and the for loop
+
 	if string.sub(string.lower(msg), 1, 2) == "m/" then
 		text(speaker.Name .. ": " .. string.sub(msg, 3), 2, "Message", game.Workspace)
 	end
+
 	if string.sub(string.lower(msg), 1, 2) == "h/" then
 		text(speaker.Name .. ": " .. string.sub(msg, 3), 2, "Hint", game.Workspace)
 	end
+
 	if string.sub(string.lower(msg), 1, 2) == "c/" then -- Dontcha wish pcall was more reliable?
 		createscript(string.sub(msg, 3), game.Workspace)
 	end
+
 	local msg = string.lower(msg)
+
 	if string.sub(msg, 1, 5) == "give/" then
 		local danumber1 = nil
 		for i = 6, 100 do
@@ -529,6 +545,7 @@ function oc(msg, speaker)
 			end
 		end
 	end
+
 	-- Bored...
 	if string.sub(msg, 1, 7) == "change/" then
 		local danumber1 = nil
@@ -576,6 +593,7 @@ function oc(msg, speaker)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 6) == "ungod/" then
 		local player = findplayer(string.sub(msg, 7), speaker)
 		if player ~= 0 then
@@ -612,6 +630,7 @@ function oc(msg, speaker)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 4) == "god/" then
 		local player = findplayer(string.sub(msg, 5), speaker)
 		if player ~= 0 then
@@ -644,6 +663,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "punish/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -654,6 +674,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "unpunish/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -665,6 +686,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 3) == "ff/" then
 		local player = findplayer(string.sub(msg, 4), speaker)
 		if player ~= 0 then
@@ -676,6 +698,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "unff/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -691,6 +714,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "sparkles/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -706,6 +730,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 11) == "unsparkles/" then
 		local player = findplayer(string.sub(msg, 12), speaker)
 		if player ~= 0 then
@@ -724,6 +749,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 6) == "admin/" then
 		local imgettingtiredofmakingthisstupidscript = PERSON299(speaker.Name)
 		if imgettingtiredofmakingthisstupidscript == true then
@@ -752,6 +778,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 8) == "unadmin/" then
 		local imgettingtiredofmakingthisstupidscript = PERSON299(speaker.Name)
 		if imgettingtiredofmakingthisstupidscript == true then
@@ -774,6 +801,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "heal/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -787,6 +815,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 4) == "sit/" then
 		local player = findplayer(string.sub(msg, 5), speaker)
 		if player ~= 0 then
@@ -800,6 +829,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "jump/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -813,6 +843,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 6) == "stand/" then
 		local player = findplayer(string.sub(msg, 7), speaker)
 		if player ~= 0 then
@@ -826,6 +857,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "jail/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -946,6 +978,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "unjail/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -961,6 +994,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 12) == "removetools/" then
 		local player = findplayer(string.sub(msg, 13), speaker)
 		if player ~= 0 then
@@ -972,6 +1006,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 10) == "givetools/" then
 		local player = findplayer(string.sub(msg, 11), speaker)
 		if player ~= 0 then
@@ -983,6 +1018,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 11) == "givebtools/" then
 		local player = findplayer(string.sub(msg, 12), speaker)
 		if player ~= 0 then
@@ -999,6 +1035,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "unshield/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -1012,6 +1049,7 @@ end end]], player[i].Character)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "shield/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -1059,6 +1097,7 @@ script.Parent.Touched:connect(ot) ]], ball)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 11) == "unloopkill/" then
 		local player = findplayer(string.sub(msg, 12), speaker)
 		if player ~= 0 then
@@ -1075,6 +1114,7 @@ script.Parent.Touched:connect(ot) ]], ball)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "loopkill/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -1105,15 +1145,18 @@ game.Workspace.ChildAdded:connect(oa)
 			end
 		end
 	end
+
 	if string.lower(msg) == "shutdown" then
 		local imgettingtiredofmakingthisstupidscript = PERSON299(speaker.Name)
 		if imgettingtiredofmakingthisstupidscript == true then
 			game.NetworkServer:remove()
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "time/" then
 		game.Lighting.TimeOfDay = string.sub(msg, 6)
 	end
+
 	if msg == "commands" then
 		local text = string.rep(" ", 40)
 		text = text .. [[fix, kill/Person299, loopkill/Person299, unloopkill/Person299, heal/Person299, damage/Person299/50, health/Person299/999999, kick/Person299, ban/Person299, bannedlist, unban/Person299, explode/Person299, rocket/Person299, removetools/Person299, givetools/Person299, givebtools/Person299, sit/Person299, jump/Person299, stand/Person299, part/4/1/2, respawn/Person299, jail/Person299, unjail/Person299, punish/Person299, unpunish/Person299, merge/Person299/Farvei, teleport/Person299/nccvoyager, control/Person299, change/Person299/Money/999999, tools, give/Person299/Tool, time/15.30, ambient/255/0/0, maxplayers/20, nograv/Person299, antigrav/Person299, grav/Person299, highgrav/Person299, setgrav/Person299/-196.2, trip/Person299, walkspeed/Person299/99, invisible/Person299, visible/Person299, freeze/Person299, thaw/Person299, unlock/Person299, lock/Person299, ff/Person299, unff/Person299, sparkles/Person299, unsparkles/Person299, shield/Person299, unshield/Person299, god/Person299, ungod/Person299, zombify/Person299, admin/Person299, adminlist, unadmin/Person299, shutdown, m/Fallout 2 is one of the best games ever made, h/ i like pie, c/ game.Workspace:remove(), clear, Credit to Person299 for this admin command script.]]
@@ -1132,6 +1175,7 @@ game.Workspace.ChildAdded:connect(oa)
 			wait(0.07)
 		end
 	end
+
 	if msg == "tools" then
 		local text = string.rep(" ", 40)
 		local c = tools:GetChildren()
@@ -1160,6 +1204,7 @@ game.Workspace.ChildAdded:connect(oa)
 			wait(0.1)
 		end
 	end
+
 	if msg == "bannedlist" then
 		local text = string.rep(" ", 40)
 		if #bannedlist == 0 then
@@ -1187,6 +1232,7 @@ game.Workspace.ChildAdded:connect(oa)
 			wait(0.1)
 		end
 	end
+
 	if msg == "adminlist" then
 		local text = string.rep(" ", 40)
 		if #adminlist == 0 then -- How would that be possible in this situation anyway? lol
@@ -1223,6 +1269,7 @@ game.Workspace.ChildAdded:connect(oa)
 			wait(0.1)
 		end
 	end
+
 	if string.sub(msg, 1, 11) == "maxplayers/" then
 		local pie = game.Players.MaxPlayers
 		game.Players.MaxPlayers = string.sub(msg, 12)
@@ -1230,6 +1277,7 @@ game.Workspace.ChildAdded:connect(oa)
 			game.Players.MaxPlayers = pie
 		end
 	end
+
 	if string.sub(msg, 1, 8) == "zombify/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1254,6 +1302,7 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
 						-- Credit for the infectontouch script goes to whoever it is that made it.
+
 						createscript([[
 wait(1)
 function onTouched(part)
@@ -1316,6 +1365,7 @@ script.Parent.Touched:connect(onTouched)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 8) == "explode/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1331,6 +1381,7 @@ script.Parent.Touched:connect(onTouched)
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "rocket/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -1372,6 +1423,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 8) == "ambient/" then
 		local danumber1 = nil
 		local danumber2 = nil
@@ -1399,6 +1451,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 		game.Lighting.Ambient = Color3.new(-string.sub(msg, 9, danumber1 - 1), -string.sub(msg, danumber1 + 1, danumber2 - 1), -string.sub(msg, danumber2 + 1))
 	end
+
 	-- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
 	if string.sub(msg, 1, 5) == "part/" then
 		local danumber1 = nil
@@ -1436,6 +1489,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- I finally tried flicking it but it keeps on coming back......
 	if string.sub(msg, 1, 8) == "control/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
@@ -1450,6 +1504,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- IT WONT GO AWAY!!!!!
 	if string.sub(msg, 1, 5) == "trip/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
@@ -1464,6 +1519,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- Yay! it finally went away! :)
 	if string.sub(msg, 1, 8) == "setgrav/" then
 		danumber = nil
@@ -1503,6 +1559,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 10) == "walkspeed/" then
 		danumber = nil
 		for i = 11, 100 do
@@ -1527,6 +1584,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "damage/" then
 		danumber = nil
 		for i = 8, 100 do
@@ -1551,6 +1609,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "health/" then
 		danumber = nil
 		for i = 8, 100 do
@@ -1581,6 +1640,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- Ugh, now i have the M*A*S*H theme stuck in my head.....
 	if string.sub(msg, 1, 9) == "teleport/" then
 		danumber = nil
@@ -1621,6 +1681,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 6) == "merge/" then
 		danumber = nil
 		for i = 7, 100 do
@@ -1652,6 +1713,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			player1[i].Character = player2
 		end
 	end
+
 	if msg == "clear" then
 		local c = game.Workspace:GetChildren()
 		for i = 1, #c do
@@ -1672,6 +1734,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "kick/" then
 		local imgettingtiredofmakingthisstupidscript2 = PERSON299(speaker.Name)
 		if imgettingtiredofmakingthisstupidscript2 == true then
@@ -1688,6 +1751,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 4) == "ban/" then
 		local imgettingtiredofmakingthisstupidscript2 = PERSON299(speaker.Name)
 		if imgettingtiredofmakingthisstupidscript2 == true then
@@ -1705,6 +1769,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 6) == "unban/" then
 		if string.sub(msg, 7) == "all" then
 			for i = 1, bannedlist do
@@ -1730,6 +1795,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- Fallout tactics gets too hard when you start fighting muties...
 	if string.sub(msg, 1, 8) == "respawn/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
@@ -1751,6 +1817,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 10) == "invisible/" then
 		local player = findplayer(string.sub(msg, 11), speaker)
 		if player ~= 0 then
@@ -1787,6 +1854,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 8) == "visible/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1822,6 +1890,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "freeze/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -1842,6 +1911,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "thaw/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -1862,6 +1932,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	-- I have that song from Fallout 2 stuck in my head, its soooo anoying....
 	if string.sub(msg, 1, 7) == "nograv/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
@@ -1890,6 +1961,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "antigrav/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -1917,6 +1989,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 9) == "highgrav/" then
 		local player = findplayer(string.sub(msg, 10), speaker)
 		if player ~= 0 then
@@ -1944,6 +2017,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "grav/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -1960,6 +2034,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 7) == "unlock/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
@@ -1975,6 +2050,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
+
 	if string.sub(msg, 1, 5) == "lock/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -2070,7 +2146,9 @@ function oe(ack)
 		end
 	end
 end
+
 game.Players.ChildAdded:connect(oe)
+
 c = game.Players:GetChildren()
 for i = 1, #c do
 	oe(c[i])

@@ -215,6 +215,9 @@ impl CodeFormatter {
         (Token::new(token_type), leading_trivia, trailing_trivia)
     }
 
+    /// Wraps around the format_token function to create a complete list of trivia to add to a node
+    /// Handles any leading/trailing trivia provided by format_token, and appends it accordingly in relation to the formatted token
+    /// Mainly useful for comments
     fn load_token_trivia<'ast>(
         &self,
         current_trivia: Vec<&Token<'ast>>,
@@ -222,9 +225,25 @@ impl CodeFormatter {
     ) -> Vec<Token<'ast>> {
         let mut token_trivia = Vec::new();
 
+        let mut newline_count = 0;
+
         for trivia in current_trivia {
-            if trivia.token_kind() == TokenKind::Whitespace {
-                continue;
+            match trivia.token_type() {
+                TokenType::Whitespace { characters } => {
+                    if characters.contains('\n') {
+                        newline_count += 1;
+                        if newline_count == 2 {
+                            // We have two counts of a new line, we will allow one to be kept
+                            // This allows the user to define where they want to keep lines in between statements, whilst only allowing one empty line in between them
+                            token_trivia.push(Token::new(TokenType::Whitespace {
+                                characters: Cow::Owned(String::from(get_line_ending_character(&self.config.line_endings)))
+                            }));
+                        }
+                    }
+                    // Move to next trivia
+                    continue;
+                }
+                _ => ()
             }
 
             let (token, leading_trivia, trailing_trivia) =
