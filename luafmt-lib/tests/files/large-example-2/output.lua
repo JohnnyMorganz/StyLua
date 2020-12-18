@@ -529,7 +529,7 @@ function oc(msg, speaker)
 			end
 		end
 	end
--- Bored...
+	-- Bored...
 	if string.sub(msg, 1, 7) == "change/" then
 		local danumber1 = nil
 		local danumber2 = nil
@@ -1253,7 +1253,7 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.Size = Vector3.new(2, 1, 1)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
--- Credit for the infectontouch script goes to whoever it is that made it.
+						-- Credit for the infectontouch script goes to whoever it is that made it.
 						createscript([[
 wait(1)
 function onTouched(part)
@@ -1399,7 +1399,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 		game.Lighting.Ambient = Color3.new(-string.sub(msg, 9, danumber1 - 1), -string.sub(msg, danumber1 + 1, danumber2 - 1), -string.sub(msg, danumber2 + 1))
 	end
--- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
+	-- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
 	if string.sub(msg, 1, 5) == "part/" then
 		local danumber1 = nil
 		local danumber2 = nil
@@ -1436,7 +1436,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- I finally tried flicking it but it keeps on coming back......
+	-- I finally tried flicking it but it keeps on coming back......
 	if string.sub(msg, 1, 8) == "control/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1450,7 +1450,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- IT WONT GO AWAY!!!!!
+	-- IT WONT GO AWAY!!!!!
 	if string.sub(msg, 1, 5) == "trip/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -1464,7 +1464,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- Yay! it finally went away! :)
+	-- Yay! it finally went away! :)
 	if string.sub(msg, 1, 8) == "setgrav/" then
 		danumber = nil
 		for i = 9, 100 do
@@ -1581,7 +1581,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- Ugh, now i have the M*A*S*H theme stuck in my head.....
+	-- Ugh, now i have the M*A*S*H theme stuck in my head.....
 	if string.sub(msg, 1, 9) == "teleport/" then
 		danumber = nil
 		for i = 10, 100 do
@@ -1730,7 +1730,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- Fallout tactics gets too hard when you start fighting muties...
+	-- Fallout tactics gets too hard when you start fighting muties...
 	if string.sub(msg, 1, 8) == "respawn/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1862,7 +1862,7 @@ script.Parent.Parent.Humanoid.Health = 0
 			end
 		end
 	end
--- I have that song from Fallout 2 stuck in my head, its soooo anoying....
+	-- I have that song from Fallout 2 stuck in my head, its soooo anoying....
 	if string.sub(msg, 1, 7) == "nograv/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then

@@ -102,22 +102,10 @@ impl CodeFormatter {
         })
     }
 
-    fn format_single_line_comment_string(
-        &self,
-        comment: String,
-        format_token_type: &FormatTokenType,
-    ) -> String {
+    fn format_single_line_comment_string(&self, comment: String) -> String {
         let comment = comment.trim();
         let mut formatted_comment = String::from(" "); // Add space before comment begins
         formatted_comment += comment;
-
-        match format_token_type {
-            FormatTokenType::LeadingTrivia => {
-                formatted_comment += &get_line_ending_character(&self.config.line_endings);
-                // Add new line before end of comment if its leading trivia
-            }
-            _ => (),
-        }
 
         formatted_comment
     }
@@ -161,12 +149,14 @@ impl CodeFormatter {
                 quote_type: StringLiteralQuoteType::Double,
             },
             TokenType::SingleLineComment { comment } => {
-                let comment = self.format_single_line_comment_string(
-                    comment.to_owned().into_owned(),
-                    format_type,
-                );
+                let comment =
+                    self.format_single_line_comment_string(comment.to_owned().into_owned());
 
                 match format_type {
+                    FormatTokenType::LeadingTrivia => {
+                        leading_trivia = Some(vec![self.create_indent_trivia(None)]);
+                        trailing_trivia = Some(vec![self.create_newline_trivia()]);
+                    }
                     FormatTokenType::TrailingTrivia => {
                         // Add a space before the comment
                         leading_trivia = Some(vec![Token::new(TokenType::spaces(1))]);
