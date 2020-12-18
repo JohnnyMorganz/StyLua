@@ -1,6 +1,6 @@
 --[[
-Testing this
---]]
+	Testing this
+]]
 local function foo(bar, baz)
 	print(bar, baz)
 end -- this is a nice function

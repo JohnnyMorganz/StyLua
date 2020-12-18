@@ -57,6 +57,13 @@ enum FormatTokenType {
     TrailingTrivia,
 }
 
+fn get_indent_string(indent_type: &IndentType, indent_level: usize) -> String {
+    match indent_type {
+        IndentType::Tabs => "\t".repeat(indent_level - 1),
+        IndentType::Spaces => " ".repeat(indent_level - 1),
+    }
+}
+
 fn get_line_ending_character(line_endings: &LineEndings) -> String {
     match line_endings {
         LineEndings::Unix => String::from("\n"),
@@ -113,9 +120,23 @@ impl CodeFormatter {
     fn format_multi_line_comment_string(&self, comment: String) -> String {
         let comment = comment.trim();
         let mut formatted_comment = get_line_ending_character(&self.config.line_endings); // Put starting braces seperately on its own line
-        formatted_comment += comment.trim_end_matches('-'); // Remove any "--" already present before the closing braces: TODO: Do we want to do this?
+
+        // Split multiline comment into its individual lines
+        // We want to take each line, trim any whitespace, and indent it one greater than the current indent level
+        let comment = comment
+            .lines()
+            .map(|line| {
+                // Check to see if the line is just whitespace
+                match line.split_whitespace().collect::<String>().is_empty() {
+                    true => String::from(line.trim()), // If its just whitespace, return an empty line
+                    false => get_indent_string(&self.config.indent_type, &self.indent_level + 1) + line.trim() // If not, trim the line and indent it
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(&get_line_ending_character(&self.config.line_endings));
+
+        formatted_comment += &comment; // Add in the multiline comment
         formatted_comment += &get_line_ending_character(&self.config.line_endings); // Put closing braces on a new line
-        formatted_comment += "--"; // Add "--" before closing braces: TODO: Do we want to do this?
 
         formatted_comment
     }
