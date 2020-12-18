@@ -30,7 +30,9 @@ pub fn create_newline_trivia<'ast>() -> Token<'ast> {
     })
 }
 
-pub fn format_token<'ast>(token: Token<'ast>) -> Token<'ast> {
+/// Formats a Token Node
+/// This should only ever be called from format_token_reference
+fn format_token<'ast>(token: Token<'ast>) -> Token<'ast> {
     let token_type = match token.token_type() {
         TokenType::StringLiteral {
             literal,
