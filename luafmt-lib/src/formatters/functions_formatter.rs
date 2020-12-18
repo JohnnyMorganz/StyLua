@@ -11,7 +11,7 @@ use std::boxed::Box;
 use crate::formatters::{expression_formatter, CodeFormatter};
 
 /// Formats a Call node
-pub fn format_call<'ast>(code_formatter: &CodeFormatter, call: Call<'ast>) -> Call<'ast> {
+pub fn format_call<'ast>(code_formatter: &mut CodeFormatter, call: Call<'ast>) -> Call<'ast> {
     match call {
         Call::AnonymousCall(function_args) => {
             Call::AnonymousCall(format_function_args(code_formatter, function_args))
@@ -24,7 +24,7 @@ pub fn format_call<'ast>(code_formatter: &CodeFormatter, call: Call<'ast>) -> Ca
 
 /// Formats a FunctionArgs node
 pub fn format_function_args<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_args: FunctionArgs<'ast>,
 ) -> FunctionArgs<'ast> {
     match function_args {
@@ -108,7 +108,7 @@ pub fn format_function_body<'ast>(
 
 /// Formats a FunctionCall node
 pub fn format_function_call<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_call: FunctionCall<'ast>,
 ) -> FunctionCall<'ast> {
     let formatted_prefix =
@@ -224,7 +224,7 @@ pub fn format_local_function<'ast>(
 
 /// Formats a MethodCall node
 pub fn format_method_call<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     method_call: MethodCall<'ast>,
 ) -> MethodCall<'ast> {
     let formatted_colon_token =

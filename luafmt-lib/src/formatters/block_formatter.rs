@@ -25,7 +25,7 @@ pub fn format_do_block<'ast>(code_formatter: &CodeFormatter, do_block: Do<'ast>)
 
 /// Format a GenericFor node
 pub fn format_generic_for<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     generic_for: GenericFor<'ast>,
 ) -> GenericFor<'ast> {
     let for_token = code_formatter.format_symbol(
@@ -34,7 +34,7 @@ pub fn format_generic_for<'ast>(
     );
     let formatted_names = code_formatter.format_punctuated(
         generic_for.names().to_owned(),
-        &CodeFormatter::format_token_reference,
+        &CodeFormatter::format_token_reference_mut,
     );
     let in_token = code_formatter.format_symbol(
         generic_for.in_token().to_owned(),
@@ -64,7 +64,7 @@ pub fn format_generic_for<'ast>(
 
 /// Formats an ElseIf node - This must always reside within format_if
 fn format_else_if<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     else_if_node: ElseIf<'ast>,
 ) -> ElseIf<'ast> {
     let formatted_else_if_token = code_formatter.format_symbol(
@@ -87,7 +87,7 @@ fn format_else_if<'ast>(
 }
 
 /// Format an If node
-pub fn format_if<'ast>(code_formatter: &CodeFormatter, if_node: If<'ast>) -> If<'ast> {
+pub fn format_if<'ast>(code_formatter: &mut CodeFormatter, if_node: If<'ast>) -> If<'ast> {
     let formatted_if_token = code_formatter.format_symbol(
         if_node.if_token().to_owned(),
         TokenReference::symbol("if ").unwrap(),
@@ -131,7 +131,7 @@ pub fn format_if<'ast>(code_formatter: &CodeFormatter, if_node: If<'ast>) -> If<
 
 /// Format a NumericFor node
 pub fn format_numeric_for<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     numeric_for: NumericFor<'ast>,
 ) -> NumericFor<'ast> {
     let for_token = code_formatter.format_symbol(
@@ -192,7 +192,7 @@ pub fn format_numeric_for<'ast>(
 
 /// Format a Repeat node
 pub fn format_repeat_block<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     repeat_block: Repeat<'ast>,
 ) -> Repeat<'ast> {
     let repeat_token = code_formatter.format_symbol(
@@ -214,7 +214,7 @@ pub fn format_repeat_block<'ast>(
 
 /// Format a While node
 pub fn format_while_block<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     while_block: While<'ast>,
 ) -> While<'ast> {
     let while_token = code_formatter.format_symbol(
@@ -239,7 +239,7 @@ pub fn format_while_block<'ast>(
         .with_end_token(end_token)
 }
 
-pub fn format_stmt<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>) -> Stmt<'ast> {
+pub fn format_stmt<'ast>(code_formatter: &mut CodeFormatter, stmt: Stmt<'ast>) -> Stmt<'ast> {
     match stmt {
         Stmt::Assignment(assignment) => Stmt::Assignment(assignment_formatter::format_assignment(
             code_formatter,
@@ -338,7 +338,7 @@ pub fn stmt_add_trivia<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>) -
 }
 
 pub fn format_return<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     return_node: Return<'ast>,
 ) -> Return<'ast> {
     let formatted_returns = code_formatter.format_punctuated(
@@ -358,7 +358,7 @@ pub fn format_return<'ast>(
 }
 
 pub fn format_last_stmt<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     last_stmt: LastStmt<'ast>,
 ) -> LastStmt<'ast> {
     match last_stmt {
@@ -426,25 +426,23 @@ pub fn last_stmt_add_trivia<'ast>(
     }
 }
 
-pub fn format_block<'ast>(code_formatter: &CodeFormatter, block: Block<'ast>) -> Block<'ast> {
+pub fn format_block<'ast>(code_formatter: &mut CodeFormatter, block: Block<'ast>) -> Block<'ast> {
     let formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> = block
         .iter_stmts()
         .map(|stmt| {
+            let stmt = format_stmt(code_formatter, stmt.to_owned());
             (
-                stmt_add_trivia(code_formatter, format_stmt(code_formatter, stmt.to_owned())),
+                stmt_add_trivia(code_formatter, stmt),
                 None, // The second parameter in the tuple is for semicolons - we do not want any semi-colons
             )
         })
         .collect();
 
     let formatted_last_stmt = match block.last_stmt() {
-        Some(last_stmt) => Some((
-            last_stmt_add_trivia(
-                code_formatter,
-                format_last_stmt(code_formatter, last_stmt.to_owned()),
-            ),
-            None,
-        )),
+        Some(last_stmt) => {
+            let last_stmt = format_last_stmt(code_formatter, last_stmt.to_owned());
+            Some((last_stmt_add_trivia(code_formatter, last_stmt), None))
+        }
         None => None,
     };
 

@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use crate::formatters::{expression_formatter, CodeFormatter};
 
 pub fn format_assignment<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     assignment: Assignment<'ast>,
 ) -> Assignment<'ast> {
     let var_list = code_formatter.format_punctuated(
@@ -24,7 +24,7 @@ pub fn format_assignment<'ast>(
 }
 
 pub fn format_local_assignment<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     assignment: LocalAssignment<'ast>,
 ) -> LocalAssignment<'ast> {
     let local_token = code_formatter.format_symbol(
@@ -34,7 +34,7 @@ pub fn format_local_assignment<'ast>(
     if assignment.expr_list().is_empty() {
         let name_list = code_formatter.format_punctuated(
             assignment.name_list().to_owned(),
-            &CodeFormatter::format_token_reference,
+            &CodeFormatter::format_token_reference_mut,
         );
         assignment
             .with_local_token(local_token)
@@ -44,7 +44,7 @@ pub fn format_local_assignment<'ast>(
     } else {
         let name_list = code_formatter.format_punctuated(
             assignment.name_list().to_owned(),
-            &CodeFormatter::format_token_reference,
+            &CodeFormatter::format_token_reference_mut,
         );
         let equal_token = code_formatter.format_symbol(
             assignment.equal_token().unwrap().to_owned(),

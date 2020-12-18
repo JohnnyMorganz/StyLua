@@ -72,7 +72,7 @@ pub fn format_binop<'ast>(code_formatter: &CodeFormatter, binop: BinOp<'ast>) ->
 }
 
 pub fn format_bin_op_rhs<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     bin_op_rhs: BinOpRhs<'ast>,
 ) -> BinOpRhs<'ast> {
     BinOpRhs::new(
@@ -86,7 +86,7 @@ pub fn format_bin_op_rhs<'ast>(
 
 /// Formats an Expression node
 pub fn format_expression<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     expression: Expression<'ast>,
 ) -> Expression<'ast> {
     match expression {
@@ -112,7 +112,7 @@ pub fn format_expression<'ast>(
 }
 
 /// Formats an Index Node
-pub fn format_index<'ast>(code_formatter: &CodeFormatter, index: Index<'ast>) -> Index<'ast> {
+pub fn format_index<'ast>(code_formatter: &mut CodeFormatter, index: Index<'ast>) -> Index<'ast> {
     match index {
         Index::Brackets {
             brackets,
@@ -130,7 +130,10 @@ pub fn format_index<'ast>(code_formatter: &CodeFormatter, index: Index<'ast>) ->
 }
 
 /// Formats a Prefix Node
-pub fn format_prefix<'ast>(code_formatter: &CodeFormatter, prefix: Prefix<'ast>) -> Prefix<'ast> {
+pub fn format_prefix<'ast>(
+    code_formatter: &mut CodeFormatter,
+    prefix: Prefix<'ast>,
+) -> Prefix<'ast> {
     match prefix {
         Prefix::Expression(expression) => {
             Prefix::Expression(format_expression(code_formatter, expression))
@@ -142,7 +145,10 @@ pub fn format_prefix<'ast>(code_formatter: &CodeFormatter, prefix: Prefix<'ast>)
 }
 
 /// Formats a Suffix Node
-pub fn format_suffix<'ast>(code_formatter: &CodeFormatter, suffix: Suffix<'ast>) -> Suffix<'ast> {
+pub fn format_suffix<'ast>(
+    code_formatter: &mut CodeFormatter,
+    suffix: Suffix<'ast>,
+) -> Suffix<'ast> {
     match suffix {
         Suffix::Call(call) => Suffix::Call(functions_formatter::format_call(code_formatter, call)),
         Suffix::Index(index) => Suffix::Index(format_index(code_formatter, index)),
@@ -150,14 +156,14 @@ pub fn format_suffix<'ast>(code_formatter: &CodeFormatter, suffix: Suffix<'ast>)
 }
 
 /// Formats a Value Node
-pub fn format_value<'ast>(code_formatter: &CodeFormatter, value: Value<'ast>) -> Value<'ast> {
+pub fn format_value<'ast>(code_formatter: &mut CodeFormatter, value: Value<'ast>) -> Value<'ast> {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function((
             code_formatter.format_symbol(
                 token_reference.into_owned(),
                 TokenReference::symbol("function").unwrap(),
             ),
-            functions_formatter::format_function_body(code_formatter, function_body),
+            functions_formatter::format_function_body(code_formatter, function_body), // TODO: Trivia isn't being added to this anonymous function - how can we fix this?
         )),
         Value::FunctionCall(function_call) => Value::FunctionCall(
             functions_formatter::format_function_call(code_formatter, function_call),
@@ -182,7 +188,7 @@ pub fn format_value<'ast>(code_formatter: &CodeFormatter, value: Value<'ast>) ->
 }
 
 /// Formats a Var Node
-pub fn format_var<'ast>(code_formatter: &CodeFormatter, var: Var<'ast>) -> Var<'ast> {
+pub fn format_var<'ast>(code_formatter: &mut CodeFormatter, var: Var<'ast>) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => {
             Var::Name(code_formatter.format_token_reference(token_reference))
@@ -194,7 +200,7 @@ pub fn format_var<'ast>(code_formatter: &CodeFormatter, var: Var<'ast>) -> Var<'
 }
 
 pub fn format_var_expression<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     var_expression: VarExpression<'ast>,
 ) -> VarExpression<'ast> {
     let formatted_prefix = format_prefix(code_formatter, var_expression.prefix().to_owned());
