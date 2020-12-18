@@ -1,13 +1,20 @@
-use crate::formatters::{expression_formatter::format_expression, CodeFormatter};
+use crate::formatters::{
+    expression_formatter::format_expression, get_line_ending_character, trivia_formatter,
+    CodeFormatter,
+};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
     Field, TableConstructor,
 };
-use full_moon::tokenizer::TokenReference;
+use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
 
-pub fn format_field<'ast>(code_formatter: &CodeFormatter, field: &Field<'ast>) -> Field<'ast> {
+pub fn format_field<'ast>(
+    code_formatter: &mut CodeFormatter,
+    field: &Field<'ast>,
+    leading_trivia: Option<Vec<Token<'ast>>>,
+) -> Field<'ast> {
     match field {
         Field::ExpressionKey {
             brackets,
@@ -15,7 +22,11 @@ pub fn format_field<'ast>(code_formatter: &CodeFormatter, field: &Field<'ast>) -
             equal,
             value,
         } => Field::ExpressionKey {
-            brackets: code_formatter.format_contained_span(brackets.to_owned()),
+            brackets: trivia_formatter::contained_span_add_trivia(
+                code_formatter.format_contained_span(brackets.to_owned()),
+                leading_trivia,
+                None,
+            ),
             key: format_expression(code_formatter, key.to_owned()),
             equal: code_formatter.format_symbol(
                 equal.to_owned().into_owned(),
@@ -24,7 +35,13 @@ pub fn format_field<'ast>(code_formatter: &CodeFormatter, field: &Field<'ast>) -
             value: format_expression(code_formatter, value.to_owned()),
         },
         Field::NameKey { key, equal, value } => Field::NameKey {
-            key: code_formatter.format_token_reference(key.to_owned()),
+            key: Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                code_formatter
+                    .format_token_reference(key.to_owned())
+                    .into_owned(),
+                leading_trivia,
+                None,
+            )),
             equal: code_formatter.format_symbol(
                 equal.to_owned().into_owned(),
                 TokenReference::symbol(" = ").unwrap(),
@@ -32,13 +49,20 @@ pub fn format_field<'ast>(code_formatter: &CodeFormatter, field: &Field<'ast>) -
             value: format_expression(code_formatter, value.to_owned()),
         },
         Field::NoKey(expression) => {
-            Field::NoKey(format_expression(code_formatter, expression.to_owned()))
+            let formatted_expression = format_expression(code_formatter, expression.to_owned());
+            match leading_trivia {
+                Some(trivia) => Field::NoKey(trivia_formatter::expression_add_leading_trivia(
+                    formatted_expression,
+                    trivia,
+                )),
+                None => Field::NoKey(formatted_expression),
+            }
         }
     }
 }
 
 pub fn format_table_constructor<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     table_constructor: TableConstructor<'ast>,
 ) -> TableConstructor<'ast> {
     let mut fields = Punctuated::new();
@@ -49,16 +73,37 @@ pub fn format_table_constructor<'ast>(
         (end_brace.start_position().bytes() - start_brace.end_position().bytes()) > 30;
 
     let braces = match current_fields.peek() {
-        Some(_) => ContainedSpan::new(
-            code_formatter.format_symbol(
-                start_brace.to_owned(),
-                TokenReference::symbol(if is_multiline { "{\n" } else { "{ " }).unwrap(),
-            ), // TODO: use proper newline character
-            code_formatter.format_symbol(
-                end_brace.to_owned(),
-                TokenReference::symbol(if is_multiline { "\n}" } else { " }" }).unwrap(),
+        Some(_) => match is_multiline {
+            true => {
+                // Format start and end brace properly with correct trivia
+                let end_brace_leading_trivia = vec![code_formatter.create_indent_trivia(None)];
+                // Add new_line trivia to start_brace
+                let start_brace_token = TokenReference::symbol(
+                    &(String::from("{")
+                        + &get_line_ending_character(&code_formatter.config.line_endings)),
+                )
+                .unwrap();
+                let end_brace_token = TokenReference::new(
+                    end_brace_leading_trivia,
+                    Token::new(TokenType::Symbol {
+                        symbol: Symbol::RightBrace,
+                    }),
+                    vec![],
+                );
+                ContainedSpan::new(
+                    code_formatter.format_symbol(start_brace.to_owned(), start_brace_token),
+                    code_formatter.format_symbol(end_brace.to_owned(), end_brace_token),
+                )
+            }
+            false => ContainedSpan::new(
+                code_formatter.format_symbol(
+                    start_brace.to_owned(),
+                    TokenReference::symbol("{ ").unwrap(),
+                ),
+                code_formatter
+                    .format_symbol(end_brace.to_owned(), TokenReference::symbol(" }").unwrap()),
             ),
-        ),
+        },
         None => ContainedSpan::new(
             code_formatter
                 .format_symbol(start_brace.to_owned(), TokenReference::symbol("{").unwrap()),
@@ -67,24 +112,48 @@ pub fn format_table_constructor<'ast>(
         ),
     };
 
+    if is_multiline {
+        code_formatter.increment_indent_level();
+    }
+
     // TODO: Should we sort NameKey/ExpressionKey tables?
     loop {
         match current_fields.next() {
             Some(field) => {
-                let formatted_field = format_field(code_formatter, field);
+                let formatted_field = format_field(
+                    code_formatter,
+                    field,
+                    if is_multiline {
+                        Some(vec![code_formatter.create_indent_trivia(None)])
+                    } else {
+                        None
+                    },
+                );
                 let mut punctuation = None;
 
-                if let Some(_) = current_fields.peek() {
-                    // Have more elements still to go
-                    punctuation = Some(match is_multiline {
-                        true => Cow::Owned(TokenReference::symbol(",\n").unwrap()), // TODO: use proper newline character
-                        false => Cow::Owned(TokenReference::symbol(", ").unwrap()),
-                    })
+                match is_multiline {
+                    true => {
+                        // Continue adding a comma and a new line for multiline tables
+                        let symbol = String::from(",")
+                            + &get_line_ending_character(&code_formatter.config.line_endings);
+                        punctuation = Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()));
+                    }
+                    false => {
+                        if let Some(_) = current_fields.peek() {
+                            // Have more elements still to go
+                            punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
+                        };
+                    }
                 }
+
                 fields.push(Pair::new(formatted_field, punctuation))
             }
             None => break,
         }
+    }
+
+    if is_multiline {
+        code_formatter.decrement_indent_level();
     }
 
     TableConstructor::new()
