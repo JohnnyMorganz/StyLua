@@ -130,8 +130,8 @@ local function makeErrorHandler(traceback)
 
 	return function(err)
 		-- If the error object is already a table, forward it directly.
-
 		-- Should we extend the error here and add our own trace?
+
 		if type(err) == "table" then
 			return err
 		end
@@ -205,7 +205,6 @@ function Promise._new(traceback, callback, parent)
 
 	local self = {
 		-- Used to locate where a promise was created
-
 		_source = traceback,
 
 		_status = Promise.Status.Started,
@@ -371,7 +370,6 @@ function Promise._all(traceback, promises, amount)
 
 	return Promise._new(traceback, function(resolve, reject, onCancel)
 		-- An array to contain our resolved values from the given promises.
-
 		local resolvedValues = {}
 		local newPromises = {}
 
@@ -481,7 +479,6 @@ function Promise.allSettled(promises)
 
 	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
 		-- An array to contain our resolved values from the given promises.
-
 		local fates = {}
 		local newPromises = {}
 
@@ -594,6 +591,7 @@ function Promise.each(list, predicate)
 		-- from us registered. If we don't do this, those Promises might get cancelled by something else
 		-- before we get to them in the series because it's not possible to tell that we plan to use it
 		-- unless we indicate it here.
+
 		local preprocessedList = {}
 
 		for index, value in ipairs(list) do
@@ -667,15 +665,12 @@ function Promise.is(object)
 
 	if objectMetatable == Promise then
 		-- The Promise came from this library.
-
 		return true
 	elseif objectMetatable == nil then
 		-- No metatable, but we should still chain onto tables with andThen methods
-
 		return type(object.andThen) == "function"
 	elseif type(objectMetatable) == "table" and type(rawget(objectMetatable, "__index")) == "table" and type(rawget(rawget(objectMetatable, "__index"), "andThen")) == "function" then
 		-- Maybe this came from a different or older Promise library.
-
 		return true
 	end
 
@@ -704,7 +699,6 @@ do
 	function Promise.delay(seconds)
 		assert(type(seconds) == "number", "Bad argument #1 to Promise.delay, must be a number.")
 		-- If seconds is -INF, INF, NaN, or less than 1 / 60, assume seconds is 1 / 60.
-
 		-- This mirrors the behavior of wait()
 		if not (seconds >= 1 / 60) or seconds == math.huge then
 			seconds = 1 / 60
@@ -742,7 +736,6 @@ do
 			else -- first is non-nil
 				if first.endTime < endTime then -- if `node` should be placed after `first`
 					-- we will insert `node` between `current` and `next`
-
 					-- (i.e. after `current` if `next` is nil)
 					local current = first
 					local next = current.next
@@ -762,7 +755,6 @@ do
 					end
 				else
 					-- set `node` to `first`
-
 					node.next = first
 					first.previous = node
 					first = node
@@ -771,7 +763,6 @@ do
 
 			onCancel(function()
 				-- remove node from queue
-
 				local next = node.next
 
 				if first == node then
@@ -785,7 +776,6 @@ do
 				else
 					local previous = node.previous
 					-- since `node` is not `first`, then we know `previous` is non-nil
-
 					previous.next = next
 
 					if next ~= nil then
@@ -830,8 +820,8 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 	-- Create a new promise to follow this part of the chain
 	return Promise._new(traceback, function(resolve, reject)
 		-- Our default callbacks just pass values onto the next promise.
-
 		-- This lets success and failure cascade correctly!
+
 		local successCallback = resolve
 		if successHandler then
 			successCallback = createAdvancer(traceback, successHandler, resolve, reject)
@@ -844,20 +834,16 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 
 		if self._status == Promise.Status.Started then
 			-- If we haven't resolved yet, put ourselves into the queue
-
 			table.insert(self._queuedResolve, successCallback)
 			table.insert(self._queuedReject, failureCallback)
 		elseif self._status == Promise.Status.Resolved then
 			-- This promise has already resolved! Trigger success immediately.
-
 			successCallback(unpack(self._values, 1, self._valuesLength))
 		elseif self._status == Promise.Status.Rejected then
 			-- This promise died a terrible death! Trigger failure immediately.
-
 			failureCallback(unpack(self._values, 1, self._valuesLength))
 		elseif self._status == Promise.Status.Cancelled then
 			-- We don't want to call the success handler or the failure handler,
-
 			-- we just reject this promise outright.
 			reject(Error.new({
 				error = "Promise is cancelled",
@@ -995,11 +981,9 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 
 		if self._status == Promise.Status.Started then
 			-- The promise is not settled, so queue this.
-
 			table.insert(self._queuedFinally, finallyCallback)
 		else
 			-- The promise already settled or was cancelled, run the callback now.
-
 			finallyCallback(self._status)
 		end
 	end, self)
@@ -1146,7 +1130,6 @@ function Promise.prototype:_resolve(...)
 	-- If the resolved value was a Promise, we chain onto it!
 	if Promise.is((...)) then
 		-- Without this warning, arguments sometimes mysteriously disappear
-
 		if select("#", ...) > 1 then
 			local message = string.format("When returning a Promise from andThen, extra arguments are " .. "discarded! See:\n\n%s", self._source)
 			warn(message)
@@ -1183,7 +1166,6 @@ function Promise.prototype:_resolve(...)
 			self:cancel()
 		elseif promise._status == Promise.Status.Started then
 			-- Adopt ourselves into promise for cancellation propagation.
-
 			self._parent = promise
 			promise._consumers[self] = true
 		end
@@ -1213,16 +1195,15 @@ function Promise.prototype:_reject(...)
 	-- If there are any rejection handlers, call those!
 	if not isEmpty(self._queuedReject) then
 		-- We assume that these callbacks will not throw errors.
-
 		for _, callback in ipairs(self._queuedReject) do
 			coroutine.wrap(callback)(...)
 		end
 	else
 		-- At this point, no one was able to observe the error.
-
 		-- An error handler might still be attached if the error occurred
 		-- synchronously. We'll wait one tick, and if there are still no
 		-- observers, then we should put a message in the console.
+
 		local err = tostring((...))
 
 		coroutine.wrap(function()
@@ -1238,7 +1219,6 @@ function Promise.prototype:_reject(...)
 
 			if Promise.TEST then
 				-- Don't spam output when we're running tests.
-
 				return
 			end
 
@@ -1257,7 +1237,6 @@ end
 function Promise.prototype:_finalize()
 	for _, callback in ipairs(self._queuedFinally) do
 		-- Purposefully not passing values to callbacks here, as it could be the
-
 		-- resolved values, or rejected errors. If the developer needs the values,
 		-- they should use :andThen or :catch explicitly.
 		coroutine.wrap(callback)(self._status)
@@ -1331,6 +1310,7 @@ function Promise.fromEvent(event, predicate)
 		-- We use shouldDisconnect because if the callback given to Connect is called before
 		-- Connect returns, connection will still be nil. This happens with events that queue up
 		-- events when there's nothing connected, such as RemoteEvents
+
 		connection = event:Connect(function(...)
 			local callbackValue = predicate(...)
 

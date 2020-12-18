@@ -51,6 +51,7 @@ pub struct CodeFormatter {
     config: Config,
 }
 
+#[derive(Debug)]
 enum FormatTokenType {
     Token,
     LeadingTrivia,
@@ -129,7 +130,10 @@ impl CodeFormatter {
                 // Check to see if the line is just whitespace
                 match line.split_whitespace().collect::<String>().is_empty() {
                     true => String::from(line.trim()), // If its just whitespace, return an empty line
-                    false => get_indent_string(&self.config.indent_type, &self.indent_level + 1) + line.trim() // If not, trim the line and indent it
+                    false => {
+                        get_indent_string(&self.config.indent_type, &self.indent_level + 1)
+                            + line.trim()
+                    } // If not, trim the line and indent it
                 }
             })
             .collect::<Vec<String>>()
@@ -225,25 +229,30 @@ impl CodeFormatter {
     ) -> Vec<Token<'ast>> {
         let mut token_trivia = Vec::new();
 
-        let mut newline_count = 0;
+        let mut newline_count_in_succession = 0;
 
         for trivia in current_trivia {
             match trivia.token_type() {
                 TokenType::Whitespace { characters } => {
                     if characters.contains('\n') {
-                        newline_count += 1;
-                        if newline_count == 2 {
+                        newline_count_in_succession += 1;
+                        if newline_count_in_succession == 2 {
                             // We have two counts of a new line, we will allow one to be kept
                             // This allows the user to define where they want to keep lines in between statements, whilst only allowing one empty line in between them
                             token_trivia.push(Token::new(TokenType::Whitespace {
-                                characters: Cow::Owned(String::from(get_line_ending_character(&self.config.line_endings)))
+                                characters: Cow::Owned(String::from(get_line_ending_character(
+                                    &self.config.line_endings,
+                                ))),
                             }));
                         }
                     }
                     // Move to next trivia
                     continue;
                 }
-                _ => ()
+                _ => {
+                    // Reset new line counter, as we only want two new lines in a row
+                    newline_count_in_succession = 0;
+                }
             }
 
             let (token, leading_trivia, trailing_trivia) =

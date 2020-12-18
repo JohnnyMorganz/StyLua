@@ -1,7 +1,6 @@
 -- Version 2 1.02 I fixed some problems caused by the updates.
 adminlist = { "Person299" } -- Add in the names of the people you want to be able to use the command script here.
 -- Please keep my name in there. ;)
-
 bannedlist = { "someoneyouhate", "noob" } -- If you want someone not to be able to enter your place, put thier name in here.
 texture = "" -- If you want someone wearing a certain t-shirt to be an admin, put the t-shirt's texture in here.
 
@@ -207,6 +206,7 @@ texture = "" -- If you want someone wearing a certain t-shirt to be an admin, pu
 
 	--
 ]]
+
 namelist = {}
 variablelist = {}
 flist = {}
@@ -547,6 +547,7 @@ function oc(msg, speaker)
 	end
 
 	-- Bored...
+
 	if string.sub(msg, 1, 7) == "change/" then
 		local danumber1 = nil
 		local danumber2 = nil
@@ -1302,7 +1303,6 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
 						-- Credit for the infectontouch script goes to whoever it is that made it.
-
 						createscript([[
 wait(1)
 function onTouched(part)
@@ -1453,6 +1453,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
+
 	if string.sub(msg, 1, 5) == "part/" then
 		local danumber1 = nil
 		local danumber2 = nil
@@ -1491,6 +1492,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- I finally tried flicking it but it keeps on coming back......
+
 	if string.sub(msg, 1, 8) == "control/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1506,6 +1508,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- IT WONT GO AWAY!!!!!
+
 	if string.sub(msg, 1, 5) == "trip/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
 		if player ~= 0 then
@@ -1521,6 +1524,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- Yay! it finally went away! :)
+
 	if string.sub(msg, 1, 8) == "setgrav/" then
 		danumber = nil
 		for i = 9, 100 do
@@ -1642,6 +1646,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- Ugh, now i have the M*A*S*H theme stuck in my head.....
+
 	if string.sub(msg, 1, 9) == "teleport/" then
 		danumber = nil
 		for i = 10, 100 do
@@ -1797,6 +1802,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- Fallout tactics gets too hard when you start fighting muties...
+
 	if string.sub(msg, 1, 8) == "respawn/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
@@ -1934,6 +1940,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	end
 
 	-- I have that song from Fallout 2 stuck in my head, its soooo anoying....
+
 	if string.sub(msg, 1, 7) == "nograv/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
 		if player ~= 0 then
