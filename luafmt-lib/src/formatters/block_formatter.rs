@@ -1,6 +1,6 @@
 use crate::formatters::{
-    self, assignment_formatter, expression_formatter, format_symbol, functions_formatter,
-    trivia_formatter,
+    assignment_formatter, expression_formatter, functions_formatter, trivia_formatter,
+    CodeFormatter,
 };
 use full_moon::ast::{
     punctuated::Pair, Block, Do, ElseIf, GenericFor, If, LastStmt, NumericFor, Repeat, Return,
@@ -10,12 +10,12 @@ use full_moon::tokenizer::TokenReference;
 use std::borrow::Cow;
 
 /// Format a Do node
-pub fn format_do_block<'ast>(do_block: Do<'ast>) -> Do<'ast> {
-    let do_token = format_symbol(
+pub fn format_do_block<'ast>(code_formatter: &CodeFormatter, do_block: Do<'ast>) -> Do<'ast> {
+    let do_token = code_formatter.format_symbol(
         do_block.do_token().to_owned(),
         TokenReference::symbol("do").unwrap(),
     );
-    let end_token = format_symbol(
+    let end_token = code_formatter.format_symbol(
         do_block.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
@@ -24,28 +24,31 @@ pub fn format_do_block<'ast>(do_block: Do<'ast>) -> Do<'ast> {
 }
 
 /// Format a GenericFor node
-pub fn format_generic_for<'ast>(generic_for: GenericFor<'ast>) -> GenericFor<'ast> {
-    let for_token = format_symbol(
+pub fn format_generic_for<'ast>(
+    code_formatter: &CodeFormatter,
+    generic_for: GenericFor<'ast>,
+) -> GenericFor<'ast> {
+    let for_token = code_formatter.format_symbol(
         generic_for.for_token().to_owned(),
         TokenReference::symbol("for ").unwrap(),
     );
-    let formatted_names = formatters::format_punctuated(
+    let formatted_names = code_formatter.format_punctuated(
         generic_for.names().to_owned(),
-        &formatters::format_token_reference,
+        &CodeFormatter::format_token_reference,
     );
-    let in_token = format_symbol(
+    let in_token = code_formatter.format_symbol(
         generic_for.in_token().to_owned(),
         TokenReference::symbol(" in ").unwrap(),
     );
-    let formatted_expr_list = formatters::format_punctuated(
+    let formatted_expr_list = code_formatter.format_punctuated(
         generic_for.expr_list().to_owned(),
         &expression_formatter::format_expression,
     );
-    let do_token = format_symbol(
+    let do_token = code_formatter.format_symbol(
         generic_for.do_token().to_owned(),
         TokenReference::symbol(" do").unwrap(),
     );
-    let end_token = format_symbol(
+    let end_token = code_formatter.format_symbol(
         generic_for.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
@@ -60,14 +63,19 @@ pub fn format_generic_for<'ast>(generic_for: GenericFor<'ast>) -> GenericFor<'as
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
-fn format_else_if<'ast>(else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
-    let formatted_else_if_token = format_symbol(
+fn format_else_if<'ast>(
+    code_formatter: &CodeFormatter,
+    else_if_node: ElseIf<'ast>,
+) -> ElseIf<'ast> {
+    let formatted_else_if_token = code_formatter.format_symbol(
         else_if_node.else_if_token().to_owned(),
         TokenReference::symbol("elseif ").unwrap(),
     );
-    let formatted_condition =
-        expression_formatter::format_expression(else_if_node.condition().to_owned());
-    let formatted_then_token = format_symbol(
+    let formatted_condition = expression_formatter::format_expression(
+        code_formatter,
+        else_if_node.condition().to_owned(),
+    );
+    let formatted_then_token = code_formatter.format_symbol(
         else_if_node.then_token().to_owned(),
         TokenReference::symbol(" then").unwrap(),
     );
@@ -79,18 +87,18 @@ fn format_else_if<'ast>(else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
 }
 
 /// Format an If node
-pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
-    let formatted_if_token = format_symbol(
+pub fn format_if<'ast>(code_formatter: &CodeFormatter, if_node: If<'ast>) -> If<'ast> {
+    let formatted_if_token = code_formatter.format_symbol(
         if_node.if_token().to_owned(),
         TokenReference::symbol("if ").unwrap(),
     );
     let formatted_condition =
-        expression_formatter::format_expression(if_node.condition().to_owned());
-    let formatted_then_token = format_symbol(
+        expression_formatter::format_expression(code_formatter, if_node.condition().to_owned());
+    let formatted_then_token = code_formatter.format_symbol(
         if_node.then_token().to_owned(),
         TokenReference::symbol(" then").unwrap(),
     );
-    let formatted_end_token = format_symbol(
+    let formatted_end_token = code_formatter.format_symbol(
         if_node.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
@@ -99,17 +107,16 @@ pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
         Some(else_if) => Some(
             else_if
                 .iter()
-                .map(|else_if| format_else_if(else_if.to_owned()))
+                .map(|else_if| format_else_if(code_formatter, else_if.to_owned()))
                 .collect(),
         ),
         None => None,
     };
 
     let formatted_else_token = match if_node.else_token() {
-        Some(token) => Some(format_symbol(
-            token.to_owned(),
-            TokenReference::symbol("else").unwrap(),
-        )),
+        Some(token) => Some(
+            code_formatter.format_symbol(token.to_owned(), TokenReference::symbol("else").unwrap()),
+        ),
         None => None,
     };
 
@@ -123,43 +130,49 @@ pub fn format_if<'ast>(if_node: If<'ast>) -> If<'ast> {
 }
 
 /// Format a NumericFor node
-pub fn format_numeric_for<'ast>(numeric_for: NumericFor<'ast>) -> NumericFor<'ast> {
-    let for_token = format_symbol(
+pub fn format_numeric_for<'ast>(
+    code_formatter: &CodeFormatter,
+    numeric_for: NumericFor<'ast>,
+) -> NumericFor<'ast> {
+    let for_token = code_formatter.format_symbol(
         numeric_for.for_token().to_owned(),
         TokenReference::symbol("for ").unwrap(),
     );
-    let formatted_index_variable = Cow::Owned(formatters::format_plain_token_reference(
-        numeric_for.index_variable().to_owned(),
-    ));
-    let equal_token = format_symbol(
+    let formatted_index_variable = Cow::Owned(
+        code_formatter.format_plain_token_reference(numeric_for.index_variable().to_owned()),
+    );
+    let equal_token = code_formatter.format_symbol(
         numeric_for.equal_token().to_owned(),
         TokenReference::symbol(" = ").unwrap(),
     );
     let formatted_start_expression =
-        expression_formatter::format_expression(numeric_for.start().to_owned());
-    let start_end_comma = format_symbol(
+        expression_formatter::format_expression(code_formatter, numeric_for.start().to_owned());
+    let start_end_comma = code_formatter.format_symbol(
         numeric_for.start_end_comma().to_owned(),
         TokenReference::symbol(", ").unwrap(),
     );
     let formatted_end_expression =
-        expression_formatter::format_expression(numeric_for.end().to_owned());
+        expression_formatter::format_expression(code_formatter, numeric_for.end().to_owned());
 
     let (end_step_comma, formatted_step_expression) = match numeric_for.step() {
         Some(step) => (
-            Some(format_symbol(
+            Some(code_formatter.format_symbol(
                 numeric_for.end_step_comma().unwrap().to_owned(),
                 TokenReference::symbol(", ").unwrap(),
             )),
-            Some(expression_formatter::format_expression(step.to_owned())),
+            Some(expression_formatter::format_expression(
+                code_formatter,
+                step.to_owned(),
+            )),
         ),
         None => (None, None),
     };
 
-    let do_token = format_symbol(
+    let do_token = code_formatter.format_symbol(
         numeric_for.do_token().to_owned(),
         TokenReference::symbol(" do").unwrap(),
     );
-    let end_token = format_symbol(
+    let end_token = code_formatter.format_symbol(
         numeric_for.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
@@ -178,16 +191,20 @@ pub fn format_numeric_for<'ast>(numeric_for: NumericFor<'ast>) -> NumericFor<'as
 }
 
 /// Format a Repeat node
-pub fn format_repeat_block<'ast>(repeat_block: Repeat<'ast>) -> Repeat<'ast> {
-    let repeat_token = format_symbol(
+pub fn format_repeat_block<'ast>(
+    code_formatter: &CodeFormatter,
+    repeat_block: Repeat<'ast>,
+) -> Repeat<'ast> {
+    let repeat_token = code_formatter.format_symbol(
         repeat_block.repeat_token().to_owned(),
         TokenReference::symbol("repeat").unwrap(),
     );
-    let until_token = format_symbol(
+    let until_token = code_formatter.format_symbol(
         repeat_block.until_token().to_owned(),
         TokenReference::symbol("until ").unwrap(),
     );
-    let formatted_until = expression_formatter::format_expression(repeat_block.until().to_owned());
+    let formatted_until =
+        expression_formatter::format_expression(code_formatter, repeat_block.until().to_owned());
 
     repeat_block
         .with_repeat_token(repeat_token)
@@ -196,18 +213,21 @@ pub fn format_repeat_block<'ast>(repeat_block: Repeat<'ast>) -> Repeat<'ast> {
 }
 
 /// Format a While node
-pub fn format_while_block<'ast>(while_block: While<'ast>) -> While<'ast> {
-    let while_token = format_symbol(
+pub fn format_while_block<'ast>(
+    code_formatter: &CodeFormatter,
+    while_block: While<'ast>,
+) -> While<'ast> {
+    let while_token = code_formatter.format_symbol(
         while_block.while_token().to_owned(),
         TokenReference::symbol("while ").unwrap(),
     );
     let formatted_condition =
-        expression_formatter::format_expression(while_block.condition().to_owned());
-    let do_token = format_symbol(
+        expression_formatter::format_expression(code_formatter, while_block.condition().to_owned());
+    let do_token = code_formatter.format_symbol(
         while_block.do_token().to_owned(),
         TokenReference::symbol(" do").unwrap(),
     );
-    let end_token = format_symbol(
+    let end_token = code_formatter.format_symbol(
         while_block.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
@@ -219,35 +239,40 @@ pub fn format_while_block<'ast>(while_block: While<'ast>) -> While<'ast> {
         .with_end_token(end_token)
 }
 
-pub fn format_stmt<'ast>(stmt: Stmt<'ast>) -> Stmt<'ast> {
+pub fn format_stmt<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>) -> Stmt<'ast> {
     match stmt {
-        Stmt::Assignment(assignment) => {
-            Stmt::Assignment(assignment_formatter::format_assignment(assignment))
-        }
-        Stmt::Do(do_block) => Stmt::Do(format_do_block(do_block)),
-        Stmt::FunctionCall(function_call) => {
-            Stmt::FunctionCall(functions_formatter::format_function_call(function_call))
-        }
+        Stmt::Assignment(assignment) => Stmt::Assignment(assignment_formatter::format_assignment(
+            code_formatter,
+            assignment,
+        )),
+        Stmt::Do(do_block) => Stmt::Do(format_do_block(code_formatter, do_block)),
+        Stmt::FunctionCall(function_call) => Stmt::FunctionCall(
+            functions_formatter::format_function_call(code_formatter, function_call),
+        ),
         Stmt::FunctionDeclaration(function_declaration) => Stmt::FunctionDeclaration(
-            functions_formatter::format_function_declaration(function_declaration),
+            functions_formatter::format_function_declaration(code_formatter, function_declaration),
         ),
-        Stmt::GenericFor(generic_for) => Stmt::GenericFor(format_generic_for(generic_for)),
-        Stmt::If(if_node) => Stmt::If(format_if(if_node)),
-        Stmt::LocalAssignment(local_assignment) => Stmt::LocalAssignment(
-            assignment_formatter::format_local_assignment(local_assignment),
-        ),
-        Stmt::LocalFunction(local_function) => {
-            Stmt::LocalFunction(functions_formatter::format_local_function(local_function))
+        Stmt::GenericFor(generic_for) => {
+            Stmt::GenericFor(format_generic_for(code_formatter, generic_for))
         }
-        Stmt::NumericFor(numeric_for) => Stmt::NumericFor(format_numeric_for(numeric_for)),
-        Stmt::Repeat(repeat) => Stmt::Repeat(format_repeat_block(repeat)),
-        Stmt::While(while_block) => Stmt::While(format_while_block(while_block)),
+        Stmt::If(if_node) => Stmt::If(format_if(code_formatter, if_node)),
+        Stmt::LocalAssignment(local_assignment) => Stmt::LocalAssignment(
+            assignment_formatter::format_local_assignment(code_formatter, local_assignment),
+        ),
+        Stmt::LocalFunction(local_function) => Stmt::LocalFunction(
+            functions_formatter::format_local_function(code_formatter, local_function),
+        ),
+        Stmt::NumericFor(numeric_for) => {
+            Stmt::NumericFor(format_numeric_for(code_formatter, numeric_for))
+        }
+        Stmt::Repeat(repeat) => Stmt::Repeat(format_repeat_block(code_formatter, repeat)),
+        Stmt::While(while_block) => Stmt::While(format_while_block(code_formatter, while_block)),
     }
 }
 
-pub fn stmt_add_trivia<'ast>(stmt: Stmt<'ast>, indent_level: &usize) -> Stmt<'ast> {
-    let leading_trivia = vec![formatters::create_indent_trivia(indent_level)];
-    let trailing_trivia = vec![formatters::create_newline_trivia()];
+pub fn stmt_add_trivia<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>) -> Stmt<'ast> {
+    let leading_trivia = vec![code_formatter.create_indent_trivia(None)];
+    let trailing_trivia = vec![code_formatter.create_newline_trivia()];
 
     match stmt {
         Stmt::Assignment(assignment) => Stmt::Assignment(trivia_formatter::assignment_add_trivia(
@@ -312,8 +337,11 @@ pub fn stmt_add_trivia<'ast>(stmt: Stmt<'ast>, indent_level: &usize) -> Stmt<'as
     }
 }
 
-pub fn format_return<'ast>(return_node: Return<'ast>) -> Return<'ast> {
-    let formatted_returns = formatters::format_punctuated(
+pub fn format_return<'ast>(
+    code_formatter: &CodeFormatter,
+    return_node: Return<'ast>,
+) -> Return<'ast> {
+    let formatted_returns = code_formatter.format_punctuated(
         return_node.returns().to_owned(),
         &expression_formatter::format_expression,
     );
@@ -322,32 +350,38 @@ pub fn format_return<'ast>(return_node: Return<'ast>) -> Return<'ast> {
     } else {
         TokenReference::symbol("return ").unwrap()
     };
-    let formatted_token = format_symbol(return_node.token().to_owned(), wanted_token);
+    let formatted_token =
+        code_formatter.format_symbol(return_node.token().to_owned(), wanted_token);
     return_node
         .with_token(formatted_token)
         .with_returns(formatted_returns)
 }
 
-pub fn format_last_stmt<'ast>(last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
+pub fn format_last_stmt<'ast>(
+    code_formatter: &CodeFormatter,
+    last_stmt: LastStmt<'ast>,
+) -> LastStmt<'ast> {
     match last_stmt {
-        LastStmt::Break(token) => LastStmt::Break(format_symbol(
-            token.into_owned(),
-            TokenReference::symbol("break").unwrap(),
-        )),
-        LastStmt::Return(return_node) => LastStmt::Return(format_return(return_node)),
+        LastStmt::Break(token) => LastStmt::Break(
+            code_formatter
+                .format_symbol(token.into_owned(), TokenReference::symbol("break").unwrap()),
+        ),
+        LastStmt::Return(return_node) => {
+            LastStmt::Return(format_return(code_formatter, return_node))
+        }
     }
 }
 
 pub fn last_stmt_add_trivia<'ast>(
+    code_formatter: &CodeFormatter,
     last_stmt: LastStmt<'ast>,
-    indent_level: &usize,
 ) -> LastStmt<'ast> {
     match last_stmt {
         LastStmt::Break(break_node) => {
             LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                 break_node.into_owned(),
-                Some(vec![formatters::create_indent_trivia(indent_level)]),
-                Some(vec![formatters::create_newline_trivia()]),
+                Some(vec![code_formatter.create_indent_trivia(None)]),
+                Some(vec![code_formatter.create_newline_trivia()]),
             )))
         }
         LastStmt::Return(return_node) => {
@@ -357,13 +391,13 @@ pub fn last_stmt_add_trivia<'ast>(
             if return_node.returns().is_empty() {
                 token = trivia_formatter::token_reference_add_trivia(
                     token,
-                    Some(vec![formatters::create_indent_trivia(indent_level)]),
-                    Some(vec![formatters::create_newline_trivia()]),
+                    Some(vec![code_formatter.create_indent_trivia(None)]),
+                    Some(vec![code_formatter.create_newline_trivia()]),
                 );
             } else {
                 token = trivia_formatter::token_reference_add_trivia(
                     token,
-                    Some(vec![formatters::create_indent_trivia(indent_level)]),
+                    Some(vec![code_formatter.create_indent_trivia(None)]),
                     None,
                 );
 
@@ -374,7 +408,7 @@ pub fn last_stmt_add_trivia<'ast>(
                         Pair::End(value) => {
                             let expression = trivia_formatter::expression_add_trailing_trivia(
                                 value,
-                                vec![formatters::create_newline_trivia()],
+                                vec![code_formatter.create_newline_trivia()],
                             );
                             returns.push(Pair::End(expression));
                         }
@@ -392,20 +426,23 @@ pub fn last_stmt_add_trivia<'ast>(
     }
 }
 
-pub fn format_block<'ast>(block: Block<'ast>, indent_level: &usize) -> Block<'ast> {
+pub fn format_block<'ast>(code_formatter: &CodeFormatter, block: Block<'ast>) -> Block<'ast> {
     let formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> = block
         .iter_stmts()
         .map(|stmt| {
             (
-                stmt_add_trivia(format_stmt(stmt.to_owned()), indent_level),
-                None,
+                stmt_add_trivia(code_formatter, format_stmt(code_formatter, stmt.to_owned())),
+                None, // The second parameter in the tuple is for semicolons - we do not want any semi-colons
             )
-        }) // The second parameter in the tuple is for semicolons - we do not want any semi-colons
+        })
         .collect();
 
     let formatted_last_stmt = match block.last_stmt() {
         Some(last_stmt) => Some((
-            last_stmt_add_trivia(format_last_stmt(last_stmt.to_owned()), indent_level),
+            last_stmt_add_trivia(
+                code_formatter,
+                format_last_stmt(code_formatter, last_stmt.to_owned()),
+            ),
             None,
         )),
         None => None,

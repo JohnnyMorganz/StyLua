@@ -1,7 +1,4 @@
-use crate::formatters::{
-    expression_formatter::format_expression, format_contained_span, format_symbol,
-    format_token_reference,
-};
+use crate::formatters::{expression_formatter::format_expression, CodeFormatter};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -10,7 +7,7 @@ use full_moon::ast::{
 use full_moon::tokenizer::TokenReference;
 use std::borrow::Cow;
 
-pub fn format_field<'ast>(field: &Field<'ast>) -> Field<'ast> {
+pub fn format_field<'ast>(code_formatter: &CodeFormatter, field: &Field<'ast>) -> Field<'ast> {
     match field {
         Field::ExpressionKey {
             brackets,
@@ -18,27 +15,30 @@ pub fn format_field<'ast>(field: &Field<'ast>) -> Field<'ast> {
             equal,
             value,
         } => Field::ExpressionKey {
-            brackets: format_contained_span(brackets.to_owned()),
-            key: format_expression(key.to_owned()),
-            equal: format_symbol(
+            brackets: code_formatter.format_contained_span(brackets.to_owned()),
+            key: format_expression(code_formatter, key.to_owned()),
+            equal: code_formatter.format_symbol(
                 equal.to_owned().into_owned(),
                 TokenReference::symbol(" = ").unwrap(),
             ),
-            value: format_expression(value.to_owned()),
+            value: format_expression(code_formatter, value.to_owned()),
         },
         Field::NameKey { key, equal, value } => Field::NameKey {
-            key: format_token_reference(key.to_owned()),
-            equal: format_symbol(
+            key: code_formatter.format_token_reference(key.to_owned()),
+            equal: code_formatter.format_symbol(
                 equal.to_owned().into_owned(),
                 TokenReference::symbol(" = ").unwrap(),
             ),
-            value: format_expression(value.to_owned()),
+            value: format_expression(code_formatter, value.to_owned()),
         },
-        Field::NoKey(expression) => Field::NoKey(format_expression(expression.to_owned())),
+        Field::NoKey(expression) => {
+            Field::NoKey(format_expression(code_formatter, expression.to_owned()))
+        }
     }
 }
 
 pub fn format_table_constructor<'ast>(
+    code_formatter: &CodeFormatter,
     table_constructor: TableConstructor<'ast>,
 ) -> TableConstructor<'ast> {
     let mut fields = Punctuated::new();
@@ -50,18 +50,20 @@ pub fn format_table_constructor<'ast>(
 
     let braces = match current_fields.peek() {
         Some(_) => ContainedSpan::new(
-            format_symbol(
+            code_formatter.format_symbol(
                 start_brace.to_owned(),
                 TokenReference::symbol(if is_multiline { "{\n" } else { "{ " }).unwrap(),
             ), // TODO: use proper newline character
-            format_symbol(
+            code_formatter.format_symbol(
                 end_brace.to_owned(),
                 TokenReference::symbol(if is_multiline { "\n}" } else { " }" }).unwrap(),
             ),
         ),
         None => ContainedSpan::new(
-            format_symbol(start_brace.to_owned(), TokenReference::symbol("{").unwrap()),
-            format_symbol(end_brace.to_owned(), TokenReference::symbol("}").unwrap()),
+            code_formatter
+                .format_symbol(start_brace.to_owned(), TokenReference::symbol("{").unwrap()),
+            code_formatter
+                .format_symbol(end_brace.to_owned(), TokenReference::symbol("}").unwrap()),
         ),
     };
 
@@ -69,7 +71,7 @@ pub fn format_table_constructor<'ast>(
     loop {
         match current_fields.next() {
             Some(field) => {
-                let formatted_field = format_field(field);
+                let formatted_field = format_field(code_formatter, field);
                 let mut punctuation = None;
 
                 if let Some(_) = current_fields.peek() {

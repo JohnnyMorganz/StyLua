@@ -54,10 +54,10 @@ pub struct CodeFormatter {
 enum FormatTokenType {
     Token,
     LeadingTrivia,
-    TrailingTrivia
+    TrailingTrivia,
 }
 
-fn get_line_ending_character(line_endings: LineEndings) -> String {
+fn get_line_ending_character(line_endings: &LineEndings) -> String {
     match line_endings {
         LineEndings::Unix => String::from("\n"),
         LineEndings::Windows => String::from("\r\n"),
@@ -90,7 +90,7 @@ impl CodeFormatter {
     /// Creates a new Token containing new line whitespace, used for trivia
     pub fn create_newline_trivia<'ast>(&self) -> Token<'ast> {
         Token::new(TokenType::Whitespace {
-            characters: Cow::Owned(get_line_ending_character(self.config.line_endings)),
+            characters: Cow::Owned(get_line_ending_character(&self.config.line_endings)),
         })
     }
 
@@ -116,13 +116,13 @@ impl CodeFormatter {
                     FormatTokenType::LeadingTrivia => {
                         // TODO: We need to add trivia to indent the comment, how can we pass this along?
                         // Add a newline character
-                        new_str.push_str(&get_line_ending_character(self.config.line_endings));
+                        new_str.push_str(&get_line_ending_character(&self.config.line_endings));
                     }
                     FormatTokenType::TrailingTrivia => {
                         // TODO: We need to add a single space trivia to separate the comment and the code, how can we pass this along?
                     }
-                    _ => ()
-                }                
+                    _ => (),
+                }
                 TokenType::SingleLineComment {
                     comment: Cow::Owned(new_str),
                 }
@@ -134,12 +134,12 @@ impl CodeFormatter {
                     FormatTokenType::LeadingTrivia => {
                         // TODO: We need to add trivia to indent the comment, how can we pass this along?
                         // Add a newline character
-                        new_str.push_str(&get_line_ending_character(self.config.line_endings));
+                        new_str.push_str(&get_line_ending_character(&self.config.line_endings));
                     }
                     FormatTokenType::TrailingTrivia => {
                         // TODO: We need to add a single space trivia to separate the comment and the code, how can we pass this along?
                     }
-                    _ => ()
+                    _ => (),
                 }
                 TokenType::MultiLineComment {
                     blocks: *blocks,
@@ -279,7 +279,7 @@ impl CodeFormatter {
 impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.indent_level += 1;
-        block_formatter::format_block(&self, node, &self.indent_level)
+        block_formatter::format_block(&self, node)
     }
 
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
