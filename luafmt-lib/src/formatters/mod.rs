@@ -1,7 +1,7 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Block, FunctionBody,
+    Block, FunctionBody, Value,
 };
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
@@ -373,21 +373,30 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
         node
     }
 
-    // Special case where trivia needs to be added, and it isn't handled elsewhere
-    fn visit_function_body_end(&mut self, function_body: FunctionBody<'ast>) -> FunctionBody<'ast> {
-        // let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
-        //     function_body.parameters_parentheses().to_owned(),
-        //     None,
-        //     Some(vec![self.create_newline_trivia()]),
-        // );
-        // let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-        //     function_body.end_token().to_owned(),
-        //     Some(vec![self.create_indent_trivia(None)]),
-        //     None,
-        // ));
+    // Special case where trivia needs to be added for anonymous functions, and it isn't handled elsewhere
+    // TODO: Do we need to keep this? Can we find a way to handle it elsewhere?
+    fn visit_value_end(&mut self, value: Value<'ast>) -> Value<'ast> {
+        match value {
+            Value::Function((function_token, function_body)) => {
+                let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+                    function_body.parameters_parentheses().to_owned(),
+                    None,
+                    Some(vec![self.create_newline_trivia()]),
+                );
+                let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    function_body.end_token().to_owned(),
+                    Some(vec![self.create_indent_trivia(None)]),
+                    None,
+                ));
 
-        function_body
-        // .with_parameters_parentheses(parameters_parentheses)
-        // .with_end_token(end_token)
+                Value::Function((
+                    function_token,
+                    function_body
+                        .with_parameters_parentheses(parameters_parentheses)
+                        .with_end_token(end_token),
+                ))
+            }
+            _ => value,
+        }
     }
 }

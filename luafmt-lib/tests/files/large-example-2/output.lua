@@ -438,12 +438,14 @@ function foc(msg, speaker)
 				table.remove(flist, i)
 			end
 		end
-		local tfv = speaker.Chatted:connect(function(msg)			oc(msg, speaker)
-end)
+		local tfv = speaker.Chatted:connect(function(msg)
+			oc(msg, speaker)
+		end)
 		table.insert(namelist, speaker.Name)
 		table.insert(variablelist, tfv)
-		local tfv = speaker.Chatted:connect(function(msg)			foc(msg, speaker)
-end)
+		local tfv = speaker.Chatted:connect(function(msg)
+			foc(msg, speaker)
+		end)
 		table.insert(flist, tfv)
 	end
 end
@@ -737,12 +739,14 @@ end end]], player[i].Character)
 							table.remove(namelist, i2)
 						end
 					end
-					local tfv = player[i].Chatted:connect(function(msg)						oc(msg, player[i])
-end)
+					local tfv = player[i].Chatted:connect(function(msg)
+						oc(msg, player[i])
+					end)
 					table.insert(namelist, player[i].Name)
 					table.insert(variablelist, tfv)
-					local tfv = player[i].Chatted:connect(function(msg)						foc(msg, player[i])
-end)
+					local tfv = player[i].Chatted:connect(function(msg)
+						foc(msg, player[i])
+					end)
 					table.insert(flist, tfv)
 				end
 			end
@@ -2012,12 +2016,14 @@ function oe(ack)
 	end
 	for i = 1, #adminlist do
 		if string.lower(adminlist[i]) == string.lower(ack.Name) then
-			local tfv = ack.Chatted:connect(function(msg)				oc(msg, ack)
-end)
+			local tfv = ack.Chatted:connect(function(msg)
+				oc(msg, ack)
+			end)
 			table.insert(namelist, ack.Name)
 			table.insert(variablelist, tfv)
-			local tfv = ack.Chatted:connect(function(msg)				foc(msg, ack)
-end)
+			local tfv = ack.Chatted:connect(function(msg)
+				foc(msg, ack)
+			end)
 			table.insert(flist, tfv)
 			adminned = true
 		end
@@ -2039,12 +2045,14 @@ end)
 				if decal ~= nil then
 					if string.sub(decal.Texture, 1, 4) == "http" then
 						if decal.Texture == texture then
-							local tfv = ack.Chatted:connect(function(msg)								oc(msg, ack)
-end)
+							local tfv = ack.Chatted:connect(function(msg)
+								oc(msg, ack)
+							end)
 							table.insert(namelist, ack.Name)
 							table.insert(variablelist, tfv)
-							local tfv = ack.Chatted:connect(function(msg)								foc(msg, ack)
-end)
+							local tfv = ack.Chatted:connect(function(msg)
+								foc(msg, ack)
+							end)
 							table.insert(flist, tfv)
 							text("You're an admin.", 5, "Message", ack)
 							return
