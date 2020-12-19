@@ -754,8 +754,8 @@ pub fn value_add_leading_trivia<'ast>(
 ) -> Value<'ast> {
     match value {
         Value::Function((token, function_body)) => Value::Function((
-            token,
-            function_body_add_leading_trivia(function_body, leading_trivia),
+            Cow::Owned(token_reference_add_trivia(token.into_owned(), Some(leading_trivia), None)),
+            function_body
         )),
         Value::FunctionCall(function_call) => Value::FunctionCall(
             function_call_add_leading_trivia(function_call, leading_trivia),
