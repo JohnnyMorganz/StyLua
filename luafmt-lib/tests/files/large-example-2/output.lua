@@ -371,7 +371,10 @@ function findplayer(name, speaker)
 				local c = game.Players:GetChildren()
 				for i = 1, #c do
 					if c[i].className == "Player" then
-						if string.find(string.lower(c[i].Name), string.sub(string.lower(name), commalist[ack], commalist[ack + 1] - 1)) == 1 then
+						if string.find(
+							string.lower(c[i].Name),
+							string.sub(string.lower(name), commalist[ack], commalist[ack + 1] - 1)
+						) == 1 then
 							char = c[i]
 							cnum = cnum + 1
 						end
@@ -582,7 +585,10 @@ function oc(msg, speaker)
 					local itnum = 0
 					local c = ls:GetChildren()
 					for i2 = 1, #c do
-						if string.find(string.lower(c[i2].Name), string.sub(string.lower(msg), danumber1 + 1, danumber2 - 1)) == 1 then
+						if string.find(
+							string.lower(c[i2].Name),
+							string.sub(string.lower(msg), danumber1 + 1, danumber2 - 1)
+						) == 1 then
 							it = c[i2]
 							itnum = itnum + 1
 						end
@@ -638,7 +644,8 @@ function oc(msg, speaker)
 			for i = 1, #player do
 				if player[i].Character ~= nil then
 					if player[i].Character:FindFirstChild("God FF") == nil then
-						createscript([[script.Parent.Humanoid.MaxHealth = 999999
+						createscript(
+							[[script.Parent.Humanoid.MaxHealth = 999999
 script.Parent.Humanoid.Health = 999999
 ff = Instance.new("ForceField")
 ff.Name = "God FF"
@@ -658,7 +665,9 @@ for i=1,#c do
 if c[i].className == "Part" then
 c[i].Touched:connect(ot)
 c[i].Reflectance = 1
-end end]], player[i].Character)
+end end]],
+							player[i].Character
+						)
 					end
 				end
 			end
@@ -1073,7 +1082,8 @@ end end]], player[i].Character)
 							sm.MeshType = "Sphere"
 							sm.Parent = ball
 							ball.Parent = player[i].Character
-							createscript([[ 
+							createscript(
+								[[ 
 function ot(hit) 
 if hit.Parent ~= nil then 
 if hit.Parent ~= script.Parent.Parent then 
@@ -1083,7 +1093,9 @@ local pos = script.Parent.CFrame * (Vector3.new(0, 1.4, 0) * script.Parent.Size)
 hit.Velocity = ((hit.Position - pos).unit + Vector3.new(0, 0.5, 0)) * 150 + hit.Velocity	
 hit.RotVelocity = hit.RotVelocity + Vector3.new(hit.Position.z - pos.z, 0, pos.x - hit.Position.x).unit * 40
 end end end end
-script.Parent.Touched:connect(ot) ]], ball)
+script.Parent.Touched:connect(ot) ]],
+								ball
+							)
 							local bf = Instance.new("BodyForce")
 							bf.force = Vector3.new(0, 5e004, 0)
 							bf.Parent = ball
@@ -1121,7 +1133,8 @@ script.Parent.Touched:connect(ot) ]], ball)
 		if player ~= 0 then
 			for i = 1, #player do
 				local s = Instance.new("Script")
-				createscript([[name = "]] .. player[i].Name .. [[" 
+				createscript(
+					[[name = "]] .. player[i].Name .. [[" 
 ov = Instance.new("ObjectValue")
 ov.Value = game.Players:FindFirstChild(name)
 ov.Name = "elplayerioloopkillioperson299io"
@@ -1136,7 +1149,9 @@ if humanoid ~= nil then
 humanoid.Health = 0 
 end end end end
 game.Workspace.ChildAdded:connect(oa)
-]], game.Workspace)
+]],
+					game.Workspace
+				)
 				if player[i].Character ~= nil then
 					local human = player[i].Character:FindFirstChild("Humanoid")
 					if human ~= nil then
@@ -1303,7 +1318,8 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
 						-- Credit for the infectontouch script goes to whoever it is that made it.
-						createscript([[
+						createscript(
+							[[
 wait(1)
 function onTouched(part)
 if part.Parent ~= nil then
@@ -1347,7 +1363,9 @@ end
 end
 end
 script.Parent.Touched:connect(onTouched)
-]], zarm)
+]],
+							zarm
+						)
 						zarm.Name = "zarm"
 						local zarm2 = zarm:clone()
 						zarm2.CFrame = torso.CFrame * CFrame.new(Vector3.new(-1.5, 0.5, -0.5)) * rot
@@ -1403,7 +1421,8 @@ script.Parent.Touched:connect(onTouched)
 						bt.Parent = r
 						r.Parent = player[i].Character
 						w.Parent = torso
-						createscript([[
+						createscript(
+							[[
 for i=1,120 do
 local ex = Instance.new("Explosion")
 ex.BlastRadius = 0
@@ -1417,7 +1436,9 @@ ex.Position = script.Parent.Position
 ex.Parent = game.Workspace
 script.Parent.BodyThrust:remove()
 script.Parent.Parent.Humanoid.Health = 0
-]], r)
+]],
+							r
+						)
 					end
 				end
 			end
@@ -1449,7 +1470,11 @@ script.Parent.Parent.Humanoid.Health = 0
 		if danumber2 == nil then
 			return
 		end
-		game.Lighting.Ambient = Color3.new(-string.sub(msg, 9, danumber1 - 1), -string.sub(msg, danumber1 + 1, danumber2 - 1), -string.sub(msg, danumber2 + 1))
+		game.Lighting.Ambient = Color3.new(
+			-string.sub(msg, 9, danumber1 - 1),
+			-string.sub(msg, danumber1 + 1, danumber2 - 1),
+			-string.sub(msg, danumber2 + 1)
+		)
 	end
 
 	-- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
@@ -1483,7 +1508,11 @@ script.Parent.Parent.Humanoid.Health = 0
 			local head = speaker.Character:FindFirstChild("Head")
 			if head ~= nil then
 				local part = Instance.new("Part")
-				part.Size = Vector3.new(string.sub(msg, 6, danumber1 - 1), string.sub(msg, danumber1 + 1, danumber2 - 1), string.sub(msg, danumber2 + 1))
+				part.Size = Vector3.new(
+					string.sub(msg, 6, danumber1 - 1),
+					string.sub(msg, danumber1 + 1, danumber2 - 1),
+					string.sub(msg, danumber2 + 1)
+				)
 				part.Position = head.Position + Vector3.new(0, part.Size.y / 2 + 5, 0)
 				part.Name = "Person299's Admin Command Script V2 Part thingy"
 				part.Parent = game.Workspace

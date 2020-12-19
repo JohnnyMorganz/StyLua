@@ -4,11 +4,13 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Value,
 };
-use full_moon::tokenizer::TokenReference;
+use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
 
-use crate::formatters::{expression_formatter, CodeFormatter};
+use crate::formatters::{
+    expression_formatter, get_line_ending_character, trivia_formatter, CodeFormatter
+};
 
 /// Formats a Call node
 pub fn format_call<'ast>(code_formatter: &mut CodeFormatter, call: Call<'ast>) -> Call<'ast> {
@@ -32,12 +34,88 @@ pub fn format_function_args<'ast>(
             parentheses,
             arguments,
         } => {
-            let formatted_arguments = code_formatter
-                .format_punctuated(arguments, &expression_formatter::format_expression);
+            let (start_parens, end_parens) = parentheses.tokens();
+            let is_multiline =
+                (end_parens.start_position().bytes() - start_parens.end_position().bytes()) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
 
-            FunctionArgs::Parentheses {
-                parentheses: code_formatter.format_contained_span(parentheses),
-                arguments: formatted_arguments,
+            if is_multiline {
+                // TODO: This is similar to multiline in TableConstructor, can we resolve?
+                // Format start and end brace properly with correct trivia
+                let end_parens_leading_trivia = vec![code_formatter.create_indent_trivia(None)];
+                // Add new_line trivia to start_brace
+                let start_parens_token = TokenReference::symbol(
+                    &(String::from("(")
+                        + &get_line_ending_character(&code_formatter.config.line_endings)),
+                )
+                .unwrap();
+                let end_parens_token = TokenReference::new(
+                    end_parens_leading_trivia,
+                    Token::new(TokenType::Symbol {
+                        symbol: Symbol::RightParen,
+                    }),
+                    vec![],
+                );
+                let parentheses = ContainedSpan::new(
+                    code_formatter.format_symbol(start_parens.to_owned(), start_parens_token),
+                    code_formatter.format_symbol(end_parens.to_owned(), end_parens_token),
+                );
+
+                let mut formatted_arguments = Punctuated::new();
+                let mut current_arguments = arguments.iter().peekable();
+
+                code_formatter.increment_indent_level();
+
+                loop {
+                    match current_arguments.next() {
+                        Some(argument) => {
+                            let formatted_argument =
+                                trivia_formatter::expression_add_leading_trivia(
+                                    expression_formatter::format_expression(
+                                        code_formatter,
+                                        argument.to_owned(),
+                                    ),
+                                    vec![code_formatter.create_indent_trivia(None)],
+                                );
+
+                            let punctuation = match current_arguments.peek() {
+                                Some(_) => {
+                                    let symbol = String::from(",")
+                                        + &get_line_ending_character(
+                                            &code_formatter.config.line_endings,
+                                        );
+                                    Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()))
+                                }
+                                None => Some(Cow::Owned(TokenReference::new(
+                                    vec![],
+                                    Token::new(TokenType::Whitespace {
+                                        characters: Cow::Owned(get_line_ending_character(
+                                            &code_formatter.config.line_endings,
+                                        )),
+                                    }),
+                                    vec![],
+                                ))),
+                            };
+
+                            formatted_arguments.push(Pair::new(formatted_argument, punctuation))
+                        }
+                        None => break,
+                    }
+                }
+
+                code_formatter.decrement_indent_level();
+
+                FunctionArgs::Parentheses {
+                    parentheses,
+                    arguments: formatted_arguments,
+                }
+            } else {
+                let formatted_arguments = code_formatter
+                    .format_punctuated(arguments, &expression_formatter::format_expression);
+
+                FunctionArgs::Parentheses {
+                    parentheses: code_formatter.format_contained_span(parentheses),
+                    arguments: formatted_arguments,
+                }
             }
         }
 
@@ -89,7 +167,7 @@ pub fn format_function_args<'ast>(
 
 /// Formats a FunctionBody node
 pub fn format_function_body<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_body: FunctionBody<'ast>,
 ) -> FunctionBody<'ast> {
     let parameters_parentheses =
@@ -179,7 +257,7 @@ pub fn format_function_name<'ast>(
 
 /// Formats a FunctionDeclaration node
 pub fn format_function_declaration<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_declaration: FunctionDeclaration<'ast>,
 ) -> FunctionDeclaration<'ast> {
     let function_token = code_formatter.format_symbol(
@@ -199,7 +277,7 @@ pub fn format_function_declaration<'ast>(
 
 /// Formats a LocalFunction node
 pub fn format_local_function<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     local_function: LocalFunction<'ast>,
 ) -> LocalFunction<'ast> {
     let local_token = code_formatter.format_symbol(

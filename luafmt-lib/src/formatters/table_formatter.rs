@@ -70,7 +70,7 @@ pub fn format_table_constructor<'ast>(
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
     let is_multiline =
-        (end_brace.start_position().bytes() - start_brace.end_position().bytes()) > 30;
+        (end_brace.start_position().bytes() - start_brace.end_position().bytes()) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
 
     let braces = match current_fields.peek() {
         Some(_) => match is_multiline {
