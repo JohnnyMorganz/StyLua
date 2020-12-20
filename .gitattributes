@@ -1,0 +1,3 @@
+* text=auto
+*.lua text eol=lf
+luafmt-lib/tests/files/* linguist-vendored
