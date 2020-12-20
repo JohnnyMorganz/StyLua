@@ -1,3 +1,5 @@
+#[cfg(feature = "luau")]
+use crate::formatters::luau_formatter;
 use crate::formatters::{
     assignment_formatter, expression_formatter, functions_formatter, trivia_formatter,
     CodeFormatter,
@@ -7,6 +9,8 @@ use full_moon::ast::{
     Stmt, While,
 };
 use full_moon::tokenizer::TokenReference;
+#[cfg(feature = "luau")]
+use full_moon::tokenizer::{Token, TokenType};
 use std::borrow::Cow;
 
 /// Format a Do node
@@ -36,6 +40,22 @@ pub fn format_generic_for<'ast>(
         generic_for.names().to_owned(),
         &CodeFormatter::format_token_reference_mut,
     );
+
+    #[cfg(feature = "luau")]
+    let type_specifiers = generic_for
+        .type_specifiers()
+        .map(|x| match x {
+            Some(type_specifier) => Some(luau_formatter::format_type_specifier(
+                code_formatter,
+                type_specifier.to_owned(),
+            )),
+            None => None,
+        })
+        .collect();
+
+    #[cfg(feature = "luau")]
+    let generic_for = generic_for.with_type_specifiers(type_specifiers);
+
     let in_token = code_formatter.format_symbol(
         generic_for.in_token().to_owned(),
         TokenReference::symbol(" in ").unwrap(),
@@ -141,6 +161,18 @@ pub fn format_numeric_for<'ast>(
     let formatted_index_variable = Cow::Owned(
         code_formatter.format_plain_token_reference(numeric_for.index_variable().to_owned()),
     );
+    #[cfg(feature = "luau")]
+    let type_specifier = match numeric_for.type_specifier() {
+        Some(type_specifier) => Some(luau_formatter::format_type_specifier(
+            code_formatter,
+            type_specifier.to_owned(),
+        )),
+        None => None,
+    };
+
+    #[cfg(feature = "luau")]
+    let numeric_for = numeric_for.with_type_specifier(type_specifier);
+
     let equal_token = code_formatter.format_symbol(
         numeric_for.equal_token().to_owned(),
         TokenReference::symbol(" = ").unwrap(),
@@ -267,6 +299,21 @@ pub fn format_stmt<'ast>(code_formatter: &mut CodeFormatter, stmt: Stmt<'ast>) -
         }
         Stmt::Repeat(repeat) => Stmt::Repeat(format_repeat_block(code_formatter, repeat)),
         Stmt::While(while_block) => Stmt::While(format_while_block(code_formatter, while_block)),
+        #[cfg(feature = "luau")]
+        Stmt::CompoundAssignment(compound_assignment) => Stmt::CompoundAssignment(
+            luau_formatter::format_compound_assignment(code_formatter, compound_assignment),
+        ),
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
+            Stmt::ExportedTypeDeclaration(luau_formatter::format_exported_type_declaration(
+                code_formatter,
+                exported_type_declaration,
+            ))
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeDeclaration(type_declaration) => Stmt::TypeDeclaration(
+            luau_formatter::format_type_declaration(code_formatter, type_declaration),
+        ),
     }
 }
 
@@ -334,6 +381,33 @@ pub fn stmt_add_trivia<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>) -
             leading_trivia,
             trailing_trivia,
         )),
+
+        #[cfg(feature = "luau")]
+        Stmt::CompoundAssignment(compound_assignment) => {
+            Stmt::CompoundAssignment(trivia_formatter::compound_assignment_add_trivia(
+                compound_assignment,
+                leading_trivia,
+                trailing_trivia,
+            ))
+        }
+
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
+            Stmt::ExportedTypeDeclaration(trivia_formatter::exported_type_declaration_add_trivia(
+                exported_type_declaration,
+                leading_trivia,
+                trailing_trivia,
+            ))
+        }
+
+        #[cfg(feature = "luau")]
+        Stmt::TypeDeclaration(type_declaration) => {
+            Stmt::TypeDeclaration(trivia_formatter::type_declaration_add_trivia(
+                type_declaration,
+                Some(leading_trivia),
+                Some(trailing_trivia),
+            ))
+        }
     }
 }
 
@@ -369,6 +443,17 @@ pub fn format_last_stmt<'ast>(
         LastStmt::Return(return_node) => {
             LastStmt::Return(format_return(code_formatter, return_node))
         }
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(token) => LastStmt::Continue(code_formatter.format_symbol(
+            token.into_owned(),
+            TokenReference::new(
+                vec![],
+                Token::new(TokenType::Identifier {
+                    identifier: Cow::Owned(String::from("continue")),
+                }),
+                vec![],
+            ),
+        )),
     }
 }
 
@@ -422,6 +507,14 @@ pub fn last_stmt_add_trivia<'ast>(
                     .with_token(Cow::Owned(token))
                     .with_returns(returns),
             )
+        }
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(continue_node) => {
+            LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                continue_node.into_owned(),
+                Some(vec![code_formatter.create_indent_trivia(None)]),
+                Some(vec![code_formatter.create_newline_trivia()]),
+            )))
         }
     }
 }

@@ -4,6 +4,8 @@ use full_moon::ast::{
 use full_moon::tokenizer::TokenReference;
 use std::boxed::Box;
 
+#[cfg(feature = "luau")]
+use crate::formatters::luau_formatter;
 use crate::formatters::{functions_formatter, table_formatter, CodeFormatter};
 
 pub fn format_binop<'ast>(code_formatter: &CodeFormatter, binop: BinOp<'ast>) -> BinOp<'ast> {
@@ -90,10 +92,23 @@ pub fn format_expression<'ast>(
     expression: Expression<'ast>,
 ) -> Expression<'ast> {
     match expression {
-        Expression::Value { value, binop } => Expression::Value {
+        Expression::Value {
+            value,
+            binop,
+            #[cfg(feature = "luau")]
+            as_assertion,
+        } => Expression::Value {
             value: Box::new(format_value(code_formatter, *value)),
             binop: match binop {
                 Some(value) => Some(format_bin_op_rhs(code_formatter, value)),
+                None => None,
+            },
+            #[cfg(feature = "luau")]
+            as_assertion: match as_assertion {
+                Some(assertion) => Some(luau_formatter::format_as_assertion(
+                    code_formatter,
+                    assertion,
+                )),
                 None => None,
             },
         },

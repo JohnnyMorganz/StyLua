@@ -11,6 +11,8 @@ pub mod assignment_formatter;
 pub mod block_formatter;
 pub mod expression_formatter;
 pub mod functions_formatter;
+#[cfg(feature = "luau")]
+pub mod luau_formatter;
 pub mod table_formatter;
 pub mod trivia_formatter;
 

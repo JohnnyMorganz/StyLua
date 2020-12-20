@@ -8,8 +8,10 @@ use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
 
+#[cfg(feature = "luau")]
+use crate::formatters::luau_formatter;
 use crate::formatters::{
-    expression_formatter, get_line_ending_character, trivia_formatter, CodeFormatter
+    expression_formatter, get_line_ending_character, trivia_formatter, CodeFormatter,
 };
 
 /// Formats a Call node
@@ -127,6 +129,8 @@ pub fn format_function_args<'ast>(
                     Expression::Value {
                         value: Box::new(Value::String(token_reference)),
                         binop: None,
+                        #[cfg(feature = "luau")]
+                        as_assertion: None,
                     },
                 ),
                 None, // Only single argument, so no trailing comma
@@ -149,6 +153,8 @@ pub fn format_function_args<'ast>(
                     Expression::Value {
                         value: Box::new(Value::TableConstructor(table_constructor)),
                         binop: None,
+                        #[cfg(feature = "luau")]
+                        as_assertion: None,
                     },
                 ),
                 None,
@@ -173,10 +179,44 @@ pub fn format_function_body<'ast>(
     let parameters_parentheses =
         code_formatter.format_contained_span(function_body.parameters_parentheses().to_owned());
     let formatted_parameters = format_parameters(code_formatter, function_body.to_owned());
+
+    #[cfg(feature = "luau")]
+    let mut type_specifiers;
+    #[cfg(feature = "luau")]
+    let return_type;
+
+    #[cfg(feature = "luau")]
+    {
+        type_specifiers = Vec::new();
+        for specifier in function_body.type_specifiers() {
+            let formatted_specifier = match specifier {
+                Some(specifier) => Some(luau_formatter::format_type_specifier(
+                    code_formatter,
+                    specifier.to_owned(),
+                )),
+                None => None,
+            };
+            type_specifiers.push(formatted_specifier);
+        }
+
+        return_type = match function_body.return_type() {
+            Some(return_type) => Some(luau_formatter::format_type_specifier(
+                code_formatter,
+                return_type.to_owned(),
+            )),
+            None => None,
+        };
+    }
+
     let end_token = code_formatter.format_symbol(
         function_body.end_token().to_owned(),
         TokenReference::symbol("end").unwrap(),
     );
+
+    #[cfg(feature = "luau")]
+    let function_body = function_body
+        .with_type_specifiers(type_specifiers)
+        .with_return_type(return_type);
 
     function_body
         .with_parameters_parentheses(parameters_parentheses)
@@ -202,7 +242,7 @@ pub fn format_function_call<'ast>(
 
 /// Formats a FunctionName node
 pub fn format_function_name<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_name: FunctionName<'ast>,
 ) -> FunctionName<'ast> {
     // TODO: This is based off formatters::format_punctuated - can we merge them into one?
@@ -318,7 +358,7 @@ pub fn format_method_call<'ast>(
 
 /// Formats a single Parameter node
 pub fn format_parameter<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     parameter: Parameter<'ast>,
 ) -> Parameter<'ast> {
     match parameter {
@@ -334,7 +374,7 @@ pub fn format_parameter<'ast>(
 
 /// Utilises the FunctionBody iterator to format a list of Parameter nodes
 fn format_parameters<'ast>(
-    code_formatter: &CodeFormatter,
+    code_formatter: &mut CodeFormatter,
     function_body: FunctionBody<'ast>,
 ) -> Punctuated<'ast, Parameter<'ast>> {
     let mut formatted_parameters = Punctuated::new();

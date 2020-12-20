@@ -8,4 +8,8 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.35"
-full_moon = "0.7.0"
+full_moon = { git = "https://github.com/Kampfkarren/full-moon", version = "0.7.0" }
+
+[features]
+default = ["luau"]
+luau = ["full_moon/roblox"]
