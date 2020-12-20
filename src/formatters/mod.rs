@@ -36,10 +36,10 @@ enum FormatTokenType {
     TrailingTrivia,
 }
 
-fn get_indent_string(indent_type: &IndentType, indent_level: usize) -> String {
+fn get_indent_string(indent_type: &IndentType, indent_level: usize, indent_width: usize) -> String {
     match indent_type {
         IndentType::Tabs => "\t".repeat(indent_level - 1),
-        IndentType::Spaces => " ".repeat(indent_level - 1),
+        IndentType::Spaces => " ".repeat(indent_width).repeat(indent_level - 1),
     }
 }
 
@@ -99,7 +99,7 @@ impl CodeFormatter {
 
         match self.config.indent_type {
             IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
-            IndentType::Spaces => Token::new(TokenType::spaces(indent_level)),
+            IndentType::Spaces => Token::new(TokenType::spaces(indent_level * self.config.indent_width)),
         }
     }
 
@@ -131,7 +131,7 @@ impl CodeFormatter {
                 match line.split_whitespace().collect::<String>().is_empty() {
                     true => String::from(line.trim()), // If its just whitespace, return an empty line
                     false => {
-                        get_indent_string(&self.config.indent_type, &self.indent_level + 1)
+                        get_indent_string(&self.config.indent_type, &self.indent_level + 1, self.config.indent_width)
                             + line.trim()
                     } // If not, trim the line and indent it
                 }

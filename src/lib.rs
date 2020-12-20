@@ -30,10 +30,21 @@ impl Default for LineEndings {
     }
 }
 
-#[derive(Default, Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub struct Config {
     line_endings: LineEndings,
     indent_type: IndentType,
+    indent_width: usize,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            line_endings: LineEndings::Unix,
+            indent_type: IndentType::Tabs,
+            indent_width: 2
+        }
+    }
 }
 
 /// Formats given Lua code
