@@ -1,10 +1,11 @@
 use anyhow::{format_err, Result};
 use full_moon::ast::owned::Owned;
 use full_moon::visitors::VisitorMut;
+use serde::Deserialize;
 
 mod formatters;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Deserialize)]
 pub enum IndentType {
     Tabs,
     Spaces,
@@ -16,7 +17,7 @@ impl Default for IndentType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Deserialize)]
 pub enum LineEndings {
     // Auto,
     Unix,
@@ -29,7 +30,7 @@ impl Default for LineEndings {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Copy, Clone, Debug, Deserialize)]
 pub struct Config {
     line_endings: LineEndings,
     indent_type: IndentType,

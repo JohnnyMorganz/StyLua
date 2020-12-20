@@ -1375,11 +1375,7 @@ function Promise.prototype:_reject(...)
 				end
 
 				-- Build a reasonable message
-				local message = string.format(
-					"Unhandled Promise rejection:\n\n%s\n\n%s",
-					err,
-					self._source
-				)
+				local message = string.format("Unhandled Promise rejection:\n\n%s\n\n%s", err, self._source)
 
 				if Promise.TEST then
 					-- Don't spam output when we're running tests.

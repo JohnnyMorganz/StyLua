@@ -1,4 +1,4 @@
-use luafmt_lib::format_code;
+use luafmt_lib::{format_code, Config};
 use std::{
     fs::{self, File},
     io::Write,
@@ -11,7 +11,7 @@ fn test_folder<P: AsRef<Path>>(folder: P) {
         let path = entry.path();
         let input = fs::read_to_string(path.join("input.lua")).expect("couldn't read input.lua");
 
-        let formatted_code = match format_code(&input) {
+        let formatted_code = match format_code(&input, Config::default()) {
             Ok(code) => code,
             Err(error) => {
                 panic!("error formatting {}: {}", path.display(), error)

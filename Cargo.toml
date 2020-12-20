@@ -1,6 +1,28 @@
-[workspace]
+[package]
+name = "luafmt"
+version = "0.1.0"
+authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
+description = "A code formatter for Lua"
+license = "MPL-2.0"
+repository = "https://github.com/johnnymorganz/luafmt"
+readme = "README.md"
+edition = "2018"
 
-members = [
-    "luafmt-lib",
-    "luafmt",
-]
+[lib]
+name = "luafmt_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "luafmt"
+path = "src/cli/main.rs"
+
+[features]
+default = []
+luau = ["full_moon/roblox"]
+
+[dependencies]
+anyhow = "1.0.35"
+full_moon = { git = "https://github.com/Kampfkarren/full-moon", version = "0.7.0" }
+serde = "1.0.118"
+structopt = "0.3.0"
+toml = "0.5.7"
