@@ -1,11 +1,12 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Block, FunctionBody, Value,
+    Block,
 };
-use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
+use std::collections::HashSet;
 
 pub mod assignment_formatter;
 pub mod block_formatter;
@@ -47,10 +48,15 @@ pub struct Config {
     indent_type: IndentType,
 }
 
+/// A Range, from a Start Position to an End Position
+pub type Range = (usize, usize);
+
 #[derive(Default)]
 pub struct CodeFormatter {
     indent_level: usize,
     config: Config,
+    /// A link of specific ranges to indent increases. The indent increases are added ontop of indent_level
+    indent_ranges: HashSet<Range>,
 }
 
 #[derive(Debug)]
@@ -80,6 +86,7 @@ impl CodeFormatter {
         CodeFormatter {
             indent_level: 0,
             config,
+            indent_ranges: HashSet::new(),
         }
     }
 
@@ -91,11 +98,26 @@ impl CodeFormatter {
         self.indent_level -= 1;
     }
 
+    pub fn add_indent_range(&mut self, range: Range) {
+        self.indent_ranges.insert(range);
+    }
+
+    pub fn get_range_indent_increase(&self, range: Range) -> Option<usize> {
+        // TODO: Do we need to pass a "Range" parameter here? Can it just be a single value?
+        let indent_increase = self.indent_ranges.iter().filter(|x| range.0 >= x.0 && range.1 <= x.1);
+        let count = indent_increase.count();
+        if count > 0 {
+            Some(count)
+        } else {
+            None
+        }
+    }
+
     /// Creates a new Token containing whitespace for indents, used for trivia
-    pub fn create_indent_trivia<'ast>(&self, indent_level: Option<usize>) -> Token<'ast> {
+    pub fn create_indent_trivia<'ast>(&self, additional_indent_level: Option<usize>) -> Token<'ast> {
         // self.indent_level starts at 1
-        let indent_level = match indent_level {
-            Some(level) => level,
+        let indent_level = match additional_indent_level {
+            Some(level) => self.indent_level - 1 + level,
             None => self.indent_level - 1,
         };
 
@@ -181,7 +203,8 @@ impl CodeFormatter {
 
                 match format_type {
                     FormatTokenType::LeadingTrivia => {
-                        leading_trivia = Some(vec![self.create_indent_trivia(None)]);
+                        let additional_indent_level = self.get_range_indent_increase((token.start_position().bytes(), token.end_position().bytes()));
+                        leading_trivia = Some(vec![self.create_indent_trivia(additional_indent_level)]);
                         trailing_trivia = Some(vec![self.create_newline_trivia()]);
                     }
                     FormatTokenType::TrailingTrivia => {
@@ -412,32 +435,5 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.decrement_indent_level();
         node
-    }
-
-    // Special case where trivia needs to be added for anonymous functions, and it isn't handled elsewhere
-    // TODO: Do we need to keep this? Can we find a way to handle it elsewhere?
-    fn visit_value_end(&mut self, value: Value<'ast>) -> Value<'ast> {
-        match value {
-            Value::Function((function_token, function_body)) => {
-                let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
-                    function_body.parameters_parentheses().to_owned(),
-                    None,
-                    Some(vec![self.create_newline_trivia()]),
-                );
-                let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    function_body.end_token().to_owned(),
-                    Some(vec![self.create_indent_trivia(None)]),
-                    None,
-                ));
-
-                Value::Function((
-                    function_token,
-                    function_body
-                        .with_parameters_parentheses(parameters_parentheses)
-                        .with_end_token(end_token),
-                ))
-            }
-            _ => value,
-        }
     }
 }

@@ -11,8 +11,37 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::luau_formatter;
 use crate::formatters::{
-    expression_formatter, get_line_ending_character, trivia_formatter, CodeFormatter,
+    expression_formatter, get_line_ending_character, trivia_formatter, CodeFormatter, block_formatter
 };
+
+/// Formats an Anonymous Function
+/// This doesn't have its own struct, but it is part of Value::Function
+pub fn format_anonymous_function<'ast>(code_formatter: &mut CodeFormatter, function_token: Cow<'ast, TokenReference<'ast>>, function_body: FunctionBody<'ast>) -> (Cow<'ast, TokenReference<'ast>>, FunctionBody<'ast>) {
+    let function_token_range = block_formatter::get_token_range(function_token.token());
+    let additional_indent_level = code_formatter.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
+
+    let function_token = code_formatter.format_symbol(
+        function_token.into_owned(),
+        TokenReference::symbol("function").unwrap(),
+    );
+
+    let function_body = format_function_body(code_formatter, function_body);
+
+    // Need to insert any additional trivia, as it isn't being inserted elsewhere
+    let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+        function_body.parameters_parentheses().to_owned(),
+        None,
+        Some(vec![code_formatter.create_newline_trivia()]),
+    );
+
+    let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+        function_body.end_token().to_owned(),
+        Some(vec![code_formatter.create_indent_trivia(additional_indent_level)]),
+        None,
+    ));
+
+    (function_token, function_body.with_parameters_parentheses(parameters_parentheses).with_end_token(end_token))
+}
 
 /// Formats a Call node
 pub fn format_call<'ast>(code_formatter: &mut CodeFormatter, call: Call<'ast>) -> Call<'ast> {
@@ -37,13 +66,19 @@ pub fn format_function_args<'ast>(
             arguments,
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
+            // Find the range of the function arguments
+            let function_call_range = (start_parens.end_position().bytes(), end_parens.start_position().bytes());
             let is_multiline =
-                (end_parens.start_position().bytes() - start_parens.end_position().bytes()) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+                (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
 
             if is_multiline {
                 // TODO: This is similar to multiline in TableConstructor, can we resolve?
                 // Format start and end brace properly with correct trivia
-                let end_parens_leading_trivia = vec![code_formatter.create_indent_trivia(None)];
+
+                // Calculate to see if the end parentheses requires any additional indentation
+                let end_parens_additional_indent_level = code_formatter.get_range_indent_increase((end_parens.start_position().bytes(), end_parens.end_position().bytes()));
+                let end_parens_leading_trivia = vec![code_formatter.create_indent_trivia(end_parens_additional_indent_level)];
+
                 // Add new_line trivia to start_brace
                 let start_parens_token = TokenReference::symbol(
                     &(String::from("(")
@@ -65,18 +100,21 @@ pub fn format_function_args<'ast>(
                 let mut formatted_arguments = Punctuated::new();
                 let mut current_arguments = arguments.iter().peekable();
 
-                code_formatter.increment_indent_level();
+                code_formatter.add_indent_range(function_call_range);
 
                 loop {
                     match current_arguments.next() {
                         Some(argument) => {
+                            let argument_range = block_formatter::get_range_in_expression(argument);
+                            let additional_indent_level = code_formatter.get_range_indent_increase(argument_range);
+
                             let formatted_argument =
                                 trivia_formatter::expression_add_leading_trivia(
                                     expression_formatter::format_expression(
                                         code_formatter,
                                         argument.to_owned(),
                                     ),
-                                    vec![code_formatter.create_indent_trivia(None)],
+                                    vec![code_formatter.create_indent_trivia(additional_indent_level)],
                                 );
 
                             let punctuation = match current_arguments.peek() {
@@ -103,8 +141,6 @@ pub fn format_function_args<'ast>(
                         None => break,
                     }
                 }
-
-                code_formatter.decrement_indent_level();
 
                 FunctionArgs::Parentheses {
                     parentheses,

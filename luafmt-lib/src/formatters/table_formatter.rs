@@ -1,5 +1,6 @@
 use crate::formatters::{
     expression_formatter::format_expression, get_line_ending_character, trivia_formatter,
+    block_formatter::get_range_in_expression, block_formatter::get_token_range,
     CodeFormatter,
 };
 use full_moon::ast::{
@@ -69,14 +70,17 @@ pub fn format_table_constructor<'ast>(
     let mut current_fields = table_constructor.iter_fields().peekable();
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
+    let braces_range = (start_brace.end_position().bytes(), end_brace.start_position().bytes());
     let is_multiline =
-        (end_brace.start_position().bytes() - start_brace.end_position().bytes()) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+        (braces_range.1 - braces_range.0) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
 
     let braces = match current_fields.peek() {
         Some(_) => match is_multiline {
             true => {
                 // Format start and end brace properly with correct trivia
-                let end_brace_leading_trivia = vec![code_formatter.create_indent_trivia(None)];
+                let additional_indent_level = code_formatter.get_range_indent_increase(braces_range);
+                let end_brace_leading_trivia = vec![code_formatter.create_indent_trivia(additional_indent_level)];
+
                 // Add new_line trivia to start_brace
                 let start_brace_token = TokenReference::symbol(
                     &(String::from("{")
@@ -113,7 +117,7 @@ pub fn format_table_constructor<'ast>(
     };
 
     if is_multiline {
-        code_formatter.increment_indent_level();
+        code_formatter.add_indent_range(braces_range);
     }
 
     // TODO: Should we sort NameKey/ExpressionKey tables?
@@ -124,7 +128,13 @@ pub fn format_table_constructor<'ast>(
                     code_formatter,
                     field,
                     if is_multiline {
-                        Some(vec![code_formatter.create_indent_trivia(None)])
+                        let range = match field {
+                            Field::ExpressionKey { brackets, .. } => get_token_range(brackets.tokens().0.token()),
+                            Field::NameKey { key, .. } => get_token_range(key.token()),
+                            Field::NoKey(expr) => get_range_in_expression(expr),
+                        };
+                        let additional_indent_level = code_formatter.get_range_indent_increase(range);
+                        Some(vec![code_formatter.create_indent_trivia(additional_indent_level)])
                     } else {
                         None
                     },
@@ -150,10 +160,6 @@ pub fn format_table_constructor<'ast>(
             }
             None => break,
         }
-    }
-
-    if is_multiline {
-        code_formatter.decrement_indent_level();
     }
 
     TableConstructor::new()

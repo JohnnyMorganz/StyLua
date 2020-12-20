@@ -173,13 +173,7 @@ pub fn format_suffix<'ast>(
 /// Formats a Value Node
 pub fn format_value<'ast>(code_formatter: &mut CodeFormatter, value: Value<'ast>) -> Value<'ast> {
     match value {
-        Value::Function((token_reference, function_body)) => Value::Function((
-            code_formatter.format_symbol(
-                token_reference.into_owned(),
-                TokenReference::symbol("function").unwrap(),
-            ),
-            functions_formatter::format_function_body(code_formatter, function_body), // TODO: Trivia isn't being added to this anonymous function - how can we fix this?
-        )),
+        Value::Function((token_reference, function_body)) => Value::Function(functions_formatter::format_anonymous_function(code_formatter, token_reference, function_body)),
         Value::FunctionCall(function_call) => Value::FunctionCall(
             functions_formatter::format_function_call(code_formatter, function_call),
         ),
