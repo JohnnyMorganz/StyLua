@@ -1,18 +1,43 @@
 use anyhow::{format_err, Result};
 use luafmt_lib::{format_code, Config};
 use std::fs;
-use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "luafmt", about = "A utility to format Lua code")]
 struct Opt {
+    /// Specify path to luafmt.toml
     #[structopt(long = "config-path", parse(from_os_str))]
     config_path: Option<PathBuf>,
 
+    /// A glob pattern to test against which files to check
+    #[structopt(long, default_value = "**/*.lua")]
+    pattern: String,
+
+    /// A list of files to format
     #[structopt(parse(from_os_str))]
     files: Vec<PathBuf>,
+}
+
+fn format_file(path: &PathBuf, config: Config) -> Result<()> {
+    match fs::read(path) {
+        Ok(contents) => {
+            let contents = String::from_utf8_lossy(&contents);
+            let formatted_contents = match format_code(&contents, config) {
+                Ok(formatted) => formatted,
+                Err(error) => { return Err(format_err!("error: could not format file {}: {}", path.display(), error)) }
+            };
+
+            match fs::write(path, formatted_contents) {
+                Ok(_) => Ok(()),
+                Err(error) => Err(format_err!("error: could not write to file {}: {}", path.display(), error))
+            }
+        },
+        Err(error) => {
+            Err(format_err!("error: could not open file {}: {}", path.display(), error))
+        }
+    }
 }
 
 fn format(opt: Opt) -> Result<i32> {
@@ -49,58 +74,31 @@ fn format(opt: Opt) -> Result<i32> {
 
     for file_path in opt.files.iter() {
         if file_path.exists() {
-            let mut file = match fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(file_path)
-            {
-                Ok(file) => file,
-                Err(error) => {
-                    errors.push(format_err!(
-                        "error: could not open file {}: {}",
-                        file_path.display(),
-                        error
-                    ));
-                    continue;
+            if file_path.is_file() {
+                match format_file(file_path, config) {
+                    Ok(_) => continue,
+                    Err(error) => errors.push(error)
                 }
-            };
-
-            let mut contents_buffer = Vec::new();
-            if let Err(err) = file.read_to_end(&mut contents_buffer) {
-                errors.push(format_err!(
-                    "error: couldn't read contents of file {}: {}",
-                    file_path.display(),
-                    err
-                ));
-                continue;
-            }
-
-            let contents = String::from_utf8_lossy(&contents_buffer);
-            let formatted_contents = match format_code(&contents, config) {
-                Ok(formatted) => formatted,
-                Err(error) => {
-                    errors.push(format_err!(
-                        "error: could not format file {}: {}",
-                        file_path.display(),
-                        error
-                    ));
-
-                    continue;
+            } else if file_path.is_dir() {
+                let glob_pattern = format!("{}/{}", file_path.to_string_lossy(), opt.pattern);
+                match glob::glob(&glob_pattern) {
+                    Ok(entries) => {
+                        for entry in entries {
+                            match entry {
+                                Ok(path) => {
+                                    match format_file(&path, config) {
+                                        Ok(_) => continue,
+                                        Err(error) => errors.push(error)
+                                    }
+                                },
+                                Err(error) => errors.push(format_err!("error: failed to read file {}", error))
+                            }
+                        }
+                    },
+                    Err(error) => errors.push(format_err!("error: failed to read glob pattern {}: {}", glob_pattern, error))
                 }
-            };
-
-            file.seek(std::io::SeekFrom::Start(0)).unwrap();
-            match file.write_all(formatted_contents.as_bytes()) {
-                Ok(_) => (),
-                Err(error) => {
-                    errors.push(format_err!(
-                        "error: could not write to file {}: {}",
-                        file_path.display(),
-                        error
-                    ));
-                    
-                    continue;
-                }
+            } else {
+                errors.push(format_err!("error: unknown path {}", file_path.display()))
             }
         } else {
             errors.push(format_err!("error: file {} not found", file_path.display()));

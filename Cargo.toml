@@ -23,6 +23,7 @@ luau = ["full_moon/roblox"]
 [dependencies]
 anyhow = "1.0.35"
 full_moon = { git = "https://github.com/Kampfkarren/full-moon", version = "0.7.0" }
+glob = "0.3.0"
 serde = "1.0.118"
 structopt = "0.3.0"
 toml = "0.5.7"
