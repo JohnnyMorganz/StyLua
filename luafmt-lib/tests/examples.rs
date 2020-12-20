@@ -31,6 +31,13 @@ fn test_folder<P: AsRef<Path>>(folder: P) {
 }
 
 #[test]
+#[cfg_attr(feature = "luau", ignore)]
 fn test_examples_folder() {
     test_folder("./tests/files");
+}
+
+#[test]
+#[cfg(feature = "luau")]
+fn test_luau_folder() {
+    test_folder("./tests/luau_files");
 }
