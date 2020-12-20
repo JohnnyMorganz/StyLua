@@ -1,13 +1,13 @@
 use anyhow::{format_err, Result};
-use luafmt_lib::{format_code, Config};
+use stylua_lib::{format_code, Config};
 use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "luafmt", about = "A utility to format Lua code")]
+#[structopt(name = "stylua", about = "A utility to format Lua code")]
 struct Opt {
-    /// Specify path to luafmt.toml
+    /// Specify path to stylua.toml
     #[structopt(long = "config-path", parse(from_os_str))]
     config_path: Option<PathBuf>,
 
@@ -58,7 +58,7 @@ fn format(opt: Opt) -> Result<i32> {
             }
         }
 
-        None => match fs::read_to_string("luafmt.toml") {
+        None => match fs::read_to_string("stylua.toml") {
             Ok(contents) => match toml::from_str(&contents) {
                 Ok(config) => config,
                 Err(error) => {

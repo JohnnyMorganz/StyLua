@@ -1,19 +1,19 @@
 [package]
-name = "luafmt"
+name = "stylua"
 version = "0.1.0"
 authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
-repository = "https://github.com/johnnymorganz/luafmt"
+repository = "https://github.com/johnnymorganz/stylua"
 readme = "README.md"
 edition = "2018"
 
 [lib]
-name = "luafmt_lib"
+name = "stylua_lib"
 path = "src/lib.rs"
 
 [[bin]]
-name = "luafmt"
+name = "stylua"
 path = "src/cli/main.rs"
 
 [features]

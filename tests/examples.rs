@@ -1,4 +1,4 @@
-use luafmt_lib::{format_code, Config};
+use stylua_lib::{format_code, Config};
 use std::{
     fs::{self, File},
     io::Write,
