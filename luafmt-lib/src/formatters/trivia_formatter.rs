@@ -569,7 +569,10 @@ pub fn expression_add_trailing_trivia<'ast>(
                 return Expression::Value {
                     value,
                     binop,
-                    as_assertion: Some(as_assertion_add_trailing_trivia(as_assertion, trailing_trivia)),
+                    as_assertion: Some(as_assertion_add_trailing_trivia(
+                        as_assertion,
+                        trailing_trivia,
+                    )),
                 };
             }
 

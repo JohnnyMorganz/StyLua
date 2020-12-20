@@ -4,8 +4,39 @@ use full_moon::visitors::VisitorMut;
 
 mod formatters;
 
+#[derive(Debug)]
+pub enum IndentType {
+    Tabs,
+    Spaces,
+}
+
+impl Default for IndentType {
+    fn default() -> Self {
+        IndentType::Tabs
+    }
+}
+
+#[derive(Debug)]
+pub enum LineEndings {
+    // Auto,
+    Unix,
+    Windows,
+}
+
+impl Default for LineEndings {
+    fn default() -> Self {
+        LineEndings::Unix
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Config {
+    line_endings: LineEndings,
+    indent_type: IndentType,
+}
+
 /// Formats given Lua code
-pub fn format_code(code: &str) -> Result<String> {
+pub fn format_code(code: &str, config: Config) -> Result<String> {
     let mut ast = match full_moon::parse(&code) {
         Ok(ast) => ast.owned(),
         Err(error) => {
@@ -13,7 +44,8 @@ pub fn format_code(code: &str) -> Result<String> {
         }
     };
 
-    ast = formatters::CodeFormatter::default().visit_ast(ast);
+    let mut code_formatter = formatters::CodeFormatter::new(config);
+    ast = code_formatter.visit_ast(ast);
 
     Ok(full_moon::print(&ast))
 }

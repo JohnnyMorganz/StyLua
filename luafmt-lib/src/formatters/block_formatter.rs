@@ -5,12 +5,12 @@ use crate::formatters::{
     CodeFormatter,
 };
 use full_moon::ast::{
-    punctuated::Pair, Block, Do, ElseIf, GenericFor, If, LastStmt, NumericFor, Repeat, Return,
-    Stmt, While, Prefix, Expression
+    punctuated::Pair, Block, Do, ElseIf, Expression, GenericFor, If, LastStmt, NumericFor, Prefix,
+    Repeat, Return, Stmt, While,
 };
-use full_moon::tokenizer::{Token, TokenReference};
 #[cfg(feature = "luau")]
 use full_moon::tokenizer::TokenType;
+use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
 
 /// Format a Do node
@@ -323,37 +323,43 @@ pub fn get_token_range<'ast>(token: &Token<'ast>) -> (usize, usize) {
 
 pub fn get_range_in_expression<'ast>(expression: &Expression<'ast>) -> (usize, usize) {
     match expression {
-        Expression::Parentheses { contained, .. } => {
-            get_token_range(contained.tokens().0)
-        }
-        Expression::UnaryOperator { unop, .. } => {
-            match unop {
-                full_moon::ast::UnOp::Minus(token_reference) => get_token_range(token_reference.token()),
-                full_moon::ast::UnOp::Not(token_reference) => get_token_range(token_reference.token()),
-                full_moon::ast::UnOp::Hash(token_reference) => get_token_range(token_reference.token()),
+        Expression::Parentheses { contained, .. } => get_token_range(contained.tokens().0),
+        Expression::UnaryOperator { unop, .. } => match unop {
+            full_moon::ast::UnOp::Minus(token_reference) => {
+                get_token_range(token_reference.token())
             }
-        }
+            full_moon::ast::UnOp::Not(token_reference) => get_token_range(token_reference.token()),
+            full_moon::ast::UnOp::Hash(token_reference) => get_token_range(token_reference.token()),
+        },
         Expression::Value { value, .. } => {
             let value = &**value;
             match value {
-                full_moon::ast::Value::Function((token_ref, _)) => get_token_range(token_ref.token()),
-                full_moon::ast::Value::FunctionCall(function_call) => get_range_in_prefix(function_call.prefix()),
-                full_moon::ast::Value::TableConstructor(table_constructor) => get_token_range(table_constructor.braces().tokens().0.token()),
+                full_moon::ast::Value::Function((token_ref, _)) => {
+                    get_token_range(token_ref.token())
+                }
+                full_moon::ast::Value::FunctionCall(function_call) => {
+                    get_range_in_prefix(function_call.prefix())
+                }
+                full_moon::ast::Value::TableConstructor(table_constructor) => {
+                    get_token_range(table_constructor.braces().tokens().0.token())
+                }
                 full_moon::ast::Value::Number(token_ref) => get_token_range(token_ref.token()),
                 full_moon::ast::Value::ParseExpression(expr) => get_range_in_expression(&expr),
                 full_moon::ast::Value::String(token_ref) => get_token_range(token_ref.token()),
                 full_moon::ast::Value::Symbol(token_ref) => get_token_range(token_ref.token()),
                 full_moon::ast::Value::Var(var) => match var {
                     full_moon::ast::Var::Name(token_ref) => get_token_range(token_ref.token()),
-                    full_moon::ast::Var::Expression(var_expr) => get_range_in_prefix(var_expr.prefix()),
-                }
+                    full_moon::ast::Var::Expression(var_expr) => {
+                        get_range_in_prefix(var_expr.prefix())
+                    }
+                },
             }
         }
     }
 }
 
 pub fn get_range_in_prefix<'ast>(prefix: &Prefix) -> (usize, usize) {
-    match prefix {    
+    match prefix {
         Prefix::Name(token) => get_token_range(token.token()),
         Prefix::Expression(expression) => get_range_in_expression(expression),
     }
@@ -366,24 +372,40 @@ fn get_range_in_stmt<'ast>(stmt: Stmt<'ast>) -> (usize, usize) {
         Stmt::Assignment(assignment) => get_token_range(assignment.equal_token().token()),
         Stmt::Do(do_block) => get_token_range(do_block.do_token().token()),
         Stmt::FunctionCall(function_call) => get_range_in_prefix(function_call.prefix()),
-        Stmt::FunctionDeclaration(function_declaration) => get_token_range(function_declaration.function_token().token()),
+        Stmt::FunctionDeclaration(function_declaration) => {
+            get_token_range(function_declaration.function_token().token())
+        }
         Stmt::GenericFor(generic_for) => get_token_range(generic_for.for_token().token()),
         Stmt::If(if_block) => get_token_range(if_block.if_token().token()),
-        Stmt::LocalAssignment(local_assignment) => get_token_range(local_assignment.local_token().token()),
-        Stmt::LocalFunction(local_function) => get_token_range(local_function.local_token().token()),
+        Stmt::LocalAssignment(local_assignment) => {
+            get_token_range(local_assignment.local_token().token())
+        }
+        Stmt::LocalFunction(local_function) => {
+            get_token_range(local_function.local_token().token())
+        }
         Stmt::NumericFor(numeric_for) => get_token_range(numeric_for.for_token().token()),
         Stmt::Repeat(repeat_block) => get_token_range(repeat_block.repeat_token().token()),
         Stmt::While(while_block) => get_token_range(while_block.while_token().token()),
         #[cfg(feature = "luau")]
-        Stmt::CompoundAssignment(compound_assignment) => get_range_in_expression(compound_assignment.rhs()),
+        Stmt::CompoundAssignment(compound_assignment) => {
+            get_range_in_expression(compound_assignment.rhs())
+        }
         #[cfg(feature = "luau")]
-        Stmt::ExportedTypeDeclaration(exported_type_declaration) => get_token_range(exported_type_declaration.export_token().token()),
+        Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
+            get_token_range(exported_type_declaration.export_token().token())
+        }
         #[cfg(feature = "luau")]
-        Stmt::TypeDeclaration(type_declaration) => get_token_range(type_declaration.type_token().token())
+        Stmt::TypeDeclaration(type_declaration) => {
+            get_token_range(type_declaration.type_token().token())
+        }
     }
 }
 
-pub fn stmt_add_trivia<'ast>(code_formatter: &CodeFormatter, stmt: Stmt<'ast>, additional_indent_level: Option<usize>) -> Stmt<'ast> {
+pub fn stmt_add_trivia<'ast>(
+    code_formatter: &CodeFormatter,
+    stmt: Stmt<'ast>,
+    additional_indent_level: Option<usize>,
+) -> Stmt<'ast> {
     let leading_trivia = vec![code_formatter.create_indent_trivia(additional_indent_level)];
     let trailing_trivia = vec![code_formatter.create_newline_trivia()];
 
@@ -541,7 +563,9 @@ pub fn last_stmt_add_trivia<'ast>(
         LastStmt::Break(break_node) => {
             LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                 break_node.into_owned(),
-                Some(vec![code_formatter.create_indent_trivia(additional_indent_level)]),
+                Some(vec![
+                    code_formatter.create_indent_trivia(additional_indent_level)
+                ]),
                 Some(vec![code_formatter.create_newline_trivia()]),
             )))
         }
@@ -552,13 +576,17 @@ pub fn last_stmt_add_trivia<'ast>(
             if return_node.returns().is_empty() {
                 token = trivia_formatter::token_reference_add_trivia(
                     token,
-                    Some(vec![code_formatter.create_indent_trivia(additional_indent_level)]),
+                    Some(vec![
+                        code_formatter.create_indent_trivia(additional_indent_level)
+                    ]),
                     Some(vec![code_formatter.create_newline_trivia()]),
                 );
             } else {
                 token = trivia_formatter::token_reference_add_trivia(
                     token,
-                    Some(vec![code_formatter.create_indent_trivia(additional_indent_level)]),
+                    Some(vec![
+                        code_formatter.create_indent_trivia(additional_indent_level)
+                    ]),
                     None,
                 );
 
@@ -588,7 +616,9 @@ pub fn last_stmt_add_trivia<'ast>(
         LastStmt::Continue(continue_node) => {
             LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                 continue_node.into_owned(),
-                Some(vec![code_formatter.create_indent_trivia(additional_indent_level)]),
+                Some(vec![
+                    code_formatter.create_indent_trivia(additional_indent_level)
+                ]),
                 Some(vec![code_formatter.create_newline_trivia()]),
             )))
         }
@@ -612,9 +642,13 @@ pub fn format_block<'ast>(code_formatter: &mut CodeFormatter, block: Block<'ast>
     let formatted_last_stmt = match block.last_stmt() {
         Some(last_stmt) => {
             let range_in_last_stmt = get_range_in_last_stmt(last_stmt);
-            let additional_indent_level = code_formatter.get_range_indent_increase(range_in_last_stmt);
+            let additional_indent_level =
+                code_formatter.get_range_indent_increase(range_in_last_stmt);
             let last_stmt = format_last_stmt(code_formatter, last_stmt.to_owned());
-            Some((last_stmt_add_trivia(code_formatter, last_stmt, additional_indent_level), None))
+            Some((
+                last_stmt_add_trivia(code_formatter, last_stmt, additional_indent_level),
+                None,
+            ))
         }
         None => None,
     };

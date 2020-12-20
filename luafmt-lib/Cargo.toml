@@ -11,5 +11,5 @@ anyhow = "1.0.35"
 full_moon = { git = "https://github.com/Kampfkarren/full-moon", version = "0.7.0" }
 
 [features]
-default = ["luau"]
+default = []
 luau = ["full_moon/roblox"]

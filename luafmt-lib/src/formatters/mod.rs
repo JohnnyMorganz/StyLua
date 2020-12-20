@@ -1,3 +1,4 @@
+use crate::{Config, IndentType, LineEndings};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -16,37 +17,6 @@ pub mod functions_formatter;
 pub mod luau_formatter;
 pub mod table_formatter;
 pub mod trivia_formatter;
-
-#[derive(Debug)]
-pub enum IndentType {
-    Tabs,
-    Spaces,
-}
-
-impl Default for IndentType {
-    fn default() -> Self {
-        IndentType::Tabs
-    }
-}
-
-#[derive(Debug)]
-pub enum LineEndings {
-    // Auto,
-    Unix,
-    Windows,
-}
-
-impl Default for LineEndings {
-    fn default() -> Self {
-        LineEndings::Unix
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct Config {
-    line_endings: LineEndings,
-    indent_type: IndentType,
-}
 
 /// A Range, from a Start Position to an End Position
 pub type Range = (usize, usize);
@@ -104,7 +74,10 @@ impl CodeFormatter {
 
     pub fn get_range_indent_increase(&self, range: Range) -> Option<usize> {
         // TODO: Do we need to pass a "Range" parameter here? Can it just be a single value?
-        let indent_increase = self.indent_ranges.iter().filter(|x| range.0 >= x.0 && range.1 <= x.1);
+        let indent_increase = self
+            .indent_ranges
+            .iter()
+            .filter(|x| range.0 >= x.0 && range.1 <= x.1);
         let count = indent_increase.count();
         if count > 0 {
             Some(count)
@@ -114,7 +87,10 @@ impl CodeFormatter {
     }
 
     /// Creates a new Token containing whitespace for indents, used for trivia
-    pub fn create_indent_trivia<'ast>(&self, additional_indent_level: Option<usize>) -> Token<'ast> {
+    pub fn create_indent_trivia<'ast>(
+        &self,
+        additional_indent_level: Option<usize>,
+    ) -> Token<'ast> {
         // self.indent_level starts at 1
         let indent_level = match additional_indent_level {
             Some(level) => self.indent_level - 1 + level,
@@ -203,8 +179,12 @@ impl CodeFormatter {
 
                 match format_type {
                     FormatTokenType::LeadingTrivia => {
-                        let additional_indent_level = self.get_range_indent_increase((token.start_position().bytes(), token.end_position().bytes()));
-                        leading_trivia = Some(vec![self.create_indent_trivia(additional_indent_level)]);
+                        let additional_indent_level = self.get_range_indent_increase((
+                            token.start_position().bytes(),
+                            token.end_position().bytes(),
+                        ));
+                        leading_trivia =
+                            Some(vec![self.create_indent_trivia(additional_indent_level)]);
                         trailing_trivia = Some(vec![self.create_newline_trivia()]);
                     }
                     FormatTokenType::TrailingTrivia => {
