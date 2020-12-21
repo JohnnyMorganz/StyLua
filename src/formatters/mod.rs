@@ -113,42 +113,59 @@ impl CodeFormatter {
     }
 
     fn format_single_line_comment_string(&self, comment: String) -> String {
-        let comment = comment.trim();
-        let mut formatted_comment = String::from(" "); // Add space before comment begins
-        formatted_comment += comment;
+        // Trim any trailing whitespace
+        comment.trim_end().to_string()
 
-        formatted_comment
+        // TODO: Do we want to touch comments? If not, then lets ditch this
+        // let mut formatted_comment = String::from(" "); // Add space before comment begins
+        // formatted_comment += comment;
+
+        // formatted_comment
     }
 
-    fn format_multi_line_comment_string(&self, comment: String) -> String {
-        let comment = comment.trim();
-        let mut formatted_comment = get_line_ending_character(&self.config.line_endings); // Put starting braces seperately on its own line
+    // fn format_multi_line_comment_string(&self, comment: String) -> String {
+    //     comment
+    //     // TODO: Do we want to touch comments? If not, lets ditch this
+    //     // comment
+    //     //     .lines()
+    //     //     .map(|line| {
+    //     //         // Check to see if the line is just whitespace
+    //     //         match line.split_whitespace().collect::<String>().is_empty() {
+    //     //             true => line.trim().to_string(), // If its just whitespace, return an empty line
+    //     //             false => line.trim_end().to_string() // If not, trim any trailing whitespace and indent it
+    //     //         }
+    //     //     })
+    //     //     .collect::<Vec<String>>()
+    //     //     .join(&get_line_ending_character(&self.config.line_endings))
 
-        // Split multiline comment into its individual lines
-        // We want to take each line, trim any whitespace, and indent it one greater than the current indent level
-        let comment = comment
-            .lines()
-            .map(|line| {
-                // Check to see if the line is just whitespace
-                match line.split_whitespace().collect::<String>().is_empty() {
-                    true => String::from(line.trim()), // If its just whitespace, return an empty line
-                    false => {
-                        get_indent_string(
-                            &self.config.indent_type,
-                            &self.indent_level + 1,
-                            self.config.indent_width,
-                        ) + line.trim()
-                    } // If not, trim the line and indent it
-                }
-            })
-            .collect::<Vec<String>>()
-            .join(&get_line_ending_character(&self.config.line_endings));
+    //     // let comment = comment.trim();
+    //     // let mut formatted_comment = get_line_ending_character(&self.config.line_endings); // Put starting braces seperately on its own line
 
-        formatted_comment += &comment; // Add in the multiline comment
-        formatted_comment += &get_line_ending_character(&self.config.line_endings); // Put closing braces on a new line
+    //     // // Split multiline comment into its individual lines
+    //     // // We want to take each line, trim any whitespace, and indent it one greater than the current indent level
+    //     // let comment = comment
+    //     //     .lines()
+    //     //     .map(|line| {
+    //     //         // Check to see if the line is just whitespace
+    //     //         match line.split_whitespace().collect::<String>().is_empty() {
+    //     //             true => String::from(line.trim()), // If its just whitespace, return an empty line
+    //     //             false => {
+    //     //                 get_indent_string(
+    //     //                     &self.config.indent_type,
+    //     //                     &self.indent_level + 1,
+    //     //                     self.config.indent_width,
+    //     //                 ) + line.trim()
+    //     //             } // If not, trim the line and indent it
+    //     //         }
+    //     //     })
+    //     //     .collect::<Vec<String>>()
+    //     //     .join(&get_line_ending_character(&self.config.line_endings));
 
-        formatted_comment
-    }
+    //     // formatted_comment += &comment; // Add in the multiline comment
+    //     // formatted_comment += &get_line_ending_character(&self.config.line_endings); // Put closing braces on a new line
+
+    //     // formatted_comment
+    // }
 
     /// Formats a Token Node
     /// Also returns any extra leading or trailing trivia to add for the Token node
@@ -214,8 +231,8 @@ impl CodeFormatter {
                 }
             }
             TokenType::MultiLineComment { blocks, comment } => {
-                let comment =
-                    self.format_multi_line_comment_string(comment.to_owned().into_owned());
+                // let comment =
+                //     self.format_multi_line_comment_string(comment.to_owned().into_owned());
 
                 if let FormatTokenType::LeadingTrivia = format_type {
                     // Add a new line once the comment is completed
@@ -224,7 +241,7 @@ impl CodeFormatter {
 
                 TokenType::MultiLineComment {
                     blocks: *blocks,
-                    comment: Cow::Owned(comment),
+                    comment: comment.to_owned(),
                 }
             }
             TokenType::Whitespace { characters } => TokenType::Whitespace {

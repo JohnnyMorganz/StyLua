@@ -1,211 +1,210 @@
--- Version 2 1.02 I fixed some problems caused by the updates.
-adminlist = { "Person299" } -- Add in the names of the people you want to be able to use the command script here.
--- Please keep my name in there. ;)
-bannedlist = { "someoneyouhate", "noob" } -- If you want someone not to be able to enter your place, put thier name in here.
-texture = "" -- If you want someone wearing a certain t-shirt to be an admin, put the t-shirt's texture in here.
+--Version 2 1.02 I fixed some problems caused by the updates.
+adminlist = { "Person299" } --Add in the names of the people you want to be able to use the command script here.
+--Please keep my name in there. ;)
+bannedlist = { "someoneyouhate", "noob" } --If you want someone not to be able to enter your place, put thier name in here.
+texture = "" --If you want someone wearing a certain t-shirt to be an admin, put the t-shirt's texture in here.
 
 --[[
-	I update this command script alot, so if you want to get the newest version of the script, go to http://www.roblox.com/Item.aspx?ID=5277383 every once in a while.
+ I update this command script alot, so if you want to get the newest version of the script, go to http://www.roblox.com/Item.aspx?ID=5277383 every once in a while.
 
-	If theres anything you think this command script needs, just message me (Person299) and i might put it in. :)
-	And also, if you find any bugs, report them to me.
+If theres anything you think this command script needs, just message me (Person299) and i might put it in. :)
+And also, if you find any bugs, report them to me.
 
-	The commands are,
+The commands are,
 
-	commands
-	Shows a list of all the commands
+commands
+Shows a list of all the commands
 
-	fix
-	If the command script breaks for you, say this to fix it
+fix
+If the command script breaks for you, say this to fix it
 
-	kill/Person299
-	kills Person299
+kill/Person299
+kills Person299
 
-	loopkill/Person299
-	Repeatedly kills Person299 when he respawns
+loopkill/Person299
+Repeatedly kills Person299 when he respawns
 
-	unloopkill/Person299
-	Undos loopkill/
+unloopkill/Person299
+Undos loopkill/
 
-	heal/Person299
-	Returns Person299 to full health
+heal/Person299
+Returns Person299 to full health
 
-	damage/Person299/50
-	Makes Person299's character take 50 damage
+damage/Person299/50
+Makes Person299's character take 50 damage
 
-	health/Person299/999999
-	Makes Person299's MaxHealth and Health 999999
+health/Person299/999999
+Makes Person299's MaxHealth and Health 999999
 
-	kick/Person299
-	Removes Person299 from the game, cannot be used by admin/ed people
+kick/Person299
+Removes Person299 from the game, cannot be used by admin/ed people
 
-	ban/Person299
-	Removes Person299 from the game and keeps him from reenterring, cannot be used by admin/ed people
+ban/Person299
+Removes Person299 from the game and keeps him from reenterring, cannot be used by admin/ed people
 
-	bannedlist
-	Shows a list of everyone banned
+bannedlist
+Shows a list of everyone banned
 
-	unban/Person299
-	Unbans Person299
+unban/Person299
+Unbans Person299
 
-	explode/Person299
-	Explodes Person299's character
+explode/Person299
+Explodes Person299's character
 
-	rocket/Person299
-	Straps a rocket onto Person299's back
+rocket/Person299
+Straps a rocket onto Person299's back
 
-	removetools/Person299
-	Removes all of Person299's tools.
+removetools/Person299
+Removes all of Person299's tools.
 
-	givetools/Person299
-	Gives Person299 all the tools in StarterPack
+givetools/Person299
+Gives Person299 all the tools in StarterPack
 
-	givebtools/Person299
-	Gives Person299 the building tools
+givebtools/Person299
+Gives Person299 the building tools
 
-	sit/Person299
-	Makes Person299 sit
+sit/Person299
+Makes Person299 sit
 
-	part/4/1/2
-	Makes a part with the given dimensions appear over your character
+part/4/1/2
+Makes a part with the given dimensions appear over your character
 
-	respawn/Person299
-	Makes Person299's character respawn
+respawn/Person299
+Makes Person299's character respawn
 
-	jail/Person299
-	Makes a lil jail cell around Person299's character
+jail/Person299
+Makes a lil jail cell around Person299's character
 
-	unjail/Person299
-	Undos jail/
+unjail/Person299
+Undos jail/
 
-	punish/Person299
-	Puts Person299's character in game.Lighting
+punish/Person299
+Puts Person299's character in game.Lighting
 
-	unpunish/Person299
-	Undos punish/
+unpunish/Person299
+Undos punish/
 
-	merge/Person299/Farvei
-	Makes Person299 control Farvei's character
+merge/Person299/Farvei
+Makes Person299 control Farvei's character
 
-	teleport/Person299/nccvoyager
-	Teleports Person299's character to nccvoyager's character
+teleport/Person299/nccvoyager
+Teleports Person299's character to nccvoyager's character
 
-	control/Person299
-	Makes you control Person299's character
+control/Person299
+Makes you control Person299's character
 
-	change/Person299/Money/999999
-	Makes the Money value in Person299's leaderstats 999999
+change/Person299/Money/999999
+Makes the Money value in Person299's leaderstats 999999
 
-	tools
-	Gives you a list of all the tools available to be give/en, the tool must be in game.Lighting
+tools
+Gives you a list of all the tools available to be give/en, the tool must be in game.Lighting
 
-	give/Person299/Tool
-	Give's Person299 a tool, the toolname can be abbreviated
+give/Person299/Tool
+Give's Person299 a tool, the toolname can be abbreviated
 
-	time/15.30
-	Makes game.Lighting.TimeOfDay 15:30
+time/15.30
+Makes game.Lighting.TimeOfDay 15:30
 
-	ambient/255/0/0
-	Makes game.Lighting.Ambient 255,0,0
+ambient/255/0/0
+Makes game.Lighting.Ambient 255,0,0
 
-	maxplayers/20
-	Makes game.Players.MaxPlayers 20
+maxplayers/20
+Makes game.Players.MaxPlayers 20
 
-	nograv/Person299
-	Makes Person299 almost weightless
+nograv/Person299
+Makes Person299 almost weightless
 
-	antigrav/Person299
-	Gives Person299 antigravity properties
+antigrav/Person299
+Gives Person299 antigravity properties
 
-	grav/Person299
-	Returns Person299's gravity to normal
+grav/Person299
+Returns Person299's gravity to normal
 
-	highgrav/Person299
-	Makes Person299 heavier
+highgrav/Person299
+Makes Person299 heavier
 
-	setgrav/Person299/-196
-	Sets Person299's gravity
+setgrav/Person299/-196
+Sets Person299's gravity
 
-	trip/Person299
-	Makes Person299's character trip
+trip/Person299
+Makes Person299's character trip
 
-	walkspeed/Person299/99
-	Makes Person299's character's humanoid's WalkSpeed 99, 16 is average
+walkspeed/Person299/99
+Makes Person299's character's humanoid's WalkSpeed 99, 16 is average
 
-	invisible/Person299
-	Makes Person299's character invisible
+invisible/Person299
+Makes Person299's character invisible
 
-	visible/Person299
-	Undos invisible/
+visible/Person299
+Undos invisible/
 
-	freeze/Person299
-	Makes Person299's character unable to move
+freeze/Person299
+Makes Person299's character unable to move
 
-	thaw/Person299
-	Undos freeze/
+thaw/Person299
+Undos freeze/
 
-	unlock/Person299
-	Makes Person299's character unlocked
+unlock/Person299
+Makes Person299's character unlocked
 
-	lock/Person299
-	Makes Person299's character locked
+lock/Person299
+Makes Person299's character locked
 
-	ff/Person299
-	Gives Person299's character a ForceField
+ff/Person299
+Gives Person299's character a ForceField
 
-	unff/Person299
-	Undos ff/
+unff/Person299
+Undos ff/
 
-	sparkles/Person299
-	Makes Person299's character sparkly
+sparkles/Person299
+Makes Person299's character sparkly
 
-	unsparkles/Person299
-	Undos sparkles/
+unsparkles/Person299
+Undos sparkles/
 
-	shield/Person299
-	Makes a destructive shield thingy appear around Person299
+shield/Person299
+Makes a destructive shield thingy appear around Person299
 
-	unshield/Person299
-	Undos shield/
+unshield/Person299
+Undos shield/
 
-	god/Person299
-	Makes Person299 godish
+god/Person299
+Makes Person299 godish
 
-	ungod/Person299
-	Undos god/
+ungod/Person299
+Undos god/
 
-	zombify/Person299
-	Makes Person299 a infecting zombie
+zombify/Person299
+Makes Person299 a infecting zombie
 
-	admin/Person299
-	Makes Person299 able to use the command script, cannot be used by admin/ed people
+admin/Person299
+Makes Person299 able to use the command script, cannot be used by admin/ed people
 
-	adminlist
-	Shows a list of everyone in the adminlist
+adminlist
+Shows a list of everyone in the adminlist
 
-	unadmin/Person299
-	Undos admin/, cannot be used by admin/ed people
+unadmin/Person299
+Undos admin/, cannot be used by admin/ed people
 
-	shutdown
-	Shuts the server down, cannot be used by admin/ed people
+shutdown
+Shuts the server down, cannot be used by admin/ed people
 
-	m/Fallout 2 is one of the best games ever made
-	Makes a message appear on the screen saying "Fallout 2 is one of the best games ever made" for 2 seconds
+m/Fallout 2 is one of the best games ever made
+Makes a message appear on the screen saying "Fallout 2 is one of the best games ever made" for 2 seconds
 
-	h/i like pie
-	Makes a hint appear on the screen saying "i like pie" for 2 seconds
+h/i like pie
+Makes a hint appear on the screen saying "i like pie" for 2 seconds
 
-	c/ game.Workspace:remove()
-	Makes a script which source is whats after c/
+c/ game.Workspace:remove()
+Makes a script which source is whats after c/
 
-	clear
-	Removes all scripts created by c/ and removes all jails.
+clear
+Removes all scripts created by c/ and removes all jails.
 
-	Capitalisation doesnt matter, and name input can be abbreviated.
-	Just about any name input can be replaced with multiple names seperated by ","s, me, all, others, guests, admins, nonadmins, random, or team teamname.
+Capitalisation doesnt matter, and name input can be abbreviated.
+Just about any name input can be replaced with multiple names seperated by ","s, me, all, others, guests, admins, nonadmins, random, or team teamname.
 
-	--
-]]
+--]]
 
 namelist = {}
 variablelist = {}
@@ -472,19 +471,19 @@ end
 
 function oc(msg, speaker)
 
-	if string.sub(string.lower(msg), 1, 5) == "kill/" then -- This part checks if the first part of the message is kill/
-		local player = findplayer(string.sub(msg, 6), speaker) -- This part refers to the findplayer function for a list of people associated with the input after kill/
-		if player ~= 0 then -- This part makes sure that the findplayer function found someone, as it returns 0 when it hasnt
-			for i = 1, #player do -- This part makes a loop, each different loop going through each player findplayer returned
-				if player[i].Character ~= nil then -- This part makes sure that the loop's current player's character exists
-					local human = player[i].Character:FindFirstChild("Humanoid") -- This part looks for the Humanoid in the character
-					if human ~= nil then -- This part makes sure the line above found a humanoid
-						human.Health = 0 -- This part makes the humanoid's health 0
+	if string.sub(string.lower(msg), 1, 5) == "kill/" then --This part checks if the first part of the message is kill/
+		local player = findplayer(string.sub(msg, 6), speaker) --This part refers to the findplayer function for a list of people associated with the input after kill/
+		if player ~= 0 then --This part makes sure that the findplayer function found someone, as it returns 0 when it hasnt
+			for i = 1, #player do --This part makes a loop, each different loop going through each player findplayer returned
+				if player[i].Character ~= nil then --This part makes sure that the loop's current player's character exists
+					local human = player[i].Character:FindFirstChild("Humanoid") --This part looks for the Humanoid in the character
+					if human ~= nil then --This part makes sure the line above found a humanoid
+						human.Health = 0 --This part makes the humanoid's health 0
 					end
 				end
 			end
 		end
-	end -- This line contains the ends for all the if statements and the for loop
+	end --This line contains the ends for all the if statements and the for loop
 
 	if string.sub(string.lower(msg), 1, 2) == "m/" then
 		text(speaker.Name .. ": " .. string.sub(msg, 3), 2, "Message", game.Workspace)
@@ -494,7 +493,7 @@ function oc(msg, speaker)
 		text(speaker.Name .. ": " .. string.sub(msg, 3), 2, "Hint", game.Workspace)
 	end
 
-	if string.sub(string.lower(msg), 1, 2) == "c/" then -- Dontcha wish pcall was more reliable?
+	if string.sub(string.lower(msg), 1, 2) == "c/" then --Dontcha wish pcall was more reliable?
 		createscript(string.sub(msg, 3), game.Workspace)
 	end
 
@@ -549,7 +548,7 @@ function oc(msg, speaker)
 		end
 	end
 
-	-- Bored...
+	--Bored...
 
 	if string.sub(msg, 1, 7) == "change/" then
 		local danumber1 = nil
@@ -1251,7 +1250,7 @@ game.Workspace.ChildAdded:connect(oa)
 
 	if msg == "adminlist" then
 		local text = string.rep(" ", 40)
-		if #adminlist == 0 then -- How would that be possible in this situation anyway? lol
+		if #adminlist == 0 then --How would that be possible in this situation anyway? lol
 			text = text .. "The admin list is empty."
 		else
 			for i = 1, #adminlist do
@@ -1317,7 +1316,7 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.Size = Vector3.new(2, 1, 1)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
-						-- Credit for the infectontouch script goes to whoever it is that made it.
+						--Credit for the infectontouch script goes to whoever it is that made it.
 						createscript(
 							[[
 wait(1)
@@ -1477,7 +1476,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		)
 	end
 
-	-- Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
+	--Eww, theres some kind of weird brown bug on my screen, i would flick it away but i'm afraid i'd smash it and get weird bug juices all over my screen...
 
 	if string.sub(msg, 1, 5) == "part/" then
 		local danumber1 = nil
@@ -1520,7 +1519,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 	end
 
-	-- I finally tried flicking it but it keeps on coming back......
+	--I finally tried flicking it but it keeps on coming back......
 
 	if string.sub(msg, 1, 8) == "control/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
@@ -1536,7 +1535,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 	end
 
-	-- IT WONT GO AWAY!!!!!
+	--IT WONT GO AWAY!!!!!
 
 	if string.sub(msg, 1, 5) == "trip/" then
 		local player = findplayer(string.sub(msg, 6), speaker)
@@ -1545,14 +1544,14 @@ script.Parent.Parent.Humanoid.Health = 0
 				if player[i].Character ~= nil then
 					local torso = player[i].Character:FindFirstChild("Torso")
 					if torso ~= nil then
-						torso.CFrame = CFrame.new(torso.Position.x, torso.Position.y, torso.Position.z, 0, 0, 1, 0, -1, 0, 1, 0, 0) -- math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
+						torso.CFrame = CFrame.new(torso.Position.x, torso.Position.y, torso.Position.z, 0, 0, 1, 0, -1, 0, 1, 0, 0) --math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
 					end
 				end
 			end
 		end
 	end
 
-	-- Yay! it finally went away! :)
+	--Yay! it finally went away! :)
 
 	if string.sub(msg, 1, 8) == "setgrav/" then
 		danumber = nil
@@ -1674,7 +1673,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 	end
 
-	-- Ugh, now i have the M*A*S*H theme stuck in my head.....
+	--Ugh, now i have the M*A*S*H theme stuck in my head.....
 
 	if string.sub(msg, 1, 9) == "teleport/" then
 		danumber = nil
@@ -1830,7 +1829,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 	end
 
-	-- Fallout tactics gets too hard when you start fighting muties...
+	--Fallout tactics gets too hard when you start fighting muties...
 
 	if string.sub(msg, 1, 8) == "respawn/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
@@ -1864,7 +1863,7 @@ script.Parent.Parent.Humanoid.Health = 0
 						if c[i].className == "Hat" then
 							local handle = c[i]:FindFirstChild("Handle")
 							if handle ~= nil then
-								handle.Transparency = 1 -- We dont want our hats to give off our position, do we?
+								handle.Transparency = 1 --We dont want our hats to give off our position, do we?
 							end
 						end
 						if c[i].className == "Part" then
@@ -1968,7 +1967,7 @@ script.Parent.Parent.Humanoid.Health = 0
 		end
 	end
 
-	-- I have that song from Fallout 2 stuck in my head, its soooo anoying....
+	--I have that song from Fallout 2 stuck in my head, its soooo anoying....
 
 	if string.sub(msg, 1, 7) == "nograv/" then
 		local player = findplayer(string.sub(msg, 8), speaker)
@@ -2190,4 +2189,4 @@ for i = 1, #c do
 	oe(c[i])
 end
 
--- And also, I'm working on V3 but I'm not spending much time on it as I'm addicted to Fallout 2 again.
+--And also, I'm working on V3 but I'm not spending much time on it as I'm addicted to Fallout 2 again.

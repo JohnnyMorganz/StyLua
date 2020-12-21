@@ -352,7 +352,7 @@ end
 
 --[[
 	Runs a non-promise-returning function as a Promise with the
-	given arguments.
+  given arguments.
 ]]
 function Promise._try(traceback, callback, ...)
 	local valuesLength, values = pack(...)
@@ -374,8 +374,8 @@ end
 
 --[[
 	Returns a new promise that:
-	* is resolved when all input promises resolve
-	* is rejected if ANY input promises reject
+		* is resolved when all input promises resolve
+		* is rejected if ANY input promises reject
 ]]
 function Promise._all(traceback, promises, amount)
 	if type(promises) ~= "table" then

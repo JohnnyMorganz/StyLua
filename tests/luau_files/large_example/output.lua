@@ -1,4 +1,4 @@
--- !strict
+--!strict
 
 type Array<T> = { [number]: T }
 type Dictionary<T> = { [string]: T }
