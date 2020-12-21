@@ -2190,5 +2190,4 @@ for i = 1, #c do
 	oe(c[i])
 end
 
-
---And also, I'm working on V3 but I'm not spending much time on it as I'm addicted to Fallout 2 again.
+-- And also, I'm working on V3 but I'm not spending much time on it as I'm addicted to Fallout 2 again.

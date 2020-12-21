@@ -4,7 +4,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Block,
 };
-use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -411,6 +411,16 @@ impl CodeFormatter {
     }
 }
 
+/// Continues mutating a Vec of Tokens until there is no more trailing whitespace present
+fn pop_until_no_whitespace<'ast>(trivia: &mut Vec<Token<'ast>>) {
+    if let Some(t) = trivia.pop() {
+        match t.token_kind() {
+            TokenKind::Whitespace => pop_until_no_whitespace(trivia), // Keep popping until no more whitespace
+            _ => trivia.push(t),                                      // Its not whitespace, so add it back and stop popping
+        }
+    }
+}
+
 impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.increment_indent_level();
@@ -420,5 +430,36 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.decrement_indent_level();
         node
+    }
+
+    // Remove any extra whitespace at the end of the file
+    fn visit_eof(&mut self, node: TokenReference<'ast>) -> TokenReference<'ast> {
+        // Need to preserve any comments in leading_trivia if present
+        // The indent level will be 0 at this point, as we have finished the whole file, so we need to one-index it again
+        self.indent_level += 1;
+        let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
+            node.leading_trivia().collect(),
+            FormatTokenType::LeadingTrivia,
+        );
+
+        let only_whitespace = formatted_leading_trivia
+            .iter()
+            .all(|x| x.token_kind() == TokenKind::Whitespace);
+        if only_whitespace {
+            // Remove all the whitespace, and return an empty EOF
+            TokenReference::new(Vec::new(), Token::new(TokenType::Eof), Vec::new())
+        } else {
+            // We have some comments in here, so we need to remove any trailing whitespace then add a single new line
+            pop_until_no_whitespace(&mut formatted_leading_trivia);
+            formatted_leading_trivia.push(Token::new(TokenType::Whitespace {
+                characters: Cow::Owned(get_line_ending_character(&self.config.line_endings)),
+            }));
+
+            TokenReference::new(
+                formatted_leading_trivia,
+                Token::new(TokenType::Eof),
+                Vec::new(),
+            )
+        }
     }
 }
