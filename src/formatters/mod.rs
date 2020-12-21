@@ -416,7 +416,7 @@ fn pop_until_no_whitespace<'ast>(trivia: &mut Vec<Token<'ast>>) {
     if let Some(t) = trivia.pop() {
         match t.token_kind() {
             TokenKind::Whitespace => pop_until_no_whitespace(trivia), // Keep popping until no more whitespace
-            _ => trivia.push(t),                                      // Its not whitespace, so add it back and stop popping
+            _ => trivia.push(t), // Its not whitespace, so add it back and stop popping
         }
     }
 }

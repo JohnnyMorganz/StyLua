@@ -870,18 +870,24 @@ pub fn value_add_trailing_trivia<'ast>(
         Value::FunctionCall(function_call) => Value::FunctionCall(
             function_call_add_trailing_trivia(function_call, trailing_trivia),
         ),
-        Value::Number(token_reference) => Value::Number(Cow::Owned(
-            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
-        )),
+        Value::Number(token_reference) => Value::Number(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            None,
+            Some(trailing_trivia),
+        ))),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
         }
-        Value::String(token_reference) => Value::String(Cow::Owned(
-            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
-        )),
-        Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(
-            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
-        )),
+        Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            None,
+            Some(trailing_trivia),
+        ))),
+        Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(token_reference_add_trivia(
+            token_reference.into_owned(),
+            None,
+            Some(trailing_trivia),
+        ))),
         Value::TableConstructor(table_constructor) => Value::TableConstructor(
             table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia)),
         ),
