@@ -1,0 +1,26 @@
+name: Test StyLua
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Test (default)
+      run: cargo test
+
+    - name: Test (Luau)
+      run: cargo test --features luau
+
+    - name: Clippy
+      run: |
+        cargo clippy
+    - name: Rustfmt
+      run: |
+        cargo fmt -- --check
