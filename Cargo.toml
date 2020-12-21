@@ -1,11 +1,13 @@
 [package]
 name = "stylua"
-version = "0.1.0"
+version = "0.1.0-alpha"
 authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
 repository = "https://github.com/johnnymorganz/stylua"
 readme = "README.md"
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["cli", "utility", "lua", "lua51", "formatter"]
 edition = "2018"
 
 [lib]
