@@ -83,7 +83,20 @@ pub fn format_function_args<'ast>(
                 start_parens.end_position().bytes(),
                 end_parens.start_position().bytes(),
             );
-            let is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+            let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+            let mut current_arguments = arguments.iter().peekable();
+
+            // If we only have one argument, and it is a table constructor or a function, then we will not make it multi line (as they will be pushed onto new lines)
+            if arguments.len() == 1 {
+                let argument = current_arguments.peek().unwrap();
+                if let Expression::Value { value, .. } = argument {
+                    match **value {
+                        Value::Function(_) => is_multiline = false,
+                        Value::TableConstructor(_) => is_multiline = false,
+                        _ => (),
+                    }
+                }
+            }
 
             if is_multiline {
                 // TODO: This is similar to multiline in TableConstructor, can we resolve?
@@ -117,7 +130,6 @@ pub fn format_function_args<'ast>(
                 );
 
                 let mut formatted_arguments = Punctuated::new();
-                let mut current_arguments = arguments.iter().peekable();
 
                 code_formatter.add_indent_range(function_call_range);
 

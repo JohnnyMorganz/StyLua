@@ -151,14 +151,12 @@ local function makeErrorHandler(traceback)
 			return err
 		end
 
-		return Error.new(
-			{
-				error = err,
-				kind = Error.Kind.ExecutionError,
-				trace = debug.traceback(tostring(err), 2),
-				context = "Promise created at:\n\n" .. traceback,
-			}
-		)
+		return Error.new({
+			error = err,
+			kind = Error.Kind.ExecutionError,
+			trace = debug.traceback(tostring(err), 2),
+			context = "Promise created at:\n\n" .. traceback,
+		})
 	end
 end
 
@@ -280,15 +278,13 @@ function Promise._new(traceback, callback, parent)
 		return self._status == Promise.Status.Cancelled
 	end
 
-	coroutine.wrap(
-		function()
-			local ok, _, result = runExecutor(self._source, callback, resolve, reject, onCancel)
+	coroutine.wrap(function()
+		local ok, _, result = runExecutor(self._source, callback, resolve, reject, onCancel)
 
-			if not ok then
-				reject(result[1])
-			end
+		if not ok then
+			reject(result[1])
 		end
-	)()
+	end)()
 
 	return self
 end
@@ -311,16 +307,14 @@ function Promise.defer(callback)
 		traceback,
 		function(resolve, reject, onCancel)
 			local connection
-			connection = Promise._timeEvent:Connect(
-				function()
-					connection:Disconnect()
-					local ok, _, result = runExecutor(traceback, callback, resolve, reject, onCancel)
+			connection = Promise._timeEvent:Connect(function()
+				connection:Disconnect()
+				local ok, _, result = runExecutor(traceback, callback, resolve, reject, onCancel)
 
-					if not ok then
-						reject(result[1])
-					end
+				if not ok then
+					reject(result[1])
 				end
-			)
+			end)
 		end
 	)
 
@@ -485,11 +479,9 @@ function Promise.fold(list, callback, initialValue)
 	return Promise.each(
 		list,
 		function(resolvedElement, i)
-			accumulator = accumulator:andThen(
-				function(previousValueResolved)
-					return callback(previousValueResolved, resolvedElement, i)
-				end
-			)
+			accumulator = accumulator:andThen(function(previousValueResolved)
+				return callback(previousValueResolved, resolvedElement, i)
+			end)
 		end
 	):andThenReturn(accumulator)
 end
@@ -546,13 +538,11 @@ function Promise.allSettled(promises)
 				end
 			end
 
-			onCancel(
-				function()
-					for _, promise in ipairs(newPromises) do
-						promise:cancel()
-					end
+			onCancel(function()
+				for _, promise in ipairs(newPromises) do
+					promise:cancel()
 				end
-			)
+			end)
 
 			-- We can assume the values inside `promises` are all promises since we
 			-- checked above.
@@ -659,17 +649,15 @@ function Promise.each(list, predicate)
 					if value:getStatus() == Promise.Status.Cancelled then
 						cancel()
 						return reject(
-							Error.new(
-								{
-									error = "Promise is cancelled",
-									kind = Error.Kind.AlreadyCancelled,
-									context = string.format(
-										"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
-										index,
-										value._source
-									),
-								}
-							)
+							Error.new({
+								error = "Promise is cancelled",
+								kind = Error.Kind.AlreadyCancelled,
+								context = string.format(
+									"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
+									index,
+									value._source
+								),
+							})
 						)
 					elseif value:getStatus() == Promise.Status.Rejected then
 						cancel()
@@ -787,25 +775,23 @@ do
 
 				if connection == nil then -- first is nil when connection is nil
 					first = node
-					connection = Promise._timeEvent:Connect(
-						function()
-							local threadStart = Promise._getTime()
+					connection = Promise._timeEvent:Connect(function()
+						local threadStart = Promise._getTime()
 
-							while first ~= nil and first.endTime < threadStart do
-								local current = first
-								first = current.next
+						while first ~= nil and first.endTime < threadStart do
+							local current = first
+							first = current.next
 
-								if first == nil then
-									connection:Disconnect()
-									connection = nil
-								else
-									first.previous = nil
-								end
-
-								current.resolve(Promise._getTime() - current.startTime)
+							if first == nil then
+								connection:Disconnect()
+								connection = nil
+							else
+								first.previous = nil
 							end
+
+							current.resolve(Promise._getTime() - current.startTime)
 						end
-					)
+					end)
 				else -- first is non-nil
 					if first.endTime < endTime then -- if `node` should be placed after `first`
 						-- we will insert `node` between `current` and `next`
@@ -834,30 +820,28 @@ do
 					end
 				end
 
-				onCancel(
-					function()
-						-- remove node from queue
-						local next = node.next
+				onCancel(function()
+					-- remove node from queue
+					local next = node.next
 
-						if first == node then
-							if next == nil then -- if `node` is the first and last
-								connection:Disconnect()
-								connection = nil
-							else -- if `node` is `first` and not the last
-								next.previous = nil
-							end
-							first = next
-						else
-							local previous = node.previous
-							-- since `node` is not `first`, then we know `previous` is non-nil
-							previous.next = next
+					if first == node then
+						if next == nil then -- if `node` is the first and last
+							connection:Disconnect()
+							connection = nil
+						else -- if `node` is `first` and not the last
+							next.previous = nil
+						end
+						first = next
+					else
+						local previous = node.previous
+						-- since `node` is not `first`, then we know `previous` is non-nil
+						previous.next = next
 
-							if next ~= nil then
-								next.previous = previous
-							end
+						if next ~= nil then
+							next.previous = previous
 						end
 					end
-				)
+				end)
 			end
 		)
 	end
@@ -869,28 +853,22 @@ end
 function Promise.prototype:timeout(seconds, rejectionValue)
 	local traceback = debug.traceback(nil, 2)
 
-	return Promise.race(
-		{
-			Promise.delay(seconds):andThen(
-				function()
-					return Promise.reject(
-						rejectionValue == nil and Error.new(
-							{
-								kind = Error.Kind.TimedOut,
-								error = "Timed out",
-								context = string.format(
-									"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
-									seconds,
-									traceback
-								),
-							}
-						) or rejectionValue
-					)
-				end
-			),
-			self,
-		}
-	)
+	return Promise.race({
+		Promise.delay(seconds):andThen(function()
+			return Promise.reject(
+				rejectionValue == nil and Error.new({
+					kind = Error.Kind.TimedOut,
+					error = "Timed out",
+					context = string.format(
+						"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
+						seconds,
+						traceback
+					),
+				}) or rejectionValue
+			)
+		end),
+		self,
+	})
 end
 
 function Promise.prototype:getStatus()
@@ -936,13 +914,11 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 				-- We don't want to call the success handler or the failure handler,
 				-- we just reject this promise outright.
 				reject(
-					Error.new(
-						{
-							error = "Promise is cancelled",
-							kind = Error.Kind.AlreadyCancelled,
-							context = "Promise created at\n\n" .. traceback,
-						}
-					)
+					Error.new({
+						error = "Promise is cancelled",
+						kind = Error.Kind.AlreadyCancelled,
+						context = "Promise created at\n\n" .. traceback,
+					})
 				)
 			end
 		end,
@@ -1293,27 +1269,23 @@ function Promise.prototype:_resolve(...)
 
 				-- Backwards compatibility < v2
 				if chainedPromise._error then
-					maybeRuntimeError = Error.new(
-						{
-							error = chainedPromise._error,
-							kind = Error.Kind.ExecutionError,
-							context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]",
-						}
-					)
+					maybeRuntimeError = Error.new({
+						error = chainedPromise._error,
+						kind = Error.Kind.ExecutionError,
+						context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]",
+					})
 				end
 
 				if Error.isKind(maybeRuntimeError, Error.Kind.ExecutionError) then
 					return self:_reject(
-						maybeRuntimeError:extend(
-							{
-								error = "This Promise was chained to a Promise that errored.",
-								trace = "",
-								context = string.format(
-									"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
-									self._source
-								),
-							}
-						)
+						maybeRuntimeError:extend({
+							error = "This Promise was chained to a Promise that errored.",
+							trace = "",
+							context = string.format(
+								"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
+								self._source
+							),
+						})
 					)
 				end
 
@@ -1365,26 +1337,24 @@ function Promise.prototype:_reject(...)
 
 		local err = tostring((...))
 
-		coroutine.wrap(
-			function()
-				Promise._timeEvent:Wait()
+		coroutine.wrap(function()
+			Promise._timeEvent:Wait()
 
-				-- Someone observed the error, hooray!
-				if not self._unhandledRejection then
-					return
-				end
-
-				-- Build a reasonable message
-				local message = string.format("Unhandled Promise rejection:\n\n%s\n\n%s", err, self._source)
-
-				if Promise.TEST then
-					-- Don't spam output when we're running tests.
-					return
-				end
-
-				warn(message)
+			-- Someone observed the error, hooray!
+			if not self._unhandledRejection then
+				return
 			end
-		)()
+
+			-- Build a reasonable message
+			local message = string.format("Unhandled Promise rejection:\n\n%s\n\n%s", err, self._source)
+
+			if Promise.TEST then
+				-- Don't spam output when we're running tests.
+				return
+			end
+
+			warn(message)
+		end)()
 	end
 
 	self:_finalize()
@@ -1426,13 +1396,11 @@ function Promise.prototype:now(rejectionValue)
 		end)
 	else
 		return Promise.reject(
-			rejectionValue == nil and Error.new(
-				{
-					kind = Error.Kind.NotResolvedInTime,
-					error = "This Promise was not resolved in time for :now()",
-					context = ":now() was called at:\n\n" .. traceback,
-				}
-			) or rejectionValue
+			rejectionValue == nil and Error.new({
+				kind = Error.Kind.NotResolvedInTime,
+				error = "This Promise was not resolved in time for :now()",
+				context = ":now() was called at:\n\n" .. traceback,
+			}) or rejectionValue
 		)
 	end
 end
@@ -1446,15 +1414,13 @@ function Promise.retry(callback, times, ...)
 
 	local args, length = { ... }, select("#", ...)
 
-	return Promise.resolve(callback(...)):catch(
-		function(...)
-			if times > 0 then
-				return Promise.retry(callback, times - 1, unpack(args, 1, length))
-			else
-				return Promise.reject(...)
-			end
+	return Promise.resolve(callback(...)):catch(function(...)
+		if times > 0 then
+			return Promise.retry(callback, times - 1, unpack(args, 1, length))
+		else
+			return Promise.reject(...)
 		end
-	)
+	end)
 end
 
 --[[
@@ -1480,23 +1446,21 @@ function Promise.fromEvent(event, predicate)
 			-- Connect returns, connection will still be nil. This happens with events that queue up
 			-- events when there's nothing connected, such as RemoteEvents
 
-			connection = event:Connect(
-				function(...)
-					local callbackValue = predicate(...)
+			connection = event:Connect(function(...)
+				local callbackValue = predicate(...)
 
-					if callbackValue == true then
-						resolve(...)
+				if callbackValue == true then
+					resolve(...)
 
-						if connection then
-							disconnect()
-						else
-							shouldDisconnect = true
-						end
-					elseif type(callbackValue) ~= "boolean" then
-						error("Promise.fromEvent predicate should always return a boolean")
+					if connection then
+						disconnect()
+					else
+						shouldDisconnect = true
 					end
+				elseif type(callbackValue) ~= "boolean" then
+					error("Promise.fromEvent predicate should always return a boolean")
 				end
-			)
+			end)
 
 			if shouldDisconnect and connection then
 				return disconnect()
