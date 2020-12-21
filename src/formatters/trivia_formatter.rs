@@ -10,7 +10,7 @@ use full_moon::ast::{
     FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction, MethodCall,
     NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
 };
-use full_moon::tokenizer::{Token, TokenKind, TokenReference};
+use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
 
 pub fn assignment_add_trivia<'ast>(
@@ -298,9 +298,10 @@ pub fn function_declaration_add_trivia<'ast>(
             ),
             None => {
                 // No return type, so add trivia to the parentheses instead
-                let parameters_parentheses = contained_span_add_trailing_trivia(
+                let parameters_parentheses = contained_span_add_trivia(
                     function_body.parameters_parentheses().to_owned(),
-                    trailing_trivia.to_owned(),
+                    None,
+                    Some(trailing_trivia.to_owned()),
                 );
                 (parameters_parentheses, None)
             }
@@ -313,9 +314,10 @@ pub fn function_declaration_add_trivia<'ast>(
 
     #[cfg(not(feature = "luau"))]
     {
-        let parameters_parentheses = contained_span_add_trailing_trivia(
+        let parameters_parentheses = contained_span_add_trivia(
             function_body.parameters_parentheses().to_owned(),
-            trailing_trivia.to_owned(),
+            None,
+            Some(trailing_trivia.to_owned()),
         );
         function_body = function_body.with_parameters_parentheses(parameters_parentheses);
     };
@@ -356,9 +358,10 @@ pub fn local_function_add_trivia<'ast>(
             ),
             None => {
                 // No return type, so add trivia to the parentheses instead
-                let parameters_parentheses = contained_span_add_trailing_trivia(
+                let parameters_parentheses = contained_span_add_trivia(
                     function_body.parameters_parentheses().to_owned(),
-                    trailing_trivia.to_owned(),
+                    None,
+                    Some(trailing_trivia.to_owned()),
                 );
                 (parameters_parentheses, None)
             }
@@ -371,9 +374,10 @@ pub fn local_function_add_trivia<'ast>(
 
     #[cfg(not(feature = "luau"))]
     {
-        let parameters_parentheses = contained_span_add_trailing_trivia(
+        let parameters_parentheses = contained_span_add_trivia(
             function_body.parameters_parentheses().to_owned(),
-            trailing_trivia.to_owned(),
+            None,
+            Some(trailing_trivia.to_owned()),
         );
         function_body = function_body.with_parameters_parentheses(parameters_parentheses);
     };
@@ -497,14 +501,6 @@ pub fn contained_span_add_trivia<'ast>(
     )
 }
 
-#[deprecated]
-pub fn contained_span_add_trailing_trivia<'ast>(
-    contained_span: ContainedSpan<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
-) -> ContainedSpan<'ast> {
-    contained_span_add_trivia(contained_span, None, Some(trailing_trivia))
-}
-
 /// Adds trailing trivia at the end of a Call node
 pub fn call_add_trailing_trivia<'ast>(
     call: Call<'ast>,
@@ -598,7 +594,7 @@ pub fn expression_add_trailing_trivia<'ast>(
             contained,
             expression,
         } => Expression::Parentheses {
-            contained: contained_span_add_trailing_trivia(contained, trailing_trivia),
+            contained: contained_span_add_trivia(contained, None, Some(trailing_trivia)),
             expression,
         },
 
@@ -620,31 +616,18 @@ pub fn function_args_add_trailing_trivia<'ast>(
             parentheses,
             arguments,
         } => FunctionArgs::Parentheses {
-            parentheses: contained_span_add_trailing_trivia(parentheses, trailing_trivia),
+            parentheses: contained_span_add_trivia(parentheses, None, Some(trailing_trivia)),
             arguments,
         },
 
         // Add for completeness
         FunctionArgs::String(token_reference) => FunctionArgs::String(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
         )),
         FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
-            table_constructor_add_trailing_trivia(table_constructor, trailing_trivia),
+            table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia)),
         ),
     }
-}
-
-/// Adds leading trivia to the start of a FunctionBody node
-pub fn function_body_add_leading_trivia<'ast>(
-    function_body: FunctionBody<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-) -> FunctionBody<'ast> {
-    let parameters_parentheses = contained_span_add_trivia(
-        function_body.parameters_parentheses().to_owned(),
-        Some(leading_trivia),
-        None,
-    );
-    function_body.with_parameters_parentheses(parameters_parentheses)
 }
 
 /// Adds trailing trivia at the end of a FunctionBody node
@@ -698,14 +681,15 @@ pub fn index_add_trailing_trivia<'ast>(
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: contained_span_add_trailing_trivia(brackets, trailing_trivia),
+            brackets: contained_span_add_trivia(brackets, None, Some(trailing_trivia)),
             expression,
         },
         Index::Dot { dot, name } => Index::Dot {
             dot,
-            name: Cow::Owned(token_reference_add_trailing_trivia(
+            name: Cow::Owned(token_reference_add_trivia(
                 name.into_owned(),
-                trailing_trivia,
+                None,
+                Some(trailing_trivia),
             )),
         },
     }
@@ -765,24 +749,6 @@ pub fn table_constructor_add_trivia<'ast>(
     table_constructor.with_braces(table_constructor_braces)
 }
 
-/// Adds leading trivia to the start of a TableConstructor node
-#[deprecated(note = "Please use table_constructor_add_trivia")]
-pub fn table_constructor_add_leading_trivia<'ast>(
-    table_constructor: TableConstructor<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-) -> TableConstructor<'ast> {
-    table_constructor_add_trivia(table_constructor, Some(leading_trivia), None)
-}
-
-/// Adds trailing trivia at the end of a TableConstructor node
-#[deprecated(note = "Please use table_constructor_add_trivia")]
-pub fn table_constructor_add_trailing_trivia<'ast>(
-    table_constructor: TableConstructor<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
-) -> TableConstructor<'ast> {
-    table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia))
-}
-
 /// Adds trivia to a TokenReferenece
 pub fn token_reference_add_trivia<'ast>(
     token_reference: TokenReference<'ast>,
@@ -824,14 +790,6 @@ pub fn token_reference_add_trivia<'ast>(
         token_reference.token().to_owned(),
         added_trailing_trivia,
     )
-}
-
-#[deprecated]
-pub fn token_reference_add_trailing_trivia<'ast>(
-    token_reference: TokenReference<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
-) -> TokenReference<'ast> {
-    token_reference_add_trivia(token_reference, None, Some(trailing_trivia))
 }
 
 /// Adds leading trivia to the start of an UnOp node
@@ -913,19 +871,19 @@ pub fn value_add_trailing_trivia<'ast>(
             function_call_add_trailing_trivia(function_call, trailing_trivia),
         ),
         Value::Number(token_reference) => Value::Number(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
         )),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
         }
         Value::String(token_reference) => Value::String(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
         )),
         Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(
-            token_reference_add_trailing_trivia(token_reference.into_owned(), trailing_trivia),
+            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
         )),
         Value::TableConstructor(table_constructor) => Value::TableConstructor(
-            table_constructor_add_trailing_trivia(table_constructor, trailing_trivia),
+            table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia)),
         ),
         Value::Var(var) => Value::Var(var_add_trailing_trivia(var, trailing_trivia)),
     }
@@ -952,9 +910,10 @@ pub fn var_add_trailing_trivia<'ast>(
     trailing_trivia: Vec<Token<'ast>>,
 ) -> Var<'ast> {
     match var {
-        Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trailing_trivia(
+        Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            trailing_trivia,
+            None,
+            Some(trailing_trivia),
         ))),
         Var::Expression(var_expression) => Var::Expression(var_expression_add_trailing_trivia(
             var_expression,
@@ -1110,8 +1069,6 @@ pub fn type_info_add_trailing_trivia<'ast>(
             let right = Box::new(type_info_add_trailing_trivia(*right, trailing_trivia));
             TypeInfo::Union { left, pipe, right }
         }
-
-        _ => type_info,
     }
 }
 

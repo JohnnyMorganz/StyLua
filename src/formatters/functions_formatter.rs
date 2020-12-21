@@ -435,7 +435,7 @@ fn format_parameters<'ast>(
     function_body: FunctionBody<'ast>,
 ) -> Punctuated<'ast, Parameter<'ast>> {
     let mut formatted_parameters = Punctuated::new();
-    let mut parameters_iterator = function_body.iter_parameters().peekable();
+    let mut parameters_iterator = function_body.parameters().iter().peekable();
     loop {
         match parameters_iterator.next() {
             Some(parameter) => {
