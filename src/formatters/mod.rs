@@ -99,7 +99,9 @@ impl CodeFormatter {
 
         match self.config.indent_type {
             IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
-            IndentType::Spaces => Token::new(TokenType::spaces(indent_level * self.config.indent_width)),
+            IndentType::Spaces => {
+                Token::new(TokenType::spaces(indent_level * self.config.indent_width))
+            }
         }
     }
 
@@ -131,8 +133,11 @@ impl CodeFormatter {
                 match line.split_whitespace().collect::<String>().is_empty() {
                     true => String::from(line.trim()), // If its just whitespace, return an empty line
                     false => {
-                        get_indent_string(&self.config.indent_type, &self.indent_level + 1, self.config.indent_width)
-                            + line.trim()
+                        get_indent_string(
+                            &self.config.indent_type,
+                            &self.indent_level + 1,
+                            self.config.indent_width,
+                        ) + line.trim()
                     } // If not, trim the line and indent it
                 }
             })

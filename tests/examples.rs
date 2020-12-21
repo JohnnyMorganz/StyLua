@@ -1,9 +1,9 @@
-use stylua_lib::{format_code, Config};
 use std::{
     fs::{self, File},
     io::Write,
     path::Path,
 };
+use stylua_lib::{format_code, Config};
 
 fn test_folder<P: AsRef<Path>>(folder: P) {
     for entry in fs::read_dir(folder).expect("couldn't read directory") {

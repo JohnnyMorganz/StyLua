@@ -1,8 +1,8 @@
 use anyhow::{format_err, Result};
-use stylua_lib::{format_code, Config};
 use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use stylua_lib::{format_code, Config};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
@@ -26,17 +26,29 @@ fn format_file(path: &PathBuf, config: Config) -> Result<()> {
             let contents = String::from_utf8_lossy(&contents);
             let formatted_contents = match format_code(&contents, config) {
                 Ok(formatted) => formatted,
-                Err(error) => { return Err(format_err!("error: could not format file {}: {}", path.display(), error)) }
+                Err(error) => {
+                    return Err(format_err!(
+                        "error: could not format file {}: {}",
+                        path.display(),
+                        error
+                    ))
+                }
             };
 
             match fs::write(path, formatted_contents) {
                 Ok(_) => Ok(()),
-                Err(error) => Err(format_err!("error: could not write to file {}: {}", path.display(), error))
+                Err(error) => Err(format_err!(
+                    "error: could not write to file {}: {}",
+                    path.display(),
+                    error
+                )),
             }
-        },
-        Err(error) => {
-            Err(format_err!("error: could not open file {}: {}", path.display(), error))
         }
+        Err(error) => Err(format_err!(
+            "error: could not open file {}: {}",
+            path.display(),
+            error
+        )),
     }
 }
 
@@ -50,24 +62,30 @@ fn format(opt: Opt) -> Result<i32> {
             Ok(contents) => match toml::from_str(&contents) {
                 Ok(config) => config,
                 Err(error) => {
-                    return Err(format_err!("error: config file not in correct format: {}", error));
+                    return Err(format_err!(
+                        "error: config file not in correct format: {}",
+                        error
+                    ));
                 }
             },
             Err(error) => {
                 return Err(format_err!("error: couldn't read config file: {}", error));
             }
-        }
+        },
 
         None => match fs::read_to_string("stylua.toml") {
             Ok(contents) => match toml::from_str(&contents) {
                 Ok(config) => config,
                 Err(error) => {
-                    return Err(format_err!("error: config file not in correct format: {}", error));
+                    return Err(format_err!(
+                        "error: config file not in correct format: {}",
+                        error
+                    ));
                 }
-            }
+            },
 
-            Err(_) => Config::default()
-        }
+            Err(_) => Config::default(),
+        },
     };
 
     let mut errors = vec![];
@@ -77,7 +95,7 @@ fn format(opt: Opt) -> Result<i32> {
             if file_path.is_file() {
                 match format_file(file_path, config) {
                     Ok(_) => continue,
-                    Err(error) => errors.push(error)
+                    Err(error) => errors.push(error),
                 }
             } else if file_path.is_dir() {
                 let glob_pattern = format!("{}/{}", file_path.to_string_lossy(), opt.pattern);
@@ -85,17 +103,21 @@ fn format(opt: Opt) -> Result<i32> {
                     Ok(entries) => {
                         for entry in entries {
                             match entry {
-                                Ok(path) => {
-                                    match format_file(&path, config) {
-                                        Ok(_) => continue,
-                                        Err(error) => errors.push(error)
-                                    }
+                                Ok(path) => match format_file(&path, config) {
+                                    Ok(_) => continue,
+                                    Err(error) => errors.push(error),
                                 },
-                                Err(error) => errors.push(format_err!("error: failed to read file {}", error))
+                                Err(error) => {
+                                    errors.push(format_err!("error: failed to read file {}", error))
+                                }
                             }
                         }
-                    },
-                    Err(error) => errors.push(format_err!("error: failed to read glob pattern {}: {}", glob_pattern, error))
+                    }
+                    Err(error) => errors.push(format_err!(
+                        "error: failed to read glob pattern {}: {}",
+                        glob_pattern,
+                        error
+                    )),
                 }
             } else {
                 errors.push(format_err!("error: unknown path {}", file_path.display()))
@@ -110,7 +132,7 @@ fn format(opt: Opt) -> Result<i32> {
         for error in errors.iter() {
             eprintln!("{}", error.to_string());
         }
-        return Ok(1)
+        return Ok(1);
     }
 
     Ok(0)
