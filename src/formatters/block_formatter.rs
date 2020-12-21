@@ -2,7 +2,7 @@
 use crate::formatters::luau_formatter;
 use crate::formatters::{
     assignment_formatter, expression_formatter, functions_formatter, trivia_formatter,
-    CodeFormatter,
+    CodeFormatter, Range,
 };
 use full_moon::ast::{
     punctuated::Pair, Block, Do, ElseIf, Expression, GenericFor, If, LastStmt, NumericFor, Prefix,
@@ -317,11 +317,11 @@ pub fn format_stmt<'ast>(code_formatter: &mut CodeFormatter, stmt: Stmt<'ast>) -
     }
 }
 
-pub fn get_token_range<'ast>(token: &Token<'ast>) -> (usize, usize) {
+pub fn get_token_range<'ast>(token: &Token<'ast>) -> Range {
     (token.start_position().bytes(), token.end_position().bytes())
 }
 
-pub fn get_range_in_expression<'ast>(expression: &Expression<'ast>) -> (usize, usize) {
+pub fn get_range_in_expression<'ast>(expression: &Expression<'ast>) -> Range {
     match expression {
         Expression::Parentheses { contained, .. } => get_token_range(contained.tokens().0),
         Expression::UnaryOperator { unop, .. } => match unop {
@@ -358,7 +358,7 @@ pub fn get_range_in_expression<'ast>(expression: &Expression<'ast>) -> (usize, u
     }
 }
 
-pub fn get_range_in_prefix<'ast>(prefix: &Prefix) -> (usize, usize) {
+pub fn get_range_in_prefix(prefix: &Prefix) -> Range {
     match prefix {
         Prefix::Name(token) => get_token_range(token.token()),
         Prefix::Expression(expression) => get_range_in_expression(expression),
@@ -367,7 +367,7 @@ pub fn get_range_in_prefix<'ast>(prefix: &Prefix) -> (usize, usize) {
 
 /// Returns an arbitrary token inside of the stmt, to see if it falls inside of an indent range.
 /// The token returned does not matter, as we will be using the position of it, and if this token falls within the range, then the whole statement must do
-fn get_range_in_stmt<'ast>(stmt: Stmt<'ast>) -> (usize, usize) {
+fn get_range_in_stmt(stmt: Stmt) -> Range {
     match stmt {
         Stmt::Assignment(assignment) => get_token_range(assignment.equal_token().token()),
         Stmt::Do(do_block) => get_token_range(do_block.do_token().token()),
@@ -545,7 +545,7 @@ pub fn format_last_stmt<'ast>(
     }
 }
 
-fn get_range_in_last_stmt<'ast>(last_stmt: &LastStmt<'ast>) -> (usize, usize) {
+fn get_range_in_last_stmt<'ast>(last_stmt: &LastStmt<'ast>) -> Range {
     match last_stmt {
         LastStmt::Break(token_ref) => get_token_range(token_ref.token()),
         LastStmt::Return(return_node) => get_token_range(return_node.token().token()),

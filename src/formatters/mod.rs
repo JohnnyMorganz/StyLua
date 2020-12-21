@@ -207,12 +207,9 @@ impl CodeFormatter {
                 let comment =
                     self.format_multi_line_comment_string(comment.to_owned().into_owned());
 
-                match format_type {
-                    FormatTokenType::LeadingTrivia => {
-                        // Add a new line once the comment is completed
-                        trailing_trivia = Some(vec![self.create_newline_trivia()]);
-                    }
-                    _ => (),
+                if let FormatTokenType::LeadingTrivia = format_type {
+                    // Add a new line once the comment is completed
+                    trailing_trivia = Some(vec![self.create_newline_trivia()]);
                 }
 
                 TokenType::MultiLineComment {
@@ -250,9 +247,9 @@ impl CodeFormatter {
                             // We have two counts of a new line, we will allow one to be kept
                             // This allows the user to define where they want to keep lines in between statements, whilst only allowing one empty line in between them
                             token_trivia.push(Token::new(TokenType::Whitespace {
-                                characters: Cow::Owned(String::from(get_line_ending_character(
+                                characters: Cow::Owned(get_line_ending_character(
                                     &self.config.line_endings,
-                                ))),
+                                )),
                             }));
                         }
                     }

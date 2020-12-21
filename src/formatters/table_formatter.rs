@@ -125,50 +125,44 @@ pub fn format_table_constructor<'ast>(
     }
 
     // TODO: Should we sort NameKey/ExpressionKey tables?
-    loop {
-        match current_fields.next() {
-            Some(field) => {
-                let formatted_field = format_field(
-                    code_formatter,
-                    field,
-                    if is_multiline {
-                        let range = match field {
-                            Field::ExpressionKey { brackets, .. } => {
-                                get_token_range(brackets.tokens().0.token())
-                            }
-                            Field::NameKey { key, .. } => get_token_range(key.token()),
-                            Field::NoKey(expr) => get_range_in_expression(expr),
-                        };
-                        let additional_indent_level =
-                            code_formatter.get_range_indent_increase(range);
-                        Some(vec![
-                            code_formatter.create_indent_trivia(additional_indent_level)
-                        ])
-                    } else {
-                        None
-                    },
-                );
-                let mut punctuation = None;
-
-                match is_multiline {
-                    true => {
-                        // Continue adding a comma and a new line for multiline tables
-                        let symbol = String::from(",")
-                            + &get_line_ending_character(&code_formatter.config.line_endings);
-                        punctuation = Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()));
+    while let Some(field) = current_fields.next() {
+        let formatted_field = format_field(
+            code_formatter,
+            field,
+            if is_multiline {
+                let range = match field {
+                    Field::ExpressionKey { brackets, .. } => {
+                        get_token_range(brackets.tokens().0.token())
                     }
-                    false => {
-                        if let Some(_) = current_fields.peek() {
-                            // Have more elements still to go
-                            punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
-                        };
-                    }
-                }
+                    Field::NameKey { key, .. } => get_token_range(key.token()),
+                    Field::NoKey(expr) => get_range_in_expression(expr),
+                };
+                let additional_indent_level = code_formatter.get_range_indent_increase(range);
+                Some(vec![
+                    code_formatter.create_indent_trivia(additional_indent_level)
+                ])
+            } else {
+                None
+            },
+        );
+        let mut punctuation = None;
 
-                fields.push(Pair::new(formatted_field, punctuation))
+        match is_multiline {
+            true => {
+                // Continue adding a comma and a new line for multiline tables
+                let symbol = String::from(",")
+                    + &get_line_ending_character(&code_formatter.config.line_endings);
+                punctuation = Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()));
             }
-            None => break,
+            false => {
+                if current_fields.peek().is_some() {
+                    // Have more elements still to go
+                    punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
+                };
+            }
         }
+
+        fields.push(Pair::new(formatted_field, punctuation))
     }
 
     TableConstructor::new()

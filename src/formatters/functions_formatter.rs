@@ -121,46 +121,37 @@ pub fn format_function_args<'ast>(
 
                 code_formatter.add_indent_range(function_call_range);
 
-                loop {
-                    match current_arguments.next() {
-                        Some(argument) => {
-                            let argument_range = block_formatter::get_range_in_expression(argument);
-                            let additional_indent_level =
-                                code_formatter.get_range_indent_increase(argument_range);
+                while let Some(argument) = current_arguments.next() {
+                    let argument_range = block_formatter::get_range_in_expression(argument);
+                    let additional_indent_level =
+                        code_formatter.get_range_indent_increase(argument_range);
 
-                            let formatted_argument =
-                                trivia_formatter::expression_add_leading_trivia(
-                                    expression_formatter::format_expression(
-                                        code_formatter,
-                                        argument.to_owned(),
-                                    ),
-                                    vec![code_formatter
-                                        .create_indent_trivia(additional_indent_level)],
-                                );
+                    let formatted_argument = trivia_formatter::expression_add_leading_trivia(
+                        expression_formatter::format_expression(
+                            code_formatter,
+                            argument.to_owned(),
+                        ),
+                        vec![code_formatter.create_indent_trivia(additional_indent_level)],
+                    );
 
-                            let punctuation = match current_arguments.peek() {
-                                Some(_) => {
-                                    let symbol = String::from(",")
-                                        + &get_line_ending_character(
-                                            &code_formatter.config.line_endings,
-                                        );
-                                    Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()))
-                                }
-                                None => Some(Cow::Owned(TokenReference::new(
-                                    vec![],
-                                    Token::new(TokenType::Whitespace {
-                                        characters: Cow::Owned(get_line_ending_character(
-                                            &code_formatter.config.line_endings,
-                                        )),
-                                    }),
-                                    vec![],
-                                ))),
-                            };
-
-                            formatted_arguments.push(Pair::new(formatted_argument, punctuation))
+                    let punctuation = match current_arguments.peek() {
+                        Some(_) => {
+                            let symbol = String::from(",")
+                                + &get_line_ending_character(&code_formatter.config.line_endings);
+                            Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()))
                         }
-                        None => break,
-                    }
+                        None => Some(Cow::Owned(TokenReference::new(
+                            vec![],
+                            Token::new(TokenType::Whitespace {
+                                characters: Cow::Owned(get_line_ending_character(
+                                    &code_formatter.config.line_endings,
+                                )),
+                            }),
+                            vec![],
+                        ))),
+                    };
+
+                    formatted_arguments.push(Pair::new(formatted_argument, punctuation))
                 }
 
                 FunctionArgs::Parentheses {
@@ -327,24 +318,16 @@ pub fn format_function_name<'ast>(
         Cow<'ast, TokenReference<'ast>>,
     )> = None;
 
-    match function_name.method_colon() {
-        Some(method_colon) => {
-            match function_name.method_name() {
-                Some(token_reference) => {
-                    formatted_method = Some((
-                        code_formatter.format_symbol(
-                            method_colon.to_owned(),
-                            TokenReference::symbol(":").unwrap(),
-                        ),
-                        Cow::Owned(
-                            code_formatter.format_plain_token_reference(token_reference.to_owned()),
-                        ),
-                    ));
-                }
-                None => (),
-            };
+    if let Some(method_colon) = function_name.method_colon() {
+        if let Some(token_reference) = function_name.method_name() {
+            formatted_method = Some((
+                code_formatter.format_symbol(
+                    method_colon.to_owned(),
+                    TokenReference::symbol(":").unwrap(),
+                ),
+                Cow::Owned(code_formatter.format_plain_token_reference(token_reference.to_owned())),
+            ));
         }
-        None => (),
     };
 
     function_name
@@ -436,20 +419,15 @@ fn format_parameters<'ast>(
 ) -> Punctuated<'ast, Parameter<'ast>> {
     let mut formatted_parameters = Punctuated::new();
     let mut parameters_iterator = function_body.parameters().iter().peekable();
-    loop {
-        match parameters_iterator.next() {
-            Some(parameter) => {
-                let formatted_parameter = format_parameter(code_formatter, parameter.to_owned());
-                let mut punctuation = None;
+    while let Some(parameter) = parameters_iterator.next() {
+        let formatted_parameter = format_parameter(code_formatter, parameter.to_owned());
+        let mut punctuation = None;
 
-                if let Some(_) = parameters_iterator.peek() {
-                    punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
-                }
-
-                formatted_parameters.push(Pair::new(formatted_parameter, punctuation))
-            }
-            None => break,
+        if parameters_iterator.peek().is_some() {
+            punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
         }
+
+        formatted_parameters.push(Pair::new(formatted_parameter, punctuation));
     }
     formatted_parameters
 }

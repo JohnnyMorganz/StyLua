@@ -128,7 +128,7 @@ fn format(opt: Opt) -> Result<i32> {
         }
     }
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         for error in errors.iter() {
             eprintln!("{}", error.to_string());
         }
