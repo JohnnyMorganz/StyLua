@@ -340,4 +340,3 @@ export type Event = ApiTypes.Event
 export type Callback = ApiTypes.Callback
 
 return API
-
