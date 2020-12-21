@@ -170,14 +170,17 @@ impl CodeFormatter {
                 literal,
                 multi_line,
                 quote_type: _,
-            } => TokenType::StringLiteral {
-                literal: literal.to_owned(),
-                multi_line: match multi_line {
-                    Some(size) => Some(*size),
-                    None => None,
-                },
-                quote_type: StringLiteralQuoteType::Double,
-            },
+            } => {
+                let literal = Cow::Owned(literal.to_owned().replace("\\'", "'"));
+                TokenType::StringLiteral {
+                    literal,
+                    multi_line: match multi_line {
+                        Some(size) => Some(*size),
+                        None => None,
+                    },
+                    quote_type: StringLiteralQuoteType::Double,
+                }
+            }
             TokenType::SingleLineComment { comment } => {
                 let comment =
                     self.format_single_line_comment_string(comment.to_owned().into_owned());
