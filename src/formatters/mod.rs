@@ -169,16 +169,23 @@ impl CodeFormatter {
             TokenType::StringLiteral {
                 literal,
                 multi_line,
-                quote_type: _,
+                quote_type,
             } => {
-                let literal = Cow::Owned(literal.to_owned().replace("\\'", "'"));
-                TokenType::StringLiteral {
-                    literal,
-                    multi_line: match multi_line {
-                        Some(size) => Some(*size),
-                        None => None,
-                    },
-                    quote_type: StringLiteralQuoteType::Double,
+                // If we have a brackets string, don't mess with it
+                if let StringLiteralQuoteType::Brackets = quote_type {
+                    TokenType::StringLiteral {
+                        literal: literal.to_owned(),
+                        multi_line: *multi_line,
+                        quote_type: StringLiteralQuoteType::Brackets,
+                    }
+                } else {
+                    let literal =
+                        Cow::Owned(literal.to_owned().replace("\\'", "'").replace("\"", "\\\""));
+                    TokenType::StringLiteral {
+                        literal,
+                        multi_line: None,
+                        quote_type: StringLiteralQuoteType::Double,
+                    }
                 }
             }
             TokenType::SingleLineComment { comment } => {
