@@ -15,6 +15,7 @@ pub mod expression_formatter;
 pub mod functions_formatter;
 #[cfg(feature = "luau")]
 pub mod luau_formatter;
+pub mod stmt_formatter;
 pub mod table_formatter;
 pub mod trivia_formatter;
 
@@ -23,8 +24,10 @@ pub type Range = (usize, usize);
 
 #[derive(Default)]
 pub struct CodeFormatter {
-    indent_level: usize,
+    /// The configuration passed to the formatter
     config: Config,
+    /// The current indent level
+    indent_level: usize,
     /// A link of specific ranges to indent increases. The indent increases are added ontop of indent_level
     indent_ranges: HashSet<Range>,
 }
@@ -43,6 +46,7 @@ fn get_indent_string(indent_type: &IndentType, indent_level: usize, indent_width
     }
 }
 
+/// Returns the relevant line ending string from the [`LineEndings`] enum
 fn get_line_ending_character(line_endings: &LineEndings) -> String {
     match line_endings {
         LineEndings::Unix => String::from("\n"),
@@ -448,7 +452,7 @@ fn pop_until_no_whitespace<'ast>(trivia: &mut Vec<Token<'ast>>) {
 impl<'ast> VisitorMut<'ast> for CodeFormatter {
     fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
         self.increment_indent_level();
-        block_formatter::format_block(self, node)
+        self.format_block(node)
     }
 
     fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {

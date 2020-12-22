@@ -4,242 +4,202 @@ use full_moon::ast::{
 use full_moon::tokenizer::TokenReference;
 use std::boxed::Box;
 
-#[cfg(feature = "luau")]
-use crate::formatters::luau_formatter;
-use crate::formatters::{functions_formatter, table_formatter, CodeFormatter};
+use crate::formatters::CodeFormatter;
 
-pub fn format_binop<'ast>(code_formatter: &CodeFormatter, binop: BinOp<'ast>) -> BinOp<'ast> {
-    match binop {
-        BinOp::And(token) => BinOp::And(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" and ").unwrap()),
-        ),
-        BinOp::Caret(token) => BinOp::Caret(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" ^ ").unwrap()),
-        ),
-        BinOp::GreaterThan(token) => BinOp::GreaterThan(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" > ").unwrap()),
-        ),
-        BinOp::GreaterThanEqual(token) => BinOp::GreaterThanEqual(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" >= ").unwrap()),
-        ),
-        BinOp::LessThan(token) => BinOp::LessThan(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" < ").unwrap()),
-        ),
-        BinOp::LessThanEqual(token) => BinOp::LessThanEqual(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" <= ").unwrap()),
-        ),
-        BinOp::Minus(token) => BinOp::Minus(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" - ").unwrap()),
-        ),
-        BinOp::Or(token) => BinOp::Or(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" or ").unwrap()),
-        ),
-        BinOp::Percent(token) => BinOp::Percent(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" % ").unwrap()),
-        ),
-        BinOp::Plus(token) => BinOp::Plus(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" + ").unwrap()),
-        ),
-        BinOp::Slash(token) => BinOp::Slash(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" / ").unwrap()),
-        ),
-        BinOp::Star(token) => BinOp::Star(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" * ").unwrap()),
-        ),
-        BinOp::TildeEqual(token) => BinOp::TildeEqual(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" ~= ").unwrap()),
-        ),
-        BinOp::TwoDots(token) => BinOp::TwoDots(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" .. ").unwrap()),
-        ),
-        BinOp::TwoEqual(token) => BinOp::TwoEqual(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol(" == ").unwrap()),
-        ),
+impl CodeFormatter {
+    pub fn format_binop<'ast>(&self, binop: BinOp<'ast>) -> BinOp<'ast> {
+        match binop {
+            BinOp::And(token) => BinOp::And(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" and ").unwrap()),
+            ),
+            BinOp::Caret(token) => BinOp::Caret(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" ^ ").unwrap()),
+            ),
+            BinOp::GreaterThan(token) => BinOp::GreaterThan(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" > ").unwrap()),
+            ),
+            BinOp::GreaterThanEqual(token) => BinOp::GreaterThanEqual(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" >= ").unwrap()),
+            ),
+            BinOp::LessThan(token) => BinOp::LessThan(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" < ").unwrap()),
+            ),
+            BinOp::LessThanEqual(token) => BinOp::LessThanEqual(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" <= ").unwrap()),
+            ),
+            BinOp::Minus(token) => BinOp::Minus(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" - ").unwrap()),
+            ),
+            BinOp::Or(token) => BinOp::Or(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" or ").unwrap()),
+            ),
+            BinOp::Percent(token) => BinOp::Percent(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" % ").unwrap()),
+            ),
+            BinOp::Plus(token) => BinOp::Plus(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" + ").unwrap()),
+            ),
+            BinOp::Slash(token) => BinOp::Slash(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" / ").unwrap()),
+            ),
+            BinOp::Star(token) => BinOp::Star(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" * ").unwrap()),
+            ),
+            BinOp::TildeEqual(token) => BinOp::TildeEqual(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" ~= ").unwrap()),
+            ),
+            BinOp::TwoDots(token) => BinOp::TwoDots(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" .. ").unwrap()),
+            ),
+            BinOp::TwoEqual(token) => BinOp::TwoEqual(
+                self.format_symbol(token.into_owned(), TokenReference::symbol(" == ").unwrap()),
+            ),
+        }
     }
-}
 
-pub fn format_bin_op_rhs<'ast>(
-    code_formatter: &mut CodeFormatter,
-    bin_op_rhs: BinOpRhs<'ast>,
-) -> BinOpRhs<'ast> {
-    BinOpRhs::new(
-        format_binop(code_formatter, bin_op_rhs.bin_op().to_owned()),
-        Box::new(format_expression(
-            code_formatter,
-            bin_op_rhs.rhs().to_owned(),
-        )),
-    )
-}
+    pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: BinOpRhs<'ast>) -> BinOpRhs<'ast> {
+        BinOpRhs::new(
+            self.format_binop(bin_op_rhs.bin_op().to_owned()),
+            Box::new(self.format_expression(bin_op_rhs.rhs().to_owned())),
+        )
+    }
 
-/// Formats an Expression node
-pub fn format_expression<'ast>(
-    code_formatter: &mut CodeFormatter,
-    expression: Expression<'ast>,
-) -> Expression<'ast> {
-    match expression {
-        Expression::Value {
-            value,
-            binop,
-            #[cfg(feature = "luau")]
-            as_assertion,
-        } => Expression::Value {
-            value: Box::new(format_value(code_formatter, *value)),
-            binop: match binop {
-                Some(value) => Some(format_bin_op_rhs(code_formatter, value)),
-                None => None,
+    /// Formats an Expression node
+    pub fn format_expression<'ast>(&mut self, expression: Expression<'ast>) -> Expression<'ast> {
+        match expression {
+            Expression::Value {
+                value,
+                binop,
+                #[cfg(feature = "luau")]
+                as_assertion,
+            } => Expression::Value {
+                value: Box::new(self.format_value(*value)),
+                binop: match binop {
+                    Some(value) => Some(self.format_bin_op_rhs(value)),
+                    None => None,
+                },
+                #[cfg(feature = "luau")]
+                as_assertion: match as_assertion {
+                    Some(assertion) => Some(self.format_as_assertion(assertion)),
+                    None => None,
+                },
             },
-            #[cfg(feature = "luau")]
-            as_assertion: match as_assertion {
-                Some(assertion) => Some(luau_formatter::format_as_assertion(
-                    code_formatter,
-                    assertion,
-                )),
-                None => None,
+            Expression::Parentheses {
+                contained,
+                expression,
+            } => Expression::Parentheses {
+                contained: self.format_contained_span(contained),
+                expression: Box::new(self.format_expression(*expression)),
             },
-        },
-        Expression::Parentheses {
-            contained,
-            expression,
-        } => Expression::Parentheses {
-            contained: code_formatter.format_contained_span(contained),
-            expression: Box::new(format_expression(code_formatter, *expression)),
-        },
-        Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
-            unop: format_unop(code_formatter, unop),
-            expression: Box::new(format_expression(code_formatter, *expression)),
-        },
-    }
-}
-
-/// Formats an Index Node
-pub fn format_index<'ast>(code_formatter: &mut CodeFormatter, index: Index<'ast>) -> Index<'ast> {
-    match index {
-        Index::Brackets {
-            brackets,
-            expression,
-        } => Index::Brackets {
-            brackets: code_formatter.format_contained_span(brackets),
-            expression: format_expression(code_formatter, expression),
-        },
-
-        Index::Dot { dot, name } => Index::Dot {
-            dot: code_formatter.format_token_reference(dot),
-            name: code_formatter.format_token_reference(name),
-        },
-    }
-}
-
-/// Formats a Prefix Node
-pub fn format_prefix<'ast>(
-    code_formatter: &mut CodeFormatter,
-    prefix: Prefix<'ast>,
-) -> Prefix<'ast> {
-    match prefix {
-        Prefix::Expression(expression) => {
-            Prefix::Expression(format_expression(code_formatter, expression))
-        }
-        Prefix::Name(token_reference) => {
-            Prefix::Name(code_formatter.format_token_reference(token_reference))
+            Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
+                unop: self.format_unop(unop),
+                expression: Box::new(self.format_expression(*expression)),
+            },
         }
     }
-}
 
-/// Formats a Suffix Node
-pub fn format_suffix<'ast>(
-    code_formatter: &mut CodeFormatter,
-    suffix: Suffix<'ast>,
-) -> Suffix<'ast> {
-    match suffix {
-        Suffix::Call(call) => Suffix::Call(functions_formatter::format_call(code_formatter, call)),
-        Suffix::Index(index) => Suffix::Index(format_index(code_formatter, index)),
-    }
-}
+    /// Formats an Index Node
+    pub fn format_index<'ast>(&mut self, index: Index<'ast>) -> Index<'ast> {
+        match index {
+            Index::Brackets {
+                brackets,
+                expression,
+            } => Index::Brackets {
+                brackets: self.format_contained_span(brackets),
+                expression: self.format_expression(expression),
+            },
 
-/// Formats a Value Node
-pub fn format_value<'ast>(code_formatter: &mut CodeFormatter, value: Value<'ast>) -> Value<'ast> {
-    match value {
-        Value::Function((token_reference, function_body)) => {
-            Value::Function(functions_formatter::format_anonymous_function(
-                code_formatter,
-                token_reference,
-                function_body,
-            ))
-        }
-        Value::FunctionCall(function_call) => Value::FunctionCall(
-            functions_formatter::format_function_call(code_formatter, function_call),
-        ),
-        Value::Number(token_reference) => {
-            Value::Number(code_formatter.format_token_reference(token_reference))
-        }
-        Value::ParseExpression(expression) => {
-            Value::ParseExpression(format_expression(code_formatter, expression))
-        }
-        Value::String(token_reference) => {
-            Value::String(code_formatter.format_token_reference(token_reference))
-        }
-        Value::Symbol(token_reference) => {
-            Value::Symbol(code_formatter.format_token_reference(token_reference))
-        }
-        Value::TableConstructor(table_constructor) => Value::TableConstructor(
-            table_formatter::format_table_constructor(code_formatter, table_constructor),
-        ),
-        Value::Var(var) => Value::Var(format_var(code_formatter, var)),
-    }
-}
-
-/// Formats a Var Node
-pub fn format_var<'ast>(code_formatter: &mut CodeFormatter, var: Var<'ast>) -> Var<'ast> {
-    match var {
-        Var::Name(token_reference) => {
-            Var::Name(code_formatter.format_token_reference(token_reference))
-        }
-        Var::Expression(var_expression) => {
-            Var::Expression(format_var_expression(code_formatter, var_expression))
+            Index::Dot { dot, name } => Index::Dot {
+                dot: self.format_token_reference(dot),
+                name: self.format_token_reference(name),
+            },
         }
     }
-}
 
-pub fn format_var_expression<'ast>(
-    code_formatter: &mut CodeFormatter,
-    var_expression: VarExpression<'ast>,
-) -> VarExpression<'ast> {
-    let formatted_prefix = format_prefix(code_formatter, var_expression.prefix().to_owned());
-    let formatted_suffixes = var_expression
-        .iter_suffixes()
-        .map(|x| format_suffix(code_formatter, x.to_owned()))
-        .collect();
-    var_expression
-        .with_prefix(formatted_prefix)
-        .with_suffixes(formatted_suffixes)
-}
+    /// Formats a Prefix Node
+    pub fn format_prefix<'ast>(&mut self, prefix: Prefix<'ast>) -> Prefix<'ast> {
+        match prefix {
+            Prefix::Expression(expression) => {
+                Prefix::Expression(self.format_expression(expression))
+            }
+            Prefix::Name(token_reference) => {
+                Prefix::Name(self.format_token_reference(token_reference))
+            }
+        }
+    }
 
-/// Formats an UnOp Node
-pub fn format_unop<'ast>(code_formatter: &CodeFormatter, unop: UnOp<'ast>) -> UnOp<'ast> {
-    match unop {
-        UnOp::Minus(token) => UnOp::Minus(
-            code_formatter.format_symbol(token.into_owned(), TokenReference::symbol("-").unwrap()),
-        ),
-        UnOp::Not(token) => UnOp::Not(
-            code_formatter
-                .format_symbol(token.into_owned(), TokenReference::symbol("not ").unwrap()),
-        ),
-        UnOp::Hash(token) => UnOp::Hash(
-            code_formatter.format_symbol(token.into_owned(), TokenReference::symbol("#").unwrap()),
-        ),
+    /// Formats a Suffix Node
+    pub fn format_suffix<'ast>(&mut self, suffix: Suffix<'ast>) -> Suffix<'ast> {
+        match suffix {
+            Suffix::Call(call) => Suffix::Call(self.format_call(call)),
+            Suffix::Index(index) => Suffix::Index(self.format_index(index)),
+        }
+    }
+
+    /// Formats a Value Node
+    pub fn format_value<'ast>(&mut self, value: Value<'ast>) -> Value<'ast> {
+        match value {
+            Value::Function((token_reference, function_body)) => {
+                Value::Function(self.format_anonymous_function(token_reference, function_body))
+            }
+            Value::FunctionCall(function_call) => {
+                Value::FunctionCall(self.format_function_call(function_call))
+            }
+            Value::Number(token_reference) => {
+                Value::Number(self.format_token_reference(token_reference))
+            }
+            Value::ParseExpression(expression) => {
+                Value::ParseExpression(self.format_expression(expression))
+            }
+            Value::String(token_reference) => {
+                Value::String(self.format_token_reference(token_reference))
+            }
+            Value::Symbol(token_reference) => {
+                Value::Symbol(self.format_token_reference(token_reference))
+            }
+            Value::TableConstructor(table_constructor) => {
+                Value::TableConstructor(self.format_table_constructor(table_constructor))
+            }
+            Value::Var(var) => Value::Var(self.format_var(var)),
+        }
+    }
+
+    /// Formats a Var Node
+    pub fn format_var<'ast>(&mut self, var: Var<'ast>) -> Var<'ast> {
+        match var {
+            Var::Name(token_reference) => Var::Name(self.format_token_reference(token_reference)),
+            Var::Expression(var_expression) => {
+                Var::Expression(self.format_var_expression(var_expression))
+            }
+        }
+    }
+
+    pub fn format_var_expression<'ast>(
+        &mut self,
+        var_expression: VarExpression<'ast>,
+    ) -> VarExpression<'ast> {
+        let formatted_prefix = self.format_prefix(var_expression.prefix().to_owned());
+        let formatted_suffixes = var_expression
+            .iter_suffixes()
+            .map(|x| self.format_suffix(x.to_owned()))
+            .collect();
+        var_expression
+            .with_prefix(formatted_prefix)
+            .with_suffixes(formatted_suffixes)
+    }
+
+    /// Formats an UnOp Node
+    pub fn format_unop<'ast>(&self, unop: UnOp<'ast>) -> UnOp<'ast> {
+        match unop {
+            UnOp::Minus(token) => UnOp::Minus(
+                self.format_symbol(token.into_owned(), TokenReference::symbol("-").unwrap()),
+            ),
+            UnOp::Not(token) => UnOp::Not(
+                self.format_symbol(token.into_owned(), TokenReference::symbol("not ").unwrap()),
+            ),
+            UnOp::Hash(token) => UnOp::Hash(
+                self.format_symbol(token.into_owned(), TokenReference::symbol("#").unwrap()),
+            ),
+        }
     }
 }

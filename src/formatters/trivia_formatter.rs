@@ -97,17 +97,13 @@ pub fn local_assignment_add_trivia<'ast>(
                 .collect();
 
             if let Some(type_specifier) = type_specifiers.pop() {
-                match type_specifier {
-                    Some(specifier) => {
-                        let specifier =
-                            type_specifier_add_trailing_trivia(specifier, trailing_trivia);
-                        type_specifiers.push(Some(specifier));
+                if let Some(specifier) = type_specifier {
+                    let specifier = type_specifier_add_trailing_trivia(specifier, trailing_trivia);
+                    type_specifiers.push(Some(specifier));
 
-                        return local_assignment
-                            .with_local_token(local_token)
-                            .with_type_specifiers(type_specifiers);
-                    }
-                    None => (),
+                    return local_assignment
+                        .with_local_token(local_token)
+                        .with_type_specifiers(type_specifiers);
                 }
             }
         }
