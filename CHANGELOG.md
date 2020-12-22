@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed a new line being added after the `until` token in a repeat block. The new line is now added at the end of the until expression.
+- Fixed comments not being preserved within multiline tables
 
 ## [0.1.0-alpha.2] - 2020-12-22
 ### Added

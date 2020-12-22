@@ -67,7 +67,11 @@ pub fn format_table_constructor<'ast>(
     table_constructor: TableConstructor<'ast>,
 ) -> TableConstructor<'ast> {
     let mut fields = Punctuated::new();
-    let mut current_fields = table_constructor.iter_fields().peekable();
+    let mut current_fields = table_constructor
+        .fields()
+        .to_owned()
+        .into_pairs()
+        .peekable();
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
     let braces_range = (
@@ -124,45 +128,61 @@ pub fn format_table_constructor<'ast>(
         code_formatter.add_indent_range(braces_range);
     }
 
-    // TODO: Should we sort NameKey/ExpressionKey tables?
-    while let Some(field) = current_fields.next() {
-        let formatted_field = format_field(
-            code_formatter,
-            field,
-            if is_multiline {
-                let range = match field {
+    while let Some(pair) = current_fields.next() {
+        let (field, punctuation) = pair.into_tuple();
+
+        let leading_trivia = match is_multiline {
+            true => {
+                let range = match field.to_owned() {
                     Field::ExpressionKey { brackets, .. } => {
                         get_token_range(brackets.tokens().0.token())
                     }
                     Field::NameKey { key, .. } => get_token_range(key.token()),
-                    Field::NoKey(expr) => get_range_in_expression(expr),
+                    Field::NoKey(expr) => get_range_in_expression(&expr),
                 };
                 let additional_indent_level = code_formatter.get_range_indent_increase(range);
                 Some(vec![
                     code_formatter.create_indent_trivia(additional_indent_level)
                 ])
-            } else {
-                None
-            },
-        );
-        let mut punctuation = None;
+            }
+            false => None,
+        };
+
+        let formatted_field = format_field(code_formatter, &field, leading_trivia);
+        let mut formatted_punctuation = None;
 
         match is_multiline {
             true => {
                 // Continue adding a comma and a new line for multiline tables
-                let symbol = String::from(",")
-                    + &get_line_ending_character(&code_formatter.config.line_endings);
-                punctuation = Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()));
+                let mut symbol = TokenReference::symbol(",").unwrap();
+                if let Some(punctuation) = punctuation {
+                    symbol = code_formatter
+                        .format_symbol(punctuation.into_owned(), symbol)
+                        .into_owned();
+                }
+                // Add newline trivia to the end of the symbol
+                let symbol = trivia_formatter::token_reference_add_trivia(
+                    symbol,
+                    None,
+                    Some(vec![code_formatter.create_newline_trivia()]),
+                );
+                formatted_punctuation = Some(Cow::Owned(symbol))
             }
             false => {
                 if current_fields.peek().is_some() {
                     // Have more elements still to go
-                    punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
+                    formatted_punctuation = match punctuation {
+                        Some(punctuation) => Some(code_formatter.format_symbol(
+                            punctuation.into_owned(),
+                            TokenReference::symbol(", ").unwrap(),
+                        )),
+                        None => Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
+                    }
                 };
             }
         }
 
-        fields.push(Pair::new(formatted_field, punctuation))
+        fields.push(Pair::new(formatted_field, formatted_punctuation))
     }
 
     TableConstructor::new()
