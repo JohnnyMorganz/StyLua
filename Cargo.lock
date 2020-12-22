@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "stylua"
-version = "0.1.0-alpha"
+version = "0.1.0-alpha.2"
 dependencies = [
  "anyhow",
  "full_moon",

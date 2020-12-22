@@ -14,7 +14,7 @@ Please note, currently by default, StyLua is built with Luau features enabled. I
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
 ```
-stylua = { source = "JohnnyMorganz/stylua", version = "0.1.0"}
+stylua = { source = "JohnnyMorganz/stylua", version = "0.1.0-alpha.2" }
 ```
 
 ### From Crates.io
