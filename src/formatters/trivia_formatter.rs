@@ -430,14 +430,11 @@ pub fn repeat_block_add_trivia<'ast>(
         Some(leading_trivia.to_owned()),
         Some(trailing_trivia.to_owned()),
     );
-    let until_token = token_reference_add_trivia(
-        repeat_block.until_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
-    );
+    let until_expression =
+        expression_add_trailing_trivia(repeat_block.until().to_owned(), trailing_trivia);
     repeat_block
         .with_repeat_token(Cow::Owned(repeat_token))
-        .with_until_token(Cow::Owned(until_token))
+        .with_until(until_expression)
 }
 
 pub fn while_block_add_trivia<'ast>(
