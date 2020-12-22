@@ -70,7 +70,7 @@ indent_type = "Tabs"
 ### `indent_width`
 
 The width of spaces a single indent level should be. This option is ignored if the `indent_type` is set to `Tabs`.
-Defaults to `2`
+Defaults to `4`
 
 ```
 indent_width = 2

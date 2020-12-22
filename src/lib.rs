@@ -42,7 +42,7 @@ impl Default for Config {
         Self {
             line_endings: LineEndings::Unix,
             indent_type: IndentType::Tabs,
-            indent_width: 2,
+            indent_width: 4,
         }
     }
 }
