@@ -64,18 +64,26 @@ impl CodeFormatter {
         }
     }
 
+    /// Increase the level of indention at the current position of the formatter
     pub fn increment_indent_level(&mut self) {
         self.indent_level += 1;
     }
 
+    /// Decrease the level of indentation at the current position of the formatter
     pub fn decrement_indent_level(&mut self) {
         self.indent_level -= 1;
     }
 
+    /// Adds a Position Range of locations where indents should be increased on top of the current indent level.
+    /// This is used mainly within tables, where the values may be an anonymous function but the indent level not being
+    /// high enough
     pub fn add_indent_range(&mut self, range: Range) {
         self.indent_ranges.insert(range);
     }
 
+    /// Determines the amount of increase in indentation for the current range
+    /// This is used in conjunction with `add_indent_range` to see if we need to increase the indentation at a
+    /// given location
     pub fn get_range_indent_increase(&self, range: Range) -> Option<usize> {
         // TODO: Do we need to pass a "Range" parameter here? Can it just be a single value?
         let indent_increase = self
@@ -119,57 +127,7 @@ impl CodeFormatter {
     fn format_single_line_comment_string(&self, comment: String) -> String {
         // Trim any trailing whitespace
         comment.trim_end().to_string()
-
-        // TODO: Do we want to touch comments? If not, then lets ditch this
-        // let mut formatted_comment = String::from(" "); // Add space before comment begins
-        // formatted_comment += comment;
-
-        // formatted_comment
     }
-
-    // fn format_multi_line_comment_string(&self, comment: String) -> String {
-    //     comment
-    //     // TODO: Do we want to touch comments? If not, lets ditch this
-    //     // comment
-    //     //     .lines()
-    //     //     .map(|line| {
-    //     //         // Check to see if the line is just whitespace
-    //     //         match line.split_whitespace().collect::<String>().is_empty() {
-    //     //             true => line.trim().to_string(), // If its just whitespace, return an empty line
-    //     //             false => line.trim_end().to_string() // If not, trim any trailing whitespace and indent it
-    //     //         }
-    //     //     })
-    //     //     .collect::<Vec<String>>()
-    //     //     .join(&get_line_ending_character(&self.config.line_endings))
-
-    //     // let comment = comment.trim();
-    //     // let mut formatted_comment = get_line_ending_character(&self.config.line_endings); // Put starting braces seperately on its own line
-
-    //     // // Split multiline comment into its individual lines
-    //     // // We want to take each line, trim any whitespace, and indent it one greater than the current indent level
-    //     // let comment = comment
-    //     //     .lines()
-    //     //     .map(|line| {
-    //     //         // Check to see if the line is just whitespace
-    //     //         match line.split_whitespace().collect::<String>().is_empty() {
-    //     //             true => String::from(line.trim()), // If its just whitespace, return an empty line
-    //     //             false => {
-    //     //                 get_indent_string(
-    //     //                     &self.config.indent_type,
-    //     //                     &self.indent_level + 1,
-    //     //                     self.config.indent_width,
-    //     //                 ) + line.trim()
-    //     //             } // If not, trim the line and indent it
-    //     //         }
-    //     //     })
-    //     //     .collect::<Vec<String>>()
-    //     //     .join(&get_line_ending_character(&self.config.line_endings));
-
-    //     // formatted_comment += &comment; // Add in the multiline comment
-    //     // formatted_comment += &get_line_ending_character(&self.config.line_endings); // Put closing braces on a new line
-
-    //     // formatted_comment
-    // }
 
     /// Formats a Token Node
     /// Also returns any extra leading or trailing trivia to add for the Token node
@@ -200,10 +158,27 @@ impl CodeFormatter {
                         quote_type: StringLiteralQuoteType::Brackets,
                     }
                 } else {
-                    let literal =
-                        Cow::Owned(literal.to_owned().replace("\\'", "'").replace("\"", "\\\""));
+                    lazy_static::lazy_static! {
+                        static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])"#).unwrap(); // Match any quote, both escaped or unescaped
+                    }
+                    let literal = RE
+                        .replace_all(literal, |caps: &regex::Captures| {
+                            let quote_type = match &caps[1] {
+                                "'" => StringLiteralQuoteType::Single,
+                                "\"" => StringLiteralQuoteType::Double,
+                                _ => panic!("unknown quote type"),
+                            };
+
+                            if let StringLiteralQuoteType::Single = quote_type {
+                                "'"
+                            } else {
+                                // Double quote, make sure to escape it
+                                "\\\""
+                            }
+                        })
+                        .into_owned();
                     TokenType::StringLiteral {
-                        literal,
+                        literal: Cow::Owned(literal),
                         multi_line: None,
                         quote_type: StringLiteralQuoteType::Double,
                     }
@@ -366,7 +341,6 @@ impl CodeFormatter {
         &mut self,
         old: Punctuated<'a, T>,
         value_formatter: &dyn Fn(&mut Self, T) -> T,
-        // wanted_trailing_trivia: Vec<Token<'a>>,
     ) -> Punctuated<'a, T> {
         let mut formatted: Punctuated<T> = Punctuated::new();
         for pair in old.into_pairs() {
