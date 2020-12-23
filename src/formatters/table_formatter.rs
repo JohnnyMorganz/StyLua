@@ -209,7 +209,7 @@ impl CodeFormatter {
                     key: self.format_expression(key.to_owned()),
                     equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
                     // We will remove all the trivia from this value, and place it after the comma
-                    value: trivia_formatter::expression_add_leading_trivia(
+                    value: trivia_formatter::expression_add_trailing_trivia(
                         self.format_expression(value.to_owned()),
                         FormatTriviaType::Replace(vec![]),
                     ),
@@ -224,7 +224,7 @@ impl CodeFormatter {
                         FormatTriviaType::NoChange,
                     )),
                     equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
-                    value: trivia_formatter::expression_add_leading_trivia(
+                    value: trivia_formatter::expression_add_trailing_trivia(
                         self.format_expression(value.to_owned()),
                         FormatTriviaType::Replace(vec![]),
                     ),
