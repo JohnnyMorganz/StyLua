@@ -24,21 +24,6 @@ pub enum FormatTriviaType<'ast> {
     NoChange,
 }
 
-                FormatTriviaType::Append(trailing_trivia.to_owned()),
-            ))),
-            None => None,
-        };
-
-        if_block
-            .with_if_token(Cow::Owned(if_token))
-            .with_condition(condition)
-            .with_then_token(Cow::Owned(then_token))
-            .with_else_if(else_if_block)
-            .with_else_token(else_token)
-            .with_end_token(Cow::Owned(end_token))
-    }
-}
-
 pub fn assignment_add_trivia<'ast>(
     assignment: Assignment<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
