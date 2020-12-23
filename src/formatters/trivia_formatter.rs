@@ -1199,7 +1199,10 @@ pub fn type_declaration_add_trivia<'ast>(
         // TODO: Cleanup - this is unnecessary
         type_definition = type_declaration.type_definition().to_owned()
     } else {
-        type_definition = type_info_add_trailing_trivia(type_declaration.type_definition().to_owned(), trailing_trivia)
+        type_definition = type_info_add_trailing_trivia(
+            type_declaration.type_definition().to_owned(),
+            trailing_trivia,
+        )
     }
 
     type_declaration
