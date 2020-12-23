@@ -1,5 +1,5 @@
 local x = {
-	foo, -- comment
-	bar, -- test
-	baz,
+	"foo", -- comment
+	"bar", -- test
+	"baz", -- test
 }
