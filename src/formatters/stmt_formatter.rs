@@ -1,29 +1,34 @@
-use crate::formatters::CodeFormatter;
+use crate::formatters::{
+    trivia_formatter::{self, FormatTriviaType},
+    CodeFormatter,
+};
 use full_moon::ast::{Do, ElseIf, GenericFor, If, NumericFor, Repeat, Stmt, While};
 use full_moon::tokenizer::TokenReference;
 use std::borrow::Cow;
 
+macro_rules! fmt_stmt {
+    ($fmter:expr, $value:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
+        match $value {
+            $(
+                $(#[$inner])*
+                Stmt::$operator(stmt) => Stmt::$operator($fmter.$output(stmt)),
+            )+
+        }
+    };
+}
+
 impl CodeFormatter {
     /// Format a Do node
     pub fn format_do_block<'ast>(&self, do_block: Do<'ast>) -> Do<'ast> {
-        let do_token = self.format_symbol(
-            do_block.do_token().to_owned(),
-            TokenReference::symbol("do").unwrap(),
-        );
-        let end_token = self.format_symbol(
-            do_block.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let do_token = crate::fmt_symbol!(self, do_block.do_token().to_owned(), "do");
+        let end_token = crate::fmt_symbol!(self, do_block.end_token().to_owned(), "end");
 
         do_block.with_do_token(do_token).with_end_token(end_token)
     }
 
     /// Format a GenericFor node
     pub fn format_generic_for<'ast>(&mut self, generic_for: GenericFor<'ast>) -> GenericFor<'ast> {
-        let for_token = self.format_symbol(
-            generic_for.for_token().to_owned(),
-            TokenReference::symbol("for ").unwrap(),
-        );
+        let for_token = crate::fmt_symbol!(self, generic_for.for_token().to_owned(), "for ");
         let formatted_names = self.format_punctuated(
             generic_for.names().to_owned(),
             &CodeFormatter::format_token_reference_mut,
@@ -41,22 +46,13 @@ impl CodeFormatter {
         #[cfg(feature = "luau")]
         let generic_for = generic_for.with_type_specifiers(type_specifiers);
 
-        let in_token = self.format_symbol(
-            generic_for.in_token().to_owned(),
-            TokenReference::symbol(" in ").unwrap(),
-        );
+        let in_token = crate::fmt_symbol!(self, generic_for.in_token().to_owned(), " in ");
         let formatted_expr_list = self.format_punctuated(
             generic_for.expr_list().to_owned(),
             &CodeFormatter::format_expression,
         );
-        let do_token = self.format_symbol(
-            generic_for.do_token().to_owned(),
-            TokenReference::symbol(" do").unwrap(),
-        );
-        let end_token = self.format_symbol(
-            generic_for.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let do_token = crate::fmt_symbol!(self, generic_for.do_token().to_owned(), " do");
+        let end_token = crate::fmt_symbol!(self, generic_for.end_token().to_owned(), "end");
 
         generic_for
             .with_for_token(for_token)
@@ -69,15 +65,11 @@ impl CodeFormatter {
 
     /// Formats an ElseIf node - This must always reside within format_if
     fn format_else_if<'ast>(&mut self, else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
-        let formatted_else_if_token = self.format_symbol(
-            else_if_node.else_if_token().to_owned(),
-            TokenReference::symbol("elseif ").unwrap(),
-        );
+        let formatted_else_if_token =
+            crate::fmt_symbol!(self, else_if_node.else_if_token().to_owned(), "elseif ");
         let formatted_condition = self.format_expression(else_if_node.condition().to_owned());
-        let formatted_then_token = self.format_symbol(
-            else_if_node.then_token().to_owned(),
-            TokenReference::symbol(" then").unwrap(),
-        );
+        let formatted_then_token =
+            crate::fmt_symbol!(self, else_if_node.then_token().to_owned(), " then");
 
         else_if_node
             .with_else_if_token(formatted_else_if_token)
@@ -87,19 +79,11 @@ impl CodeFormatter {
 
     /// Format an If node
     pub fn format_if<'ast>(&mut self, if_node: If<'ast>) -> If<'ast> {
-        let formatted_if_token = self.format_symbol(
-            if_node.if_token().to_owned(),
-            TokenReference::symbol("if ").unwrap(),
-        );
+        let formatted_if_token = crate::fmt_symbol!(self, if_node.if_token().to_owned(), "if ");
         let formatted_condition = self.format_expression(if_node.condition().to_owned());
-        let formatted_then_token = self.format_symbol(
-            if_node.then_token().to_owned(),
-            TokenReference::symbol(" then").unwrap(),
-        );
-        let formatted_end_token = self.format_symbol(
-            if_node.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let formatted_then_token =
+            crate::fmt_symbol!(self, if_node.then_token().to_owned(), " then");
+        let formatted_end_token = crate::fmt_symbol!(self, if_node.end_token().to_owned(), "end");
 
         let formatted_else_if = match if_node.else_if() {
             Some(else_if) => Some(
@@ -112,9 +96,7 @@ impl CodeFormatter {
         };
 
         let formatted_else_token = match if_node.else_token() {
-            Some(token) => {
-                Some(self.format_symbol(token.to_owned(), TokenReference::symbol("else").unwrap()))
-            }
+            Some(token) => Some(crate::fmt_symbol!(self, token.to_owned(), "else")),
             None => None,
         };
 
@@ -129,51 +111,38 @@ impl CodeFormatter {
 
     /// Format a NumericFor node
     pub fn format_numeric_for<'ast>(&mut self, numeric_for: NumericFor<'ast>) -> NumericFor<'ast> {
-        let for_token = self.format_symbol(
-            numeric_for.for_token().to_owned(),
-            TokenReference::symbol("for ").unwrap(),
-        );
+        let for_token = crate::fmt_symbol!(self, numeric_for.for_token().to_owned(), "for ");
         let formatted_index_variable =
             Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable().to_owned()));
+
         #[cfg(feature = "luau")]
         let type_specifier = match numeric_for.type_specifier() {
             Some(type_specifier) => Some(self.format_type_specifier(type_specifier.to_owned())),
             None => None,
         };
-
         #[cfg(feature = "luau")]
         let numeric_for = numeric_for.with_type_specifier(type_specifier);
 
-        let equal_token = self.format_symbol(
-            numeric_for.equal_token().to_owned(),
-            TokenReference::symbol(" = ").unwrap(),
-        );
+        let equal_token = crate::fmt_symbol!(self, numeric_for.equal_token().to_owned(), " = ");
         let formatted_start_expression = self.format_expression(numeric_for.start().to_owned());
-        let start_end_comma = self.format_symbol(
-            numeric_for.start_end_comma().to_owned(),
-            TokenReference::symbol(", ").unwrap(),
-        );
+        let start_end_comma =
+            crate::fmt_symbol!(self, numeric_for.start_end_comma().to_owned(), ", ");
         let formatted_end_expression = self.format_expression(numeric_for.end().to_owned());
 
         let (end_step_comma, formatted_step_expression) = match numeric_for.step() {
             Some(step) => (
-                Some(self.format_symbol(
+                Some(crate::fmt_symbol!(
+                    self,
                     numeric_for.end_step_comma().unwrap().to_owned(),
-                    TokenReference::symbol(", ").unwrap(),
+                    ", "
                 )),
                 Some(self.format_expression(step.to_owned())),
             ),
             None => (None, None),
         };
 
-        let do_token = self.format_symbol(
-            numeric_for.do_token().to_owned(),
-            TokenReference::symbol(" do").unwrap(),
-        );
-        let end_token = self.format_symbol(
-            numeric_for.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let do_token = crate::fmt_symbol!(self, numeric_for.do_token().to_owned(), " do");
+        let end_token = crate::fmt_symbol!(self, numeric_for.end_token().to_owned(), "end");
 
         numeric_for
             .with_for_token(for_token)
@@ -190,14 +159,9 @@ impl CodeFormatter {
 
     /// Format a Repeat node
     pub fn format_repeat_block<'ast>(&mut self, repeat_block: Repeat<'ast>) -> Repeat<'ast> {
-        let repeat_token = self.format_symbol(
-            repeat_block.repeat_token().to_owned(),
-            TokenReference::symbol("repeat").unwrap(),
-        );
-        let until_token = self.format_symbol(
-            repeat_block.until_token().to_owned(),
-            TokenReference::symbol("until ").unwrap(),
-        );
+        let repeat_token =
+            crate::fmt_symbol!(self, repeat_block.repeat_token().to_owned(), "repeat");
+        let until_token = crate::fmt_symbol!(self, repeat_block.until_token().to_owned(), "until ");
         let formatted_until = self.format_expression(repeat_block.until().to_owned());
 
         repeat_block
@@ -208,19 +172,10 @@ impl CodeFormatter {
 
     /// Format a While node
     pub fn format_while_block<'ast>(&mut self, while_block: While<'ast>) -> While<'ast> {
-        let while_token = self.format_symbol(
-            while_block.while_token().to_owned(),
-            TokenReference::symbol("while ").unwrap(),
-        );
+        let while_token = crate::fmt_symbol!(self, while_block.while_token().to_owned(), "while ");
         let formatted_condition = self.format_expression(while_block.condition().to_owned());
-        let do_token = self.format_symbol(
-            while_block.do_token().to_owned(),
-            TokenReference::symbol(" do").unwrap(),
-        );
-        let end_token = self.format_symbol(
-            while_block.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let do_token = crate::fmt_symbol!(self, while_block.do_token().to_owned(), " do");
+        let end_token = crate::fmt_symbol!(self, while_block.end_token().to_owned(), "end");
 
         while_block
             .with_while_token(while_token)
@@ -230,39 +185,131 @@ impl CodeFormatter {
     }
 
     pub fn format_stmt<'ast>(&mut self, stmt: Stmt<'ast>) -> Stmt<'ast> {
+        fmt_stmt!(self, stmt, {
+            Assignment = format_assignment,
+            Do = format_do_block,
+            FunctionCall = format_function_call,
+            FunctionDeclaration = format_function_declaration,
+            GenericFor = format_generic_for,
+            If = format_if,
+            LocalAssignment = format_local_assignment,
+            LocalFunction = format_local_function,
+            NumericFor = format_numeric_for,
+            Repeat = format_repeat_block,
+            While = format_while_block,
+            #[cfg(feature = "luau")] CompoundAssignment = format_compound_assignment,
+            #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
+            #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration,
+        })
+    }
+
+    pub fn stmt_add_trivia<'ast>(
+        &self,
+        stmt: Stmt<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> Stmt<'ast> {
+        let leading_trivia =
+            FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
+        let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
+
         match stmt {
-            Stmt::Assignment(assignment) => Stmt::Assignment(self.format_assignment(assignment)),
-            Stmt::Do(do_block) => Stmt::Do(self.format_do_block(do_block)),
+            Stmt::Assignment(assignment) => {
+                Stmt::Assignment(trivia_formatter::assignment_add_trivia(
+                    assignment,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
+            }
+            Stmt::Do(do_block) => Stmt::Do(trivia_formatter::do_block_add_trivia(
+                do_block,
+                leading_trivia,
+                trailing_trivia,
+            )),
             Stmt::FunctionCall(function_call) => {
-                Stmt::FunctionCall(self.format_function_call(function_call))
+                Stmt::FunctionCall(trivia_formatter::function_call_add_trivia(
+                    function_call,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
             Stmt::FunctionDeclaration(function_declaration) => {
-                Stmt::FunctionDeclaration(self.format_function_declaration(function_declaration))
+                Stmt::FunctionDeclaration(trivia_formatter::function_declaration_add_trivia(
+                    function_declaration,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
-            Stmt::GenericFor(generic_for) => Stmt::GenericFor(self.format_generic_for(generic_for)),
-            Stmt::If(if_node) => Stmt::If(self.format_if(if_node)),
+            Stmt::GenericFor(generic_for) => {
+                Stmt::GenericFor(trivia_formatter::generic_for_add_trivia(
+                    generic_for,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
+            }
+            Stmt::If(if_block) => Stmt::If(trivia_formatter::if_block_add_trivia(
+                if_block,
+                leading_trivia,
+                trailing_trivia,
+            )),
             Stmt::LocalAssignment(local_assignment) => {
-                Stmt::LocalAssignment(self.format_local_assignment(local_assignment))
+                Stmt::LocalAssignment(trivia_formatter::local_assignment_add_trivia(
+                    local_assignment,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
             Stmt::LocalFunction(local_function) => {
-                Stmt::LocalFunction(self.format_local_function(local_function))
+                Stmt::LocalFunction(trivia_formatter::local_function_add_trivia(
+                    local_function,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
-            Stmt::NumericFor(numeric_for) => Stmt::NumericFor(self.format_numeric_for(numeric_for)),
-            Stmt::Repeat(repeat) => Stmt::Repeat(self.format_repeat_block(repeat)),
-            Stmt::While(while_block) => Stmt::While(self.format_while_block(while_block)),
+            Stmt::NumericFor(numeric_for) => {
+                Stmt::NumericFor(trivia_formatter::numeric_for_add_trivia(
+                    numeric_for,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
+            }
+            Stmt::Repeat(repeat_block) => Stmt::Repeat(trivia_formatter::repeat_block_add_trivia(
+                repeat_block,
+                leading_trivia,
+                trailing_trivia,
+            )),
+            Stmt::While(while_block) => Stmt::While(trivia_formatter::while_block_add_trivia(
+                while_block,
+                leading_trivia,
+                trailing_trivia,
+            )),
+
             #[cfg(feature = "luau")]
             Stmt::CompoundAssignment(compound_assignment) => {
-                Stmt::CompoundAssignment(self.format_compound_assignment(compound_assignment))
+                Stmt::CompoundAssignment(trivia_formatter::compound_assignment_add_trivia(
+                    compound_assignment,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
+
             #[cfg(feature = "luau")]
             Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
                 Stmt::ExportedTypeDeclaration(
-                    self.format_exported_type_declaration(exported_type_declaration),
+                    trivia_formatter::exported_type_declaration_add_trivia(
+                        exported_type_declaration,
+                        leading_trivia,
+                        trailing_trivia,
+                    ),
                 )
             }
+
             #[cfg(feature = "luau")]
             Stmt::TypeDeclaration(type_declaration) => {
-                Stmt::TypeDeclaration(self.format_type_declaration(type_declaration))
+                Stmt::TypeDeclaration(trivia_formatter::type_declaration_add_trivia(
+                    type_declaration,
+                    leading_trivia,
+                    trailing_trivia,
+                ))
             }
         }
     }

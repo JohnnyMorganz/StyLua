@@ -11,6 +11,7 @@ use std::collections::HashSet;
 
 pub mod assignment_formatter;
 pub mod block_formatter;
+#[macro_use]
 pub mod expression_formatter;
 pub mod functions_formatter;
 #[cfg(feature = "luau")]
@@ -52,6 +53,13 @@ fn get_line_ending_character(line_endings: &LineEndings) -> String {
         LineEndings::Unix => String::from("\n"),
         LineEndings::Windows => String::from("\r\n"),
     }
+}
+
+#[macro_export]
+macro_rules! fmt_symbol {
+    ($fmter:expr, $token:expr, $x:expr) => {
+        $fmter.format_symbol($token, TokenReference::symbol($x).unwrap())
+    };
 }
 
 impl CodeFormatter {

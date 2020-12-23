@@ -23,11 +23,7 @@ impl CodeFormatter {
         &mut self,
         assignment: LocalAssignment<'ast>,
     ) -> LocalAssignment<'ast> {
-        let local_token = self.format_symbol(
-            assignment.local_token().to_owned(),
-            TokenReference::symbol("local ").unwrap(),
-        );
-
+        let local_token = crate::fmt_symbol!(self, assignment.local_token().to_owned(), "local ");
         let name_list = self.format_punctuated(
             assignment.name_list().to_owned(),
             &CodeFormatter::format_token_reference_mut,
@@ -52,10 +48,8 @@ impl CodeFormatter {
                 .with_equal_token(None)
                 .with_expr_list(Punctuated::new())
         } else {
-            let equal_token = self.format_symbol(
-                assignment.equal_token().unwrap().to_owned(),
-                TokenReference::symbol(" = ").unwrap(),
-            );
+            let equal_token =
+                crate::fmt_symbol!(self, assignment.equal_token().unwrap().to_owned(), " = ");
             let expr_list = self.format_punctuated(
                 assignment.expr_list().to_owned(),
                 &CodeFormatter::format_expression,

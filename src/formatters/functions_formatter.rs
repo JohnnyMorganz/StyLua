@@ -25,11 +25,7 @@ impl CodeFormatter {
         let function_token_range = CodeFormatter::get_token_range(function_token.token());
         let additional_indent_level = self.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
 
-        let function_token = self.format_symbol(
-            function_token.into_owned(),
-            TokenReference::symbol("function").unwrap(),
-        );
-
+        let function_token = crate::fmt_symbol!(self, function_token.into_owned(), "function");
         let function_body = self.format_function_body(function_body);
 
         // Need to insert any additional trivia, as it isn't being inserted elsewhere
@@ -314,10 +310,7 @@ impl CodeFormatter {
         if let Some(method_colon) = function_name.method_colon() {
             if let Some(token_reference) = function_name.method_name() {
                 formatted_method = Some((
-                    self.format_symbol(
-                        method_colon.to_owned(),
-                        TokenReference::symbol(":").unwrap(),
-                    ),
+                    crate::fmt_symbol!(self, method_colon.to_owned(), ":"),
                     Cow::Owned(self.format_plain_token_reference(token_reference.to_owned())),
                 ));
             }
@@ -333,9 +326,10 @@ impl CodeFormatter {
         &mut self,
         function_declaration: FunctionDeclaration<'ast>,
     ) -> FunctionDeclaration<'ast> {
-        let function_token = self.format_symbol(
+        let function_token = crate::fmt_symbol!(
+            self,
             function_declaration.function_token().to_owned(),
-            TokenReference::symbol("function ").unwrap(),
+            "function "
         );
         let formatted_function_name =
             self.format_function_name(function_declaration.name().to_owned());
@@ -353,13 +347,12 @@ impl CodeFormatter {
         &mut self,
         local_function: LocalFunction<'ast>,
     ) -> LocalFunction<'ast> {
-        let local_token = self.format_symbol(
-            local_function.local_token().to_owned(),
-            TokenReference::symbol("local ").unwrap(),
-        );
-        let function_token = self.format_symbol(
+        let local_token =
+            crate::fmt_symbol!(self, local_function.local_token().to_owned(), "local ");
+        let function_token = crate::fmt_symbol!(
+            self,
             local_function.function_token().to_owned(),
-            TokenReference::symbol("function ").unwrap(),
+            "function "
         );
         let formatted_name =
             Cow::Owned(self.format_plain_token_reference(local_function.name().to_owned()));
@@ -388,9 +381,9 @@ impl CodeFormatter {
     /// Formats a single Parameter node
     pub fn format_parameter<'ast>(&mut self, parameter: Parameter<'ast>) -> Parameter<'ast> {
         match parameter {
-            Parameter::Ellipse(token) => Parameter::Ellipse(
-                self.format_symbol(token.into_owned(), TokenReference::symbol("...").unwrap()),
-            ),
+            Parameter::Ellipse(token) => {
+                Parameter::Ellipse(crate::fmt_symbol!(self, token.into_owned(), "..."))
+            }
             Parameter::Name(token_reference) => {
                 Parameter::Name(self.format_token_reference(token_reference))
             }

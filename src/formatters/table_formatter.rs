@@ -207,10 +207,7 @@ impl CodeFormatter {
                         FormatTriviaType::NoChange,
                     ),
                     key: self.format_expression(key.to_owned()),
-                    equal: self.format_symbol(
-                        equal.to_owned().into_owned(),
-                        TokenReference::symbol(" = ").unwrap(),
-                    ),
+                    equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
                     // We will remove all the trivia from this value, and place it after the comma
                     value: trivia_formatter::expression_add_leading_trivia(
                         self.format_expression(value.to_owned()),
@@ -226,10 +223,7 @@ impl CodeFormatter {
                         leading_trivia,
                         FormatTriviaType::NoChange,
                     )),
-                    equal: self.format_symbol(
-                        equal.to_owned().into_owned(),
-                        TokenReference::symbol(" = ").unwrap(),
-                    ),
+                    equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
                     value: trivia_formatter::expression_add_leading_trivia(
                         self.format_expression(value.to_owned()),
                         FormatTriviaType::Replace(vec![]),
@@ -301,16 +295,13 @@ impl CodeFormatter {
                     )
                 }
                 false => ContainedSpan::new(
-                    self.format_symbol(
-                        start_brace.to_owned(),
-                        TokenReference::symbol("{ ").unwrap(),
-                    ),
-                    self.format_symbol(end_brace.to_owned(), TokenReference::symbol(" }").unwrap()),
+                    crate::fmt_symbol!(self, start_brace.to_owned(), "{ "),
+                    crate::fmt_symbol!(self, end_brace.to_owned(), " }"),
                 ),
             },
             None => ContainedSpan::new(
-                self.format_symbol(start_brace.to_owned(), TokenReference::symbol("{").unwrap()),
-                self.format_symbol(end_brace.to_owned(), TokenReference::symbol("}").unwrap()),
+                crate::fmt_symbol!(self, start_brace.to_owned(), "{"),
+                crate::fmt_symbol!(self, end_brace.to_owned(), "}"),
             ),
         };
 

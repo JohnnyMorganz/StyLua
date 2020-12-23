@@ -6,55 +6,35 @@ use std::boxed::Box;
 
 use crate::formatters::CodeFormatter;
 
+macro_rules! fmt_op {
+    ($fmter:expr, $enum:ident, $value:ident, { $($operator:ident = $output:expr,)+ }) => {
+        match $value {
+            $(
+                $enum::$operator(token) => $enum::$operator(crate::fmt_symbol!($fmter, token.into_owned(), $output)),
+            )+
+        }
+    };
+}
+
 impl CodeFormatter {
     pub fn format_binop<'ast>(&self, binop: BinOp<'ast>) -> BinOp<'ast> {
-        match binop {
-            BinOp::And(token) => BinOp::And(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" and ").unwrap()),
-            ),
-            BinOp::Caret(token) => BinOp::Caret(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" ^ ").unwrap()),
-            ),
-            BinOp::GreaterThan(token) => BinOp::GreaterThan(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" > ").unwrap()),
-            ),
-            BinOp::GreaterThanEqual(token) => BinOp::GreaterThanEqual(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" >= ").unwrap()),
-            ),
-            BinOp::LessThan(token) => BinOp::LessThan(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" < ").unwrap()),
-            ),
-            BinOp::LessThanEqual(token) => BinOp::LessThanEqual(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" <= ").unwrap()),
-            ),
-            BinOp::Minus(token) => BinOp::Minus(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" - ").unwrap()),
-            ),
-            BinOp::Or(token) => BinOp::Or(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" or ").unwrap()),
-            ),
-            BinOp::Percent(token) => BinOp::Percent(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" % ").unwrap()),
-            ),
-            BinOp::Plus(token) => BinOp::Plus(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" + ").unwrap()),
-            ),
-            BinOp::Slash(token) => BinOp::Slash(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" / ").unwrap()),
-            ),
-            BinOp::Star(token) => BinOp::Star(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" * ").unwrap()),
-            ),
-            BinOp::TildeEqual(token) => BinOp::TildeEqual(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" ~= ").unwrap()),
-            ),
-            BinOp::TwoDots(token) => BinOp::TwoDots(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" .. ").unwrap()),
-            ),
-            BinOp::TwoEqual(token) => BinOp::TwoEqual(
-                self.format_symbol(token.into_owned(), TokenReference::symbol(" == ").unwrap()),
-            ),
-        }
+        fmt_op!(self, BinOp, binop, {
+            And = " and ",
+            Caret = " ^ ",
+            GreaterThan = " > ",
+            GreaterThanEqual = " >= ",
+            LessThan = " < ",
+            LessThanEqual = " <= ",
+            Minus = " - ",
+            Or = " or ",
+            Percent = " % ",
+            Plus = " + ",
+            Slash = " / ",
+            Star = " * ",
+            TildeEqual = " ~= ",
+            TwoDots = " .. ",
+            TwoEqual = " == ",
+        })
     }
 
     pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: BinOpRhs<'ast>) -> BinOpRhs<'ast> {
@@ -190,16 +170,10 @@ impl CodeFormatter {
 
     /// Formats an UnOp Node
     pub fn format_unop<'ast>(&self, unop: UnOp<'ast>) -> UnOp<'ast> {
-        match unop {
-            UnOp::Minus(token) => UnOp::Minus(
-                self.format_symbol(token.into_owned(), TokenReference::symbol("-").unwrap()),
-            ),
-            UnOp::Not(token) => UnOp::Not(
-                self.format_symbol(token.into_owned(), TokenReference::symbol("not ").unwrap()),
-            ),
-            UnOp::Hash(token) => UnOp::Hash(
-                self.format_symbol(token.into_owned(), TokenReference::symbol("#").unwrap()),
-            ),
-        }
+        fmt_op!(self, UnOp, unop, {
+            Minus = "-",
+            Not = "not ",
+            Hash = "#",
+        })
     }
 }
