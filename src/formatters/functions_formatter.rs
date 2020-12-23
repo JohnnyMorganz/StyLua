@@ -8,7 +8,11 @@ use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
 
-use crate::formatters::{get_line_ending_character, trivia_formatter, CodeFormatter};
+use crate::formatters::{
+    get_line_ending_character,
+    trivia_formatter::{self, FormatTriviaType},
+    CodeFormatter,
+};
 
 impl CodeFormatter {
     /// Formats an Anonymous Function
@@ -31,14 +35,14 @@ impl CodeFormatter {
         // Need to insert any additional trivia, as it isn't being inserted elsewhere
         let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
             function_body.parameters_parentheses().to_owned(),
-            None,
-            Some(vec![self.create_newline_trivia()]),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(vec![self.create_newline_trivia()]),
         );
 
         let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
             function_body.end_token().to_owned(),
-            Some(vec![self.create_indent_trivia(additional_indent_level)]),
-            None,
+            FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]),
+            FormatTriviaType::NoChange,
         ));
 
         (
@@ -131,7 +135,9 @@ impl CodeFormatter {
 
                         let formatted_argument = trivia_formatter::expression_add_leading_trivia(
                             self.format_expression(argument.to_owned()),
-                            vec![self.create_indent_trivia(additional_indent_level)],
+                            FormatTriviaType::Append(vec![
+                                self.create_indent_trivia(additional_indent_level)
+                            ]),
                         );
 
                         let punctuation = match current_arguments.peek() {

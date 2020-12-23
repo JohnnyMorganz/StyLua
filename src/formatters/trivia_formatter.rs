@@ -13,10 +13,36 @@ use full_moon::ast::{
 use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
 
+/// Enum to determine how trivia should be added when using trivia formatter functions
+#[derive(Clone, Debug)]
+pub enum FormatTriviaType<'ast> {
+    /// Trivia will be added to the end of the current trivia
+    Append(Vec<Token<'ast>>),
+    /// The current trivia will be replaced with the new trivia
+    Replace(Vec<Token<'ast>>),
+    /// Trivia will not be changed
+    NoChange,
+}
+
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            ))),
+            None => None,
+        };
+
+        if_block
+            .with_if_token(Cow::Owned(if_token))
+            .with_condition(condition)
+            .with_then_token(Cow::Owned(then_token))
+            .with_else_if(else_if_block)
+            .with_else_token(else_token)
+            .with_end_token(Cow::Owned(end_token))
+    }
+}
+
 pub fn assignment_add_trivia<'ast>(
     assignment: Assignment<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Assignment<'ast> {
     let mut formatted_var_list = Punctuated::new();
     let mut iterator = assignment.var_list().pairs();
@@ -63,8 +89,8 @@ pub fn assignment_add_trivia<'ast>(
 
 pub fn function_call_add_trivia<'ast>(
     function_call: FunctionCall<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionCall<'ast> {
     function_call_add_trailing_trivia(
         function_call_add_leading_trivia(function_call, leading_trivia),
@@ -74,13 +100,13 @@ pub fn function_call_add_trivia<'ast>(
 
 pub fn local_assignment_add_trivia<'ast>(
     local_assignment: LocalAssignment<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> LocalAssignment<'ast> {
     let local_token = Cow::Owned(token_reference_add_trivia(
         local_assignment.local_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia,
+        FormatTriviaType::NoChange,
     ));
 
     // TODO: Can we simplify the following?
@@ -114,8 +140,8 @@ pub fn local_assignment_add_trivia<'ast>(
                 Pair::End(value) => {
                     let value = Cow::Owned(token_reference_add_trivia(
                         value.into_owned(),
-                        None,
-                        Some(trailing_trivia),
+                        FormatTriviaType::NoChange,
+                        trailing_trivia,
                     ));
                     formatted_name_list.push(Pair::End(value));
                 }
@@ -150,18 +176,18 @@ pub fn local_assignment_add_trivia<'ast>(
 
 pub fn do_block_add_trivia<'ast>(
     do_block: Do<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Do<'ast> {
     let do_token = token_reference_add_trivia(
         do_block.do_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia.to_owned(),
+        trailing_trivia.to_owned(),
     );
     let end_token = token_reference_add_trivia(
         do_block.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia.to_owned(),
+        trailing_trivia.to_owned(),
     );
     do_block
         .with_do_token(Cow::Owned(do_token))
@@ -170,23 +196,23 @@ pub fn do_block_add_trivia<'ast>(
 
 pub fn generic_for_add_trivia<'ast>(
     generic_for: GenericFor<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> GenericFor<'ast> {
     let for_token = token_reference_add_trivia(
         generic_for.for_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
     let do_token = token_reference_add_trivia(
         generic_for.do_token().to_owned(),
-        None,
-        Some(trailing_trivia.to_owned()),
+        FormatTriviaType::NoChange,
+        trailing_trivia.to_owned(),
     );
     let end_token = token_reference_add_trivia(
         generic_for.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia,
+        trailing_trivia,
     );
     generic_for
         .with_for_token(Cow::Owned(for_token))
@@ -196,18 +222,18 @@ pub fn generic_for_add_trivia<'ast>(
 
 fn else_if_block_add_trivia<'ast>(
     else_if_block: ElseIf<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> ElseIf<'ast> {
     let else_if_token = token_reference_add_trivia(
         else_if_block.else_if_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia,
+        FormatTriviaType::NoChange,
     );
     let then_token = token_reference_add_trivia(
         else_if_block.then_token().to_owned(),
-        None,
-        Some(trailing_trivia.to_owned()),
+        FormatTriviaType::NoChange,
+        trailing_trivia,
     );
 
     else_if_block
@@ -217,23 +243,23 @@ fn else_if_block_add_trivia<'ast>(
 
 pub fn if_block_add_trivia<'ast>(
     if_block: If<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> If<'ast> {
     let if_token = token_reference_add_trivia(
         if_block.if_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
     let then_token = token_reference_add_trivia(
         if_block.then_token().to_owned(),
-        None,
-        Some(trailing_trivia.to_owned()),
+        FormatTriviaType::NoChange,
+        trailing_trivia.to_owned(),
     );
     let end_token = token_reference_add_trivia(
         if_block.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia.to_owned(),
+        trailing_trivia.to_owned(),
     );
 
     let else_if_block = match if_block.else_if() {
@@ -255,8 +281,8 @@ pub fn if_block_add_trivia<'ast>(
     let else_token = match if_block.else_token() {
         Some(else_token) => Some(Cow::Owned(token_reference_add_trivia(
             else_token.to_owned(),
-            Some(leading_trivia.to_owned()),
-            Some(trailing_trivia.to_owned()),
+            leading_trivia,
+            trailing_trivia,
         ))),
         None => None,
     };
@@ -271,13 +297,13 @@ pub fn if_block_add_trivia<'ast>(
 
 pub fn function_declaration_add_trivia<'ast>(
     function_declaration: FunctionDeclaration<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionDeclaration<'ast> {
     let function_token = token_reference_add_trivia(
         function_declaration.function_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
 
     let mut function_body = function_declaration.body().to_owned();
@@ -296,8 +322,8 @@ pub fn function_declaration_add_trivia<'ast>(
                 // No return type, so add trivia to the parentheses instead
                 let parameters_parentheses = contained_span_add_trivia(
                     function_body.parameters_parentheses().to_owned(),
-                    None,
-                    Some(trailing_trivia.to_owned()),
+                    FormatTriviaType::NoChange,
+                    trailing_trivia.to_owned(),
                 );
                 (parameters_parentheses, None)
             }
@@ -312,16 +338,16 @@ pub fn function_declaration_add_trivia<'ast>(
     {
         let parameters_parentheses = contained_span_add_trivia(
             function_body.parameters_parentheses().to_owned(),
-            None,
-            Some(trailing_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+            trailing_trivia.to_owned(),
         );
         function_body = function_body.with_parameters_parentheses(parameters_parentheses);
     };
 
     let end_token = token_reference_add_trivia(
         function_body.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia,
+        trailing_trivia,
     );
 
     function_declaration
@@ -331,13 +357,13 @@ pub fn function_declaration_add_trivia<'ast>(
 
 pub fn local_function_add_trivia<'ast>(
     local_function: LocalFunction<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> LocalFunction<'ast> {
     let local_token = token_reference_add_trivia(
         local_function.local_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
 
     let mut function_body = local_function.func_body().to_owned();
@@ -356,8 +382,8 @@ pub fn local_function_add_trivia<'ast>(
                 // No return type, so add trivia to the parentheses instead
                 let parameters_parentheses = contained_span_add_trivia(
                     function_body.parameters_parentheses().to_owned(),
-                    None,
-                    Some(trailing_trivia.to_owned()),
+                    FormatTriviaType::NoChange,
+                    trailing_trivia.to_owned(),
                 );
                 (parameters_parentheses, None)
             }
@@ -372,16 +398,16 @@ pub fn local_function_add_trivia<'ast>(
     {
         let parameters_parentheses = contained_span_add_trivia(
             function_body.parameters_parentheses().to_owned(),
-            None,
-            Some(trailing_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+            trailing_trivia.to_owned(),
         );
         function_body = function_body.with_parameters_parentheses(parameters_parentheses);
     };
 
     let end_token = token_reference_add_trivia(
         function_body.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia,
+        trailing_trivia,
     );
 
     local_function
@@ -391,24 +417,24 @@ pub fn local_function_add_trivia<'ast>(
 
 pub fn numeric_for_add_trivia<'ast>(
     numeric_for: NumericFor<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> NumericFor<'ast> {
     // TODO: This is a copy of generic_for, can we reduce this?
     let for_token = token_reference_add_trivia(
         numeric_for.for_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
     let do_token = token_reference_add_trivia(
         numeric_for.do_token().to_owned(),
-        None,
-        Some(trailing_trivia.to_owned()),
+        FormatTriviaType::NoChange,
+        trailing_trivia.to_owned(),
     );
     let end_token = token_reference_add_trivia(
         numeric_for.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia,
+        trailing_trivia,
     );
     numeric_for
         .with_for_token(Cow::Owned(for_token))
@@ -418,13 +444,13 @@ pub fn numeric_for_add_trivia<'ast>(
 
 pub fn repeat_block_add_trivia<'ast>(
     repeat_block: Repeat<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Repeat<'ast> {
     let repeat_token = token_reference_add_trivia(
         repeat_block.repeat_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia.to_owned(),
+        trailing_trivia.to_owned(),
     );
     let until_expression =
         expression_add_trailing_trivia(repeat_block.until().to_owned(), trailing_trivia);
@@ -435,23 +461,23 @@ pub fn repeat_block_add_trivia<'ast>(
 
 pub fn while_block_add_trivia<'ast>(
     while_block: While<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> While<'ast> {
     let while_token = token_reference_add_trivia(
         while_block.while_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        None,
+        leading_trivia.to_owned(),
+        FormatTriviaType::NoChange,
     );
     let do_token = token_reference_add_trivia(
         while_block.do_token().to_owned(),
-        None,
-        Some(trailing_trivia.to_owned()),
+        FormatTriviaType::NoChange,
+        trailing_trivia.to_owned(),
     );
     let end_token = token_reference_add_trivia(
         while_block.end_token().to_owned(),
-        Some(leading_trivia.to_owned()),
-        Some(trailing_trivia.to_owned()),
+        leading_trivia,
+        trailing_trivia,
     );
     while_block
         .with_while_token(Cow::Owned(while_token))
@@ -464,7 +490,7 @@ pub fn while_block_add_trivia<'ast>(
 /// Adds trailing trivia at the end of a BinOpRhs expression
 pub fn binop_rhs_add_trailing_trivia<'ast>(
     binop_rhs: BinOpRhs<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> BinOpRhs<'ast> {
     let rhs = std::boxed::Box::new(expression_add_trailing_trivia(
         binop_rhs.rhs().to_owned(),
@@ -476,19 +502,19 @@ pub fn binop_rhs_add_trailing_trivia<'ast>(
 /// Adds trailing trivia at the end of a ContainedSpan node
 pub fn contained_span_add_trivia<'ast>(
     contained_span: ContainedSpan<'ast>,
-    leading_trivia: Option<Vec<Token<'ast>>>,
-    trailing_trivia: Option<Vec<Token<'ast>>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> ContainedSpan<'ast> {
     let (start_token, end_token) = contained_span.tokens();
     ContainedSpan::new(
         Cow::Owned(token_reference_add_trivia(
             start_token.to_owned(),
             leading_trivia,
-            None,
+            FormatTriviaType::NoChange,
         )),
         Cow::Owned(token_reference_add_trivia(
             end_token.to_owned(),
-            None,
+            FormatTriviaType::NoChange,
             trailing_trivia,
         )),
     )
@@ -497,7 +523,7 @@ pub fn contained_span_add_trivia<'ast>(
 /// Adds trailing trivia at the end of a Call node
 pub fn call_add_trailing_trivia<'ast>(
     call: Call<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Call<'ast> {
     match call {
         Call::AnonymousCall(function_args) => Call::AnonymousCall(
@@ -513,14 +539,18 @@ pub fn call_add_trailing_trivia<'ast>(
 /// Adds leading trivia to the start of an Expression node
 pub fn expression_add_leading_trivia<'ast>(
     expression: Expression<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> Expression<'ast> {
     match expression {
         Expression::Parentheses {
             contained,
             expression,
         } => Expression::Parentheses {
-            contained: contained_span_add_trivia(contained, Some(leading_trivia), None),
+            contained: contained_span_add_trivia(
+                contained,
+                leading_trivia,
+                FormatTriviaType::NoChange,
+            ),
             expression,
         },
         Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
@@ -544,7 +574,7 @@ pub fn expression_add_leading_trivia<'ast>(
 /// Adds traviling trivia at the end of an Expression node
 pub fn expression_add_trailing_trivia<'ast>(
     expression: Expression<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Expression<'ast> {
     match expression {
         Expression::Value {
@@ -587,7 +617,11 @@ pub fn expression_add_trailing_trivia<'ast>(
             contained,
             expression,
         } => Expression::Parentheses {
-            contained: contained_span_add_trivia(contained, None, Some(trailing_trivia)),
+            contained: contained_span_add_trivia(
+                contained,
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            ),
             expression,
         },
 
@@ -602,44 +636,56 @@ pub fn expression_add_trailing_trivia<'ast>(
 /// Adds trailing trivia at the end of a FunctinoArgs node
 pub fn function_args_add_trailing_trivia<'ast>(
     function_args: FunctionArgs<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionArgs<'ast> {
     match function_args {
         FunctionArgs::Parentheses {
             parentheses,
             arguments,
         } => FunctionArgs::Parentheses {
-            parentheses: contained_span_add_trivia(parentheses, None, Some(trailing_trivia)),
+            parentheses: contained_span_add_trivia(
+                parentheses,
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            ),
             arguments,
         },
 
         // Add for completeness
-        FunctionArgs::String(token_reference) => FunctionArgs::String(Cow::Owned(
-            token_reference_add_trivia(token_reference.into_owned(), None, Some(trailing_trivia)),
-        )),
-        FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
-            table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia)),
-        ),
+        FunctionArgs::String(token_reference) => {
+            FunctionArgs::String(Cow::Owned(token_reference_add_trivia(
+                token_reference.into_owned(),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            )))
+        }
+        FunctionArgs::TableConstructor(table_constructor) => {
+            FunctionArgs::TableConstructor(table_constructor_add_trivia(
+                table_constructor,
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            ))
+        }
     }
 }
 
 /// Adds trailing trivia at the end of a FunctionBody node
 pub fn function_body_add_trailing_trivia<'ast>(
     function_body: FunctionBody<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionBody<'ast> {
     let function_body_token = function_body.end_token().to_owned();
     function_body.with_end_token(Cow::Owned(token_reference_add_trivia(
         function_body_token,
-        None,
-        Some(trailing_trivia),
+        FormatTriviaType::NoChange,
+        trailing_trivia,
     )))
 }
 
 /// Adds leading trivia to the start of a FunctionCall node
 pub fn function_call_add_leading_trivia<'ast>(
     function_call: FunctionCall<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> FunctionCall<'ast> {
     let prefix = prefix_add_leading_trivia(function_call.prefix().to_owned(), leading_trivia);
     function_call.with_prefix(prefix)
@@ -648,7 +694,7 @@ pub fn function_call_add_leading_trivia<'ast>(
 /// Adds trailing trivia at the end of a FunctionCall node
 pub fn function_call_add_trailing_trivia<'ast>(
     function_call: FunctionCall<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionCall<'ast> {
     let mut new_suffixes: Vec<Suffix<'ast>> = function_call
         .iter_suffixes()
@@ -667,22 +713,26 @@ pub fn function_call_add_trailing_trivia<'ast>(
 /// Adds trailing trivia at the end of an Index node
 pub fn index_add_trailing_trivia<'ast>(
     index: Index<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Index<'ast> {
     match index {
         Index::Brackets {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: contained_span_add_trivia(brackets, None, Some(trailing_trivia)),
+            brackets: contained_span_add_trivia(
+                brackets,
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            ),
             expression,
         },
         Index::Dot { dot, name } => Index::Dot {
             dot,
             name: Cow::Owned(token_reference_add_trivia(
                 name.into_owned(),
-                None,
-                Some(trailing_trivia),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
             )),
         },
     }
@@ -691,7 +741,7 @@ pub fn index_add_trailing_trivia<'ast>(
 /// Adds trailing trivia at the end of a MethodCall node
 pub fn method_call_add_trailing_trivia<'ast>(
     method_call: MethodCall<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> MethodCall<'ast> {
     let method_call_args = method_call.args().to_owned();
     method_call.with_args(function_args_add_trailing_trivia(
@@ -703,13 +753,13 @@ pub fn method_call_add_trailing_trivia<'ast>(
 /// Adds leading trivia to the start of a Prefix node
 pub fn prefix_add_leading_trivia<'ast>(
     prefix: Prefix<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> Prefix<'ast> {
     match prefix {
         Prefix::Name(token_reference) => Prefix::Name(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         Prefix::Expression(expression) => {
             Prefix::Expression(expression_add_leading_trivia(expression, leading_trivia))
@@ -720,7 +770,7 @@ pub fn prefix_add_leading_trivia<'ast>(
 /// Adds trailing trivia at the end of a Suffix node
 pub fn suffix_add_trailing_trivia<'ast>(
     suffix: Suffix<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Suffix<'ast> {
     match suffix {
         Suffix::Call(call) => Suffix::Call(call_add_trailing_trivia(call, trailing_trivia)),
@@ -731,8 +781,8 @@ pub fn suffix_add_trailing_trivia<'ast>(
 /// Adds trivia to a TableConstructor node
 pub fn table_constructor_add_trivia<'ast>(
     table_constructor: TableConstructor<'ast>,
-    leading_trivia: Option<Vec<Token<'ast>>>,
-    trailing_trivia: Option<Vec<Token<'ast>>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> TableConstructor<'ast> {
     let table_constructor_braces = contained_span_add_trivia(
         table_constructor.braces().to_owned(),
@@ -745,11 +795,11 @@ pub fn table_constructor_add_trivia<'ast>(
 /// Adds trivia to a TokenReferenece
 pub fn token_reference_add_trivia<'ast>(
     token_reference: TokenReference<'ast>,
-    leading_trivia: Option<Vec<Token<'ast>>>,
-    trailing_trivia: Option<Vec<Token<'ast>>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> TokenReference<'ast> {
     let added_leading_trivia = match leading_trivia {
-        Some(trivia) => {
+        FormatTriviaType::Append(trivia) => {
             let mut current: Vec<Token<'ast>> = token_reference
                 .leading_trivia()
                 .map(|x| x.to_owned())
@@ -757,14 +807,15 @@ pub fn token_reference_add_trivia<'ast>(
             current.extend(trivia);
             current
         }
-        None => token_reference
+        FormatTriviaType::Replace(trivia) => trivia,
+        FormatTriviaType::NoChange => token_reference
             .leading_trivia()
             .map(|x| x.to_owned())
             .collect(),
     };
 
     let added_trailing_trivia = match trailing_trivia {
-        Some(trivia) => {
+        FormatTriviaType::Append(trivia) => {
             let mut current: Vec<Token<'ast>> = token_reference
                 .trailing_trivia()
                 .map(|x| x.to_owned())
@@ -772,7 +823,8 @@ pub fn token_reference_add_trivia<'ast>(
             current.extend(trivia);
             current
         }
-        None => token_reference
+        FormatTriviaType::Replace(trivia) => trivia,
+        FormatTriviaType::NoChange => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
@@ -788,37 +840,37 @@ pub fn token_reference_add_trivia<'ast>(
 /// Adds leading trivia to the start of an UnOp node
 pub fn unop_add_leading_trivia<'ast>(
     unop: UnOp<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> UnOp<'ast> {
     match unop {
         UnOp::Hash(token_reference) => UnOp::Hash(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         UnOp::Minus(token_reference) => UnOp::Minus(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         UnOp::Not(token_reference) => UnOp::Not(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
     }
 }
 
 pub fn value_add_leading_trivia<'ast>(
     value: Value<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> Value<'ast> {
     match value {
         Value::Function((token, function_body)) => Value::Function((
             Cow::Owned(token_reference_add_trivia(
                 token.into_owned(),
-                Some(leading_trivia),
-                None,
+                leading_trivia,
+                FormatTriviaType::NoChange,
             )),
             function_body,
         )),
@@ -827,25 +879,29 @@ pub fn value_add_leading_trivia<'ast>(
         ),
         Value::Number(token_reference) => Value::Number(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_leading_trivia(expression, leading_trivia))
         }
         Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
-        Value::TableConstructor(table_constructor) => Value::TableConstructor(
-            table_constructor_add_trivia(table_constructor, Some(leading_trivia), None),
-        ),
+        Value::TableConstructor(table_constructor) => {
+            Value::TableConstructor(table_constructor_add_trivia(
+                table_constructor,
+                leading_trivia,
+                FormatTriviaType::NoChange,
+            ))
+        }
         Value::Var(var) => Value::Var(var_add_leading_trivia(var, leading_trivia)),
     }
 }
@@ -853,7 +909,7 @@ pub fn value_add_leading_trivia<'ast>(
 /// Adds trailing trivia at the end of a Value node
 pub fn value_add_trailing_trivia<'ast>(
     value: Value<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Value<'ast> {
     match value {
         Value::Function((token, function_body)) => Value::Function((
@@ -865,36 +921,43 @@ pub fn value_add_trailing_trivia<'ast>(
         ),
         Value::Number(token_reference) => Value::Number(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            None,
-            Some(trailing_trivia),
+            FormatTriviaType::NoChange,
+            trailing_trivia,
         ))),
         Value::ParseExpression(expression) => {
             Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
         }
         Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            None,
-            Some(trailing_trivia),
+            FormatTriviaType::NoChange,
+            trailing_trivia,
         ))),
         Value::Symbol(token_reference) => Value::Symbol(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            None,
-            Some(trailing_trivia),
+            FormatTriviaType::NoChange,
+            trailing_trivia,
         ))),
-        Value::TableConstructor(table_constructor) => Value::TableConstructor(
-            table_constructor_add_trivia(table_constructor, None, Some(trailing_trivia)),
-        ),
+        Value::TableConstructor(table_constructor) => {
+            Value::TableConstructor(table_constructor_add_trivia(
+                table_constructor,
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            ))
+        }
         Value::Var(var) => Value::Var(var_add_trailing_trivia(var, trailing_trivia)),
     }
 }
 
 /// Adds leading trivia to the start of a Var node
-pub fn var_add_leading_trivia<'ast>(var: Var<'ast>, leading_trivia: Vec<Token<'ast>>) -> Var<'ast> {
+pub fn var_add_leading_trivia<'ast>(
+    var: Var<'ast>,
+    leading_trivia: FormatTriviaType<'ast>,
+) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            Some(leading_trivia),
-            None,
+            leading_trivia,
+            FormatTriviaType::NoChange,
         ))),
         Var::Expression(var_expresion) => Var::Expression(var_expression_add_leading_trivia(
             var_expresion,
@@ -906,13 +969,13 @@ pub fn var_add_leading_trivia<'ast>(var: Var<'ast>, leading_trivia: Vec<Token<'a
 /// Adds trailing trivia at the end of a Var node
 pub fn var_add_trailing_trivia<'ast>(
     var: Var<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => Var::Name(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
-            None,
-            Some(trailing_trivia),
+            FormatTriviaType::NoChange,
+            trailing_trivia,
         ))),
         Var::Expression(var_expression) => Var::Expression(var_expression_add_trailing_trivia(
             var_expression,
@@ -924,7 +987,7 @@ pub fn var_add_trailing_trivia<'ast>(
 /// Adds leading trivia to the start of a VarExpression node
 pub fn var_expression_add_leading_trivia<'ast>(
     var_expresion: VarExpression<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
 ) -> VarExpression<'ast> {
     let prefix = prefix_add_leading_trivia(var_expresion.prefix().to_owned(), leading_trivia);
     var_expresion.with_prefix(prefix)
@@ -933,7 +996,7 @@ pub fn var_expression_add_leading_trivia<'ast>(
 /// Adds trailing trivia at the end of a VarExpression node
 pub fn var_expression_add_trailing_trivia<'ast>(
     var_expression: VarExpression<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> VarExpression<'ast> {
     // TODO: This is copied from FunctionCall, can we combine them?
     let mut new_suffixes: Vec<Suffix<'ast>> = var_expression
@@ -953,18 +1016,22 @@ pub fn var_expression_add_trailing_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn type_info_add_trailing_trivia<'ast>(
     type_info: TypeInfo<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> TypeInfo<'ast> {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
-            let braces = contained_span_add_trivia(braces.to_owned(), None, Some(trailing_trivia));
+            let braces = contained_span_add_trivia(
+                braces.to_owned(),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
+            );
             TypeInfo::Array { braces, type_info }
         }
         TypeInfo::Basic(token_reference) => {
             TypeInfo::Basic(Cow::Owned(token_reference_add_trivia(
                 token_reference.to_owned().into_owned(),
-                None,
-                Some(trailing_trivia),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
             )))
         }
         TypeInfo::Callback {
@@ -988,7 +1055,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
             arrows,
             generics,
         } => {
-            let arrows = contained_span_add_trivia(arrows, None, Some(trailing_trivia));
+            let arrows =
+                contained_span_add_trivia(arrows, FormatTriviaType::NoChange, trailing_trivia);
 
             TypeInfo::Generic {
                 base,
@@ -1032,8 +1100,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
         } => {
             let question_mark = Cow::Owned(token_reference_add_trivia(
                 question_mark.to_owned().into_owned(),
-                None,
-                Some(trailing_trivia),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
             ));
             TypeInfo::Optional {
                 base,
@@ -1042,7 +1110,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
         }
 
         TypeInfo::Table { braces, fields } => {
-            let braces = contained_span_add_trivia(braces, None, Some(trailing_trivia));
+            let braces =
+                contained_span_add_trivia(braces, FormatTriviaType::NoChange, trailing_trivia);
             TypeInfo::Table { braces, fields }
         }
 
@@ -1051,7 +1120,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
             parentheses,
             inner,
         } => {
-            let parentheses = contained_span_add_trivia(parentheses, None, Some(trailing_trivia));
+            let parentheses =
+                contained_span_add_trivia(parentheses, FormatTriviaType::NoChange, trailing_trivia);
             TypeInfo::Typeof {
                 typeof_token,
                 parentheses,
@@ -1060,7 +1130,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
         }
 
         TypeInfo::Tuple { parentheses, types } => {
-            let parentheses = contained_span_add_trivia(parentheses, None, Some(trailing_trivia));
+            let parentheses =
+                contained_span_add_trivia(parentheses, FormatTriviaType::NoChange, trailing_trivia);
             TypeInfo::Tuple { parentheses, types }
         }
 
@@ -1074,14 +1145,14 @@ pub fn type_info_add_trailing_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn indexed_type_info_add_trailing_trivia<'ast>(
     indexed_type_info: IndexedTypeInfo<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> IndexedTypeInfo<'ast> {
     match indexed_type_info {
         IndexedTypeInfo::Basic(token_reference) => {
             IndexedTypeInfo::Basic(Cow::Owned(token_reference_add_trivia(
                 token_reference.to_owned().into_owned(),
-                None,
-                Some(trailing_trivia),
+                FormatTriviaType::NoChange,
+                trailing_trivia,
             )))
         }
         IndexedTypeInfo::Generic {
@@ -1089,7 +1160,8 @@ pub fn indexed_type_info_add_trailing_trivia<'ast>(
             arrows,
             generics,
         } => {
-            let arrows = contained_span_add_trivia(arrows, None, Some(trailing_trivia));
+            let arrows =
+                contained_span_add_trivia(arrows, FormatTriviaType::NoChange, trailing_trivia);
 
             IndexedTypeInfo::Generic {
                 base,
@@ -1103,7 +1175,7 @@ pub fn indexed_type_info_add_trailing_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn as_assertion_add_trailing_trivia<'ast>(
     as_assertion: AsAssertion<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> AsAssertion<'ast> {
     let cast_to = type_info_add_trailing_trivia(as_assertion.cast_to().to_owned(), trailing_trivia);
     as_assertion.with_cast_to(cast_to)
@@ -1112,7 +1184,7 @@ pub fn as_assertion_add_trailing_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn type_specifier_add_trailing_trivia<'ast>(
     type_specifier: TypeSpecifier<'ast>,
-    trailing_trivia: Vec<Token<'ast>>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> TypeSpecifier<'ast> {
     let type_info =
         type_info_add_trailing_trivia(type_specifier.type_info().to_owned(), trailing_trivia);
@@ -1122,22 +1194,28 @@ pub fn type_specifier_add_trailing_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn type_declaration_add_trivia<'ast>(
     type_declaration: TypeDeclaration<'ast>,
-    leading_trivia: Option<Vec<Token<'ast>>>,
-    trailing_trivia: Option<Vec<Token<'ast>>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> TypeDeclaration<'ast> {
-    let type_token = Cow::Owned(match leading_trivia {
-        Some(trivia) => {
-            token_reference_add_trivia(type_declaration.type_token().to_owned(), Some(trivia), None)
-        }
-        None => type_declaration.type_token().to_owned(),
-    });
-
-    let type_definition = match trailing_trivia {
-        Some(trivia) => {
-            type_info_add_trailing_trivia(type_declaration.type_definition().to_owned(), trivia)
-        }
-        None => type_declaration.type_definition().to_owned(),
+    let type_token;
+    if let FormatTriviaType::NoChange = leading_trivia {
+        // TODO: Cleanup - this is unnecessary
+        type_token = Cow::Owned(type_declaration.type_token().to_owned())
+    } else {
+        type_token = Cow::Owned(token_reference_add_trivia(
+            type_declaration.type_token().to_owned(),
+            leading_trivia,
+            FormatTriviaType::NoChange,
+        ))
     };
+
+    let type_definition;
+    if let FormatTriviaType::NoChange = trailing_trivia {
+        // TODO: Cleanup - this is unnecessary
+        type_definition = type_declaration.type_definition().to_owned()
+    } else {
+        type_definition = type_info_add_trailing_trivia(type_declaration.type_definition().to_owned(), trailing_trivia)
+    }
 
     type_declaration
         .with_type_token(type_token)
@@ -1147,18 +1225,18 @@ pub fn type_declaration_add_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn exported_type_declaration_add_trivia<'ast>(
     exported_type_declaration: ExportedTypeDeclaration<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> ExportedTypeDeclaration<'ast> {
     let export_token = Cow::Owned(token_reference_add_trivia(
         exported_type_declaration.export_token().to_owned(),
-        Some(leading_trivia),
-        None,
+        leading_trivia,
+        FormatTriviaType::NoChange,
     ));
     let type_declaration = type_declaration_add_trivia(
         exported_type_declaration.type_declaration().to_owned(),
-        None,
-        Some(trailing_trivia),
+        FormatTriviaType::NoChange,
+        trailing_trivia,
     );
 
     exported_type_declaration
@@ -1169,8 +1247,8 @@ pub fn exported_type_declaration_add_trivia<'ast>(
 #[cfg(feature = "luau")]
 pub fn compound_assignment_add_trivia<'ast>(
     compound_assignment: CompoundAssignment<'ast>,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
 ) -> CompoundAssignment<'ast> {
     let lhs = var_add_leading_trivia(compound_assignment.lhs().to_owned(), leading_trivia);
     let rhs = expression_add_trailing_trivia(compound_assignment.rhs().to_owned(), trailing_trivia);

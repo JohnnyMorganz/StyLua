@@ -1,4 +1,7 @@
-use crate::formatters::{trivia_formatter, CodeFormatter, Range};
+use crate::formatters::{
+    trivia_formatter::{self, FormatTriviaType},
+    CodeFormatter, Range,
+};
 use full_moon::ast::{
     punctuated::Pair, Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var,
 };
@@ -115,8 +118,9 @@ impl CodeFormatter {
         stmt: Stmt<'ast>,
         additional_indent_level: Option<usize>,
     ) -> Stmt<'ast> {
-        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
-        let trailing_trivia = vec![self.create_newline_trivia()];
+        let leading_trivia =
+            FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
+        let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
 
         match stmt {
             Stmt::Assignment(assignment) => {
@@ -213,8 +217,8 @@ impl CodeFormatter {
             Stmt::TypeDeclaration(type_declaration) => {
                 Stmt::TypeDeclaration(trivia_formatter::type_declaration_add_trivia(
                     type_declaration,
-                    Some(leading_trivia),
-                    Some(trailing_trivia),
+                    leading_trivia,
+                    trailing_trivia,
                 ))
             }
         }
@@ -276,8 +280,10 @@ impl CodeFormatter {
             LastStmt::Break(break_node) => {
                 LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                     break_node.into_owned(),
-                    Some(vec![self.create_indent_trivia(additional_indent_level)]),
-                    Some(vec![self.create_newline_trivia()]),
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
             LastStmt::Return(return_node) => {
@@ -287,14 +293,18 @@ impl CodeFormatter {
                 if return_node.returns().is_empty() {
                     token = trivia_formatter::token_reference_add_trivia(
                         token,
-                        Some(vec![self.create_indent_trivia(additional_indent_level)]),
-                        Some(vec![self.create_newline_trivia()]),
+                        FormatTriviaType::Append(vec![
+                            self.create_indent_trivia(additional_indent_level)
+                        ]),
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                     );
                 } else {
                     token = trivia_formatter::token_reference_add_trivia(
                         token,
-                        Some(vec![self.create_indent_trivia(additional_indent_level)]),
-                        None,
+                        FormatTriviaType::Append(vec![
+                            self.create_indent_trivia(additional_indent_level)
+                        ]),
+                        FormatTriviaType::NoChange,
                     );
 
                     // TODO: This is copied from the Assignment/LocalAssignment formatters
@@ -304,7 +314,7 @@ impl CodeFormatter {
                             Pair::End(value) => {
                                 let expression = trivia_formatter::expression_add_trailing_trivia(
                                     value,
-                                    vec![self.create_newline_trivia()],
+                                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                                 );
                                 returns.push(Pair::End(expression));
                             }
@@ -323,8 +333,10 @@ impl CodeFormatter {
             LastStmt::Continue(continue_node) => {
                 LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                     continue_node.into_owned(),
-                    Some(vec![self.create_indent_trivia(additional_indent_level)]),
-                    Some(vec![self.create_newline_trivia()]),
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
         }

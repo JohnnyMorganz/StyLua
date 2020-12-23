@@ -11,47 +11,29 @@ impl CodeFormatter {
     pub fn format_field<'ast>(
         &mut self,
         field: &Field<'ast>,
-        leading_trivia: Option<Vec<Token<'ast>>>,
-    ) -> Field<'ast> {
-        match field {
+        leading_trivia: FormatTriviaType<'ast>,
             Field::ExpressionKey {
                 brackets,
                 key,
                 equal,
                 value,
-            } => Field::ExpressionKey {
-                brackets: trivia_formatter::contained_span_add_trivia(
-                    self.format_contained_span(brackets.to_owned()),
-                    leading_trivia,
-                    None,
-                ),
-                key: self.format_expression(key.to_owned()),
-                equal: self.format_symbol(
-                    equal.to_owned().into_owned(),
-                    TokenReference::symbol(" = ").unwrap(),
-                ),
-                value: self.format_expression(value.to_owned()),
+                    FormatTriviaType::NoChange,
             },
             Field::NameKey { key, equal, value } => Field::NameKey {
                 key: Cow::Owned(trivia_formatter::token_reference_add_trivia(
                     self.format_token_reference(key.to_owned()).into_owned(),
                     leading_trivia,
-                    None,
-                )),
-                equal: self.format_symbol(
-                    equal.to_owned().into_owned(),
-                    TokenReference::symbol(" = ").unwrap(),
-                ),
-                value: self.format_expression(value.to_owned()),
+                    FormatTriviaType::NoChange,
             },
             Field::NoKey(expression) => {
                 let formatted_expression = self.format_expression(expression.to_owned());
-                match leading_trivia {
-                    Some(trivia) => Field::NoKey(trivia_formatter::expression_add_leading_trivia(
+                if let FormatTriviaType::NoChange = leading_trivia {
+                    Field::NoKey(formatted_expression)
+                } else {
+                    Field::NoKey(trivia_formatter::expression_add_leading_trivia(
                         formatted_expression,
-                        trivia,
-                    )),
-                    None => Field::NoKey(formatted_expression),
+                        leading_trivia,
+                    ))
                 }
             }
         }
@@ -132,9 +114,11 @@ impl CodeFormatter {
                         Field::NoKey(expr) => CodeFormatter::get_range_in_expression(&expr),
                     };
                     let additional_indent_level = self.get_range_indent_increase(range);
-                    Some(vec![self.create_indent_trivia(additional_indent_level)])
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ])
                 }
-                false => None,
+                false => FormatTriviaType::NoChange,
             };
 
             let formatted_field = self.format_field(&field, leading_trivia);
@@ -152,8 +136,8 @@ impl CodeFormatter {
                     // Add newline trivia to the end of the symbol
                     let symbol = trivia_formatter::token_reference_add_trivia(
                         symbol,
-                        None,
-                        Some(vec![self.create_newline_trivia()]),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(trailing_trivia),
                     );
                     formatted_punctuation = Some(Cow::Owned(symbol))
                 }
