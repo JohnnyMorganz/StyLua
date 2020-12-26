@@ -648,17 +648,15 @@ function Promise.each(list, predicate)
 				if Promise.is(value) then
 					if value:getStatus() == Promise.Status.Cancelled then
 						cancel()
-						return reject(
-							Error.new({
-								error = "Promise is cancelled",
-								kind = Error.Kind.AlreadyCancelled,
-								context = string.format(
-									"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
-									index,
-									value._source
-								),
-							})
-						)
+						return reject(Error.new({
+							error = "Promise is cancelled",
+							kind = Error.Kind.AlreadyCancelled,
+							context = string.format(
+								"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
+								index,
+								value._source
+							),
+						}))
 					elseif value:getStatus() == Promise.Status.Rejected then
 						cancel()
 						return reject(select(2, value:await()))
@@ -855,17 +853,15 @@ function Promise.prototype:timeout(seconds, rejectionValue)
 
 	return Promise.race({
 		Promise.delay(seconds):andThen(function()
-			return Promise.reject(
-				rejectionValue == nil and Error.new({
-					kind = Error.Kind.TimedOut,
-					error = "Timed out",
-					context = string.format(
-						"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
-						seconds,
-						traceback
-					),
-				}) or rejectionValue
-			)
+			return Promise.reject(rejectionValue == nil and Error.new({
+				kind = Error.Kind.TimedOut,
+				error = "Timed out",
+				context = string.format(
+					"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
+					seconds,
+					traceback
+				),
+			}) or rejectionValue)
 		end),
 		self,
 	})
@@ -913,13 +909,11 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 			elseif self._status == Promise.Status.Cancelled then
 				-- We don't want to call the success handler or the failure handler,
 				-- we just reject this promise outright.
-				reject(
-					Error.new({
-						error = "Promise is cancelled",
-						kind = Error.Kind.AlreadyCancelled,
-						context = "Promise created at\n\n" .. traceback,
-					})
-				)
+				reject(Error.new({
+					error = "Promise is cancelled",
+					kind = Error.Kind.AlreadyCancelled,
+					context = "Promise created at\n\n" .. traceback,
+				}))
 			end
 		end,
 		self
@@ -1277,16 +1271,14 @@ function Promise.prototype:_resolve(...)
 				end
 
 				if Error.isKind(maybeRuntimeError, Error.Kind.ExecutionError) then
-					return self:_reject(
-						maybeRuntimeError:extend({
-							error = "This Promise was chained to a Promise that errored.",
-							trace = "",
-							context = string.format(
-								"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
-								self._source
-							),
-						})
-					)
+					return self:_reject(maybeRuntimeError:extend({
+						error = "This Promise was chained to a Promise that errored.",
+						trace = "",
+						context = string.format(
+							"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
+							self._source
+						),
+					}))
 				end
 
 				self:_reject(...)
@@ -1395,13 +1387,11 @@ function Promise.prototype:now(rejectionValue)
 			return ...
 		end)
 	else
-		return Promise.reject(
-			rejectionValue == nil and Error.new({
-				kind = Error.Kind.NotResolvedInTime,
-				error = "This Promise was not resolved in time for :now()",
-				context = ":now() was called at:\n\n" .. traceback,
-			}) or rejectionValue
-		)
+		return Promise.reject(rejectionValue == nil and Error.new({
+			kind = Error.Kind.NotResolvedInTime,
+			error = "This Promise was not resolved in time for :now()",
+			context = ":now() was called at:\n\n" .. traceback,
+		}) or rejectionValue)
 	end
 end
 

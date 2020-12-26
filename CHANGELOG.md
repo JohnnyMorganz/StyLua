@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Changed the default value of `indent_width` to 4
+- Function calls with a single argument will no longer wrap the argument onto a new line. This is subject to change.
 
 ### Fixed
 - Fixed a new line being added after the `until` token in a repeat block. The new line is now added at the end of the until expression.

@@ -78,16 +78,9 @@ impl CodeFormatter {
                 let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
                 let mut current_arguments = arguments.iter().peekable();
 
-                // If we only have one argument, and it is a table constructor or a function, then we will not make it multi line (as they will be pushed onto new lines)
+                // If we only have one argument then we will not make it multi line. TODO: this is subject to change
                 if arguments.len() == 1 {
-                    let argument = current_arguments.peek().unwrap();
-                    if let Expression::Value { value, .. } = argument {
-                        match **value {
-                            Value::Function(_) => is_multiline = false,
-                            Value::TableConstructor(_) => is_multiline = false,
-                            _ => (),
-                        }
-                    }
+                    is_multiline = false;
                 }
 
                 if is_multiline {
