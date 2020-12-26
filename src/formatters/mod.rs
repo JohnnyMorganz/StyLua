@@ -222,6 +222,11 @@ impl CodeFormatter {
                 //     self.format_multi_line_comment_string(comment.to_owned().into_owned());
 
                 if let FormatTokenType::LeadingTrivia = format_type {
+                    let additional_indent_level = self.get_range_indent_increase((
+                        token.start_position().bytes(),
+                        token.end_position().bytes(),
+                    ));
+                    leading_trivia = Some(vec![self.create_indent_trivia(additional_indent_level)]);
                     // Add a new line once the comment is completed
                     trailing_trivia = Some(vec![self.create_newline_trivia()]);
                 }
