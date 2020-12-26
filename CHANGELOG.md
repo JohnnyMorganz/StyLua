@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-alpha.3] - 2020-12-26
 ### Changed
 - Changed the default value of `indent_width` to 4
 - Function calls with a single argument will no longer wrap the argument onto a new line. This is subject to change.
