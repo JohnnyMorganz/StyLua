@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed trailing comma being added after comments in multiline tables
 - Fixed escaping of double-quotes inside of strings being repeated
 - Fixed long tables for types collapsing onto a single line for Luau formatting
+- Fix incorrect comment wrapping at the beginning of multiline tables
 
 ## [0.1.0-alpha.2] - 2020-12-22
 ### Added

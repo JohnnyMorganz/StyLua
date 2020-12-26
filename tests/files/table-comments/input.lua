@@ -8,3 +8,8 @@ local foo = {
 	MinSize = call(0, 0),
 	MaxSize = call(math.huge, 500) -- TODO: Set this up
 }
+
+local x = { -- comment
+    hello = "world",
+    foo = "bar",
+}
