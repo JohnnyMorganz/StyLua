@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed comments not being preserved within multiline tables
 - Fixed trailing comma being added after comments in multiline tables
 - Fixed escaping of double-quotes inside of strings being repeated
+- Fixed long tables for types collapsing onto a single line for Luau formatting
 
 ## [0.1.0-alpha.2] - 2020-12-22
 ### Added

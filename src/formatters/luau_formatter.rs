@@ -1,8 +1,15 @@
-use crate::formatters::CodeFormatter;
-use full_moon::ast::span::ContainedSpan;
+use crate::formatters::{
+    table_formatter::TableType,
+    trivia_formatter::{self, FormatTriviaType},
+    CodeFormatter,
+};
 use full_moon::ast::types::{
     AsAssertion, CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
     IndexedTypeInfo, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+};
+use full_moon::ast::{
+    punctuated::{Pair, Punctuated},
+    span::ContainedSpan,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -165,14 +172,84 @@ impl CodeFormatter {
 
             TypeInfo::Table { braces, fields } => {
                 let (start_brace, end_brace) = braces.tokens().to_owned();
-                let braces = ContainedSpan::new(
-                    self.format_symbol(
-                        start_brace.to_owned(),
-                        TokenReference::symbol("{ ").unwrap(),
-                    ),
-                    self.format_symbol(end_brace.to_owned(), TokenReference::symbol(" }").unwrap()),
+                let braces_range = (
+                    start_brace.end_position().bytes(),
+                    end_brace.start_position().bytes(),
                 );
-                let fields = self.format_punctuated(fields, &CodeFormatter::format_type_field);
+
+                let mut current_fields = fields.into_pairs().peekable();
+                let is_multiline = (braces_range.1 - braces_range.0) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+                let table_type = match current_fields.peek() {
+                    Some(_) => match is_multiline {
+                        true => TableType::MultiLine,
+                        false => TableType::SingleLine,
+                    },
+                    None => TableType::Empty,
+                };
+                let additional_indent_level = self.get_range_indent_increase(braces_range);
+                let braces = self.create_table_braces(
+                    start_brace,
+                    end_brace,
+                    table_type,
+                    additional_indent_level,
+                );
+                if is_multiline {
+                    self.add_indent_range(braces_range);
+                }
+
+                let mut fields = Punctuated::new();
+
+                while let Some(pair) = current_fields.next() {
+                    let (field, punctuation) = pair.into_tuple();
+
+                    let leading_trivia = match is_multiline {
+                        true => {
+                            let range = CodeFormatter::get_token_range(field.colon_token().token());
+                            let additional_indent_level = self.get_range_indent_increase(range);
+                            FormatTriviaType::Append(vec![
+                                self.create_indent_trivia(additional_indent_level)
+                            ])
+                        }
+                        false => FormatTriviaType::NoChange,
+                    };
+
+                    let formatted_field = self.format_type_field(field, leading_trivia);
+                    let mut formatted_punctuation = None;
+
+                    match is_multiline {
+                        true => {
+                            // Continue adding a comma and a new line for multiline tables
+                            let mut symbol = TokenReference::symbol(",").unwrap();
+                            if let Some(punctuation) = punctuation {
+                                symbol = self
+                                    .format_symbol(punctuation.into_owned(), symbol)
+                                    .into_owned();
+                            }
+                            // Add newline trivia to the end of the symbol
+                            let symbol = trivia_formatter::token_reference_add_trivia(
+                                symbol,
+                                FormatTriviaType::NoChange,
+                                FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                            );
+                            formatted_punctuation = Some(Cow::Owned(symbol))
+                        }
+
+                        false => {
+                            if current_fields.peek().is_some() {
+                                // Have more elements still to go
+                                formatted_punctuation = match punctuation {
+                                    Some(punctuation) => Some(self.format_symbol(
+                                        punctuation.into_owned(),
+                                        TokenReference::symbol(", ").unwrap(),
+                                    )),
+                                    None => Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
+                                }
+                            };
+                        }
+                    }
+
+                    fields.push(Pair::new(formatted_field, formatted_punctuation));
+                }
 
                 TypeInfo::Table { braces, fields }
             }
@@ -249,8 +326,12 @@ impl CodeFormatter {
         }
     }
 
-    pub fn format_type_field<'ast>(&mut self, type_field: TypeField<'ast>) -> TypeField<'ast> {
-        let key = self.format_type_field_key(type_field.key().to_owned());
+    pub fn format_type_field<'ast>(
+        &mut self,
+        type_field: TypeField<'ast>,
+        leading_trivia: FormatTriviaType<'ast>,
+    ) -> TypeField<'ast> {
+        let key = self.format_type_field_key(type_field.key().to_owned(), leading_trivia);
         let colon_token = self.format_symbol(
             type_field.colon_token().to_owned(),
             TokenReference::symbol(": ").unwrap(),
@@ -266,11 +347,22 @@ impl CodeFormatter {
     pub fn format_type_field_key<'ast>(
         &mut self,
         type_field_key: TypeFieldKey<'ast>,
+        leading_trivia: FormatTriviaType<'ast>,
     ) -> TypeFieldKey<'ast> {
         match type_field_key {
-            TypeFieldKey::Name(token) => TypeFieldKey::Name(self.format_token_reference(token)),
+            TypeFieldKey::Name(token) => {
+                TypeFieldKey::Name(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    self.format_token_reference(token).into_owned(),
+                    leading_trivia,
+                    FormatTriviaType::NoChange,
+                )))
+            }
             TypeFieldKey::IndexSignature { brackets, inner } => {
-                let brackets = self.format_contained_span(brackets);
+                let brackets = trivia_formatter::contained_span_add_trivia(
+                    self.format_contained_span(brackets),
+                    leading_trivia,
+                    FormatTriviaType::NoChange,
+                );
                 let inner = self.format_type_info(inner);
 
                 TypeFieldKey::IndexSignature { brackets, inner }
