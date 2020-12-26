@@ -185,6 +185,16 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
     }
 }
 
+/// Used to provide information about the table
+pub enum TableType {
+    /// The table will have multline fields
+    MultiLine,
+    /// The table will be on a single line
+    SingleLine,
+    /// The table has no fields
+    Empty
+}
+
 impl CodeFormatter {
     pub fn format_field<'ast>(
         &mut self,
@@ -250,6 +260,44 @@ impl CodeFormatter {
         (field, trailing_trivia)
     }
 
+    pub fn create_table_braces<'ast>(&self, start_brace: &TokenReference<'ast>, end_brace: &TokenReference<'ast>, table_type: TableType, additional_indent_level: Option<usize>) -> ContainedSpan<'ast> {
+        match table_type {
+            TableType::MultiLine => {
+                // Format start and end brace properly with correct trivia
+                let end_brace_leading_trivia =
+                    vec![self.create_indent_trivia(additional_indent_level)];
+
+                // Add new_line trivia to start_brace
+                let start_brace_token = TokenReference::symbol(
+                    &(String::from("{")
+                        + &get_line_ending_character(&self.config.line_endings)),
+                )
+                .unwrap();
+                let end_brace_token = TokenReference::new(
+                    end_brace_leading_trivia,
+                    Token::new(TokenType::Symbol {
+                        symbol: Symbol::RightBrace,
+                    }),
+                    vec![],
+                );
+                ContainedSpan::new(
+                    self.format_symbol(start_brace.to_owned(), start_brace_token),
+                    self.format_symbol(end_brace.to_owned(), end_brace_token),
+                )
+            }
+
+            TableType::SingleLine => ContainedSpan::new(
+                crate::fmt_symbol!(self, start_brace.to_owned(), "{ "),
+                crate::fmt_symbol!(self, end_brace.to_owned(), " }"),
+            ),
+
+            TableType::Empty => ContainedSpan::new(
+                crate::fmt_symbol!(self, start_brace.to_owned(), "{"),
+                crate::fmt_symbol!(self, end_brace.to_owned(), "}"),
+            )
+        }
+    }
+
     pub fn format_table_constructor<'ast>(
         &mut self,
         table_constructor: TableConstructor<'ast>,
@@ -268,42 +316,15 @@ impl CodeFormatter {
         );
         let is_multiline = (braces_range.1 - braces_range.0) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
 
-        let braces = match current_fields.peek() {
+        let table_type = match current_fields.peek() {
             Some(_) => match is_multiline {
-                true => {
-                    // Format start and end brace properly with correct trivia
-                    let additional_indent_level = self.get_range_indent_increase(braces_range);
-                    let end_brace_leading_trivia =
-                        vec![self.create_indent_trivia(additional_indent_level)];
-
-                    // Add new_line trivia to start_brace
-                    let start_brace_token = TokenReference::symbol(
-                        &(String::from("{")
-                            + &get_line_ending_character(&self.config.line_endings)),
-                    )
-                    .unwrap();
-                    let end_brace_token = TokenReference::new(
-                        end_brace_leading_trivia,
-                        Token::new(TokenType::Symbol {
-                            symbol: Symbol::RightBrace,
-                        }),
-                        vec![],
-                    );
-                    ContainedSpan::new(
-                        self.format_symbol(start_brace.to_owned(), start_brace_token),
-                        self.format_symbol(end_brace.to_owned(), end_brace_token),
-                    )
-                }
-                false => ContainedSpan::new(
-                    crate::fmt_symbol!(self, start_brace.to_owned(), "{ "),
-                    crate::fmt_symbol!(self, end_brace.to_owned(), " }"),
-                ),
+                true => TableType::MultiLine,
+                false => TableType::SingleLine
             },
-            None => ContainedSpan::new(
-                crate::fmt_symbol!(self, start_brace.to_owned(), "{"),
-                crate::fmt_symbol!(self, end_brace.to_owned(), "}"),
-            ),
+            None => TableType::Empty
         };
+        let additional_indent_level = self.get_range_indent_increase(braces_range);
+        let braces = self.create_table_braces(start_brace, end_brace, table_type, additional_indent_level);
 
         if is_multiline {
             self.add_indent_range(braces_range);
