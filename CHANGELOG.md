@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed long tables for types collapsing onto a single line for Luau formatting
 - Fixed incorrect comment wrapping at the beginning of multiline tables
 - Fixed start brace of multiline comments not having correct indentation
+- Fixed comments having incorrect indentation when bound to the `end` token at the end of a block.
 
 ## [0.1.0-alpha.2] - 2020-12-22
 ### Added

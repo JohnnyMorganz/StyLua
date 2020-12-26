@@ -21,7 +21,7 @@ impl CodeFormatter {
     /// Format a Do node
     pub fn format_do_block<'ast>(&self, do_block: Do<'ast>) -> Do<'ast> {
         let do_token = crate::fmt_symbol!(self, do_block.do_token().to_owned(), "do");
-        let end_token = crate::fmt_symbol!(self, do_block.end_token().to_owned(), "end");
+        let end_token = self.format_end_token(do_block.end_token().to_owned());
 
         do_block.with_do_token(do_token).with_end_token(end_token)
     }
@@ -52,7 +52,7 @@ impl CodeFormatter {
             &CodeFormatter::format_expression,
         );
         let do_token = crate::fmt_symbol!(self, generic_for.do_token().to_owned(), " do");
-        let end_token = crate::fmt_symbol!(self, generic_for.end_token().to_owned(), "end");
+        let end_token = self.format_end_token(generic_for.end_token().to_owned());
 
         generic_for
             .with_for_token(for_token)
@@ -83,7 +83,7 @@ impl CodeFormatter {
         let formatted_condition = self.format_expression(if_node.condition().to_owned());
         let formatted_then_token =
             crate::fmt_symbol!(self, if_node.then_token().to_owned(), " then");
-        let formatted_end_token = crate::fmt_symbol!(self, if_node.end_token().to_owned(), "end");
+        let formatted_end_token = self.format_end_token(if_node.end_token().to_owned());
 
         let formatted_else_if = match if_node.else_if() {
             Some(else_if) => Some(
@@ -142,7 +142,7 @@ impl CodeFormatter {
         };
 
         let do_token = crate::fmt_symbol!(self, numeric_for.do_token().to_owned(), " do");
-        let end_token = crate::fmt_symbol!(self, numeric_for.end_token().to_owned(), "end");
+        let end_token = self.format_end_token(numeric_for.end_token().to_owned());
 
         numeric_for
             .with_for_token(for_token)
@@ -175,7 +175,7 @@ impl CodeFormatter {
         let while_token = crate::fmt_symbol!(self, while_block.while_token().to_owned(), "while ");
         let formatted_condition = self.format_expression(while_block.condition().to_owned());
         let do_token = crate::fmt_symbol!(self, while_block.do_token().to_owned(), " do");
-        let end_token = crate::fmt_symbol!(self, while_block.end_token().to_owned(), "end");
+        let end_token = self.format_end_token(while_block.end_token().to_owned());
 
         while_block
             .with_while_token(while_token)

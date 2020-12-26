@@ -239,10 +239,7 @@ impl CodeFormatter {
             };
         }
 
-        let end_token = self.format_symbol(
-            function_body.end_token().to_owned(),
-            TokenReference::symbol("end").unwrap(),
-        );
+        let end_token = self.format_end_token(function_body.end_token().to_owned());
 
         #[cfg(feature = "luau")]
         let function_body = function_body

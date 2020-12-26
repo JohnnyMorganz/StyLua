@@ -4,7 +4,9 @@ use full_moon::ast::{
     span::ContainedSpan,
     Block,
 };
-use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{
+    StringLiteralQuoteType, Symbol, Token, TokenKind, TokenReference, TokenType,
+};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -144,6 +146,7 @@ impl CodeFormatter {
         &self,
         token: Token<'ast>,
         format_type: &FormatTokenType,
+        additional_indent_level: Option<usize>,
     ) -> (
         Token<'ast>,
         Option<Vec<Token<'ast>>>,
@@ -198,12 +201,16 @@ impl CodeFormatter {
 
                 match format_type {
                     FormatTokenType::LeadingTrivia => {
-                        let additional_indent_level = self.get_range_indent_increase((
-                            token.start_position().bytes(),
-                            token.end_position().bytes(),
-                        ));
-                        leading_trivia =
-                            Some(vec![self.create_indent_trivia(additional_indent_level)]);
+                        let additional_indent_level = additional_indent_level.unwrap_or(0)
+                            + self
+                                .get_range_indent_increase((
+                                    token.start_position().bytes(),
+                                    token.end_position().bytes(),
+                                ))
+                                .unwrap_or(0);
+                        leading_trivia = Some(vec![
+                            self.create_indent_trivia(Some(additional_indent_level))
+                        ]);
                         trailing_trivia = Some(vec![self.create_newline_trivia()]);
                     }
                     FormatTokenType::TrailingTrivia => {
@@ -222,11 +229,16 @@ impl CodeFormatter {
                 //     self.format_multi_line_comment_string(comment.to_owned().into_owned());
 
                 if let FormatTokenType::LeadingTrivia = format_type {
-                    let additional_indent_level = self.get_range_indent_increase((
-                        token.start_position().bytes(),
-                        token.end_position().bytes(),
-                    ));
-                    leading_trivia = Some(vec![self.create_indent_trivia(additional_indent_level)]);
+                    let additional_indent_level = additional_indent_level.unwrap_or(0)
+                        + self
+                            .get_range_indent_increase((
+                                token.start_position().bytes(),
+                                token.end_position().bytes(),
+                            ))
+                            .unwrap_or(0);
+                    leading_trivia = Some(vec![
+                        self.create_indent_trivia(Some(additional_indent_level))
+                    ]);
                     // Add a new line once the comment is completed
                     trailing_trivia = Some(vec![self.create_newline_trivia()]);
                 }
@@ -245,13 +257,15 @@ impl CodeFormatter {
         (Token::new(token_type), leading_trivia, trailing_trivia)
     }
 
-    /// Wraps around the format_token function to create a complete list of trivia to add to a node
-    /// Handles any leading/trailing trivia provided by format_token, and appends it accordingly in relation to the formatted token
+    /// Wraps around the format_token function to create a complete list of trivia to add to a node.
+    /// Handles any leading/trailing trivia provided by format_token, and appends it accordingly in relation to the formatted token.
     /// Mainly useful for comments
+    /// Additional indent level will indent any trivia by the further level - useful for comments on the `end` token
     fn load_token_trivia<'ast>(
         &self,
         current_trivia: Vec<&Token<'ast>>,
         format_token_type: FormatTokenType,
+        additional_indent_level: Option<usize>,
     ) -> Vec<Token<'ast>> {
         let mut token_trivia = Vec::new();
 
@@ -281,8 +295,11 @@ impl CodeFormatter {
                 }
             }
 
-            let (token, leading_trivia, trailing_trivia) =
-                self.format_token(trivia.to_owned(), &format_token_type);
+            let (token, leading_trivia, trailing_trivia) = self.format_token(
+                trivia.to_owned(),
+                &format_token_type,
+                additional_indent_level,
+            );
             if let Some(mut trivia) = leading_trivia {
                 token_trivia.append(&mut trivia);
             }
@@ -305,14 +322,19 @@ impl CodeFormatter {
         let formatted_leading_trivia: Vec<Token<'a>> = self.load_token_trivia(
             token_reference.leading_trivia().collect(),
             FormatTokenType::LeadingTrivia,
+            None,
         );
         let formatted_trailing_trivia: Vec<Token<'a>> = self.load_token_trivia(
             token_reference.trailing_trivia().collect(),
             FormatTokenType::TrailingTrivia,
+            None,
         );
 
-        let (token, _leading_trivia, _trailing_trivia) =
-            self.format_token(token_reference.token().to_owned(), &FormatTokenType::Token);
+        let (token, _leading_trivia, _trailing_trivia) = self.format_token(
+            token_reference.token().to_owned(),
+            &FormatTokenType::Token,
+            None,
+        );
         // TODO: is it possible for leading/trailing trivia to be present here?
         // if let Some(trivia) = leading_trivia {
         //     formatted_leading_trivia.append(trivia);
@@ -397,10 +419,12 @@ impl CodeFormatter {
         let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_symbol.leading_trivia().collect(),
             FormatTokenType::LeadingTrivia,
+            None,
         );
         let mut formatted_trailing_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_symbol.trailing_trivia().collect(),
             FormatTokenType::TrailingTrivia,
+            None,
         );
 
         // Add on any whitespace created in the new symbol
@@ -422,6 +446,33 @@ impl CodeFormatter {
             formatted_leading_trivia,
             wanted_symbol.token().to_owned(),
             wanted_trailing_trivia,
+        ))
+    }
+
+    /// Formats an `end` token, which is normally present to close a block
+    /// This is required due to comments bound to an `end` token - they need to have one level higher indentation
+    pub fn format_end_token<'ast>(
+        &self,
+        current_token: TokenReference<'ast>,
+    ) -> Cow<'ast, TokenReference<'ast>> {
+        // Indent any comments leading a token, as these comments are technically part of the function body block
+        let formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
+            current_token.leading_trivia().collect(),
+            crate::formatters::FormatTokenType::LeadingTrivia,
+            Some(1),
+        );
+        let formatted_trailing_trivia: Vec<Token<'ast>> = self.load_token_trivia(
+            current_token.trailing_trivia().collect(),
+            crate::formatters::FormatTokenType::TrailingTrivia,
+            None,
+        );
+
+        Cow::Owned(TokenReference::new(
+            formatted_leading_trivia,
+            Token::new(TokenType::Symbol {
+                symbol: Symbol::End,
+            }),
+            formatted_trailing_trivia,
         ))
     }
 }
@@ -455,6 +506,7 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
         let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             node.leading_trivia().collect(),
             FormatTokenType::LeadingTrivia,
+            None,
         );
 
         let only_whitespace = formatted_leading_trivia
