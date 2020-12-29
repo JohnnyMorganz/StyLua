@@ -42,13 +42,6 @@ enum FormatTokenType {
     TrailingTrivia,
 }
 
-fn get_indent_string(indent_type: &IndentType, indent_level: usize, indent_width: usize) -> String {
-    match indent_type {
-        IndentType::Tabs => "\t".repeat(indent_level - 1),
-        IndentType::Spaces => " ".repeat(indent_width).repeat(indent_level - 1),
-    }
-}
-
 /// Returns the relevant line ending string from the [`LineEndings`] enum
 fn get_line_ending_character(line_endings: &LineEndings) -> String {
     match line_endings {

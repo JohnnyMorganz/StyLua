@@ -7,7 +7,8 @@ use full_moon::ast::types::{IndexedTypeInfo, TypeInfo};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Call, Expression, Field, FunctionArgs, Index, Suffix, TableConstructor, Value, Var, Prefix, UnOp
+    Call, Expression, Field, FunctionArgs, Index, Prefix, Suffix, TableConstructor, UnOp, Value,
+    Var,
 };
 use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -186,17 +187,34 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
 
 fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Token<'ast>> {
     match expression {
-        Expression::Parentheses { contained, .. } => contained.tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
+        Expression::Parentheses { contained, .. } => contained
+            .tokens()
+            .0
+            .leading_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
         Expression::UnaryOperator { unop, .. } => match unop {
-            UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
+                token_ref.leading_trivia().map(|x| x.to_owned()).collect()
+            }
         },
         Expression::Value { value, .. } => match *value {
-            Value::Function((token_ref, _)) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::FunctionCall(function_call) => match function_call.prefix() {
-                Prefix::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-                Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+            Value::Function((token_ref, _)) => {
+                token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
-            Value::TableConstructor(table) => table.braces().tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::FunctionCall(function_call) => match function_call.prefix() {
+                Prefix::Name(token_ref) => {
+                    token_ref.leading_trivia().map(|x| x.to_owned()).collect()
+                }
+                Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+            },
+            Value::TableConstructor(table) => table
+                .braces()
+                .tokens()
+                .0
+                .leading_trivia()
+                .map(|x| x.to_owned())
+                .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::ParseExpression(expr) => get_expression_leading_trivia(expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
@@ -204,18 +222,25 @@ fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Toke
             Value::Var(var) => match var {
                 Var::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
                 Var::Expression(var_expr) => match var_expr.prefix() {
-                    Prefix::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+                    Prefix::Name(token_ref) => {
+                        token_ref.leading_trivia().map(|x| x.to_owned()).collect()
+                    }
                     Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
-                }
-            }
-        }
+                },
+            },
+        },
     }
 }
 
 fn get_field_leading_trivia<'ast>(field: Field<'ast>) -> Vec<Token<'ast>> {
     match field {
-        Field::ExpressionKey{ brackets, .. } => brackets.tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
-        Field::NameKey{ key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
+        Field::ExpressionKey { brackets, .. } => brackets
+            .tokens()
+            .0
+            .leading_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Field::NameKey { key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
         Field::NoKey(expression) => get_expression_leading_trivia(expression),
     }
 }
@@ -369,7 +394,7 @@ impl CodeFormatter {
                     if characters.find('\n').is_some() {
                         is_multiline = true
                     }
-                } 
+                }
             }
         }
 
