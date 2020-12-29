@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- StyLua will now take into account if a table was originally expanded onto multiple lines. If so, StyLua won't attempt to collapse it
+
+### Changed
+- Changed when a table will expand onto new lines. It will now expand after 80 characters have been exceeded, and takes indent level into account
+
 ## [0.1.0-alpha.3] - 2020-12-26
 ### Changed
 - Changed the default value of `indent_width` to 4

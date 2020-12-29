@@ -84,6 +84,11 @@ impl CodeFormatter {
         self.indent_level -= 1;
     }
 
+    /// Returns the size of the current indent level in characters
+    pub fn get_indent_width(&self) -> usize {
+        (self.indent_level - 1) * self.config.indent_width
+    }
+
     /// Adds a Position Range of locations where indents should be increased on top of the current indent level.
     /// This is used mainly within tables, where the values may be an anonymous function but the indent level not being
     /// high enough

@@ -1,5 +1,4 @@
 use crate::formatters::{
-    get_line_ending_character,
     trivia_formatter::{self, FormatTriviaType},
     CodeFormatter,
 };
@@ -8,7 +7,7 @@ use full_moon::ast::types::{IndexedTypeInfo, TypeInfo};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Call, Expression, Field, FunctionArgs, Index, Suffix, TableConstructor, Value, Var,
+    Call, Expression, Field, FunctionArgs, Index, Suffix, TableConstructor, Value, Var, Prefix, UnOp
 };
 use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -185,6 +184,42 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
     }
 }
 
+fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Token<'ast>> {
+    match expression {
+        Expression::Parentheses { contained, .. } => contained.tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
+        Expression::UnaryOperator { unop, .. } => match unop {
+            UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+        },
+        Expression::Value { value, .. } => match *value {
+            Value::Function((token_ref, _)) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::FunctionCall(function_call) => match function_call.prefix() {
+                Prefix::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+                Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+            }
+            Value::TableConstructor(table) => table.braces().tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::ParseExpression(expr) => get_expression_leading_trivia(expr),
+            Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Value::Var(var) => match var {
+                Var::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+                Var::Expression(var_expr) => match var_expr.prefix() {
+                    Prefix::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+                    Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+                }
+            }
+        }
+    }
+}
+
+fn get_field_leading_trivia<'ast>(field: Field<'ast>) -> Vec<Token<'ast>> {
+    match field {
+        Field::ExpressionKey{ brackets, .. } => brackets.tokens().0.leading_trivia().map(|x| x.to_owned()).collect(),
+        Field::NameKey{ key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
+        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+    }
+}
+
 /// Used to provide information about the table
 pub enum TableType {
     /// The table will have multline fields
@@ -322,7 +357,21 @@ impl CodeFormatter {
             start_brace.end_position().bytes(),
             end_brace.start_position().bytes(),
         );
-        let is_multiline = (braces_range.1 - braces_range.0) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+        let mut is_multiline = (braces_range.1 - braces_range.0) + self.get_indent_width() > 80;
+
+        // Determine if there was a new line at the end of the start brace
+        // If so, then we should always be multiline
+        // The newline is bound to the first field, so we need to check its leading trivia
+        if let Some(first_field) = current_fields.peek() {
+            let leading_trivia = get_field_leading_trivia(first_field.value().to_owned());
+            for trivia in leading_trivia.iter() {
+                if let TokenType::Whitespace { characters } = trivia.token_type() {
+                    if characters.find('\n').is_some() {
+                        is_multiline = true
+                    }
+                } 
+            }
+        }
 
         let table_type = match current_fields.peek() {
             Some(_) => match is_multiline {

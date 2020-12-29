@@ -189,12 +189,7 @@ end
 
 local Promise = {
 	Error = Error,
-	Status = makeEnum("Promise.Status", {
-		"Started",
-		"Resolved",
-		"Rejected",
-		"Cancelled",
-	}),
+	Status = makeEnum("Promise.Status", { "Started", "Resolved", "Rejected", "Cancelled" }),
 	_getTime = os.clock,
 	_timeEvent = game:GetService("RunService").Heartbeat,
 }
