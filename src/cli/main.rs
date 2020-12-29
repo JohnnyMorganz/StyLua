@@ -117,7 +117,7 @@ fn format_string(input: String, config: Config) -> Result<()> {
 
     match out.write_all(&formatted_contents.into_bytes()) {
         Ok(()) => Ok(()),
-        Err(error) => return Err(format_err!("error: could not output to stdout: {}", error)),
+        Err(error) => Err(format_err!("error: could not output to stdout: {}", error)),
     }
 }
 
@@ -185,6 +185,7 @@ fn format(opt: Opt) -> Result<i32> {
     walker_builder
         .standard_filters(false)
         .hidden(true)
+        .parents(true)
         .overrides(overrides)
         .add_custom_ignore_filename(".styluaignore");
 
@@ -221,8 +222,6 @@ fn format(opt: Opt) -> Result<i32> {
                             }
                             Err(error) => errors.push(error),
                         }
-                    } else {
-                        errors.push(format_err!("error: {} is not a file", path.display()));
                     }
                 }
             }
