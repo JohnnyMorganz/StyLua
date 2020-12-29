@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - StyLua will now take into account if a table was originally expanded onto multiple lines. If so, StyLua won't attempt to collapse it
 - Added support for reading in from stdin for the CLI, use `stylua -` to make StyLua read from stdin, and a formatted output will be written to stdout
+- Added `--check` command line flag. If enabled, then StyLua will check through the files and emit a diff for files with incorrect formatting, exiting with status code 1. StyLua will not modifiy files
 
 ### Changed
 - Changed when a table will expand onto new lines. It will now expand after 80 characters have been exceeded, and takes indent level into account
