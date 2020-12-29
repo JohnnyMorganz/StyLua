@@ -37,9 +37,21 @@ This command will format the `foo.lua` and `bar.lua` file, and search down the `
 
 When searching through a directory, a glob pattern can be used to specify which specific types of files to format:
 ```
-stylua --pattern **/*.lua src
+stylua --glob **/*.lua src
 ```
-The pattern defaults to `**/*.lua`.
+Multiple glob patterns can be used to match specific files, and not others. For example:
+```
+stylua -g *.lua -g !*.spec.lua .
+```
+will format all Lua files, but ignore any `.spec.lua` test files.
+The glob defaults to `**/*.lua`.
+
+You can also create a `.styluaignore` file, with a similar format to a `.gitignore` file. Any files matched will be ignored by StyLua.
+For example, for a `.styluaignore` file with the following contents:
+```
+vendor/
+```
+running `stylua .` will ignore the `vendor/` directory.
 
 ## Configuration
 
@@ -70,7 +82,7 @@ indent_type = "Tabs"
 ### `indent_width`
 
 The width of spaces a single indent level should be. This option is ignored if the `indent_type` is set to `Tabs`.
-Defaults to `4`
+Defaults to `4`.
 
 ```
 indent_width = 2
