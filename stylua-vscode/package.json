@@ -1,0 +1,71 @@
+{
+  "name": "stylua",
+  "displayName": "StyLua",
+  "description": "A code formatter for Lua",
+  "publisher": "JohnnyMorganz",
+  "repository": "https://github.com/JohnnyMorganz/StyLua",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.52.0"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "keywords": [
+    "stylua", "lua", "formatter", "luau"
+  ],
+  "activationEvents": [
+    "onLanguage:lua",
+    "onCommand:stylua.reinstall"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "stylua.reinstall",
+        "title": "Reinstall StyLua",
+        "category": "StyLua"
+      }
+    ],
+    "configuration": {
+      "title": "StyLua",
+      "properties": {
+        "stylua.styluaPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.0.4",
+    "@types/node": "^12.11.7",
+    "@types/node-fetch": "^2.5.7",
+    "@types/unzipper": "^0.10.3",
+    "@types/vscode": "^1.52.0",
+    "@typescript-eslint/eslint-plugin": "^4.9.0",
+    "@typescript-eslint/parser": "^4.9.0",
+    "eslint": "^7.15.0",
+    "glob": "^7.1.6",
+    "mocha": "^8.1.3",
+    "typescript": "^4.1.2",
+    "vscode-test": "^1.4.1"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "unzipper": "^0.10.11"
+  }
+}
