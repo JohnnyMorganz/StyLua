@@ -1,8 +1,9 @@
 use anyhow::{format_err, Result};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use stylua_lib::{format_code, Config};
+use ignore::{WalkBuilder, overrides::OverrideBuilder};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
@@ -20,7 +21,7 @@ struct Opt {
     files: Vec<PathBuf>,
 }
 
-fn format_file(path: &PathBuf, config: Config) -> Result<()> {
+fn format_file(path: &Path, config: Config) -> Result<()> {
     match fs::read(path) {
         Ok(contents) => {
             let contents = String::from_utf8_lossy(&contents);
@@ -91,40 +92,41 @@ fn format(opt: Opt) -> Result<i32> {
     let mut errors = vec![];
 
     for file_path in opt.files.iter() {
-        if file_path.exists() {
-            if file_path.is_file() {
-                match format_file(file_path, config) {
-                    Ok(_) => continue,
-                    Err(error) => errors.push(error),
-                }
-            } else if file_path.is_dir() {
-                let glob_pattern = format!("{}/{}", file_path.to_string_lossy(), opt.pattern);
-                match glob::glob(&glob_pattern) {
-                    Ok(entries) => {
-                        for entry in entries {
-                            match entry {
-                                Ok(path) => match format_file(&path, config) {
-                                    Ok(_) => continue,
-                                    Err(error) => errors.push(error),
-                                },
-                                Err(error) => {
-                                    errors.push(format_err!("error: failed to read file {}", error))
-                                }
+        let override_builder = match OverrideBuilder::new(file_path).add(&opt.pattern) {
+            Ok(builder) => builder,
+            Err(error) => {
+                errors.push(format_err!(
+                    "error: failed to parse pattern into glob: {} {}",
+                    opt.pattern,
+                    error
+                ));
+                continue
+            },
+        }.build().unwrap(); // TODO: don't unwrap like this
+
+        let walker = WalkBuilder::new(file_path).standard_filters(false).hidden(true).overrides(override_builder).build();
+
+        for result in walker {
+            match result {
+                Ok(entry) => {
+                    if entry.is_stdin() {
+                        // TODO: Handle stdin
+                    } else {
+                        let path = entry.path();
+                        if path.is_file() {
+                            match format_file(path, config) {
+                                Ok(_) => continue,
+                                Err(error) => errors.push(error)
                             }
+                        } else {
+                            errors.push(format_err!("error: {} is not a file", path.display()));
                         }
                     }
-                    Err(error) => errors.push(format_err!(
-                        "error: failed to read glob pattern {}: {}",
-                        glob_pattern,
-                        error
-                    )),
+                },
+                Err(error) => {
+                    errors.push(format_err!("error: could not walk: {}", error));
                 }
-            } else {
-                errors.push(format_err!("error: unknown path {}", file_path.display()))
             }
-        } else {
-            errors.push(format_err!("error: file {} not found", file_path.display()));
-            continue;
         }
     }
 
