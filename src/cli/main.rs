@@ -31,9 +31,10 @@ struct Opt {
     )]
     color: Color,
 
-    /// A glob pattern to test against which files to check
-    #[structopt(long, default_value = "**/*.lua")]
-    pattern: String,
+    /// Any glob patterns to test against which files to check
+    /// To ignore a specific glob pattern, begin with !
+    #[structopt(short, long, default_value = "*.lua")]
+    glob: Vec<String>,
 
     /// A list of files to format
     #[structopt(parse(from_os_str))]
@@ -159,65 +160,74 @@ fn format(opt: Opt) -> Result<i32> {
     let mut errors = vec![];
     let mut error_code = 0;
 
-    for file_path in opt.files.iter() {
-        let override_builder = match OverrideBuilder::new(file_path).add(&opt.pattern) {
-            Ok(builder) => builder,
-            Err(error) => {
-                errors.push(format_err!(
-                    "error: failed to parse pattern into glob: {} {}",
-                    opt.pattern,
-                    error
-                ));
-                continue;
-            }
+    let cwd = std::env::current_dir()?;
+
+    // Build overriders with any patterns given
+    let mut overrides = OverrideBuilder::new(cwd);
+    for pattern in opt.glob {
+        match overrides.add(&pattern) {
+            Ok(_) => continue,
+            Err(err) => errors.push(format_err!(
+                "error: cannot parse glob pattern {}: {}",
+                pattern,
+                err
+            )),
         }
-        .build()
-        .unwrap(); // TODO: don't unwrap like this
+    }
+    let overrides = overrides.build()?;
 
-        let walker = WalkBuilder::new(file_path)
-            .standard_filters(false)
-            .hidden(true)
-            .overrides(override_builder)
-            .build();
+    // Build WalkBuilder with the files given, using any overrides set
+    let mut walker_builder = WalkBuilder::new(&opt.files[0]);
+    for file_path in &opt.files[1..] {
+        walker_builder.add(file_path);
+    }
 
-        for result in walker {
-            match result {
-                Ok(entry) => {
-                    if entry.is_stdin() {
-                        if opt.check {
-                            errors.push(format_err!(
-                                "warning: `--check` cannot be used whilst reading from stdin"
-                            ))
-                        };
+    walker_builder
+        .standard_filters(false)
+        .hidden(true)
+        .overrides(overrides)
+        .add_custom_ignore_filename(".styluaignore");
 
-                        let mut buf = String::new();
-                        match stdin().read_to_string(&mut buf) {
-                            Ok(_) => match format_string(buf, config) {
-                                Ok(_) => continue,
-                                Err(error) => errors.push(error),
-                            },
-                            Err(error) => errors
-                                .push(format_err!("error: could not read from stdin: {}", error)),
-                        }
-                    } else {
-                        let path = entry.path();
-                        if path.is_file() {
-                            match format_file(path, config, opt.check, opt.color) {
-                                Ok(code) => {
-                                    if code != 0 {
-                                        error_code = code
-                                    }
-                                }
-                                Err(error) => errors.push(error),
-                            }
-                        } else {
-                            errors.push(format_err!("error: {} is not a file", path.display()));
+    let walker = walker_builder.build();
+
+    for result in walker {
+        match result {
+            Ok(entry) => {
+                if entry.is_stdin() {
+                    if opt.check {
+                        errors.push(format_err!(
+                            "warning: `--check` cannot be used whilst reading from stdin"
+                        ))
+                    };
+
+                    let mut buf = String::new();
+                    match stdin().read_to_string(&mut buf) {
+                        Ok(_) => match format_string(buf, config) {
+                            Ok(_) => continue,
+                            Err(error) => errors.push(error),
+                        },
+                        Err(error) => {
+                            errors.push(format_err!("error: could not read from stdin: {}", error))
                         }
                     }
+                } else {
+                    let path = entry.path();
+                    if path.is_file() {
+                        match format_file(path, config, opt.check, opt.color) {
+                            Ok(code) => {
+                                if code != 0 {
+                                    error_code = code
+                                }
+                            }
+                            Err(error) => errors.push(error),
+                        }
+                    } else {
+                        errors.push(format_err!("error: {} is not a file", path.display()));
+                    }
                 }
-                Err(error) => {
-                    errors.push(format_err!("error: could not walk: {}", error));
-                }
+            }
+            Err(error) => {
+                errors.push(format_err!("error: could not walk: {}", error));
             }
         }
     }
