@@ -1,6 +1,7 @@
 use anyhow::{format_err, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::io::{stdin, stdout, Read, Write};
 use structopt::StructOpt;
 use stylua_lib::{format_code, Config};
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
@@ -52,6 +53,32 @@ fn format_file(path: &Path, config: Config) -> Result<()> {
         )),
     }
 }
+
+/// Takes in a string and outputs the formatted version to stdout
+/// Used when input has been provided to stdin
+fn format_string(input: String, config: Config) -> Result<()> {
+    let out = &mut stdout();
+    let formatted_contents = match format_code(&input, config) {
+        Ok(formatted) => formatted,
+        Err(error) => {
+            return Err(format_err!(
+                "error: could not format from stdin: {}",
+                error
+            ))
+        }
+    };
+
+    match out.write_all(&formatted_contents.into_bytes()) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            return Err(format_err!(
+                "error: could not output to stdout: {}",
+                error
+            ))
+        }
+    }
+}
+
 
 fn format(opt: Opt) -> Result<i32> {
     if opt.files.is_empty() {
@@ -110,7 +137,14 @@ fn format(opt: Opt) -> Result<i32> {
             match result {
                 Ok(entry) => {
                     if entry.is_stdin() {
-                        // TODO: Handle stdin
+                        let mut buf = String::new();
+                        match stdin().read_to_string(&mut buf) {
+                            Ok(_) => match format_string(buf, config) {
+                                Ok(_) => continue,
+                                Err(error) => errors.push(error)
+                            },
+                            Err(error) => errors.push(format_err!("error: could not read from stdin: {}", error))
+                        }
                     } else {
                         let path = entry.path();
                         if path.is_file() {
