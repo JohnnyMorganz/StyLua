@@ -4,7 +4,7 @@
   "description": "A Lua code formatter",
   "publisher": "JohnnyMorganz",
   "repository": "https://github.com/JohnnyMorganz/StyLua",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.52.0"
   },

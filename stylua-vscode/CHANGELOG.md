@@ -11,8 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.0.1] - 2020-12-30
+
 - Fix issue where extension would prompt an update was available but it was the same version
 
-## [0.1.0] - 2020-12-30
+## [1.0.0] - 2020-12-30
 
 - Initial release
