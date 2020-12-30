@@ -9,6 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/master/CHANGELOG.md)
 
-## [Unreleased]
+## [0.1.0] - 2020-12-30
 
 - Initial release

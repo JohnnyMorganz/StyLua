@@ -17,7 +17,7 @@ StyLua can be installed using foreman. Add the following to your `foreman.toml` 
 stylua = { source = "JohnnyMorganz/stylua", version = "0.1.0" }
 ```
 
-### Using the VSCode Extensions
+### Using the VSCode Extension
 
 You can use the [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua), which will automatically download StyLua for you.
 Set StyLua as your formatter when prompted, or add the following configuration to your `settings.json` file:
