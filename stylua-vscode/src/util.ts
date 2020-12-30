@@ -141,8 +141,8 @@ export const ensureStyluaExists = async (
     }
 
     const version = (await executeStylua(path, ["--version"]))?.trim();
-    const release = await getLatestRelease();
-    if (version !== `stylua ${release.tag_name}`) {
+    const release = await getLatestRelease(); 
+    if (version !== `stylua ${release.tag_name.startsWith('v') ? release.tag_name.substr(1) : release.tag_name}`) {
       openUpdatePrompt(storageDirectory, release);
     }
 
