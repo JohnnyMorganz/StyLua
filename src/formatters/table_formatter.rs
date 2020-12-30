@@ -410,6 +410,8 @@ impl CodeFormatter {
             self.create_table_braces(start_brace, end_brace, table_type, additional_indent_level);
 
         if is_multiline {
+            // Need to take the inner portion of the braces, not including the braces themselves
+            let braces_range = (braces_range.0 + 1, braces_range.1 - 1);
             self.add_indent_range(braces_range);
         }
 

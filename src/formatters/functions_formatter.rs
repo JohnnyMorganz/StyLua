@@ -14,6 +14,17 @@ use crate::formatters::{
     CodeFormatter,
 };
 
+fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
+    for trivia in trivia_vec {
+        if let TokenType::Whitespace { characters } = trivia.token_type() {
+            if characters.find('\n').is_some() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 impl CodeFormatter {
     /// Formats an Anonymous Function
     /// This doesn't have its own struct, but it is part of Value::Function
@@ -78,9 +89,72 @@ impl CodeFormatter {
                 let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
                 let mut current_arguments = arguments.iter().peekable();
 
-                // If we only have one argument then we will not make it multi line. TODO: this is subject to change
-                if arguments.len() == 1 {
-                    is_multiline = false;
+                // Format all the arguments, so that we can prepare them and check to see whether they need expanding
+                // We will ignore punctuation for now
+                let mut formatted_arguments = Vec::new();
+                for argument in arguments.iter() {
+                    formatted_arguments.push(self.format_expression(argument.to_owned()))
+                }
+
+                // Apply some heuristics to determine whether we should expand the function call
+                // TODO: These are subject to change
+                // If we only have one argument then we will not make it multi line (expanding it would have little value)
+                if is_multiline {
+                    if formatted_arguments.len() == 1 {
+                        is_multiline = false;
+                    } else {
+                        // Find how far we are currently indented, we can use this to determine when to expand
+                        // TODO: We need to add more to this - there may be quite a lot before this function call
+                        // TODO: include additional_indent_level
+                        let mut width_passed = self.get_indent_width();
+                        let mut keep_single_line = false;
+                        // Check to see if we have a table constructor, or anonymous function
+                        for argument in formatted_arguments.iter() {
+                            // TODO: Do we need to worry about parentheses or UnOp?
+                            if let Expression::Value { value, .. } = argument {
+                                match &**value {
+                                    Value::Function(_) => {
+                                        // An anonymous function should always be expanded
+                                        // This is safe to prevent expansion
+                                        keep_single_line = true;
+                                    }
+                                    Value::TableConstructor(table) => {
+                                        // Check to see whether it has been expanded
+                                        let start_brace = table.braces().tokens().0;
+                                        let is_expanded =
+                                            trivia_contains_newline(start_brace.trailing_trivia());
+                                        if is_expanded {
+                                            keep_single_line = true
+                                        } else {
+                                            // We have a collapsed table constructor - add the width, and if it fails,
+                                            // we need to expand
+                                            width_passed += argument.to_string().len();
+                                            if width_passed > 80 {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    _ => {
+                                        // If we previously had a table/anonymous function, and we have something else
+                                        // in the mix, we should not expand
+                                        if keep_single_line {
+                                            keep_single_line = false;
+                                            break;
+                                        }
+                                        width_passed += argument.to_string().len();
+                                        if width_passed > 80 {
+                                            // We have passed 80 characters without a table or anonymous function
+                                            // There is nothing else stopping us from expanding - so we will
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if keep_single_line {
+                            is_multiline = false;
+                        }
+                    }
                 }
 
                 if is_multiline {
@@ -122,6 +196,8 @@ impl CodeFormatter {
                         let additional_indent_level =
                             self.get_range_indent_increase(argument_range);
 
+                        // Unfortunately, we need to format again, taking into account in indent increase
+                        // TODO: Can we fix this? We don't want to have to format twice
                         let formatted_argument = trivia_formatter::expression_add_leading_trivia(
                             self.format_expression(argument.to_owned()),
                             FormatTriviaType::Append(vec![

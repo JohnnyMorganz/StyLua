@@ -17,17 +17,14 @@ local function makeEnum(enumName, members)
 		enum[memberName] = memberName
 	end
 
-	return setmetatable(
-		enum,
-		{
-			__index = function(_, k)
-				error(string.format("%s is not in %s!", k, enumName), 2)
-			end,
-			__newindex = function()
-				error(string.format("Creating new members in %s is not allowed!", enumName), 2)
-			end,
-		}
-	)
+	return setmetatable(enum, {
+		__index = function(_, k)
+			error(string.format("%s is not in %s!", k, enumName), 2)
+		end,
+		__newindex = function()
+			error(string.format("Creating new members in %s is not allowed!", enumName), 2)
+		end,
+	})
 end
 
 --[[
@@ -38,15 +35,12 @@ end
 local Error
 do
 	Error = {
-		Kind = makeEnum(
-			"Promise.Error.Kind",
-			{
-				"ExecutionError",
-				"AlreadyCancelled",
-				"NotResolvedInTime",
-				"TimedOut",
-			}
-		),
+		Kind = makeEnum("Promise.Error.Kind", {
+			"ExecutionError",
+			"AlreadyCancelled",
+			"NotResolvedInTime",
+			"TimedOut",
+		}),
 	}
 	Error.__index = Error
 
@@ -298,20 +292,17 @@ end
 function Promise.defer(callback)
 	local traceback = debug.traceback(nil, 2)
 	local promise
-	promise = Promise._new(
-		traceback,
-		function(resolve, reject, onCancel)
-			local connection
-			connection = Promise._timeEvent:Connect(function()
-				connection:Disconnect()
-				local ok, _, result = runExecutor(traceback, callback, resolve, reject, onCancel)
+	promise = Promise._new(traceback, function(resolve, reject, onCancel)
+		local connection
+		connection = Promise._timeEvent:Connect(function()
+			connection:Disconnect()
+			local ok, _, result = runExecutor(traceback, callback, resolve, reject, onCancel)
 
-				if not ok then
-					reject(result[1])
-				end
-			end)
-		end
-	)
+			if not ok then
+				reject(result[1])
+			end
+		end)
+	end)
 
 	return promise
 end
@@ -324,12 +315,9 @@ Promise.async = Promise.defer
 ]]
 function Promise.resolve(...)
 	local length, values = pack(...)
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(resolve)
-			resolve(unpack(values, 1, length))
-		end
-	)
+	return Promise._new(debug.traceback(nil, 2), function(resolve)
+		resolve(unpack(values, 1, length))
+	end)
 end
 
 --[[
@@ -337,12 +325,9 @@ end
 ]]
 function Promise.reject(...)
 	local length, values = pack(...)
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(_, reject)
-			reject(unpack(values, 1, length))
-		end
-	)
+	return Promise._new(debug.traceback(nil, 2), function(_, reject)
+		reject(unpack(values, 1, length))
+	end)
 end
 
 --[[
@@ -352,12 +337,9 @@ end
 function Promise._try(traceback, callback, ...)
 	local valuesLength, values = pack(...)
 
-	return Promise._new(
-		traceback,
-		function(resolve)
-			resolve(callback(unpack(values, 1, valuesLength)))
-		end
-	)
+	return Promise._new(traceback, function(resolve)
+		resolve(callback(unpack(values, 1, valuesLength)))
+	end)
 end
 
 --[[
@@ -390,73 +372,67 @@ function Promise._all(traceback, promises, amount)
 		return Promise.resolve({})
 	end
 
-	return Promise._new(
-		traceback,
-		function(resolve, reject, onCancel)
-			-- An array to contain our resolved values from the given promises.
-			local resolvedValues = {}
-			local newPromises = {}
+	return Promise._new(traceback, function(resolve, reject, onCancel)
+		-- An array to contain our resolved values from the given promises.
+		local resolvedValues = {}
+		local newPromises = {}
 
-			-- Keep a count of resolved promises because just checking the resolved
-			-- values length wouldn't account for promises that resolve with nil.
-			local resolvedCount = 0
-			local rejectedCount = 0
-			local done = false
+		-- Keep a count of resolved promises because just checking the resolved
+		-- values length wouldn't account for promises that resolve with nil.
+		local resolvedCount = 0
+		local rejectedCount = 0
+		local done = false
 
-			local function cancel()
-				for _, promise in ipairs(newPromises) do
-					promise:cancel()
-				end
+		local function cancel()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
 			end
+		end
 
-			-- Called when a single value is resolved and resolves if all are done.
-			local function resolveOne(i, ...)
-				if done then
-					return
-				end
-
-				resolvedCount = resolvedCount + 1
-
-				if amount == nil then
-					resolvedValues[i] = ...
-				else
-					resolvedValues[resolvedCount] = ...
-				end
-
-				if resolvedCount >= (amount or #promises) then
-					done = true
-					resolve(resolvedValues)
-					cancel()
-				end
-			end
-
-			onCancel(cancel)
-
-			-- We can assume the values inside `promises` are all promises since we
-			-- checked above.
-			for i, promise in ipairs(promises) do
-				newPromises[i] = promise:andThen(
-					function(...)
-						resolveOne(i, ...)
-					end,
-					function(...)
-						rejectedCount = rejectedCount + 1
-
-						if amount == nil or #promises - rejectedCount < amount then
-							cancel()
-							done = true
-
-							reject(...)
-						end
-					end
-				)
-			end
-
+		-- Called when a single value is resolved and resolves if all are done.
+		local function resolveOne(i, ...)
 			if done then
+				return
+			end
+
+			resolvedCount = resolvedCount + 1
+
+			if amount == nil then
+				resolvedValues[i] = ...
+			else
+				resolvedValues[resolvedCount] = ...
+			end
+
+			if resolvedCount >= (amount or #promises) then
+				done = true
+				resolve(resolvedValues)
 				cancel()
 			end
 		end
-	)
+
+		onCancel(cancel)
+
+		-- We can assume the values inside `promises` are all promises since we
+		-- checked above.
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:andThen(function(...)
+				resolveOne(i, ...)
+			end, function(...)
+				rejectedCount = rejectedCount + 1
+
+				if amount == nil or #promises - rejectedCount < amount then
+					cancel()
+					done = true
+
+					reject(...)
+				end
+			end)
+		end
+
+		if done then
+			cancel()
+		end
+	end)
 end
 
 function Promise.all(promises)
@@ -471,14 +447,11 @@ function Promise.fold(list, callback, initialValue)
 	)
 
 	local accumulator = Promise.resolve(initialValue)
-	return Promise.each(
-		list,
-		function(resolvedElement, i)
-			accumulator = accumulator:andThen(function(previousValueResolved)
-				return callback(previousValueResolved, resolvedElement, i)
-			end)
-		end
-	):andThenReturn(accumulator)
+	return Promise.each(list, function(resolvedElement, i)
+		accumulator = accumulator:andThen(function(previousValueResolved)
+			return callback(previousValueResolved, resolvedElement, i)
+		end)
+	end):andThenReturn(accumulator)
 end
 
 function Promise.some(promises, amount)
@@ -511,43 +484,40 @@ function Promise.allSettled(promises)
 		return Promise.resolve({})
 	end
 
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(resolve, _, onCancel)
-			-- An array to contain our resolved values from the given promises.
-			local fates = {}
-			local newPromises = {}
+	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+		-- An array to contain our resolved values from the given promises.
+		local fates = {}
+		local newPromises = {}
 
-			-- Keep a count of resolved promises because just checking the resolved
-			-- values length wouldn't account for promises that resolve with nil.
-			local finishedCount = 0
+		-- Keep a count of resolved promises because just checking the resolved
+		-- values length wouldn't account for promises that resolve with nil.
+		local finishedCount = 0
 
-			-- Called when a single value is resolved and resolves if all are done.
-			local function resolveOne(i, ...)
-				finishedCount = finishedCount + 1
+		-- Called when a single value is resolved and resolves if all are done.
+		local function resolveOne(i, ...)
+			finishedCount = finishedCount + 1
 
-				fates[i] = ...
+			fates[i] = ...
 
-				if finishedCount >= #promises then
-					resolve(fates)
-				end
-			end
-
-			onCancel(function()
-				for _, promise in ipairs(newPromises) do
-					promise:cancel()
-				end
-			end)
-
-			-- We can assume the values inside `promises` are all promises since we
-			-- checked above.
-			for i, promise in ipairs(promises) do
-				newPromises[i] = promise:finally(function(...)
-					resolveOne(i, ...)
-				end)
+			if finishedCount >= #promises then
+				resolve(fates)
 			end
 		end
-	)
+
+		onCancel(function()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
+			end
+		end)
+
+		-- We can assume the values inside `promises` are all promises since we
+		-- checked above.
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:finally(function(...)
+				resolveOne(i, ...)
+			end)
+		end
+	end)
 end
 
 --[[
@@ -564,39 +534,36 @@ function Promise.race(promises)
 		)
 	end
 
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(resolve, reject, onCancel)
-			local newPromises = {}
-			local finished = false
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local newPromises = {}
+		local finished = false
 
-			local function cancel()
-				for _, promise in ipairs(newPromises) do
-					promise:cancel()
-				end
-			end
-
-			local function finalize(callback)
-				return function(...)
-					cancel()
-					finished = true
-					return callback(...)
-				end
-			end
-
-			if onCancel(finalize(reject)) then
-				return
-			end
-
-			for i, promise in ipairs(promises) do
-				newPromises[i] = promise:andThen(finalize(resolve), finalize(reject))
-			end
-
-			if finished then
-				cancel()
+		local function cancel()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
 			end
 		end
-	)
+
+		local function finalize(callback)
+			return function(...)
+				cancel()
+				finished = true
+				return callback(...)
+			end
+		end
+
+		if onCancel(finalize(reject)) then
+			return
+		end
+
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:andThen(finalize(resolve), finalize(reject))
+		end
+
+		if finished then
+			cancel()
+		end
+	end)
 end
 
 --[[
@@ -611,96 +578,93 @@ function Promise.each(list, predicate)
 	assert(type(list) == "table", string.format(ERROR_NON_LIST, "Promise.each"))
 	assert(type(predicate) == "function", string.format(ERROR_NON_FUNCTION, "Promise.each"))
 
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(resolve, reject, onCancel)
-			local results = {}
-			local promisesToCancel = {}
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local results = {}
+		local promisesToCancel = {}
 
-			local cancelled = false
+		local cancelled = false
 
-			local function cancel()
-				for _, promiseToCancel in ipairs(promisesToCancel) do
-					promiseToCancel:cancel()
-				end
+		local function cancel()
+			for _, promiseToCancel in ipairs(promisesToCancel) do
+				promiseToCancel:cancel()
 			end
+		end
 
-			onCancel(function()
-				cancelled = true
+		onCancel(function()
+			cancelled = true
 
-				cancel()
-			end)
+			cancel()
+		end)
 
-			-- We need to preprocess the list of values and look for Promises.
-			-- If we find some, we must register our andThen calls now, so that those Promises have a consumer
-			-- from us registered. If we don't do this, those Promises might get cancelled by something else
-			-- before we get to them in the series because it's not possible to tell that we plan to use it
-			-- unless we indicate it here.
+		-- We need to preprocess the list of values and look for Promises.
+		-- If we find some, we must register our andThen calls now, so that those Promises have a consumer
+		-- from us registered. If we don't do this, those Promises might get cancelled by something else
+		-- before we get to them in the series because it's not possible to tell that we plan to use it
+		-- unless we indicate it here.
 
-			local preprocessedList = {}
+		local preprocessedList = {}
 
-			for index, value in ipairs(list) do
-				if Promise.is(value) then
-					if value:getStatus() == Promise.Status.Cancelled then
-						cancel()
-						return reject(Error.new({
-							error = "Promise is cancelled",
-							kind = Error.Kind.AlreadyCancelled,
-							context = string.format(
-								"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
-								index,
-								value._source
-							),
-						}))
-					elseif value:getStatus() == Promise.Status.Rejected then
-						cancel()
-						return reject(select(2, value:await()))
-					end
-
-					-- Chain a new Promise from this one so we only cancel ours
-					local ourPromise = value:andThen(function(...)
-						return ...
-					end)
-
-					table.insert(promisesToCancel, ourPromise)
-					preprocessedList[index] = ourPromise
-				else
-					preprocessedList[index] = value
+		for index, value in ipairs(list) do
+			if Promise.is(value) then
+				if value:getStatus() == Promise.Status.Cancelled then
+					cancel()
+					return reject(Error.new({
+						error = "Promise is cancelled",
+						kind = Error.Kind.AlreadyCancelled,
+						context = string.format(
+							"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
+							index,
+							value._source
+						),
+					}))
+				elseif value:getStatus() == Promise.Status.Rejected then
+					cancel()
+					return reject(select(2, value:await()))
 				end
+
+				-- Chain a new Promise from this one so we only cancel ours
+				local ourPromise = value:andThen(function(...)
+					return ...
+				end)
+
+				table.insert(promisesToCancel, ourPromise)
+				preprocessedList[index] = ourPromise
+			else
+				preprocessedList[index] = value
 			end
+		end
 
-			for index, value in ipairs(preprocessedList) do
-				if Promise.is(value) then
-					local success
-					success, value = value:await()
-
-					if not success then
-						cancel()
-						return reject(value)
-					end
-				end
-
-				if cancelled then
-					return
-				end
-
-				local predicatePromise = Promise.resolve(predicate(value, index))
-
-				table.insert(promisesToCancel, predicatePromise)
-
-				local success, result = predicatePromise:await()
+		for index, value in ipairs(preprocessedList) do
+			if Promise.is(value) then
+				local success
+				success, value = value:await()
 
 				if not success then
 					cancel()
-					return reject(result)
+					return reject(value)
 				end
-
-				results[index] = result
 			end
 
-			resolve(results)
+			if cancelled then
+				return
+			end
+
+			local predicatePromise = Promise.resolve(predicate(value, index))
+
+			table.insert(promisesToCancel, predicatePromise)
+
+			local success, result = predicatePromise:await()
+
+			if not success then
+				cancel()
+				return reject(result)
+			end
+
+			results[index] = result
 		end
-	)
+
+		resolve(results)
+	end)
 end
 
 --[[
@@ -754,89 +718,86 @@ do
 			seconds = 1 / 60
 		end
 
-		return Promise._new(
-			debug.traceback(nil, 2),
-			function(resolve, _, onCancel)
-				local startTime = Promise._getTime()
-				local endTime = startTime + seconds
+		return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+			local startTime = Promise._getTime()
+			local endTime = startTime + seconds
 
-				local node = {
-					resolve = resolve,
-					startTime = startTime,
-					endTime = endTime,
-				}
+			local node = {
+				resolve = resolve,
+				startTime = startTime,
+				endTime = endTime,
+			}
 
-				if connection == nil then -- first is nil when connection is nil
-					first = node
-					connection = Promise._timeEvent:Connect(function()
-						local threadStart = Promise._getTime()
+			if connection == nil then -- first is nil when connection is nil
+				first = node
+				connection = Promise._timeEvent:Connect(function()
+					local threadStart = Promise._getTime()
 
-						while first ~= nil and first.endTime < threadStart do
-							local current = first
-							first = current.next
-
-							if first == nil then
-								connection:Disconnect()
-								connection = nil
-							else
-								first.previous = nil
-							end
-
-							current.resolve(Promise._getTime() - current.startTime)
-						end
-					end)
-				else -- first is non-nil
-					if first.endTime < endTime then -- if `node` should be placed after `first`
-						-- we will insert `node` between `current` and `next`
-						-- (i.e. after `current` if `next` is nil)
+					while first ~= nil and first.endTime < threadStart do
 						local current = first
-						local next = current.next
+						first = current.next
 
-						while next ~= nil and next.endTime < endTime do
-							current = next
-							next = current.next
-						end
-
-						-- `current` must be non-nil, but `next` could be `nil` (i.e. last item in list)
-						current.next = node
-						node.previous = current
-
-						if next ~= nil then
-							node.next = next
-							next.previous = node
-						end
-					else
-						-- set `node` to `first`
-						node.next = first
-						first.previous = node
-						first = node
-					end
-				end
-
-				onCancel(function()
-					-- remove node from queue
-					local next = node.next
-
-					if first == node then
-						if next == nil then -- if `node` is the first and last
+						if first == nil then
 							connection:Disconnect()
 							connection = nil
-						else -- if `node` is `first` and not the last
-							next.previous = nil
+						else
+							first.previous = nil
 						end
-						first = next
-					else
-						local previous = node.previous
-						-- since `node` is not `first`, then we know `previous` is non-nil
-						previous.next = next
 
-						if next ~= nil then
-							next.previous = previous
-						end
+						current.resolve(Promise._getTime() - current.startTime)
 					end
 				end)
+			else -- first is non-nil
+				if first.endTime < endTime then -- if `node` should be placed after `first`
+					-- we will insert `node` between `current` and `next`
+					-- (i.e. after `current` if `next` is nil)
+					local current = first
+					local next = current.next
+
+					while next ~= nil and next.endTime < endTime do
+						current = next
+						next = current.next
+					end
+
+					-- `current` must be non-nil, but `next` could be `nil` (i.e. last item in list)
+					current.next = node
+					node.previous = current
+
+					if next ~= nil then
+						node.next = next
+						next.previous = node
+					end
+				else
+					-- set `node` to `first`
+					node.next = first
+					first.previous = node
+					first = node
+				end
 			end
-		)
+
+			onCancel(function()
+				-- remove node from queue
+				local next = node.next
+
+				if first == node then
+					if next == nil then -- if `node` is the first and last
+						connection:Disconnect()
+						connection = nil
+					else -- if `node` is `first` and not the last
+						next.previous = nil
+					end
+					first = next
+				else
+					local previous = node.previous
+					-- since `node` is not `first`, then we know `previous` is non-nil
+					previous.next = next
+
+					if next ~= nil then
+						next.previous = previous
+					end
+				end
+			end)
+		end)
 	end
 end
 
@@ -948,21 +909,18 @@ function Promise.prototype:tap(tapCallback)
 		type(tapCallback) == "function",
 		string.format(ERROR_NON_FUNCTION, "Promise:tap")
 	)
-	return self:_andThen(
-		debug.traceback(nil, 2),
-		function(...)
-			local callbackReturn = tapCallback(...)
+	return self:_andThen(debug.traceback(nil, 2), function(...)
+		local callbackReturn = tapCallback(...)
 
-			if Promise.is(callbackReturn) then
-				local length, values = pack(...)
-				return callbackReturn:andThen(function()
-					return unpack(values, 1, length)
-				end)
-			end
-
-			return ...
+		if Promise.is(callbackReturn) then
+			local length, values = pack(...)
+			return callbackReturn:andThen(function()
+				return unpack(values, 1, length)
+			end)
 		end
-	)
+
+		return ...
+	end)
 end
 
 --[[
@@ -974,12 +932,9 @@ function Promise.prototype:andThenCall(callback, ...)
 		string.format(ERROR_NON_FUNCTION, "Promise:andThenCall")
 	)
 	local length, values = pack(...)
-	return self:_andThen(
-		debug.traceback(nil, 2),
-		function()
-			return callback(unpack(values, 1, length))
-		end
-	)
+	return self:_andThen(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end)
 end
 
 --[[
@@ -1092,12 +1047,9 @@ function Promise.prototype:finallyCall(callback, ...)
 		string.format(ERROR_NON_FUNCTION, "Promise:finallyCall")
 	)
 	local length, values = pack(...)
-	return self:_finally(
-		debug.traceback(nil, 2),
-		function()
-			return callback(unpack(values, 1, length))
-		end
-	)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end)
 end
 
 --[[
@@ -1249,36 +1201,33 @@ function Promise.prototype:_resolve(...)
 
 		local chainedPromise = ...
 
-		local promise = chainedPromise:andThen(
-			function(...)
-				self:_resolve(...)
-			end,
-			function(...)
-				local maybeRuntimeError = chainedPromise._values[1]
+		local promise = chainedPromise:andThen(function(...)
+			self:_resolve(...)
+		end, function(...)
+			local maybeRuntimeError = chainedPromise._values[1]
 
-				-- Backwards compatibility < v2
-				if chainedPromise._error then
-					maybeRuntimeError = Error.new({
-						error = chainedPromise._error,
-						kind = Error.Kind.ExecutionError,
-						context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]",
-					})
-				end
-
-				if Error.isKind(maybeRuntimeError, Error.Kind.ExecutionError) then
-					return self:_reject(maybeRuntimeError:extend({
-						error = "This Promise was chained to a Promise that errored.",
-						trace = "",
-						context = string.format(
-							"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
-							self._source
-						),
-					}))
-				end
-
-				self:_reject(...)
+			-- Backwards compatibility < v2
+			if chainedPromise._error then
+				maybeRuntimeError = Error.new({
+					error = chainedPromise._error,
+					kind = Error.Kind.ExecutionError,
+					context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]",
+				})
 			end
-		)
+
+			if Error.isKind(maybeRuntimeError, Error.Kind.ExecutionError) then
+				return self:_reject(maybeRuntimeError:extend({
+					error = "This Promise was chained to a Promise that errored.",
+					trace = "",
+					context = string.format(
+						"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
+						self._source
+					),
+				}))
+			end
+
+			self:_reject(...)
+		end)
 
 		if promise._status == Promise.Status.Cancelled then
 			self:cancel()
@@ -1416,46 +1365,43 @@ function Promise.fromEvent(event, predicate)
 		return true
 	end
 
-	return Promise._new(
-		debug.traceback(nil, 2),
-		function(resolve, reject, onCancel)
-			local connection
-			local shouldDisconnect = false
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local connection
+		local shouldDisconnect = false
 
-			local function disconnect()
-				connection:Disconnect()
-				connection = nil
-			end
-
-			-- We use shouldDisconnect because if the callback given to Connect is called before
-			-- Connect returns, connection will still be nil. This happens with events that queue up
-			-- events when there's nothing connected, such as RemoteEvents
-
-			connection = event:Connect(function(...)
-				local callbackValue = predicate(...)
-
-				if callbackValue == true then
-					resolve(...)
-
-					if connection then
-						disconnect()
-					else
-						shouldDisconnect = true
-					end
-				elseif type(callbackValue) ~= "boolean" then
-					error("Promise.fromEvent predicate should always return a boolean")
-				end
-			end)
-
-			if shouldDisconnect and connection then
-				return disconnect()
-			end
-
-			onCancel(function()
-				disconnect()
-			end)
+		local function disconnect()
+			connection:Disconnect()
+			connection = nil
 		end
-	)
+
+		-- We use shouldDisconnect because if the callback given to Connect is called before
+		-- Connect returns, connection will still be nil. This happens with events that queue up
+		-- events when there's nothing connected, such as RemoteEvents
+
+		connection = event:Connect(function(...)
+			local callbackValue = predicate(...)
+
+			if callbackValue == true then
+				resolve(...)
+
+				if connection then
+					disconnect()
+				else
+					shouldDisconnect = true
+				end
+			elseif type(callbackValue) ~= "boolean" then
+				error("Promise.fromEvent predicate should always return a boolean")
+			end
+		end)
+
+		if shouldDisconnect and connection then
+			return disconnect()
+		end
+
+		onCancel(function()
+			disconnect()
+		end)
+	end)
 end
 
 return Promise
