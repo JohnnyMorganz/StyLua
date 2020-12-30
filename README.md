@@ -17,6 +17,19 @@ StyLua can be installed using foreman. Add the following to your `foreman.toml` 
 stylua = { source = "JohnnyMorganz/stylua", version = "0.1.0-alpha.3" }
 ```
 
+### Using the VSCode Extensions
+
+You can use the [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua), which will automatically download StyLua for you.
+Set StyLua as your formatter when prompted, or add the following configuration to your `settings.json` file:
+
+```json
+"[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua"
+},
+```
+
+and StyLua will then be used to format your code. It is recommended to also enable `editor.formatOnSave`.
+
 ### From Crates.io
 If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo
 ```
