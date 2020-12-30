@@ -75,20 +75,22 @@ const downloadStylua = async (outputDirectory: string) => {
       );
 
       return new Promise(async (resolve, reject) => {
-        const res = await fetch(asset.browser_download_url, {
+        fetch(asset.browser_download_url, {
           headers: {
             "User-Agent": "stylua-vscode",
           },
-        }).then((res) => res.body.pipe(unzip.Parse()));
+        })
+          .then((res) => res.body.pipe(unzip.Parse()))
+          .then((stream) => {
+            stream.on("entry", (entry: unzip.Entry) => {
+              if (entry.path !== outputFilename) {
+                entry.autodrain();
+                return;
+              }
 
-        res.on("entry", (entry: unzip.Entry) => {
-          if (entry.path !== outputFilename) {
-            entry.autodrain();
-            return;
-          }
-
-          entry.pipe(file).on("finish", resolve).on("error", reject);
-        });
+              entry.pipe(file).on("finish", resolve).on("error", reject);
+            });
+          });
       });
     }
   }
@@ -119,7 +121,6 @@ export const getStyluaPath = async (
     storageDirectory.fsPath,
     getDownloadOutputFilename()
   );
-  console.log(downloadPath);
   if (await fileExists(downloadPath)) {
     return downloadPath;
   }

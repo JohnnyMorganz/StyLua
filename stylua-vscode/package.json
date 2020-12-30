@@ -1,7 +1,7 @@
 {
   "name": "stylua",
   "displayName": "StyLua",
-  "description": "A code formatter for Lua",
+  "description": "A Lua code formatter",
   "publisher": "JohnnyMorganz",
   "repository": "https://github.com/JohnnyMorganz/StyLua",
   "version": "1.0.0",
