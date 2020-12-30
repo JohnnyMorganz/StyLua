@@ -68,7 +68,7 @@ impl CodeFormatter {
                 contained,
                 expression,
             } => Expression::Parentheses {
-                contained: self.format_contained_span(contained),
+                contained: self.format_contained_span(&contained),
                 expression: Box::new(self.format_expression(*expression)),
             },
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
@@ -85,7 +85,7 @@ impl CodeFormatter {
                 brackets,
                 expression,
             } => Index::Brackets {
-                brackets: self.format_contained_span(brackets),
+                brackets: self.format_contained_span(&brackets),
                 expression: self.format_expression(expression),
             },
 

@@ -67,7 +67,7 @@ impl CodeFormatter {
 
     /// Returns an arbitrary token inside of the stmt, to see if it falls inside of an indent range.
     /// The token returned does not matter, as we will be using the position of it, and if this token falls within the range, then the whole statement must do
-    fn get_range_in_stmt(stmt: Stmt) -> Range {
+    fn get_range_in_stmt(stmt: &Stmt) -> Range {
         match stmt {
             Stmt::Assignment(assignment) => {
                 CodeFormatter::get_token_range(assignment.equal_token().token())
@@ -113,7 +113,7 @@ impl CodeFormatter {
         }
     }
 
-    pub fn format_return<'ast>(&mut self, return_node: Return<'ast>) -> Return<'ast> {
+    pub fn format_return<'ast>(&mut self, return_node: &Return<'ast>) -> Return<'ast> {
         let formatted_returns = self.format_punctuated(
             return_node.returns().to_owned(),
             &CodeFormatter::format_expression,
@@ -124,7 +124,8 @@ impl CodeFormatter {
             TokenReference::symbol("return ").unwrap()
         };
         let formatted_token = self.format_symbol(return_node.token().to_owned(), wanted_token);
-        return_node
+
+        Return::new()
             .with_token(formatted_token)
             .with_returns(formatted_returns)
     }
@@ -134,7 +135,7 @@ impl CodeFormatter {
             LastStmt::Break(token) => LastStmt::Break(
                 self.format_symbol(token.into_owned(), TokenReference::symbol("break").unwrap()),
             ),
-            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(return_node)),
+            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(&return_node)),
             #[cfg(feature = "luau")]
             LastStmt::Continue(token) => LastStmt::Continue(self.format_symbol(
                 token.into_owned(),
@@ -236,7 +237,7 @@ impl CodeFormatter {
             block
                 .iter_stmts()
                 .map(|stmt| {
-                    let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt.to_owned());
+                    let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt);
                     let additional_indent_level = self.get_range_indent_increase(range_in_stmt);
                     let stmt = self.format_stmt(stmt.to_owned());
                     (

@@ -234,7 +234,7 @@ impl CodeFormatter {
                         self.format_punctuated(arguments, &CodeFormatter::format_expression);
 
                     FunctionArgs::Parentheses {
-                        parentheses: self.format_contained_span(parentheses),
+                        parentheses: self.format_contained_span(&parentheses),
                         arguments: formatted_arguments,
                     }
                 }
@@ -290,7 +290,7 @@ impl CodeFormatter {
         function_body: FunctionBody<'ast>,
     ) -> FunctionBody<'ast> {
         let parameters_parentheses =
-            self.format_contained_span(function_body.parameters_parentheses().to_owned());
+            self.format_contained_span(function_body.parameters_parentheses());
         let formatted_parameters = self.format_parameters(function_body.to_owned());
 
         #[cfg(feature = "luau")]
@@ -377,7 +377,7 @@ impl CodeFormatter {
             if let Some(token_reference) = function_name.method_name() {
                 formatted_method = Some((
                     crate::fmt_symbol!(self, method_colon.to_owned(), ":"),
-                    Cow::Owned(self.format_plain_token_reference(token_reference.to_owned())),
+                    Cow::Owned(self.format_plain_token_reference(token_reference)),
                 ));
             }
         };
@@ -420,8 +420,7 @@ impl CodeFormatter {
             local_function.function_token().to_owned(),
             "function "
         );
-        let formatted_name =
-            Cow::Owned(self.format_plain_token_reference(local_function.name().to_owned()));
+        let formatted_name = Cow::Owned(self.format_plain_token_reference(local_function.name()));
         let formatted_function_body =
             self.format_function_body(local_function.func_body().to_owned());
 
@@ -434,9 +433,8 @@ impl CodeFormatter {
 
     /// Formats a MethodCall node
     pub fn format_method_call<'ast>(&mut self, method_call: MethodCall<'ast>) -> MethodCall<'ast> {
-        let formatted_colon_token =
-            self.format_plain_token_reference(method_call.colon_token().to_owned());
-        let formatted_name = self.format_plain_token_reference(method_call.name().to_owned());
+        let formatted_colon_token = self.format_plain_token_reference(method_call.colon_token());
+        let formatted_name = self.format_plain_token_reference(method_call.name());
         let formatted_function_args = self.format_function_args(method_call.args().to_owned());
         method_call
             .with_colon_token(Cow::Owned(formatted_colon_token))

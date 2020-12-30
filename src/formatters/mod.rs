@@ -314,7 +314,7 @@ impl CodeFormatter {
 
     fn format_plain_token_reference<'a>(
         &self,
-        token_reference: TokenReference<'a>,
+        token_reference: &TokenReference<'a>,
     ) -> TokenReference<'a> {
         // Preserve comments in leading/trailing trivia
         let formatted_leading_trivia: Vec<Token<'a>> = self.load_token_trivia(
@@ -349,14 +349,14 @@ impl CodeFormatter {
         &self,
         token_reference: Cow<'a, TokenReference<'a>>,
     ) -> Cow<'a, TokenReference<'a>> {
-        Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
+        Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
 
     pub fn format_token_reference_mut<'ast>(
         &mut self,
         token_reference: Cow<'ast, TokenReference<'ast>>,
     ) -> Cow<'ast, TokenReference<'ast>> {
-        Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
+        Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
 
     pub fn format_punctuation<'ast>(
@@ -396,13 +396,13 @@ impl CodeFormatter {
 
     pub fn format_contained_span<'ast>(
         &self,
-        contained_span: ContainedSpan<'ast>,
+        contained_span: &ContainedSpan<'ast>,
     ) -> ContainedSpan<'ast> {
         let (start_token, end_token) = contained_span.tokens();
 
         ContainedSpan::new(
-            Cow::Owned(self.format_plain_token_reference(start_token.to_owned())),
-            Cow::Owned(self.format_plain_token_reference(end_token.to_owned())),
+            Cow::Owned(self.format_plain_token_reference(start_token)),
+            Cow::Owned(self.format_plain_token_reference(end_token)),
         )
     }
 

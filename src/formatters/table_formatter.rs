@@ -272,7 +272,7 @@ impl CodeFormatter {
                 trailing_trivia = get_expression_trailing_trivia(value.to_owned());
                 Field::ExpressionKey {
                     brackets: trivia_formatter::contained_span_add_trivia(
-                        self.format_contained_span(brackets.to_owned()),
+                        self.format_contained_span(brackets),
                         leading_trivia,
                         FormatTriviaType::NoChange,
                     ),

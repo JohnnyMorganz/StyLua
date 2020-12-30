@@ -25,7 +25,7 @@ pub enum FormatTriviaType<'ast> {
 }
 
 pub fn assignment_add_trivia<'ast>(
-    assignment: Assignment<'ast>,
+    assignment: &Assignment<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
     trailing_trivia: FormatTriviaType<'ast>,
 ) -> Assignment<'ast> {
@@ -67,9 +67,8 @@ pub fn assignment_add_trivia<'ast>(
         }
     }
 
-    assignment
-        .with_var_list(formatted_var_list)
-        .with_expr_list(formatted_expression_list)
+    Assignment::new(formatted_var_list, formatted_expression_list)
+        .with_equal_token(Cow::Owned(assignment.equal_token().to_owned()))
 }
 
 pub fn function_call_add_trivia<'ast>(

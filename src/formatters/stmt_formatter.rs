@@ -113,7 +113,7 @@ impl CodeFormatter {
     pub fn format_numeric_for<'ast>(&mut self, numeric_for: NumericFor<'ast>) -> NumericFor<'ast> {
         let for_token = crate::fmt_symbol!(self, numeric_for.for_token().to_owned(), "for ");
         let formatted_index_variable =
-            Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable().to_owned()));
+            Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable()));
 
         #[cfg(feature = "luau")]
         let type_specifier = match numeric_for.type_specifier() {
@@ -215,7 +215,7 @@ impl CodeFormatter {
         match stmt {
             Stmt::Assignment(assignment) => {
                 Stmt::Assignment(trivia_formatter::assignment_add_trivia(
-                    assignment,
+                    &assignment,
                     leading_trivia,
                     trailing_trivia,
                 ))
