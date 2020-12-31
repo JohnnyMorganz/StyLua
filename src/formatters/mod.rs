@@ -347,7 +347,7 @@ impl CodeFormatter {
 
     pub fn format_token_reference<'a>(
         &self,
-        token_reference: &Cow<'a, TokenReference<'a>>,
+        token_reference: &TokenReference<'a>,
     ) -> Cow<'a, TokenReference<'a>> {
         Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
@@ -361,7 +361,7 @@ impl CodeFormatter {
 
     pub fn format_punctuation<'ast>(
         &self,
-        punctuation: &Cow<'ast, TokenReference<'ast>>,
+        punctuation: &TokenReference<'ast>,
     ) -> Cow<'ast, TokenReference<'ast>> {
         Cow::Owned(TokenReference::new(
             Vec::new(),

@@ -30,7 +30,7 @@ impl CodeFormatter {
     /// This doesn't have its own struct, but it is part of Value::Function
     pub fn format_anonymous_function<'ast>(
         &mut self,
-        function_token: &Cow<'ast, TokenReference<'ast>>,
+        function_token: &TokenReference<'ast>,
         function_body: &FunctionBody<'ast>,
     ) -> (Cow<'ast, TokenReference<'ast>>, FunctionBody<'ast>) {
         let function_token_range = CodeFormatter::get_token_range(function_token.token());
