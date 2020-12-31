@@ -12,6 +12,7 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 ## [Unreleased]
 
 - Extension now honours `.styluaignore` files, and will not format a document if it is ignored
+- Update icon and Extension information
 
 ## [1.0.1] - 2020-12-30
 

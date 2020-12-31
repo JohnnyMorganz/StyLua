@@ -3,7 +3,16 @@
   "displayName": "StyLua",
   "description": "A Lua code formatter",
   "publisher": "JohnnyMorganz",
-  "repository": "https://github.com/JohnnyMorganz/StyLua",
+  "homepage": "https://github.com/JohnnyMorganz/StyLua/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JohnnyMorganz/StyLua"
+  },
+  "bugs": {
+    "url": "https://github.com/JohnnyMorganz/StyLua/issues"
+  },
+  "license": "MPL-2.0",
+  "icon": "assets/icon.png",
   "version": "1.0.1",
   "engines": {
     "vscode": "^1.52.0"
