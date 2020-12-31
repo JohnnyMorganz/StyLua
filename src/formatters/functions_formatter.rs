@@ -30,13 +30,13 @@ impl CodeFormatter {
     /// This doesn't have its own struct, but it is part of Value::Function
     pub fn format_anonymous_function<'ast>(
         &mut self,
-        function_token: Cow<'ast, TokenReference<'ast>>,
-        function_body: FunctionBody<'ast>,
+        function_token: &Cow<'ast, TokenReference<'ast>>,
+        function_body: &FunctionBody<'ast>,
     ) -> (Cow<'ast, TokenReference<'ast>>, FunctionBody<'ast>) {
         let function_token_range = CodeFormatter::get_token_range(function_token.token());
         let additional_indent_level = self.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
 
-        let function_token = crate::fmt_symbol!(self, function_token.into_owned(), "function");
+        let function_token = crate::fmt_symbol!(self, function_token, "function");
         let function_body = self.format_function_body(function_body);
 
         // Need to insert any additional trivia, as it isn't being inserted elsewhere
@@ -61,7 +61,7 @@ impl CodeFormatter {
     }
 
     /// Formats a Call node
-    pub fn format_call<'ast>(&mut self, call: Call<'ast>) -> Call<'ast> {
+    pub fn format_call<'ast>(&mut self, call: &Call<'ast>) -> Call<'ast> {
         match call {
             Call::AnonymousCall(function_args) => {
                 Call::AnonymousCall(self.format_function_args(function_args))
@@ -73,7 +73,7 @@ impl CodeFormatter {
     /// Formats a FunctionArgs node
     pub fn format_function_args<'ast>(
         &mut self,
-        function_args: FunctionArgs<'ast>,
+        function_args: &FunctionArgs<'ast>,
     ) -> FunctionArgs<'ast> {
         match function_args {
             FunctionArgs::Parentheses {
@@ -93,7 +93,7 @@ impl CodeFormatter {
                 // We will ignore punctuation for now
                 let mut formatted_arguments = Vec::new();
                 for argument in arguments.iter() {
-                    formatted_arguments.push(self.format_expression(argument.to_owned()))
+                    formatted_arguments.push(self.format_expression(argument))
                 }
 
                 // Apply some heuristics to determine whether we should expand the function call
@@ -183,8 +183,8 @@ impl CodeFormatter {
                         vec![],
                     );
                     let parentheses = ContainedSpan::new(
-                        self.format_symbol(start_parens.to_owned(), start_parens_token),
-                        self.format_symbol(end_parens.to_owned(), end_parens_token),
+                        self.format_symbol(start_parens, &start_parens_token),
+                        self.format_symbol(end_parens, &end_parens_token),
                     );
 
                     let mut formatted_arguments = Punctuated::new();
@@ -199,7 +199,7 @@ impl CodeFormatter {
                         // Unfortunately, we need to format again, taking into account in indent increase
                         // TODO: Can we fix this? We don't want to have to format twice
                         let formatted_argument = trivia_formatter::expression_add_leading_trivia(
-                            self.format_expression(argument.to_owned()),
+                            self.format_expression(argument),
                             FormatTriviaType::Append(vec![
                                 self.create_indent_trivia(additional_indent_level)
                             ]),
@@ -243,8 +243,8 @@ impl CodeFormatter {
             FunctionArgs::String(token_reference) => {
                 let mut arguments = Punctuated::new();
                 arguments.push(Pair::new(
-                    self.format_expression(Expression::Value {
-                        value: Box::new(Value::String(token_reference)),
+                    self.format_expression(&Expression::Value {
+                        value: Box::new(Value::String(token_reference.to_owned())),
                         binop: None,
                         #[cfg(feature = "luau")]
                         as_assertion: None,
@@ -264,8 +264,8 @@ impl CodeFormatter {
             FunctionArgs::TableConstructor(table_constructor) => {
                 let mut arguments = Punctuated::new();
                 arguments.push(Pair::new(
-                    self.format_expression(Expression::Value {
-                        value: Box::new(Value::TableConstructor(table_constructor)),
+                    self.format_expression(&Expression::Value {
+                        value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
                         binop: None,
                         #[cfg(feature = "luau")]
                         as_assertion: None,
@@ -287,11 +287,11 @@ impl CodeFormatter {
     /// Formats a FunctionBody node
     pub fn format_function_body<'ast>(
         &mut self,
-        function_body: FunctionBody<'ast>,
+        function_body: &FunctionBody<'ast>,
     ) -> FunctionBody<'ast> {
         let parameters_parentheses =
             self.format_contained_span(function_body.parameters_parentheses());
-        let formatted_parameters = self.format_parameters(function_body.to_owned());
+        let formatted_parameters = self.format_parameters(function_body);
 
         #[cfg(feature = "luau")]
         let mut type_specifiers;
@@ -303,26 +303,28 @@ impl CodeFormatter {
             type_specifiers = Vec::new();
             for specifier in function_body.type_specifiers() {
                 let formatted_specifier = match specifier {
-                    Some(specifier) => Some(self.format_type_specifier(specifier.to_owned())),
+                    Some(specifier) => Some(self.format_type_specifier(specifier)),
                     None => None,
                 };
                 type_specifiers.push(formatted_specifier);
             }
 
             return_type = match function_body.return_type() {
-                Some(return_type) => Some(self.format_type_specifier(return_type.to_owned())),
+                Some(return_type) => Some(self.format_type_specifier(return_type)),
                 None => None,
             };
         }
 
-        let end_token = self.format_end_token(function_body.end_token().to_owned());
+        let end_token = self.format_end_token(function_body.end_token());
 
         #[cfg(feature = "luau")]
         let function_body = function_body
+            .to_owned()
             .with_type_specifiers(type_specifiers)
             .with_return_type(return_type);
 
         function_body
+            .to_owned()
             .with_parameters_parentheses(parameters_parentheses)
             .with_parameters(formatted_parameters)
             .with_end_token(end_token)
@@ -331,22 +333,21 @@ impl CodeFormatter {
     /// Formats a FunctionCall node
     pub fn format_function_call<'ast>(
         &mut self,
-        function_call: FunctionCall<'ast>,
+        function_call: &FunctionCall<'ast>,
     ) -> FunctionCall<'ast> {
-        let formatted_prefix = self.format_prefix(function_call.prefix().to_owned());
+        let formatted_prefix = self.format_prefix(function_call.prefix());
         let formatted_suffixes = function_call
             .iter_suffixes()
-            .map(|x| self.format_suffix(x.to_owned()))
+            .map(|x| self.format_suffix(x))
             .collect();
-        function_call
-            .with_prefix(formatted_prefix)
-            .with_suffixes(formatted_suffixes)
+
+        FunctionCall::new(formatted_prefix).with_suffixes(formatted_suffixes)
     }
 
     /// Formats a FunctionName node
     pub fn format_function_name<'ast>(
         &mut self,
-        function_name: FunctionName<'ast>,
+        function_name: &FunctionName<'ast>,
     ) -> FunctionName<'ast> {
         // TODO: This is based off formatters::format_punctuated - can we merge them into one?
         let mut formatted_names = Punctuated::new();
@@ -354,15 +355,12 @@ impl CodeFormatter {
             // Format Punctuation
             match pair {
                 Pair::Punctuated(value, punctuation) => {
-                    let formatted_punctuation = self.format_symbol(
-                        punctuation.into_owned(),
-                        TokenReference::symbol(".").unwrap(),
-                    );
-                    let formatted_value = self.format_token_reference(value);
+                    let formatted_punctuation = crate::fmt_symbol!(self, &punctuation, ".");
+                    let formatted_value = self.format_token_reference(&value);
                     formatted_names.push(Pair::new(formatted_value, Some(formatted_punctuation)));
                 }
                 Pair::End(value) => {
-                    let formatted_value = self.format_token_reference(value);
+                    let formatted_value = self.format_token_reference(&value);
                     formatted_names.push(Pair::new(formatted_value, None));
                 }
             }
@@ -376,78 +374,60 @@ impl CodeFormatter {
         if let Some(method_colon) = function_name.method_colon() {
             if let Some(token_reference) = function_name.method_name() {
                 formatted_method = Some((
-                    crate::fmt_symbol!(self, method_colon.to_owned(), ":"),
+                    crate::fmt_symbol!(self, method_colon, ":"),
                     Cow::Owned(self.format_plain_token_reference(token_reference)),
                 ));
             }
         };
 
-        function_name
-            .with_names(formatted_names)
-            .with_method(formatted_method)
+        FunctionName::new(formatted_names).with_method(formatted_method)
     }
 
     /// Formats a FunctionDeclaration node
     pub fn format_function_declaration<'ast>(
         &mut self,
-        function_declaration: FunctionDeclaration<'ast>,
+        function_declaration: &FunctionDeclaration<'ast>,
     ) -> FunctionDeclaration<'ast> {
-        let function_token = crate::fmt_symbol!(
-            self,
-            function_declaration.function_token().to_owned(),
-            "function "
-        );
-        let formatted_function_name =
-            self.format_function_name(function_declaration.name().to_owned());
-        let formatted_function_body =
-            self.format_function_body(function_declaration.body().to_owned());
+        let function_token =
+            crate::fmt_symbol!(self, function_declaration.function_token(), "function ");
+        let formatted_function_name = self.format_function_name(function_declaration.name());
+        let formatted_function_body = self.format_function_body(function_declaration.body());
 
-        function_declaration
+        FunctionDeclaration::new(formatted_function_name)
             .with_function_token(function_token)
-            .with_name(formatted_function_name)
             .with_body(formatted_function_body)
     }
 
     /// Formats a LocalFunction node
     pub fn format_local_function<'ast>(
         &mut self,
-        local_function: LocalFunction<'ast>,
+        local_function: &LocalFunction<'ast>,
     ) -> LocalFunction<'ast> {
-        let local_token =
-            crate::fmt_symbol!(self, local_function.local_token().to_owned(), "local ");
-        let function_token = crate::fmt_symbol!(
-            self,
-            local_function.function_token().to_owned(),
-            "function "
-        );
+        let local_token = crate::fmt_symbol!(self, local_function.local_token(), "local ");
+        let function_token = crate::fmt_symbol!(self, local_function.function_token(), "function ");
         let formatted_name = Cow::Owned(self.format_plain_token_reference(local_function.name()));
-        let formatted_function_body =
-            self.format_function_body(local_function.func_body().to_owned());
+        let formatted_function_body = self.format_function_body(local_function.func_body());
 
-        local_function
+        LocalFunction::new(formatted_name)
             .with_local_token(local_token)
             .with_function_token(function_token)
-            .with_name(formatted_name)
             .with_func_body(formatted_function_body)
     }
 
     /// Formats a MethodCall node
-    pub fn format_method_call<'ast>(&mut self, method_call: MethodCall<'ast>) -> MethodCall<'ast> {
+    pub fn format_method_call<'ast>(&mut self, method_call: &MethodCall<'ast>) -> MethodCall<'ast> {
         let formatted_colon_token = self.format_plain_token_reference(method_call.colon_token());
         let formatted_name = self.format_plain_token_reference(method_call.name());
-        let formatted_function_args = self.format_function_args(method_call.args().to_owned());
-        method_call
+        let formatted_function_args = self.format_function_args(method_call.args());
+
+        MethodCall::new(Cow::Owned(formatted_name), formatted_function_args)
             .with_colon_token(Cow::Owned(formatted_colon_token))
-            .with_name(Cow::Owned(formatted_name))
-            .with_args(formatted_function_args)
     }
 
     /// Formats a single Parameter node
-    pub fn format_parameter<'ast>(&mut self, parameter: Parameter<'ast>) -> Parameter<'ast> {
+    pub fn format_parameter<'ast>(&mut self, parameter: &Parameter<'ast>) -> Parameter<'ast> {
         match parameter {
-            Parameter::Ellipse(token) => {
-                Parameter::Ellipse(crate::fmt_symbol!(self, token.into_owned(), "..."))
-            }
+            Parameter::Ellipse(token) => Parameter::Ellipse(crate::fmt_symbol!(self, token, "...")),
             Parameter::Name(token_reference) => {
                 Parameter::Name(self.format_token_reference(token_reference))
             }
@@ -457,12 +437,12 @@ impl CodeFormatter {
     /// Utilises the FunctionBody iterator to format a list of Parameter nodes
     fn format_parameters<'ast>(
         &mut self,
-        function_body: FunctionBody<'ast>,
+        function_body: &FunctionBody<'ast>,
     ) -> Punctuated<'ast, Parameter<'ast>> {
         let mut formatted_parameters = Punctuated::new();
         let mut parameters_iterator = function_body.parameters().iter().peekable();
         while let Some(parameter) = parameters_iterator.next() {
-            let formatted_parameter = self.format_parameter(parameter.to_owned());
+            let formatted_parameter = self.format_parameter(parameter);
             let mut punctuation = None;
 
             if parameters_iterator.peek().is_some() {
