@@ -53,7 +53,7 @@ const getAssetFilenamePattern = () => {
   }
 };
 
-const fileExists = (path: string): Promise<boolean> => {
+export const fileExists = (path: string): Promise<boolean> => {
   return fs.promises
     .stat(path)
     .then(() => true)

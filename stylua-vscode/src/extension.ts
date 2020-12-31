@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as util from "./util";
-import { formatCode } from "./stylua";
+import { formatCode, checkIgnored } from "./stylua";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("stylua activated");
@@ -37,16 +37,18 @@ export async function activate(context: vscode.ExtensionContext) {
           return [];
         }
 
+        const fileName = document.fileName;
+        const cwd = vscode.workspace.getWorkspaceFolder(
+          vscode.Uri.file(document.uri.fsPath)
+        )?.uri?.fsPath;
+        if (await checkIgnored(fileName, cwd)) {
+          return [];
+        }
+
         const text = document.getText();
 
         try {
-          const formattedText = await formatCode(
-            styluaBinaryPath,
-            text,
-            vscode.workspace.getWorkspaceFolder(
-              vscode.Uri.file(document.uri.fsPath)
-            )?.uri?.fsPath
-          );
+          const formattedText = await formatCode(styluaBinaryPath, text, cwd);
           // Replace the whole document with our new formatted version
           const lastLineNumber = document.lineCount - 1;
           const fullDocumentRange = new vscode.Range(

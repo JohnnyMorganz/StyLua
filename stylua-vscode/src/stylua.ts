@@ -1,4 +1,26 @@
 import { spawn, exec } from "child_process";
+import ignore from "ignore";
+import * as path from "path";
+import * as fs from "fs";
+import { fileExists } from "./util";
+
+export async function checkIgnored(
+  fileName?: string,
+  cwd?: string
+): Promise<boolean> {
+  if (!fileName || !cwd) {
+    return false;
+  }
+
+  const ignoreFilePath = path.join(cwd, ".styluaignore");
+  if (await fileExists(ignoreFilePath)) {
+    const ig = ignore().add(fs.readFileSync(ignoreFilePath).toString());
+    return ig.ignores(path.relative(cwd, fileName));
+  }
+
+  return false;
+}
+
 export function formatCode(
   path: string,
   code: string,
