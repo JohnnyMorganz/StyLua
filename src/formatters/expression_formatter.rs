@@ -6,18 +6,19 @@ use std::boxed::Box;
 
 use crate::formatters::CodeFormatter;
 
+#[macro_export]
 macro_rules! fmt_op {
     ($fmter:expr, $enum:ident, $value:ident, { $($operator:ident = $output:expr,)+ }) => {
         match $value {
             $(
-                $enum::$operator(token) => $enum::$operator(crate::fmt_symbol!($fmter, token.into_owned(), $output)),
+                $enum::$operator(token) => $enum::$operator(crate::fmt_symbol!($fmter, token, $output)),
             )+
         }
     };
 }
 
 impl CodeFormatter {
-    pub fn format_binop<'ast>(&self, binop: BinOp<'ast>) -> BinOp<'ast> {
+    pub fn format_binop<'ast>(&self, binop: &BinOp<'ast>) -> BinOp<'ast> {
         fmt_op!(self, BinOp, binop, {
             And = " and ",
             Caret = " ^ ",
@@ -37,15 +38,15 @@ impl CodeFormatter {
         })
     }
 
-    pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: BinOpRhs<'ast>) -> BinOpRhs<'ast> {
+    pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: &BinOpRhs<'ast>) -> BinOpRhs<'ast> {
         BinOpRhs::new(
-            self.format_binop(bin_op_rhs.bin_op().to_owned()),
-            Box::new(self.format_expression(bin_op_rhs.rhs().to_owned())),
+            self.format_binop(bin_op_rhs.bin_op()),
+            Box::new(self.format_expression(bin_op_rhs.rhs())),
         )
     }
 
     /// Formats an Expression node
-    pub fn format_expression<'ast>(&mut self, expression: Expression<'ast>) -> Expression<'ast> {
+    pub fn format_expression<'ast>(&mut self, expression: &Expression<'ast>) -> Expression<'ast> {
         match expression {
             Expression::Value {
                 value,
@@ -53,7 +54,7 @@ impl CodeFormatter {
                 #[cfg(feature = "luau")]
                 as_assertion,
             } => Expression::Value {
-                value: Box::new(self.format_value(*value)),
+                value: Box::new(self.format_value(value)),
                 binop: match binop {
                     Some(value) => Some(self.format_bin_op_rhs(value)),
                     None => None,
@@ -68,24 +69,24 @@ impl CodeFormatter {
                 contained,
                 expression,
             } => Expression::Parentheses {
-                contained: self.format_contained_span(contained),
-                expression: Box::new(self.format_expression(*expression)),
+                contained: self.format_contained_span(&contained),
+                expression: Box::new(self.format_expression(expression)),
             },
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop: self.format_unop(unop),
-                expression: Box::new(self.format_expression(*expression)),
+                expression: Box::new(self.format_expression(expression)),
             },
         }
     }
 
     /// Formats an Index Node
-    pub fn format_index<'ast>(&mut self, index: Index<'ast>) -> Index<'ast> {
+    pub fn format_index<'ast>(&mut self, index: &Index<'ast>) -> Index<'ast> {
         match index {
             Index::Brackets {
                 brackets,
                 expression,
             } => Index::Brackets {
-                brackets: self.format_contained_span(brackets),
+                brackets: self.format_contained_span(&brackets),
                 expression: self.format_expression(expression),
             },
 
@@ -97,7 +98,7 @@ impl CodeFormatter {
     }
 
     /// Formats a Prefix Node
-    pub fn format_prefix<'ast>(&mut self, prefix: Prefix<'ast>) -> Prefix<'ast> {
+    pub fn format_prefix<'ast>(&mut self, prefix: &Prefix<'ast>) -> Prefix<'ast> {
         match prefix {
             Prefix::Expression(expression) => {
                 Prefix::Expression(self.format_expression(expression))
@@ -109,7 +110,7 @@ impl CodeFormatter {
     }
 
     /// Formats a Suffix Node
-    pub fn format_suffix<'ast>(&mut self, suffix: Suffix<'ast>) -> Suffix<'ast> {
+    pub fn format_suffix<'ast>(&mut self, suffix: &Suffix<'ast>) -> Suffix<'ast> {
         match suffix {
             Suffix::Call(call) => Suffix::Call(self.format_call(call)),
             Suffix::Index(index) => Suffix::Index(self.format_index(index)),
@@ -117,7 +118,7 @@ impl CodeFormatter {
     }
 
     /// Formats a Value Node
-    pub fn format_value<'ast>(&mut self, value: Value<'ast>) -> Value<'ast> {
+    pub fn format_value<'ast>(&mut self, value: &Value<'ast>) -> Value<'ast> {
         match value {
             Value::Function((token_reference, function_body)) => {
                 Value::Function(self.format_anonymous_function(token_reference, function_body))
@@ -145,7 +146,7 @@ impl CodeFormatter {
     }
 
     /// Formats a Var Node
-    pub fn format_var<'ast>(&mut self, var: Var<'ast>) -> Var<'ast> {
+    pub fn format_var<'ast>(&mut self, var: &Var<'ast>) -> Var<'ast> {
         match var {
             Var::Name(token_reference) => Var::Name(self.format_token_reference(token_reference)),
             Var::Expression(var_expression) => {
@@ -156,20 +157,19 @@ impl CodeFormatter {
 
     pub fn format_var_expression<'ast>(
         &mut self,
-        var_expression: VarExpression<'ast>,
+        var_expression: &VarExpression<'ast>,
     ) -> VarExpression<'ast> {
-        let formatted_prefix = self.format_prefix(var_expression.prefix().to_owned());
+        let formatted_prefix = self.format_prefix(var_expression.prefix());
         let formatted_suffixes = var_expression
             .iter_suffixes()
-            .map(|x| self.format_suffix(x.to_owned()))
+            .map(|x| self.format_suffix(x))
             .collect();
-        var_expression
-            .with_prefix(formatted_prefix)
-            .with_suffixes(formatted_suffixes)
+
+        VarExpression::new(formatted_prefix).with_suffixes(formatted_suffixes)
     }
 
     /// Formats an UnOp Node
-    pub fn format_unop<'ast>(&self, unop: UnOp<'ast>) -> UnOp<'ast> {
+    pub fn format_unop<'ast>(&self, unop: &UnOp<'ast>) -> UnOp<'ast> {
         fmt_op!(self, UnOp, unop, {
             Minus = "-",
             Not = "not ",

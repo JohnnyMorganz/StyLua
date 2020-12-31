@@ -19,18 +19,21 @@ macro_rules! fmt_stmt {
 
 impl CodeFormatter {
     /// Format a Do node
-    pub fn format_do_block<'ast>(&self, do_block: Do<'ast>) -> Do<'ast> {
-        let do_token = crate::fmt_symbol!(self, do_block.do_token().to_owned(), "do");
-        let end_token = self.format_end_token(do_block.end_token().to_owned());
+    pub fn format_do_block<'ast>(&self, do_block: &Do<'ast>) -> Do<'ast> {
+        let do_token = crate::fmt_symbol!(self, do_block.do_token(), "do");
+        let end_token = self.format_end_token(do_block.end_token());
 
-        do_block.with_do_token(do_token).with_end_token(end_token)
+        do_block
+            .to_owned()
+            .with_do_token(do_token)
+            .with_end_token(end_token)
     }
 
     /// Format a GenericFor node
-    pub fn format_generic_for<'ast>(&mut self, generic_for: GenericFor<'ast>) -> GenericFor<'ast> {
-        let for_token = crate::fmt_symbol!(self, generic_for.for_token().to_owned(), "for ");
+    pub fn format_generic_for<'ast>(&mut self, generic_for: &GenericFor<'ast>) -> GenericFor<'ast> {
+        let for_token = crate::fmt_symbol!(self, generic_for.for_token(), "for ");
         let formatted_names = self.format_punctuated(
-            generic_for.names().to_owned(),
+            generic_for.names(),
             &CodeFormatter::format_token_reference_mut,
         );
 
@@ -38,69 +41,68 @@ impl CodeFormatter {
         let type_specifiers = generic_for
             .type_specifiers()
             .map(|x| match x {
-                Some(type_specifier) => Some(self.format_type_specifier(type_specifier.to_owned())),
+                Some(type_specifier) => Some(self.format_type_specifier(type_specifier)),
                 None => None,
             })
             .collect();
 
-        #[cfg(feature = "luau")]
-        let generic_for = generic_for.with_type_specifiers(type_specifiers);
+        let in_token = crate::fmt_symbol!(self, generic_for.in_token(), " in ");
+        let formatted_expr_list =
+            self.format_punctuated(generic_for.expr_list(), &CodeFormatter::format_expression);
+        let do_token = crate::fmt_symbol!(self, generic_for.do_token(), " do");
+        let end_token = self.format_end_token(generic_for.end_token());
 
-        let in_token = crate::fmt_symbol!(self, generic_for.in_token().to_owned(), " in ");
-        let formatted_expr_list = self.format_punctuated(
-            generic_for.expr_list().to_owned(),
-            &CodeFormatter::format_expression,
-        );
-        let do_token = crate::fmt_symbol!(self, generic_for.do_token().to_owned(), " do");
-        let end_token = self.format_end_token(generic_for.end_token().to_owned());
-
-        generic_for
+        let generic_for = generic_for
+            .to_owned()
             .with_for_token(for_token)
             .with_names(formatted_names)
             .with_in_token(in_token)
             .with_expr_list(formatted_expr_list)
             .with_do_token(do_token)
-            .with_end_token(end_token)
+            .with_end_token(end_token);
+        #[cfg(feature = "luau")]
+        let generic_for = generic_for.with_type_specifiers(type_specifiers);
+        generic_for
     }
 
     /// Formats an ElseIf node - This must always reside within format_if
-    fn format_else_if<'ast>(&mut self, else_if_node: ElseIf<'ast>) -> ElseIf<'ast> {
+    fn format_else_if<'ast>(&mut self, else_if_node: &ElseIf<'ast>) -> ElseIf<'ast> {
         let formatted_else_if_token =
-            crate::fmt_symbol!(self, else_if_node.else_if_token().to_owned(), "elseif ");
-        let formatted_condition = self.format_expression(else_if_node.condition().to_owned());
-        let formatted_then_token =
-            crate::fmt_symbol!(self, else_if_node.then_token().to_owned(), " then");
+            crate::fmt_symbol!(self, else_if_node.else_if_token(), "elseif ");
+        let formatted_condition = self.format_expression(else_if_node.condition());
+        let formatted_then_token = crate::fmt_symbol!(self, else_if_node.then_token(), " then");
 
         else_if_node
+            .to_owned()
             .with_else_if_token(formatted_else_if_token)
             .with_condition(formatted_condition)
             .with_then_token(formatted_then_token)
     }
 
     /// Format an If node
-    pub fn format_if<'ast>(&mut self, if_node: If<'ast>) -> If<'ast> {
-        let formatted_if_token = crate::fmt_symbol!(self, if_node.if_token().to_owned(), "if ");
-        let formatted_condition = self.format_expression(if_node.condition().to_owned());
-        let formatted_then_token =
-            crate::fmt_symbol!(self, if_node.then_token().to_owned(), " then");
-        let formatted_end_token = self.format_end_token(if_node.end_token().to_owned());
+    pub fn format_if<'ast>(&mut self, if_node: &If<'ast>) -> If<'ast> {
+        let formatted_if_token = crate::fmt_symbol!(self, if_node.if_token(), "if ");
+        let formatted_condition = self.format_expression(if_node.condition());
+        let formatted_then_token = crate::fmt_symbol!(self, if_node.then_token(), " then");
+        let formatted_end_token = self.format_end_token(if_node.end_token());
 
         let formatted_else_if = match if_node.else_if() {
             Some(else_if) => Some(
                 else_if
                     .iter()
-                    .map(|else_if| self.format_else_if(else_if.to_owned()))
+                    .map(|else_if| self.format_else_if(else_if))
                     .collect(),
             ),
             None => None,
         };
 
         let formatted_else_token = match if_node.else_token() {
-            Some(token) => Some(crate::fmt_symbol!(self, token.to_owned(), "else")),
+            Some(token) => Some(crate::fmt_symbol!(self, token, "else")),
             None => None,
         };
 
         if_node
+            .to_owned()
             .with_if_token(formatted_if_token)
             .with_condition(formatted_condition)
             .with_then_token(formatted_then_token)
@@ -110,41 +112,39 @@ impl CodeFormatter {
     }
 
     /// Format a NumericFor node
-    pub fn format_numeric_for<'ast>(&mut self, numeric_for: NumericFor<'ast>) -> NumericFor<'ast> {
-        let for_token = crate::fmt_symbol!(self, numeric_for.for_token().to_owned(), "for ");
+    pub fn format_numeric_for<'ast>(&mut self, numeric_for: &NumericFor<'ast>) -> NumericFor<'ast> {
+        let for_token = crate::fmt_symbol!(self, numeric_for.for_token(), "for ");
         let formatted_index_variable =
-            Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable().to_owned()));
+            Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable()));
 
         #[cfg(feature = "luau")]
         let type_specifier = match numeric_for.type_specifier() {
-            Some(type_specifier) => Some(self.format_type_specifier(type_specifier.to_owned())),
+            Some(type_specifier) => Some(self.format_type_specifier(type_specifier)),
             None => None,
         };
-        #[cfg(feature = "luau")]
-        let numeric_for = numeric_for.with_type_specifier(type_specifier);
 
-        let equal_token = crate::fmt_symbol!(self, numeric_for.equal_token().to_owned(), " = ");
-        let formatted_start_expression = self.format_expression(numeric_for.start().to_owned());
-        let start_end_comma =
-            crate::fmt_symbol!(self, numeric_for.start_end_comma().to_owned(), ", ");
-        let formatted_end_expression = self.format_expression(numeric_for.end().to_owned());
+        let equal_token = crate::fmt_symbol!(self, numeric_for.equal_token(), " = ");
+        let formatted_start_expression = self.format_expression(numeric_for.start());
+        let start_end_comma = crate::fmt_symbol!(self, numeric_for.start_end_comma(), ", ");
+        let formatted_end_expression = self.format_expression(numeric_for.end());
 
         let (end_step_comma, formatted_step_expression) = match numeric_for.step() {
             Some(step) => (
                 Some(crate::fmt_symbol!(
                     self,
-                    numeric_for.end_step_comma().unwrap().to_owned(),
+                    numeric_for.end_step_comma().unwrap(),
                     ", "
                 )),
-                Some(self.format_expression(step.to_owned())),
+                Some(self.format_expression(step)),
             ),
             None => (None, None),
         };
 
-        let do_token = crate::fmt_symbol!(self, numeric_for.do_token().to_owned(), " do");
-        let end_token = self.format_end_token(numeric_for.end_token().to_owned());
+        let do_token = crate::fmt_symbol!(self, numeric_for.do_token(), " do");
+        let end_token = self.format_end_token(numeric_for.end_token());
 
-        numeric_for
+        let numeric_for = numeric_for
+            .to_owned()
             .with_for_token(for_token)
             .with_index_variable(formatted_index_variable)
             .with_equal_token(equal_token)
@@ -154,37 +154,42 @@ impl CodeFormatter {
             .with_end_step_comma(end_step_comma)
             .with_step(formatted_step_expression)
             .with_do_token(do_token)
-            .with_end_token(end_token)
+            .with_end_token(end_token);
+        #[cfg(feature = "luau")]
+        let numeric_for = numeric_for.with_type_specifier(type_specifier);
+
+        numeric_for
     }
 
     /// Format a Repeat node
-    pub fn format_repeat_block<'ast>(&mut self, repeat_block: Repeat<'ast>) -> Repeat<'ast> {
-        let repeat_token =
-            crate::fmt_symbol!(self, repeat_block.repeat_token().to_owned(), "repeat");
-        let until_token = crate::fmt_symbol!(self, repeat_block.until_token().to_owned(), "until ");
-        let formatted_until = self.format_expression(repeat_block.until().to_owned());
+    pub fn format_repeat_block<'ast>(&mut self, repeat_block: &Repeat<'ast>) -> Repeat<'ast> {
+        let repeat_token = crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat");
+        let until_token = crate::fmt_symbol!(self, repeat_block.until_token(), "until ");
+        let formatted_until = self.format_expression(repeat_block.until());
 
         repeat_block
+            .to_owned()
             .with_repeat_token(repeat_token)
             .with_until_token(until_token)
             .with_until(formatted_until)
     }
 
     /// Format a While node
-    pub fn format_while_block<'ast>(&mut self, while_block: While<'ast>) -> While<'ast> {
-        let while_token = crate::fmt_symbol!(self, while_block.while_token().to_owned(), "while ");
-        let formatted_condition = self.format_expression(while_block.condition().to_owned());
-        let do_token = crate::fmt_symbol!(self, while_block.do_token().to_owned(), " do");
-        let end_token = self.format_end_token(while_block.end_token().to_owned());
+    pub fn format_while_block<'ast>(&mut self, while_block: &While<'ast>) -> While<'ast> {
+        let while_token = crate::fmt_symbol!(self, while_block.while_token(), "while ");
+        let formatted_condition = self.format_expression(while_block.condition());
+        let do_token = crate::fmt_symbol!(self, while_block.do_token(), " do");
+        let end_token = self.format_end_token(while_block.end_token());
 
         while_block
+            .to_owned()
             .with_while_token(while_token)
             .with_condition(formatted_condition)
             .with_do_token(do_token)
             .with_end_token(end_token)
     }
 
-    pub fn format_stmt<'ast>(&mut self, stmt: Stmt<'ast>) -> Stmt<'ast> {
+    pub fn format_stmt<'ast>(&mut self, stmt: &Stmt<'ast>) -> Stmt<'ast> {
         fmt_stmt!(self, stmt, {
             Assignment = format_assignment,
             Do = format_do_block,
@@ -215,7 +220,7 @@ impl CodeFormatter {
         match stmt {
             Stmt::Assignment(assignment) => {
                 Stmt::Assignment(trivia_formatter::assignment_add_trivia(
-                    assignment,
+                    &assignment,
                     leading_trivia,
                     trailing_trivia,
                 ))

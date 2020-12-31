@@ -53,7 +53,7 @@ fn get_line_ending_character(line_endings: &LineEndings) -> String {
 #[macro_export]
 macro_rules! fmt_symbol {
     ($fmter:expr, $token:expr, $x:expr) => {
-        $fmter.format_symbol($token, TokenReference::symbol($x).unwrap())
+        $fmter.format_symbol($token, &TokenReference::symbol($x).unwrap())
     };
 }
 
@@ -314,7 +314,7 @@ impl CodeFormatter {
 
     fn format_plain_token_reference<'a>(
         &self,
-        token_reference: TokenReference<'a>,
+        token_reference: &TokenReference<'a>,
     ) -> TokenReference<'a> {
         // Preserve comments in leading/trailing trivia
         let formatted_leading_trivia: Vec<Token<'a>> = self.load_token_trivia(
@@ -347,21 +347,21 @@ impl CodeFormatter {
 
     pub fn format_token_reference<'a>(
         &self,
-        token_reference: Cow<'a, TokenReference<'a>>,
+        token_reference: &Cow<'a, TokenReference<'a>>,
     ) -> Cow<'a, TokenReference<'a>> {
-        Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
+        Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
 
     pub fn format_token_reference_mut<'ast>(
         &mut self,
-        token_reference: Cow<'ast, TokenReference<'ast>>,
+        token_reference: &Cow<'ast, TokenReference<'ast>>,
     ) -> Cow<'ast, TokenReference<'ast>> {
-        Cow::Owned(self.format_plain_token_reference(token_reference.into_owned()))
+        Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
 
     pub fn format_punctuation<'ast>(
         &self,
-        punctuation: Cow<'ast, TokenReference<'ast>>,
+        punctuation: &Cow<'ast, TokenReference<'ast>>,
     ) -> Cow<'ast, TokenReference<'ast>> {
         Cow::Owned(TokenReference::new(
             Vec::new(),
@@ -372,11 +372,11 @@ impl CodeFormatter {
 
     pub fn format_punctuated<'a, T>(
         &mut self,
-        old: Punctuated<'a, T>,
-        value_formatter: &dyn Fn(&mut Self, T) -> T,
+        old: &Punctuated<'a, T>,
+        value_formatter: &dyn Fn(&mut Self, &T) -> T,
     ) -> Punctuated<'a, T> {
         let mut formatted: Punctuated<T> = Punctuated::new();
-        for pair in old.into_pairs() {
+        for pair in old.pairs() {
             // Format Punctuation
             match pair {
                 Pair::Punctuated(value, punctuation) => {
@@ -396,13 +396,13 @@ impl CodeFormatter {
 
     pub fn format_contained_span<'ast>(
         &self,
-        contained_span: ContainedSpan<'ast>,
+        contained_span: &ContainedSpan<'ast>,
     ) -> ContainedSpan<'ast> {
         let (start_token, end_token) = contained_span.tokens();
 
         ContainedSpan::new(
-            Cow::Owned(self.format_plain_token_reference(start_token.to_owned())),
-            Cow::Owned(self.format_plain_token_reference(end_token.to_owned())),
+            Cow::Owned(self.format_plain_token_reference(start_token)),
+            Cow::Owned(self.format_plain_token_reference(end_token)),
         )
     }
 
@@ -410,8 +410,8 @@ impl CodeFormatter {
     /// Used to preserve the comments around the symbol
     pub fn format_symbol<'ast>(
         &self,
-        current_symbol: TokenReference<'ast>,
-        wanted_symbol: TokenReference<'ast>,
+        current_symbol: &TokenReference<'ast>,
+        wanted_symbol: &TokenReference<'ast>,
     ) -> Cow<'ast, TokenReference<'ast>> {
         // Preserve comments in leading/trailing trivia
         let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
@@ -451,7 +451,7 @@ impl CodeFormatter {
     /// This is required due to comments bound to an `end` token - they need to have one level higher indentation
     pub fn format_end_token<'ast>(
         &self,
-        current_token: TokenReference<'ast>,
+        current_token: &TokenReference<'ast>,
     ) -> Cow<'ast, TokenReference<'ast>> {
         // Indent any comments leading a token, as these comments are technically part of the function body block
         let formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(

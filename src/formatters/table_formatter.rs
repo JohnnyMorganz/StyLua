@@ -108,7 +108,7 @@ fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast
     }
 }
 
-fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Token<'ast>> {
+fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
     match expression {
         Expression::Parentheses { contained, .. } => {
             let (_, end_parentheses) = contained.tokens();
@@ -117,7 +117,7 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
                 .map(|x| x.to_owned())
                 .collect()
         }
-        Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(*expression),
+        Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(expression),
         Expression::Value {
             value,
             binop,
@@ -130,9 +130,9 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
             }
 
             if let Some(binop) = binop {
-                get_expression_trailing_trivia(binop.rhs().to_owned())
+                get_expression_trailing_trivia(binop.rhs())
             } else {
-                match *value {
+                match &**value {
                     Value::Function((_, function_body)) => function_body
                         .end_token()
                         .trailing_trivia()
@@ -158,7 +158,7 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
                         .trailing_trivia()
                         .map(|x| x.to_owned())
                         .collect(),
-                    Value::ParseExpression(expr) => get_expression_trailing_trivia(expr),
+                    Value::ParseExpression(expr) => get_expression_trailing_trivia(&expr),
                     Value::Symbol(token_reference) => token_reference
                         .trailing_trivia()
                         .map(|x| x.to_owned())
@@ -185,7 +185,7 @@ fn get_expression_trailing_trivia<'ast>(expression: Expression<'ast>) -> Vec<Tok
     }
 }
 
-fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Token<'ast>> {
+fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
     match expression {
         Expression::Parentheses { contained, .. } => contained
             .tokens()
@@ -198,7 +198,7 @@ fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Toke
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
         },
-        Expression::Value { value, .. } => match *value {
+        Expression::Value { value, .. } => match &**value {
             Value::Function((token_ref, _)) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
@@ -206,7 +206,7 @@ fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Toke
                 Prefix::Name(token_ref) => {
                     token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                 }
-                Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+                Prefix::Expression(expr) => get_expression_leading_trivia(expr),
             },
             Value::TableConstructor(table) => table
                 .braces()
@@ -216,7 +216,7 @@ fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Toke
                 .map(|x| x.to_owned())
                 .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParseExpression(expr) => get_expression_leading_trivia(expr),
+            Value::ParseExpression(expr) => get_expression_leading_trivia(&expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Var(var) => match var {
@@ -225,14 +225,14 @@ fn get_expression_leading_trivia<'ast>(expression: Expression<'ast>) -> Vec<Toke
                     Prefix::Name(token_ref) => {
                         token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                     }
-                    Prefix::Expression(expr) => get_expression_leading_trivia(expr.to_owned()),
+                    Prefix::Expression(expr) => get_expression_leading_trivia(expr),
                 },
             },
         },
     }
 }
 
-fn get_field_leading_trivia<'ast>(field: Field<'ast>) -> Vec<Token<'ast>> {
+fn get_field_leading_trivia<'ast>(field: &Field<'ast>) -> Vec<Token<'ast>> {
     match field {
         Field::ExpressionKey { brackets, .. } => brackets
             .tokens()
@@ -269,40 +269,40 @@ impl CodeFormatter {
                 equal,
                 value,
             } => {
-                trailing_trivia = get_expression_trailing_trivia(value.to_owned());
+                trailing_trivia = get_expression_trailing_trivia(value);
                 Field::ExpressionKey {
                     brackets: trivia_formatter::contained_span_add_trivia(
-                        self.format_contained_span(brackets.to_owned()),
+                        self.format_contained_span(brackets),
                         leading_trivia,
                         FormatTriviaType::NoChange,
                     ),
-                    key: self.format_expression(key.to_owned()),
-                    equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
+                    key: self.format_expression(key),
+                    equal: crate::fmt_symbol!(self, equal, " = "),
                     // We will remove all the trivia from this value, and place it after the comma
                     value: trivia_formatter::expression_add_trailing_trivia(
-                        self.format_expression(value.to_owned()),
+                        self.format_expression(value),
                         FormatTriviaType::Replace(vec![]),
                     ),
                 }
             }
             Field::NameKey { key, equal, value } => {
-                trailing_trivia = get_expression_trailing_trivia(value.to_owned());
+                trailing_trivia = get_expression_trailing_trivia(value);
                 Field::NameKey {
                     key: Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                        self.format_token_reference(key.to_owned()).into_owned(),
+                        self.format_token_reference(key).into_owned(),
                         leading_trivia,
                         FormatTriviaType::NoChange,
                     )),
-                    equal: crate::fmt_symbol!(self, equal.to_owned().into_owned(), " = "),
+                    equal: crate::fmt_symbol!(self, equal, " = "),
                     value: trivia_formatter::expression_add_trailing_trivia(
-                        self.format_expression(value.to_owned()),
+                        self.format_expression(value),
                         FormatTriviaType::Replace(vec![]),
                     ),
                 }
             }
             Field::NoKey(expression) => {
-                trailing_trivia = get_expression_trailing_trivia(expression.to_owned());
-                let formatted_expression = self.format_expression(expression.to_owned());
+                trailing_trivia = get_expression_trailing_trivia(expression);
+                let formatted_expression = self.format_expression(expression);
                 if let FormatTriviaType::NoChange = leading_trivia {
                     Field::NoKey(formatted_expression)
                 } else {
@@ -334,7 +334,7 @@ impl CodeFormatter {
                     vec![self.create_indent_trivia(additional_indent_level)];
 
                 // Add new_line trivia to start_brace
-                let start_brace_token = crate::fmt_symbol!(self, start_brace.to_owned(), "{");
+                let start_brace_token = crate::fmt_symbol!(self, start_brace, "{");
                 let start_brace_token = trivia_formatter::token_reference_add_trivia(
                     start_brace_token.into_owned(),
                     FormatTriviaType::NoChange,
@@ -350,25 +350,25 @@ impl CodeFormatter {
                 );
                 ContainedSpan::new(
                     Cow::Owned(start_brace_token),
-                    self.format_symbol(end_brace.to_owned(), end_brace_token),
+                    self.format_symbol(end_brace, &end_brace_token),
                 )
             }
 
             TableType::SingleLine => ContainedSpan::new(
-                crate::fmt_symbol!(self, start_brace.to_owned(), "{ "),
-                crate::fmt_symbol!(self, end_brace.to_owned(), " }"),
+                crate::fmt_symbol!(self, start_brace, "{ "),
+                crate::fmt_symbol!(self, end_brace, " }"),
             ),
 
             TableType::Empty => ContainedSpan::new(
-                crate::fmt_symbol!(self, start_brace.to_owned(), "{"),
-                crate::fmt_symbol!(self, end_brace.to_owned(), "}"),
+                crate::fmt_symbol!(self, start_brace, "{"),
+                crate::fmt_symbol!(self, end_brace, "}"),
             ),
         }
     }
 
     pub fn format_table_constructor<'ast>(
         &mut self,
-        table_constructor: TableConstructor<'ast>,
+        table_constructor: &TableConstructor<'ast>,
     ) -> TableConstructor<'ast> {
         let mut fields = Punctuated::new();
         let mut current_fields = table_constructor
@@ -388,7 +388,7 @@ impl CodeFormatter {
         // If so, then we should always be multiline
         // The newline is bound to the first field, so we need to check its leading trivia
         if let Some(first_field) = current_fields.peek() {
-            let leading_trivia = get_field_leading_trivia(first_field.value().to_owned());
+            let leading_trivia = get_field_leading_trivia(first_field.value());
             for trivia in leading_trivia.iter() {
                 if let TokenType::Whitespace { characters } = trivia.token_type() {
                     if characters.find('\n').is_some() {
@@ -443,9 +443,7 @@ impl CodeFormatter {
                     // Continue adding a comma and a new line for multiline tables
                     let mut symbol = TokenReference::symbol(",").unwrap();
                     if let Some(punctuation) = punctuation {
-                        symbol = self
-                            .format_symbol(punctuation.into_owned(), symbol)
-                            .into_owned();
+                        symbol = self.format_symbol(&punctuation, &symbol).into_owned();
                     }
                     // Add newline trivia to the end of the symbol, and preserve any comments
                     trailing_trivia.push(self.create_newline_trivia());
@@ -461,8 +459,8 @@ impl CodeFormatter {
                         // Have more elements still to go
                         formatted_punctuation = match punctuation {
                             Some(punctuation) => Some(self.format_symbol(
-                                punctuation.into_owned(),
-                                TokenReference::symbol(", ").unwrap(),
+                                &punctuation,
+                                &TokenReference::symbol(", ").unwrap(),
                             )),
                             None => Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
                         }

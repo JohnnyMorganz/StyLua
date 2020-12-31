@@ -67,7 +67,7 @@ impl CodeFormatter {
 
     /// Returns an arbitrary token inside of the stmt, to see if it falls inside of an indent range.
     /// The token returned does not matter, as we will be using the position of it, and if this token falls within the range, then the whole statement must do
-    fn get_range_in_stmt(stmt: Stmt) -> Range {
+    fn get_range_in_stmt(stmt: &Stmt) -> Range {
         match stmt {
             Stmt::Assignment(assignment) => {
                 CodeFormatter::get_token_range(assignment.equal_token().token())
@@ -113,32 +113,29 @@ impl CodeFormatter {
         }
     }
 
-    pub fn format_return<'ast>(&mut self, return_node: Return<'ast>) -> Return<'ast> {
-        let formatted_returns = self.format_punctuated(
-            return_node.returns().to_owned(),
-            &CodeFormatter::format_expression,
-        );
+    pub fn format_return<'ast>(&mut self, return_node: &Return<'ast>) -> Return<'ast> {
+        let formatted_returns =
+            self.format_punctuated(return_node.returns(), &CodeFormatter::format_expression);
         let wanted_token: TokenReference<'ast> = if formatted_returns.is_empty() {
             TokenReference::symbol("return").unwrap()
         } else {
             TokenReference::symbol("return ").unwrap()
         };
-        let formatted_token = self.format_symbol(return_node.token().to_owned(), wanted_token);
-        return_node
+        let formatted_token = self.format_symbol(return_node.token(), &wanted_token);
+
+        Return::new()
             .with_token(formatted_token)
             .with_returns(formatted_returns)
     }
 
     pub fn format_last_stmt<'ast>(&mut self, last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
         match last_stmt {
-            LastStmt::Break(token) => LastStmt::Break(
-                self.format_symbol(token.into_owned(), TokenReference::symbol("break").unwrap()),
-            ),
-            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(return_node)),
+            LastStmt::Break(token) => LastStmt::Break(crate::fmt_symbol!(self, &token, "break")),
+            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(&return_node)),
             #[cfg(feature = "luau")]
             LastStmt::Continue(token) => LastStmt::Continue(self.format_symbol(
-                token.into_owned(),
-                TokenReference::new(
+                &token,
+                &TokenReference::new(
                     vec![],
                     Token::new(TokenType::Identifier {
                         identifier: Cow::Owned(String::from("continue")),
@@ -236,9 +233,9 @@ impl CodeFormatter {
             block
                 .iter_stmts()
                 .map(|stmt| {
-                    let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt.to_owned());
+                    let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt);
                     let additional_indent_level = self.get_range_indent_increase(range_in_stmt);
-                    let stmt = self.format_stmt(stmt.to_owned());
+                    let stmt = self.format_stmt(stmt);
                     (
                         self.stmt_add_trivia(stmt, additional_indent_level),
                         None, // The second parameter in the tuple is for semicolons - we do not want any semi-colons

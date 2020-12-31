@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed heuristics for expanding function arguments. StyLua will now check through the arguments and look out for expanded tables
 or anonymous functions, and if found, will not expand the function call. However, if there are any other type of expression mixed between,
 then the function call will remain expanded.
+- Change internals of the formatter by reducing amount of cloning of AST nodes. Improves performance by 22%
 
 ## [0.1.0] - 2020-12-30
 ### Added
