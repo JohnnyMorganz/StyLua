@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.0] - 2020-12-31
 ### Changed
 - Changed heuristics for expanding function arguments. StyLua will now check through the arguments and look out for expanded tables
 or anonymous functions, and if found, will not expand the function call. However, if there are any other type of expression mixed between,
