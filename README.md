@@ -53,13 +53,14 @@ StyLua can also read from stdin, by using `-` as the file name.
 ### Glob Filtering
 When searching through a directory, a glob pattern can be used to specify which specific types of files to format:
 ```
-stylua --glob **/*.lua src
+stylua --glob **/*.lua -- src
 ```
 Multiple glob patterns can be used to match specific files, and not others. For example:
 ```
-stylua -g *.lua -g !*.spec.lua .
+stylua -g *.lua -g !*.spec.lua -- .
 ```
 will format all Lua files, but ignore any `.spec.lua` test files.
+Note, if you are using the glob argument, it can take in multiple strings, so a `--` is required to break between the glob pattern and the files to format.
 The glob defaults to `**/*.lua`.
 
 ### Filtering using `.styluaignore`
@@ -77,7 +78,7 @@ If there are files which haven't been fully formatted, StyLua will exit with sta
 
 ## Configuration
 
-StyLua is **opinionated**, so there as little configuration options as possible.
+StyLua is **opinionated**, so there are as little configuration options as possible.
 The CLI will search for a `stylua.toml` file in the current working directory to read the configuration.
 Alternatively, you can pass your own path using the `--config-path` argument.
 
