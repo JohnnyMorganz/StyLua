@@ -405,13 +405,14 @@ impl CodeFormatter {
             },
             None => TableType::Empty,
         };
-        let additional_indent_level = self.get_range_indent_increase(braces_range);
+        let additional_indent_level =
+            self.get_range_indent_increase(CodeFormatter::get_token_range(end_brace.token()));
         let braces =
             self.create_table_braces(start_brace, end_brace, table_type, additional_indent_level);
 
         if is_multiline {
             // Need to take the inner portion of the braces, not including the braces themselves
-            let braces_range = (braces_range.0 + 1, braces_range.1 - 1);
+            let braces_range = (braces_range.0, braces_range.1);
             self.add_indent_range(braces_range);
         }
 

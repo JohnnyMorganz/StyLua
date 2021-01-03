@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed `until` token in a repeat block not being correctly indented
+- Fixed regression causing the first and last item of an expanded table to not be correctly indented
 
 ## [0.2.0] - 2020-12-31
 ### Changed
