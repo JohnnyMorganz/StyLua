@@ -11,28 +11,23 @@ mod output_diff;
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
 struct Opt {
-    /// Specify path to stylua.toml
+    /// Specify path to stylua.toml configuration file
     #[structopt(long = "config-path", parse(from_os_str))]
     config_path: Option<PathBuf>,
 
-    /// Runs in 'check' mode
-    /// Exits with 0 if all formatting is OK
-    /// Exits with 1 if the formatting is incorrect
-    /// Any files input will not be overwritten
+    /// Runs in 'check' mode.
+    /// Exits with 0 if all formatting is OK,
+    /// Exits with 1 if the formatting is incorrect.
+    /// Any files input will not be overwritten.
     #[structopt(short, long)]
     check: bool,
 
     // Whether the output should include terminal colour or not
-    #[structopt(
-        long,
-        possible_values = &Color::variants(),
-        case_insensitive = true,
-        default_value = "auto",
-    )]
+    #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
     color: Color,
 
-    /// Any glob patterns to test against which files to check
-    /// To ignore a specific glob pattern, begin with !
+    /// Any glob patterns to test against which files to check.
+    /// To ignore a specific glob pattern, begin the glob pattern with `!`
     #[structopt(short, long)]
     glob: Option<Vec<String>>,
 
