@@ -167,22 +167,46 @@ impl CodeFormatter {
                         quote_type: StringLiteralQuoteType::Brackets,
                     }
                 } else {
+                    // Match all escapes within the the string
+                    // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                     lazy_static::lazy_static! {
-                        static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])"#).unwrap(); // Match any quote, both escaped or unescaped
+                        static ref RE: regex::Regex = regex::Regex::new(r#"\\([\S\s])|(["'])"#).unwrap();
+                        static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\bfnrt-vx\u2028\u2029]$"#).unwrap();
                     }
                     let literal = RE
                         .replace_all(literal, |caps: &regex::Captures| {
-                            let quote_type = match &caps[1] {
-                                "'" => StringLiteralQuoteType::Single,
-                                "\"" => StringLiteralQuoteType::Double,
-                                _ => panic!("unknown quote type"),
-                            };
+                            let escaped = caps.get(1);
+                            let quote = caps.get(2);
 
-                            if let StringLiteralQuoteType::Single = quote_type {
-                                "'"
-                            } else {
-                                // Double quote, make sure to escape it
-                                "\\\""
+                            match quote {
+                                Some(quote) => {
+                                    // We have a quote, so lets see if it matches what we want, and
+                                    let quote_type = match quote.as_str() {
+                                        "'" => StringLiteralQuoteType::Single,
+                                        "\"" => StringLiteralQuoteType::Double,
+                                        _ => panic!("unknown quote type"),
+                                    };
+                                    if let StringLiteralQuoteType::Single = quote_type {
+                                        String::from("'")
+                                    } else {
+                                        // Double quote, make sure to escape it
+                                        String::from("\\\"")
+                                    }
+                                }
+                                None => {
+                                    // We have a normal escape
+                                    // Test to see if it is necessary, and if not, then unescape it
+                                    let text = escaped
+                                        .expect(
+                                            "have a match which was neither an escape or a quote",
+                                        )
+                                        .as_str();
+                                    if UNNECESSARY_ESCAPES.is_match(text) {
+                                        text.to_owned()
+                                    } else {
+                                        format!("\\{}", text.to_owned())
+                                    }
+                                }
                             }
                         })
                         .into_owned();

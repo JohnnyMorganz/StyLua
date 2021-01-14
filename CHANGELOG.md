@@ -5,10 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- StyLua will now test escapes of characters other than quotes in strings to see if they are unnecessary and remove them if so
+
 ### Fixed
 - Fixed `.styluaignore` file extension matching not working due to the default override glob
 - Cleaned up descriptions of options when running `stylua --help`
 - Fixed issue with `stylua.toml` requiring a complete configuration file with all options set
+- Fixed issue with escapes unrelated to quotes inside of strings not being preserved
 
 ## [0.2.1] - 2021-01-03
 ### Fixed
