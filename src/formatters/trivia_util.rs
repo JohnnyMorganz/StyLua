@@ -554,3 +554,18 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
         }
     }
 }
+
+// Checks to see whether an expression contains comments inline inside of it
+// This can only happen if the expression is a BinOp
+pub fn expression_contains_inline_comments<'ast>(expression: &Expression<'ast>) -> bool {
+    match expression {
+        Expression::Value { binop, .. } => {
+            if binop.is_some() {
+                expression_contains_comments(expression)
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}

@@ -1,4 +1,7 @@
-use crate::{formatters::CodeFormatter, IndentType};
+use crate::{
+    formatters::{trivia_util, CodeFormatter},
+    IndentType,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     AsAssertion, CompoundAssignment, ExportedTypeDeclaration, IndexedTypeInfo, TypeDeclaration,
@@ -140,7 +143,12 @@ impl CodeFormatter {
                 .next()
                 .expect("no lines")
                 .len())
-            > 120;
+            > 120
+            || assignment.expr_list().pairs().any(|pair| {
+                pair.punctuation()
+                    .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                    || trivia_util::expression_contains_inline_comments(pair.value())
+            });
 
         let mut formatted_var_list = Punctuated::new();
         let mut iterator = assignment.var_list().pairs();
@@ -243,6 +251,11 @@ impl CodeFormatter {
                         .expect("no lines")
                         .len())
                     > 120
+                    || local_assignment.expr_list().pairs().any(|pair| {
+                        pair.punctuation()
+                            .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                            || trivia_util::expression_contains_inline_comments(pair.value())
+                    })
             }
             None => false,
         };
@@ -349,7 +362,8 @@ impl CodeFormatter {
             + &else_if_block.condition().to_string()
             + &no_comments(else_if_block.then_token());
         let indent_characters = &self.indent_level * &self.config.indent_width;
-        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(else_if_block.condition());
 
         let mut else_if_token = token_reference_add_trivia(
             else_if_block.else_if_token().to_owned(),
@@ -414,7 +428,8 @@ impl CodeFormatter {
             + &if_block.condition().to_string()
             + &no_comments(if_block.then_token());
         let indent_characters = &self.indent_level * &self.config.indent_width;
-        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(if_block.condition());
 
         let mut if_token = token_reference_add_trivia(
             if_block.if_token().to_owned(),
@@ -506,7 +521,8 @@ impl CodeFormatter {
         let last_line_str =
             no_comments(repeat_block.until_token()) + &repeat_block.until().to_string();
         let indent_characters = &self.indent_level * &self.config.indent_width;
-        let require_multiline_condition = (indent_characters + last_line_str.len()) > 120;
+        let require_multiline_condition = (indent_characters + last_line_str.len()) > 120
+            || trivia_util::expression_contains_inline_comments(repeat_block.until());
 
         let repeat_token = token_reference_add_trivia(
             repeat_block.repeat_token().to_owned(),
@@ -549,7 +565,8 @@ impl CodeFormatter {
             + &while_block.condition().to_string()
             + &no_comments(while_block.do_token());
         let indent_characters = &self.indent_level * &self.config.indent_width;
-        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(while_block.condition());
 
         let mut while_token = token_reference_add_trivia(
             while_block.while_token().to_owned(),
