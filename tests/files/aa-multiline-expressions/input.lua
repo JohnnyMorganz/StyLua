@@ -11,3 +11,7 @@ repeat print("foo") until someReallyLongCondition and someOtherReallyLongConditi
 while someReallyLongCondition and someOtherReallyLongCondition and somethingElse and someReallyLongCondition and someOtherReallyLongCondition and somethingElse do
     print("foo")
 end
+
+if foo(aVeryLongValue, anotherVeryLongValue, someEvenMoreLongValues, evenMoreLongValues, whenWillTheseLongValuesEverEnd) and someOtherReallyLongCondition and somethingElse and someReallyLongCondition and someOtherReallyLongCondition and somethingElse then
+    print("foo")
+end
