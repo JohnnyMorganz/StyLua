@@ -120,6 +120,42 @@ fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
     }
 }
 
+pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> {
+    match value {
+        Value::Function((_, function_body)) => function_body
+            .end_token()
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Value::FunctionCall(function_call) => {
+            if let Some(last_suffix) = function_call.iter_suffixes().last() {
+                suffix_trailing_trivia(last_suffix)
+            } else {
+                // TODO: is it possible for this to happen?
+                vec![]
+            }
+        }
+        Value::String(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Value::TableConstructor(table_constructor) => {
+            let (_, end_brace) = table_constructor.braces().tokens();
+            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+        }
+        Value::Number(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Value::ParseExpression(expr) => get_expression_trailing_trivia(&expr),
+        Value::Symbol(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Value::Var(var) => var_trailing_trivia(var),
+    }
+}
+
 pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
     match expression {
         Expression::Parentheses { contained, .. } => {
@@ -144,39 +180,7 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
             if let Some(binop) = binop {
                 get_expression_trailing_trivia(binop.rhs())
             } else {
-                match &**value {
-                    Value::Function((_, function_body)) => function_body
-                        .end_token()
-                        .trailing_trivia()
-                        .map(|x| x.to_owned())
-                        .collect(),
-                    Value::FunctionCall(function_call) => {
-                        if let Some(last_suffix) = function_call.iter_suffixes().last() {
-                            suffix_trailing_trivia(last_suffix)
-                        } else {
-                            // TODO: is it possible for this to happen?
-                            vec![]
-                        }
-                    }
-                    Value::String(token_reference) => token_reference
-                        .trailing_trivia()
-                        .map(|x| x.to_owned())
-                        .collect(),
-                    Value::TableConstructor(table_constructor) => {
-                        let (_, end_brace) = table_constructor.braces().tokens();
-                        end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-                    }
-                    Value::Number(token_reference) => token_reference
-                        .trailing_trivia()
-                        .map(|x| x.to_owned())
-                        .collect(),
-                    Value::ParseExpression(expr) => get_expression_trailing_trivia(&expr),
-                    Value::Symbol(token_reference) => token_reference
-                        .trailing_trivia()
-                        .map(|x| x.to_owned())
-                        .collect(),
-                    Value::Var(var) => var_trailing_trivia(var),
-                }
+                get_value_trailing_trivia(value)
             }
         }
     }
@@ -240,6 +244,22 @@ pub fn get_field_leading_trivia<'ast>(field: &Field<'ast>) -> Vec<Token<'ast>> {
         Field::NameKey { key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
         Field::NoKey(expression) => get_expression_leading_trivia(expression),
     }
+}
+
+pub fn get_value_trailing_comments<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> {
+    get_value_trailing_trivia(value)
+        .iter()
+        .filter(|token| {
+            token.token_kind() == TokenKind::SingleLineComment
+                || token.token_kind() == TokenKind::MultiLineComment
+        })
+        .map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .flatten()
+        .map(|x| x.to_owned())
+        .collect()
 }
 
 pub fn get_expression_trailing_comments<'ast>(

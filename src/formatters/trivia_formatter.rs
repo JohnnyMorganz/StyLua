@@ -57,9 +57,12 @@ impl CodeFormatter {
             },
             Expression::Value { value, binop } => {
                 // Need to check if there is a binop
+                let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
+                trailing_trivia.push(self.create_newline_trivia());
+
                 let mut new_value = Box::new(value_add_trailing_trivia(
                     (*value).to_owned(),
-                    FormatTriviaType::Replace(vec![self.create_newline_trivia()]),
+                    FormatTriviaType::Replace(trailing_trivia),
                 ));
 
                 let binop = match binop {

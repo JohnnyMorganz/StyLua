@@ -6,7 +6,7 @@ local expr_result = 1
 		+ 2
 		+ 3
 		+ 4
-		+ 5
+		+ 5 --a comment
 		+ 6
 		+ 6
 		+ 8
@@ -22,8 +22,8 @@ for foo, bar in next, value do -- test -- comment
 end
 
 if
-	code == 9
-	or code == 32
+	code == 9 -- \t
+	or code == 32 -- <space>
 then
 	print(code)
 end
