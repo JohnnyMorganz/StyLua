@@ -816,6 +816,7 @@ dependencies = [
  "criterion",
  "diff",
  "full_moon",
+ "globset",
  "ignore",
  "lazy_static",
  "regex",

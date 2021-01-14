@@ -33,8 +33,8 @@ struct Opt {
 
     /// Any glob patterns to test against which files to check
     /// To ignore a specific glob pattern, begin with !
-    #[structopt(short, long, default_value = "*.lua")]
-    glob: Vec<String>,
+    #[structopt(short, long)]
+    glob: Option<Vec<String>>,
 
     /// A list of files to format
     #[structopt(parse(from_os_str))]
@@ -162,20 +162,6 @@ fn format(opt: Opt) -> Result<i32> {
 
     let cwd = std::env::current_dir()?;
 
-    // Build overriders with any patterns given
-    let mut overrides = OverrideBuilder::new(cwd);
-    for pattern in opt.glob {
-        match overrides.add(&pattern) {
-            Ok(_) => continue,
-            Err(err) => errors.push(format_err!(
-                "error: cannot parse glob pattern {}: {}",
-                pattern,
-                err
-            )),
-        }
-    }
-    let overrides = overrides.build()?;
-
     // Build WalkBuilder with the files given, using any overrides set
     let mut walker_builder = WalkBuilder::new(&opt.files[0]);
     for file_path in &opt.files[1..] {
@@ -186,8 +172,29 @@ fn format(opt: Opt) -> Result<i32> {
         .standard_filters(false)
         .hidden(true)
         .parents(true)
-        .overrides(overrides)
         .add_custom_ignore_filename(".styluaignore");
+
+    let use_default_glob = match opt.glob {
+        Some(globs) => {
+            // Build overriders with any patterns given
+            let mut overrides = OverrideBuilder::new(cwd);
+            for pattern in globs {
+                match overrides.add(&pattern) {
+                    Ok(_) => continue,
+                    Err(err) => errors.push(format_err!(
+                        "error: cannot parse glob pattern {}: {}",
+                        pattern,
+                        err
+                    )),
+                }
+            }
+            let overrides = overrides.build()?;
+            walker_builder.overrides(overrides);
+            // We shouldn't use the default glob anymore
+            false
+        }
+        None => true,
+    };
 
     let walker = walker_builder.build();
 
@@ -214,6 +221,15 @@ fn format(opt: Opt) -> Result<i32> {
                 } else {
                     let path = entry.path();
                     if path.is_file() {
+                        // If the user didn't provide a glob pattern, we should match against our default one
+                        if use_default_glob {
+                            lazy_static::lazy_static! {
+                                static ref DEFAULT_GLOB: globset::GlobMatcher = globset::Glob::new("**/*.lua").expect("cannot create default glob").compile_matcher();
+                            }
+                            if !DEFAULT_GLOB.is_match(path) {
+                                continue;
+                            }
+                        }
                         match format_file(path, config, opt.check, opt.color) {
                             Ok(code) => {
                                 if code != 0 {
