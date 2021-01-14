@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed `.styluaignore` file extension matching not working due to the default override glob
 - Cleaned up descriptions of options when running `stylua --help`
+- Fixed issue with `stylua.toml` requiring a complete configuration file with all options set
 
 ## [0.2.1] - 2021-01-03
 ### Fixed

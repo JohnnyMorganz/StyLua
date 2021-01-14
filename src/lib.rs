@@ -31,6 +31,7 @@ impl Default for LineEndings {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(default)]
 pub struct Config {
     line_endings: LineEndings,
     indent_type: IndentType,
