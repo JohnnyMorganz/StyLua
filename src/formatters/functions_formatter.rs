@@ -4,14 +4,14 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Value,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
 
 use crate::formatters::{
     get_line_ending_character,
     trivia_formatter::{self, FormatTriviaType},
-    CodeFormatter,
+    trivia_util, CodeFormatter,
 };
 
 fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
@@ -87,7 +87,7 @@ impl CodeFormatter {
                     end_parens.start_position().bytes(),
                 );
                 let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
-                let mut current_arguments = arguments.iter().peekable();
+                let mut current_arguments = arguments.pairs();
 
                 // Format all the arguments, so that we can prepare them and check to see whether they need expanding
                 // We will ignore punctuation for now
@@ -98,8 +98,38 @@ impl CodeFormatter {
 
                 // Apply some heuristics to determine whether we should expand the function call
                 // TODO: These are subject to change
-                // If we only have one argument then we will not make it multi line (expanding it would have little value)
-                if is_multiline {
+
+                // If there is a comment present anywhere in between the start parentheses and end parentheses, we should keep it multiline
+                let force_mutliline: bool =
+                    if trivia_util::token_trivia_contains_comments(start_parens.trailing_trivia())
+                        || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
+                    {
+                        true
+                    } else {
+                        let mut contains_comments = false;
+                        for argument in arguments.pairs() {
+                            if trivia_util::expression_contains_comments(argument.value()) {
+                                contains_comments = true;
+                            } else if let Some(punctuation) = argument.punctuation() {
+                                if trivia_util::token_contains_comments(punctuation) {
+                                    contains_comments = true;
+                                }
+                            };
+
+                            if contains_comments {
+                                break;
+                            }
+                        }
+
+                        contains_comments
+                    };
+
+                if force_mutliline {
+                    is_multiline = true;
+                }
+
+                if is_multiline && !force_mutliline {
+                    // If we only have one argument then we will not make it multi line (expanding it would have little value)
                     if formatted_arguments.len() == 1 {
                         is_multiline = false;
                     } else {
@@ -169,12 +199,14 @@ impl CodeFormatter {
                     let end_parens_leading_trivia =
                         vec![self.create_indent_trivia(end_parens_additional_indent_level)];
 
-                    // Add new_line trivia to start_brace
-                    let start_parens_token = TokenReference::symbol(
-                        &(String::from("(")
-                            + &get_line_ending_character(&self.config.line_endings)),
-                    )
-                    .unwrap();
+                    // Add new_line trivia to start_parens
+                    let start_parens_token = crate::fmt_symbol!(self, start_parens, "(");
+                    let start_parens_token = trivia_formatter::token_reference_add_trivia(
+                        start_parens_token.into_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                    );
+
                     let end_parens_token = TokenReference::new(
                         end_parens_leading_trivia,
                         Token::new(TokenType::Symbol {
@@ -182,8 +214,9 @@ impl CodeFormatter {
                         }),
                         vec![],
                     );
+
                     let parentheses = ContainedSpan::new(
-                        self.format_symbol(start_parens, &start_parens_token),
+                        Cow::Owned(start_parens_token),
                         self.format_symbol(end_parens, &end_parens_token),
                     );
 
@@ -192,24 +225,31 @@ impl CodeFormatter {
                     self.add_indent_range(function_call_range);
 
                     while let Some(argument) = current_arguments.next() {
-                        let argument_range = CodeFormatter::get_range_in_expression(argument);
+                        let argument_range =
+                            CodeFormatter::get_range_in_expression(argument.value());
                         let additional_indent_level =
                             self.get_range_indent_increase(argument_range);
 
                         // Unfortunately, we need to format again, taking into account in indent increase
                         // TODO: Can we fix this? We don't want to have to format twice
                         let formatted_argument = trivia_formatter::expression_add_leading_trivia(
-                            self.format_expression(argument),
+                            self.format_expression(argument.value()),
                             FormatTriviaType::Append(vec![
                                 self.create_indent_trivia(additional_indent_level)
                             ]),
                         );
 
-                        let punctuation = match current_arguments.peek() {
-                            Some(_) => {
-                                let symbol = String::from(",")
-                                    + &get_line_ending_character(&self.config.line_endings);
-                                Some(Cow::Owned(TokenReference::symbol(&symbol).unwrap()))
+                        let punctuation = match argument.punctuation() {
+                            Some(punctuation) => {
+                                // Continue adding a comma and a new line for multiline function args
+                                let symbol = crate::fmt_symbol!(self, punctuation, ",");
+                                let symbol = trivia_formatter::token_reference_add_trivia(
+                                    symbol.into_owned(),
+                                    FormatTriviaType::NoChange,
+                                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                                );
+
+                                Some(Cow::Owned(symbol))
                             }
                             None => Some(Cow::Owned(TokenReference::new(
                                 vec![],
@@ -230,11 +270,47 @@ impl CodeFormatter {
                         arguments: formatted_arguments,
                     }
                 } else {
-                    let formatted_arguments =
+                    let parentheses = self.format_contained_span(&parentheses);
+
+                    // If theres comments connected to the opening parentheses, we need to move them
+                    let (start_parens, end_parens) = parentheses.tokens();
+                    let mut parens_comments: Vec<Token<'ast>> = start_parens
+                        .trailing_trivia()
+                        .filter(|token| {
+                            token.token_kind() == TokenKind::SingleLineComment
+                                || token.token_kind() == TokenKind::MultiLineComment
+                        })
+                        .map(|x| {
+                            // Prepend a single space beforehand
+                            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                        })
+                        .flatten()
+                        .map(|x| x.to_owned())
+                        .collect();
+
+                    // Format the arguments, and move any comments within them
+                    let (formatted_arguments, mut comments_buffer) =
                         self.format_punctuated(arguments, &CodeFormatter::format_expression);
 
+                    parens_comments.append(&mut comments_buffer);
+
+                    // Recreate parentheses with the comments removed from the opening parens
+                    // and all the comments placed at the end of the closing parens
+                    let parentheses = ContainedSpan::new(
+                        Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                            start_parens.to_owned(),
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Replace(vec![]),
+                        )),
+                        Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                            end_parens.to_owned(),
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Append(parens_comments),
+                        )),
+                    );
+
                     FunctionArgs::Parentheses {
-                        parentheses: self.format_contained_span(&parentheses),
+                        parentheses,
                         arguments: formatted_arguments,
                     }
                 }
@@ -242,42 +318,62 @@ impl CodeFormatter {
 
             FunctionArgs::String(token_reference) => {
                 let mut arguments = Punctuated::new();
-                arguments.push(Pair::new(
-                    self.format_expression(&Expression::Value {
-                        value: Box::new(Value::String(token_reference.to_owned())),
-                        binop: None,
-                        #[cfg(feature = "luau")]
-                        as_assertion: None,
-                    }),
-                    None, // Only single argument, so no trailing comma
-                ));
+                let new_expression = self.format_expression(&Expression::Value {
+                    value: Box::new(Value::String(token_reference.to_owned())),
+                    binop: None,
+                    #[cfg(feature = "luau")]
+                    as_assertion: None,
+                });
 
-                FunctionArgs::Parentheses {
-                    parentheses: ContainedSpan::new(
+                // Remove any trailing comments from the expression, and move them into a buffer
+                let (new_expression, comments_buffer) =
+                    trivia_util::get_expression_trailing_comments(&new_expression);
+
+                // Create parentheses, and add the trailing comments to the end of the parentheses
+                let parentheses = trivia_formatter::contained_span_add_trivia(
+                    ContainedSpan::new(
                         Cow::Owned(TokenReference::symbol("(").unwrap()),
                         Cow::Owned(TokenReference::symbol(")").unwrap()),
                     ),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Append(comments_buffer),
+                );
+
+                arguments.push(Pair::new(new_expression, None)); // Only single argument, so no trailing comma
+
+                FunctionArgs::Parentheses {
+                    parentheses,
                     arguments,
                 }
             }
 
             FunctionArgs::TableConstructor(table_constructor) => {
                 let mut arguments = Punctuated::new();
-                arguments.push(Pair::new(
-                    self.format_expression(&Expression::Value {
-                        value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
-                        binop: None,
-                        #[cfg(feature = "luau")]
-                        as_assertion: None,
-                    }),
-                    None,
-                ));
+                let new_expression = self.format_expression(&Expression::Value {
+                    value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
+                    binop: None,
+                    #[cfg(feature = "luau")]
+                    as_assertion: None,
+                });
 
-                FunctionArgs::Parentheses {
-                    parentheses: ContainedSpan::new(
+                // Remove any trailing comments from the expression, and move them into a buffer
+                let (new_expression, comments_buffer) =
+                    trivia_util::get_expression_trailing_comments(&new_expression);
+
+                // Create parentheses, and add the trailing comments to the end of the parentheses
+                let parentheses = trivia_formatter::contained_span_add_trivia(
+                    ContainedSpan::new(
                         Cow::Owned(TokenReference::symbol("(").unwrap()),
                         Cow::Owned(TokenReference::symbol(")").unwrap()),
                     ),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Append(comments_buffer),
+                );
+
+                arguments.push(Pair::new(new_expression, None)); // Only single argument, so no trailing comma
+
+                FunctionArgs::Parentheses {
+                    parentheses,
                     arguments,
                 }
             }

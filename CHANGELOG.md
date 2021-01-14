@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up descriptions of options when running `stylua --help`
 - Fixed issue with `stylua.toml` requiring a complete configuration file with all options set
 - Fixed issue with escapes unrelated to quotes inside of strings not being preserved
+- Fixed incorrect formatting when trailing comments are present in function arguments and other locations.
+In function arguments, it will remain expanded if there is a comment present. Similarly, comments are now preserved in punctuated sequencues.
 
 ## [0.2.1] - 2021-01-03
 ### Fixed

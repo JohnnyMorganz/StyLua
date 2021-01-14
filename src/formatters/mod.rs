@@ -21,6 +21,7 @@ pub mod luau_formatter;
 pub mod stmt_formatter;
 pub mod table_formatter;
 pub mod trivia_formatter;
+pub mod trivia_util;
 
 /// A Range, from a Start Position to an End Position
 pub type Range = (usize, usize);
@@ -383,29 +384,55 @@ impl CodeFormatter {
         Cow::Owned(self.format_plain_token_reference(&token_reference))
     }
 
+    // Formats a punctuation for a Punctuated sequence
+    // Removes any trailing comments to be stored in a comments buffer
     pub fn format_punctuation<'ast>(
         &self,
         punctuation: &TokenReference<'ast>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
-        Cow::Owned(TokenReference::new(
-            Vec::new(),
-            punctuation.token().to_owned(),
-            vec![Token::new(TokenType::spaces(1))], // Single space whitespace
-        ))
+    ) -> (Cow<'ast, TokenReference<'ast>>, Vec<Token<'ast>>) {
+        let trailing_comments = punctuation
+            .trailing_trivia()
+            .filter(|token| {
+                token.token_kind() == TokenKind::SingleLineComment
+                    || token.token_kind() == TokenKind::MultiLineComment
+            })
+            .map(|x| {
+                // Prepend a single space beforehand
+                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+            })
+            .flatten()
+            .collect();
+
+        (
+            Cow::Owned(TokenReference::new(
+                Vec::new(),
+                punctuation.token().to_owned(),
+                vec![Token::new(TokenType::spaces(1))], // Single space whitespace
+            )),
+            trailing_comments,
+        )
     }
 
+    // Formats a Punctuated sequence with correct punctuated values
+    // If there are any comments in between tied to the punctuation, they will be removed and stored in a returned comments buffer
     pub fn format_punctuated<'a, T>(
         &mut self,
         old: &Punctuated<'a, T>,
         value_formatter: &dyn Fn(&mut Self, &T) -> T,
-    ) -> Punctuated<'a, T> {
+    ) -> (Punctuated<'a, T>, Vec<Token<'a>>) {
         let mut formatted: Punctuated<T> = Punctuated::new();
+        let mut comments_buffer = Vec::new();
+
         for pair in old.pairs() {
-            // Format Punctuation
             match pair {
                 Pair::Punctuated(value, punctuation) => {
-                    let formatted_punctuation = self.format_punctuation(punctuation);
+                    // Format punctuation and store any comments into buffer
+                    let (formatted_punctuation, mut comments) =
+                        self.format_punctuation(punctuation);
+                    comments_buffer.append(&mut comments);
+
                     let formatted_value = value_formatter(self, value);
+
                     formatted.push(Pair::new(formatted_value, Some(formatted_punctuation)));
                 }
                 Pair::End(value) => {
@@ -415,7 +442,7 @@ impl CodeFormatter {
             }
         }
 
-        formatted
+        (formatted, comments_buffer)
     }
 
     pub fn format_contained_span<'ast>(

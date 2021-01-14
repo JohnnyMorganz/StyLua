@@ -114,11 +114,26 @@ impl CodeFormatter {
     }
 
     pub fn format_return<'ast>(&mut self, return_node: &Return<'ast>) -> Return<'ast> {
-        let formatted_returns =
+        let (mut formatted_returns, comments_buf) =
             self.format_punctuated(return_node.returns(), &CodeFormatter::format_expression);
+
         let wanted_token: TokenReference<'ast> = if formatted_returns.is_empty() {
             TokenReference::symbol("return").unwrap()
         } else {
+            // Append the comments buffer to the last return
+            match formatted_returns.pop() {
+                Some(pair) => {
+                    let pair = pair.map(|expr| {
+                        trivia_formatter::expression_add_trailing_trivia(
+                            expr,
+                            FormatTriviaType::Append(comments_buf),
+                        )
+                    });
+                    formatted_returns.push(pair);
+                }
+                None => (),
+            }
+
             TokenReference::symbol("return ").unwrap()
         };
         let formatted_token = self.format_symbol(return_node.token(), &wanted_token);

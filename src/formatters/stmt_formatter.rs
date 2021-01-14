@@ -32,7 +32,7 @@ impl CodeFormatter {
     /// Format a GenericFor node
     pub fn format_generic_for<'ast>(&mut self, generic_for: &GenericFor<'ast>) -> GenericFor<'ast> {
         let for_token = crate::fmt_symbol!(self, generic_for.for_token(), "for ");
-        let formatted_names = self.format_punctuated(
+        let (formatted_names, mut names_comments_buf) = self.format_punctuated(
             generic_for.names(),
             &CodeFormatter::format_token_reference_mut,
         );
@@ -47,9 +47,19 @@ impl CodeFormatter {
             .collect();
 
         let in_token = crate::fmt_symbol!(self, generic_for.in_token(), " in ");
-        let formatted_expr_list =
+        let (formatted_expr_list, mut expr_comments_buf) =
             self.format_punctuated(generic_for.expr_list(), &CodeFormatter::format_expression);
+
+        // Create comments buffer and append to end of do token
+        names_comments_buf.append(&mut expr_comments_buf);
+
         let do_token = crate::fmt_symbol!(self, generic_for.do_token(), " do");
+        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            do_token.to_owned().into_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(names_comments_buf),
+        ));
+
         let end_token = self.format_end_token(generic_for.end_token());
 
         let generic_for = generic_for
