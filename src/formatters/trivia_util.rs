@@ -1,12 +1,13 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
+#[cfg(feature = "luau")]
+use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
 use full_moon::{
     ast::{
-        BinOp, Call, Expression, Field, FunctionArgs, Index, Prefix, Suffix, TableConstructor,
-        UnOp, Value, Var,
+        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, Prefix, Suffix,
+        TableConstructor, UnOp, Value, Var,
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
-use std::borrow::Cow;
 
 pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
     for trivia in trivia_vec {
@@ -287,7 +288,6 @@ pub fn get_expression_trailing_comments<'ast>(
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .flatten()
-        .map(|x| x.to_owned())
         .collect();
 
     let new_expression = trivia_formatter::expression_add_trailing_trivia(
@@ -295,47 +295,7 @@ pub fn get_expression_trailing_comments<'ast>(
         FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
     );
 
-    return (new_expression, trailing_comments);
-}
-
-pub fn get_var_trailing_comments<'ast>(var: &Var<'ast>) -> (Var<'ast>, Vec<Token<'ast>>) {
-    let trailing_comments = var_trailing_trivia(var)
-        .iter()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
-        .map(|x| x.to_owned())
-        .collect();
-
-    let new_var = trivia_formatter::var_add_trailing_trivia(
-        var.to_owned(),
-        FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-    );
-
-    return (new_var, trailing_comments);
-}
-
-pub fn get_token_ref_trailing_comments<'ast>(
-    token_ref: &Cow<'ast, TokenReference<'ast>>,
-) -> (Cow<'ast, TokenReference<'ast>>, Vec<Token<'ast>>) {
-    println!("getting trailing comments for {:?}", token_ref);
-    let trailing_comments = token_ref
-        .trailing_trivia()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
-        .map(|x| x.to_owned())
-        .collect();
-    println!("{:?}", trailing_comments);
-    let new_token_ref = trivia_formatter::token_reference_add_trivia(
-        token_ref.to_owned().into_owned(),
-        FormatTriviaType::NoChange,
-        FormatTriviaType::Replace(vec![]),
-    );
-
-    return (Cow::Owned(new_token_ref), trailing_comments);
+    (new_expression, trailing_comments)
 }
 
 pub fn token_trivia_contains_comments<'ast>(
@@ -356,7 +316,7 @@ pub fn token_contains_comments<'ast>(token_ref: &TokenReference<'ast>) -> bool {
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-fn table_constructor_contains_comments<'ast>(table_constructor: &TableConstructor) -> bool {
+fn table_constructor_contains_comments<'ast>(table_constructor: &TableConstructor<'ast>) -> bool {
     let (start, end) = table_constructor.braces().tokens();
     if token_contains_comments(start) || token_contains_comments(end) {
         true
@@ -401,7 +361,7 @@ fn table_constructor_contains_comments<'ast>(table_constructor: &TableConstructo
     }
 }
 
-fn function_args_contains_comments<'ast>(function_args: &FunctionArgs) -> bool {
+fn function_args_contains_comments<'ast>(function_args: &FunctionArgs<'ast>) -> bool {
     match function_args {
         FunctionArgs::Parentheses {
             parentheses,
@@ -433,7 +393,7 @@ fn function_args_contains_comments<'ast>(function_args: &FunctionArgs) -> bool {
     }
 }
 
-fn suffix_contains_comments<'ast>(suffix: &Suffix) -> bool {
+fn suffix_contains_comments<'ast>(suffix: &Suffix<'ast>) -> bool {
     match suffix {
         Suffix::Call(call) => match call {
             Call::AnonymousCall(function_args) => function_args_contains_comments(function_args),
@@ -460,6 +420,149 @@ fn suffix_contains_comments<'ast>(suffix: &Suffix) -> bool {
     }
 }
 
+fn contained_span_contains_comments<'ast>(contained_span: &ContainedSpan<'ast>) -> bool {
+    let (start, end) = contained_span.tokens();
+    token_contains_comments(start) || token_contains_comments(end)
+}
+
+#[cfg(feature = "luau")]
+fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
+    match type_info {
+        TypeInfo::Array { braces, type_info } => {
+            contained_span_contains_comments(braces) || type_info_contains_comments(type_info)
+        }
+        TypeInfo::Basic(token) => token_contains_comments(token),
+        TypeInfo::Callback {
+            parentheses,
+            arguments,
+            arrow,
+            return_type,
+        } => {
+            contained_span_contains_comments(parentheses)
+                || token_contains_comments(arrow)
+                || type_info_contains_comments(return_type)
+                || arguments.pairs().any(|pair| {
+                    type_info_contains_comments(pair.value())
+                        || pair
+                            .punctuation()
+                            .map_or(false, |punc| token_contains_comments(punc))
+                })
+        }
+        TypeInfo::Generic {
+            base,
+            arrows,
+            generics,
+        } => {
+            token_contains_comments(base)
+                || contained_span_contains_comments(arrows)
+                || generics.pairs().any(|pair| {
+                    type_info_contains_comments(pair.value())
+                        || pair
+                            .punctuation()
+                            .map_or(false, |punc| token_contains_comments(punc))
+                })
+        }
+        TypeInfo::Intersection {
+            left,
+            ampersand,
+            right,
+        } => {
+            type_info_contains_comments(left)
+                || token_contains_comments(ampersand)
+                || type_info_contains_comments(right)
+        }
+        TypeInfo::Module {
+            module,
+            punctuation,
+            type_info,
+        } => {
+            token_contains_comments(module)
+                || token_contains_comments(punctuation)
+                || indexed_type_info_contains_comments(type_info)
+        }
+        TypeInfo::Optional {
+            base,
+            question_mark,
+        } => type_info_contains_comments(base) || token_contains_comments(question_mark),
+        TypeInfo::Table { braces, fields } => {
+            contained_span_contains_comments(braces)
+                || fields.pairs().any(|pair| {
+                    type_field_contains_comments(pair.value())
+                        || pair
+                            .punctuation()
+                            .map_or(false, |punc| token_contains_comments(punc))
+                })
+        }
+        TypeInfo::Typeof {
+            typeof_token,
+            parentheses,
+            inner,
+        } => {
+            token_contains_comments(typeof_token)
+                || contained_span_contains_comments(parentheses)
+                || expression_contains_comments(inner)
+        }
+        TypeInfo::Tuple { parentheses, types } => {
+            contained_span_contains_comments(parentheses)
+                || types.pairs().any(|pair| {
+                    type_info_contains_comments(pair.value())
+                        || pair
+                            .punctuation()
+                            .map_or(false, |punc| token_contains_comments(punc))
+                })
+        }
+        TypeInfo::Union { left, pipe, right } => {
+            type_info_contains_comments(left)
+                || token_contains_comments(pipe)
+                || type_info_contains_comments(right)
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) -> bool {
+    match type_info {
+        IndexedTypeInfo::Basic(token) => token_contains_comments(token),
+        IndexedTypeInfo::Generic {
+            base,
+            arrows,
+            generics,
+        } => {
+            token_contains_comments(base)
+                || contained_span_contains_comments(arrows)
+                || generics.pairs().any(|pair| {
+                    type_info_contains_comments(pair.value())
+                        || pair
+                            .punctuation()
+                            .map_or(false, |punc| token_contains_comments(punc))
+                })
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+fn type_field_contains_comments<'ast>(type_field: &TypeField<'ast>) -> bool {
+    type_field_key_contains_comments(type_field.key())
+        || token_contains_comments(type_field.colon_token())
+        || type_info_contains_comments(type_field.value())
+}
+
+#[cfg(feature = "luau")]
+fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -> bool {
+    match type_field_key {
+        TypeFieldKey::Name(token) => token_contains_comments(token),
+        TypeFieldKey::IndexSignature { brackets, inner } => {
+            contained_span_contains_comments(brackets) || type_info_contains_comments(inner)
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+fn as_assertion_contains_comments<'ast>(as_assertion: &AsAssertion<'ast>) -> bool {
+    token_contains_comments(as_assertion.as_token())
+        || type_info_contains_comments(as_assertion.cast_to())
+}
+
 // Check whether any comments are present within an Expression
 pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool {
     match expression {
@@ -467,14 +570,7 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
             contained,
             expression,
         } => {
-            let (start, end) = contained.tokens();
-            if token_contains_comments(start) {
-                true
-            } else if token_contains_comments(end) {
-                true
-            } else {
-                expression_contains_comments(expression)
-            }
+            contained_span_contains_comments(contained) || expression_contains_comments(expression)
         }
         Expression::UnaryOperator { unop, expression } => {
             match unop {
@@ -487,19 +583,19 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
 
             expression_contains_comments(expression)
         }
-        Expression::Value { value, binop } => {
+        Expression::Value {
+            value,
+            binop,
+            #[cfg(feature = "luau")]
+            as_assertion,
+        } => {
             let contains_comments = match &**value {
                 Value::Function((token, body)) => {
                     if token_contains_comments(token) {
                         true
                     } else {
-                        let (start, end) = body.parameters_parentheses().tokens();
-                        if token_contains_comments(start) || token_contains_comments(end) {
-                            true
-                        } else {
-                            // TODO: do we need any more?
-                            false
-                        }
+                        contained_span_contains_comments(body.parameters_parentheses())
+                        // TODO: Do we need to do any more?
                     }
                 }
                 Value::FunctionCall(function_call) => {
@@ -557,7 +653,7 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
             if contains_comments {
                 true
             } else {
-                match binop {
+                let binop_contains_comments = match binop {
                     Some(binop) => {
                         let contains = match binop.bin_op() {
                             BinOp::And(t)
@@ -580,7 +676,18 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
                         contains || expression_contains_comments(binop.rhs())
                     }
                     None => false,
+                };
+
+                #[cfg(feature = "luau")]
+                {
+                    return binop_contains_comments
+                        || as_assertion
+                            .as_ref()
+                            .map_or(false, |x| as_assertion_contains_comments(x));
                 }
+
+                #[cfg(not(feature = "luau"))]
+                binop_contains_comments
             }
         }
     }

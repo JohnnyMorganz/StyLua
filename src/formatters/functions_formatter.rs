@@ -76,7 +76,7 @@ impl CodeFormatter {
                     end_parens.start_position().bytes(),
                 );
                 let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
-                let mut current_arguments = arguments.pairs();
+                let current_arguments = arguments.pairs();
 
                 // Format all the arguments, so that we can prepare them and check to see whether they need expanding
                 // We will ignore punctuation for now
@@ -214,7 +214,7 @@ impl CodeFormatter {
 
                     self.add_indent_range(function_call_range);
 
-                    while let Some(argument) = current_arguments.next() {
+                    for argument in current_arguments {
                         let argument_range =
                             CodeFormatter::get_range_in_expression(argument.value());
                         let additional_indent_level =
@@ -275,7 +275,6 @@ impl CodeFormatter {
                             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
                         })
                         .flatten()
-                        .map(|x| x.to_owned())
                         .collect();
 
                     // Format the arguments, and move any comments within them

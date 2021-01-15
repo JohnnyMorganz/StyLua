@@ -121,17 +121,14 @@ impl CodeFormatter {
             TokenReference::symbol("return").unwrap()
         } else {
             // Append the comments buffer to the last return
-            match formatted_returns.pop() {
-                Some(pair) => {
-                    let pair = pair.map(|expr| {
-                        trivia_formatter::expression_add_trailing_trivia(
-                            expr,
-                            FormatTriviaType::Append(comments_buf),
-                        )
-                    });
-                    formatted_returns.push(pair);
-                }
-                None => (),
+            if let Some(pair) = formatted_returns.pop() {
+                let pair = pair.map(|expr| {
+                    trivia_formatter::expression_add_trailing_trivia(
+                        expr,
+                        FormatTriviaType::Append(comments_buf),
+                    )
+                });
+                formatted_returns.push(pair);
             }
 
             TokenReference::symbol("return ").unwrap()

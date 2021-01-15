@@ -2,8 +2,6 @@ use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
     trivia_util, CodeFormatter,
 };
-#[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeInfo};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
