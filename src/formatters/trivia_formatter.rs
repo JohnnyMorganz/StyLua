@@ -214,7 +214,12 @@ impl CodeFormatter {
                     indent_increase,
                 )),
             },
-            Expression::Value { value, binop } => {
+            Expression::Value {
+                value,
+                binop,
+                #[cfg(feature = "luau")]
+                as_assertion,
+            } => {
                 // Need to check if there is a binop
                 let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
                 trailing_trivia.push(self.create_newline_trivia());
@@ -260,6 +265,8 @@ impl CodeFormatter {
                 Expression::Value {
                     value: Box::new(self.reindent_expanded_values(new_value, indent_increase)),
                     binop,
+                    #[cfg(feature = "luau")]
+                    as_assertion,
                 }
             }
         }
@@ -297,7 +304,7 @@ impl CodeFormatter {
         let first_line_str = assignment.var_list().to_string()
             + &assignment.equal_token().to_string()
             + &assignment.expr_list().to_string();
-        let indent_characters = &self.indent_level * &self.config.indent_width;
+        let indent_characters = self.indent_level * self.config.indent_width;
         let require_multiline_expression = (indent_characters
             + first_line_str
                 .trim()
@@ -399,11 +406,15 @@ impl CodeFormatter {
                     + &local_assignment.name_list().to_string()
                     + &equal_token.to_string()
                     + &local_assignment.expr_list().to_string();
-                let indent_characters = &self.indent_level * &self.config.indent_width;
+                let indent_characters = self.indent_level * self.config.indent_width;
 
                 #[cfg(feature = "luau")]
                 {
-                    first_line_str += &local_assignment.type_specifiers().to_string()
+                    first_line_str += &local_assignment
+                        .type_specifiers()
+                        .map(|opt| opt.map_or(String::new(), |x| x.to_string()))
+                        .collect::<Vec<String>>()
+                        .join("")
                 }
                 (indent_characters
                     + first_line_str
@@ -441,8 +452,10 @@ impl CodeFormatter {
                     .collect();
                 if let Some(type_specifier) = type_specifiers.pop() {
                     if let Some(specifier) = type_specifier {
-                        let specifier =
-                            type_specifier_add_trailing_trivia(specifier, trailing_trivia);
+                        let specifier = type_specifier_add_trailing_trivia(
+                            specifier,
+                            FormatTriviaType::Append(trailing_trivia),
+                        );
                         type_specifiers.push(Some(specifier));
                         return local_assignment
                             .with_local_token(local_token)
@@ -500,7 +513,9 @@ impl CodeFormatter {
                                 );
                                 formatted_expression_list.push(Pair::End(expression));
                             }
-                            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+                            Pair::Punctuated(_, _) => {
+                                panic!("got a last pair which was punctuated")
+                            }
                         }
                     }
                 }
@@ -523,7 +538,7 @@ impl CodeFormatter {
         let first_line_str = no_comments(else_if_block.else_if_token())
             + &else_if_block.condition().to_string()
             + &no_comments(else_if_block.then_token());
-        let indent_characters = &self.indent_level * &self.config.indent_width;
+        let indent_characters = self.indent_level * self.config.indent_width;
         let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
             || trivia_util::expression_contains_comments(else_if_block.condition());
 
@@ -589,7 +604,7 @@ impl CodeFormatter {
         let first_line_str = no_comments(if_block.if_token())
             + &if_block.condition().to_string()
             + &no_comments(if_block.then_token());
-        let indent_characters = &self.indent_level * &self.config.indent_width;
+        let indent_characters = self.indent_level * self.config.indent_width;
         let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
             || trivia_util::expression_contains_comments(if_block.condition());
 
@@ -682,7 +697,7 @@ impl CodeFormatter {
         // Need to take into account if we should make the conditions multiple lines
         let last_line_str =
             no_comments(repeat_block.until_token()) + &repeat_block.until().to_string();
-        let indent_characters = &self.indent_level * &self.config.indent_width;
+        let indent_characters = self.indent_level * self.config.indent_width;
         let require_multiline_condition = (indent_characters + last_line_str.len()) > 120
             || trivia_util::expression_contains_inline_comments(repeat_block.until());
 
@@ -726,7 +741,7 @@ impl CodeFormatter {
         let first_line_str = no_comments(while_block.while_token())
             + &while_block.condition().to_string()
             + &no_comments(while_block.do_token());
-        let indent_characters = &self.indent_level * &self.config.indent_width;
+        let indent_characters = self.indent_level * self.config.indent_width;
         let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
             || trivia_util::expression_contains_comments(while_block.condition());
 

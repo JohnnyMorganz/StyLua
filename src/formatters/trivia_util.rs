@@ -270,7 +270,6 @@ pub fn get_value_trailing_comments<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .flatten()
-        .map(|x| x.to_owned())
         .collect()
 }
 
