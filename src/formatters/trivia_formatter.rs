@@ -351,7 +351,7 @@ impl CodeFormatter {
                     let value = self.hang_expression(
                         pair.value().to_owned(),
                         additional_indent_level,
-                        Some(1),
+                        None,
                     );
                     new_list.push(Pair::new(
                         value,
@@ -479,7 +479,7 @@ impl CodeFormatter {
                         let value = self.hang_expression(
                             pair.value().to_owned(),
                             additional_indent_level,
-                            Some(1),
+                            None,
                         );
                         new_list.push(Pair::new(
                             value,
@@ -700,7 +700,7 @@ impl CodeFormatter {
             true => self.hang_expression(
                 repeat_block.until().to_owned(),
                 additional_indent_level,
-                Some(1),
+                None,
             ),
             false => expression_add_trailing_trivia(
                 repeat_block.until().to_owned(),

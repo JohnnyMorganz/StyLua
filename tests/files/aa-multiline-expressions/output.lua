@@ -10,27 +10,27 @@ then
 end
 
 foo = someReallyLongCondition
-		* someOtherReallyLongCondition
-		* somethingElse
-		* someReallyLongCondition
-		* someOtherReallyLongCondition
-		* somethingElse
+	* someOtherReallyLongCondition
+	* somethingElse
+	* someReallyLongCondition
+	* someOtherReallyLongCondition
+	* somethingElse
 
 local foo = someReallyLongCondition
-		and someOtherReallyLongCondition == foo
-		and somethingElse
-		and someReallyLongCondition
-		and someOtherReallyLongCondition
-		and somethingElse
+	and someOtherReallyLongCondition == foo
+	and somethingElse
+	and someReallyLongCondition
+	and someOtherReallyLongCondition
+	and somethingElse
 
 repeat
 	print("foo")
 until someReallyLongCondition
-		and someOtherReallyLongCondition
-		and somethingElse
-		and someReallyLongCondition
-		and someOtherReallyLongCondition
-		and somethingElse
+	and someOtherReallyLongCondition
+	and somethingElse
+	and someReallyLongCondition
+	and someOtherReallyLongCondition
+	and somethingElse
 
 while
 	someReallyLongCondition

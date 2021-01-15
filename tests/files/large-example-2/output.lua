@@ -1181,7 +1181,7 @@ game.Workspace.ChildAdded:connect(oa)
 	if msg == "commands" then
 		local text = string.rep(" ", 40)
 		text = text
-				.. [[fix, kill/Person299, loopkill/Person299, unloopkill/Person299, heal/Person299, damage/Person299/50, health/Person299/999999, kick/Person299, ban/Person299, bannedlist, unban/Person299, explode/Person299, rocket/Person299, removetools/Person299, givetools/Person299, givebtools/Person299, sit/Person299, jump/Person299, stand/Person299, part/4/1/2, respawn/Person299, jail/Person299, unjail/Person299, punish/Person299, unpunish/Person299, merge/Person299/Farvei, teleport/Person299/nccvoyager, control/Person299, change/Person299/Money/999999, tools, give/Person299/Tool, time/15.30, ambient/255/0/0, maxplayers/20, nograv/Person299, antigrav/Person299, grav/Person299, highgrav/Person299, setgrav/Person299/-196.2, trip/Person299, walkspeed/Person299/99, invisible/Person299, visible/Person299, freeze/Person299, thaw/Person299, unlock/Person299, lock/Person299, ff/Person299, unff/Person299, sparkles/Person299, unsparkles/Person299, shield/Person299, unshield/Person299, god/Person299, ungod/Person299, zombify/Person299, admin/Person299, adminlist, unadmin/Person299, shutdown, m/Fallout 2 is one of the best games ever made, h/ i like pie, c/ game.Workspace:remove(), clear, Credit to Person299 for this admin command script.]]
+			.. [[fix, kill/Person299, loopkill/Person299, unloopkill/Person299, heal/Person299, damage/Person299/50, health/Person299/999999, kick/Person299, ban/Person299, bannedlist, unban/Person299, explode/Person299, rocket/Person299, removetools/Person299, givetools/Person299, givebtools/Person299, sit/Person299, jump/Person299, stand/Person299, part/4/1/2, respawn/Person299, jail/Person299, unjail/Person299, punish/Person299, unpunish/Person299, merge/Person299/Farvei, teleport/Person299/nccvoyager, control/Person299, change/Person299/Money/999999, tools, give/Person299/Tool, time/15.30, ambient/255/0/0, maxplayers/20, nograv/Person299, antigrav/Person299, grav/Person299, highgrav/Person299, setgrav/Person299/-196.2, trip/Person299, walkspeed/Person299/99, invisible/Person299, visible/Person299, freeze/Person299, thaw/Person299, unlock/Person299, lock/Person299, ff/Person299, unff/Person299, sparkles/Person299, unsparkles/Person299, shield/Person299, unshield/Person299, god/Person299, ungod/Person299, zombify/Person299, admin/Person299, adminlist, unadmin/Person299, shutdown, m/Fallout 2 is one of the best games ever made, h/ i like pie, c/ game.Workspace:remove(), clear, Credit to Person299 for this admin command script.]]
 		local mes = Instance.new("Message")
 		mes.Parent = speaker
 		local acko = 0
@@ -1592,7 +1592,7 @@ script.Parent.Parent.Humanoid.Health = 0
 					for i = 1, #c2 do
 						if c2[i].className == "Part" then
 							torso.BF.force = torso.BF.force
-									+ Vector3.new(0, c2[i]:getMass() * -string.sub(msg, danumber + 1), 0)
+								+ Vector3.new(0, c2[i]:getMass() * -string.sub(msg, danumber + 1), 0)
 						end
 					end
 				end
