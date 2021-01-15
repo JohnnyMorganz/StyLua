@@ -64,7 +64,9 @@ impl CodeFormatter {
                 return_type,
             } => {
                 let parentheses = self.format_contained_span(parentheses);
-                let arguments = self.format_punctuated(arguments, &CodeFormatter::format_type_info);
+                let arguments = self
+                    .format_punctuated(arguments, &CodeFormatter::format_type_info)
+                    .0;
                 let arrow = crate::fmt_symbol!(self, arrow, " -> ");
                 let return_type = Box::new(self.format_type_info(return_type));
 
@@ -83,7 +85,9 @@ impl CodeFormatter {
             } => {
                 let base = self.format_token_reference(base);
                 let arrows = self.format_contained_span(arrows);
-                let generics = self.format_punctuated(generics, &CodeFormatter::format_type_info);
+                let generics = self
+                    .format_punctuated(generics, &CodeFormatter::format_type_info)
+                    .0;
 
                 TypeInfo::Generic {
                     base,
@@ -246,7 +250,9 @@ impl CodeFormatter {
 
             TypeInfo::Tuple { parentheses, types } => {
                 let parentheses = self.format_contained_span(parentheses);
-                let types = self.format_punctuated(types, &CodeFormatter::format_type_info);
+                let types = self
+                    .format_punctuated(types, &CodeFormatter::format_type_info)
+                    .0;
 
                 TypeInfo::Tuple { parentheses, types }
             }
@@ -277,7 +283,9 @@ impl CodeFormatter {
             } => {
                 let base = self.format_token_reference(base);
                 let arrows = self.format_contained_span(arrows);
-                let generics = self.format_punctuated(generics, &CodeFormatter::format_type_info);
+                let generics = self
+                    .format_punctuated(generics, &CodeFormatter::format_type_info)
+                    .0;
 
                 IndexedTypeInfo::Generic {
                     base,
@@ -388,10 +396,12 @@ impl CodeFormatter {
         generic_declaration: &GenericDeclaration<'ast>,
     ) -> GenericDeclaration<'ast> {
         let arrows = self.format_contained_span(generic_declaration.arrows());
-        let generics = self.format_punctuated(
-            generic_declaration.generics(),
-            &CodeFormatter::format_token_reference_mut,
-        );
+        let generics = self
+            .format_punctuated(
+                generic_declaration.generics(),
+                &CodeFormatter::format_token_reference_mut,
+            )
+            .0;
 
         generic_declaration
             .to_owned()
