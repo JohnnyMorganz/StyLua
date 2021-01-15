@@ -10,7 +10,7 @@ use full_moon::ast::types::{
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, FunctionArgs, FunctionBody,
+    Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody,
     FunctionCall, FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction,
     MethodCall, NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var,
     VarExpression, While,
@@ -34,10 +34,165 @@ fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
 }
 
 impl CodeFormatter {
+    /// Creates indent trivia without including `self.indent_level`.
+    /// You should pass the exact amount of indent you require to this function
+    fn create_plain_indent_trivia<'ast>(&self, indent_level: usize) -> Token<'ast> {
+        match self.config.indent_type {
+            IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
+            IndentType::Spaces => {
+                Token::new(TokenType::spaces(indent_level * self.config.indent_width))
+            }
+        }
+    }
+
+    fn reindent_function_args<'ast>(
+        &self,
+        function_args: FunctionArgs<'ast>,
+        indent_increase: usize,
+    ) -> FunctionArgs<'ast> {
+        let leading_trivia = vec![self.create_plain_indent_trivia(indent_increase)];
+        match function_args {
+            FunctionArgs::Parentheses {
+                parentheses,
+                arguments,
+            } => {
+                let (start_parens, end_parens) = parentheses.tokens();
+                if trivia_util::trivia_contains_newline(start_parens.trailing_trivia()) {
+                    // Need to add indent to closing parentheses
+                    let parentheses = ContainedSpan::new(
+                        Cow::Owned(start_parens.to_owned()),
+                        Cow::Owned(token_reference_add_trivia(
+                            end_parens.to_owned(),
+                            FormatTriviaType::Append(leading_trivia.to_owned()),
+                            FormatTriviaType::NoChange,
+                        )),
+                    );
+                    let mut new_arguments = Punctuated::new();
+
+                    for argument in arguments.pairs() {
+                        new_arguments.push(Pair::new(
+                            expression_add_leading_trivia(
+                                argument.value().to_owned(),
+                                FormatTriviaType::Append(leading_trivia.to_owned()),
+                            ),
+                            argument.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                        ))
+                    }
+
+                    FunctionArgs::Parentheses {
+                        parentheses,
+                        arguments: new_arguments,
+                    }
+                } else {
+                    FunctionArgs::Parentheses {
+                        parentheses,
+                        arguments,
+                    }
+                }
+            }
+            _ => panic!("got a formatted function args which isnt a parentheses"),
+        }
+    }
+
+    // Reindents values which are normally expanded (TableConstructor, FunctionArgs, etc.) because the indentation has changed
+    fn reindent_expanded_values<'ast>(
+        &self,
+        value: Value<'ast>,
+        indent_increase: usize,
+    ) -> Value<'ast> {
+        match &value {
+            Value::FunctionCall(function_call) => {
+                let mut new_suffixes: Vec<Suffix<'ast>> = Vec::new();
+                for suffix in function_call.iter_suffixes() {
+                    let suffix = suffix.to_owned();
+                    new_suffixes.push(match suffix {
+                        Suffix::Call(call) => Suffix::Call(match call {
+                            Call::AnonymousCall(function_args) => Call::AnonymousCall(
+                                self.reindent_function_args(function_args, indent_increase),
+                            ),
+                            Call::MethodCall(method_call) => {
+                                let new_args = self.reindent_function_args(
+                                    method_call.args().to_owned(),
+                                    indent_increase,
+                                );
+                                Call::MethodCall(method_call.with_args(new_args))
+                            }
+                        }),
+                        _ => suffix,
+                    })
+                }
+
+                Value::FunctionCall(function_call.to_owned().with_suffixes(new_suffixes))
+            }
+            Value::TableConstructor(table_constructor) => {
+                let start_brace = table_constructor.braces().tokens().1;
+                if trivia_util::trivia_contains_newline(start_brace.trailing_trivia()) {
+                    let mut new_fields = Punctuated::new();
+                    let leading_trivia = vec![self.create_plain_indent_trivia(indent_increase)];
+
+                    // Is a multiline table
+                    for field in table_constructor.fields().pairs() {
+                        let new_field;
+                        let leading_trivia = leading_trivia.to_owned();
+                        match field.value().to_owned() {
+                            Field::ExpressionKey {
+                                brackets,
+                                key,
+                                equal,
+                                value,
+                            } => {
+                                new_field = Field::ExpressionKey {
+                                    brackets: contained_span_add_trivia(
+                                        brackets,
+                                        FormatTriviaType::Append(leading_trivia),
+                                        FormatTriviaType::NoChange,
+                                    ),
+                                    key,
+                                    equal,
+                                    value,
+                                }
+                            }
+                            Field::NameKey { key, equal, value } => {
+                                new_field = Field::NameKey {
+                                    key: Cow::Owned(token_reference_add_trivia(
+                                        key.into_owned().to_owned(),
+                                        FormatTriviaType::Append(leading_trivia),
+                                        FormatTriviaType::NoChange,
+                                    )),
+                                    equal,
+                                    value,
+                                }
+                            }
+                            Field::NoKey(expression) => {
+                                new_field = Field::NoKey(expression_add_leading_trivia(
+                                    expression,
+                                    FormatTriviaType::Append(leading_trivia),
+                                ))
+                            }
+                        }
+
+                        new_fields.push(Pair::new(
+                            new_field,
+                            field.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                        ))
+                    }
+
+                    Value::TableConstructor(table_constructor.to_owned().with_fields(new_fields))
+                } else {
+                    value
+                }
+            }
+
+            // No other values are normally expanded, so its safe to ignore them
+            _ => value,
+        }
+    }
+
     fn expression_split_binop<'ast>(
         &self,
         expression: Expression<'ast>,
         binop_leading_trivia: FormatTriviaType<'ast>,
+        indent_increase: usize,
     ) -> Expression<'ast> {
         match expression {
             Expression::Parentheses {
@@ -45,25 +200,29 @@ impl CodeFormatter {
                 expression,
             } => Expression::Parentheses {
                 contained,
-                expression: Box::new(
-                    self.expression_split_binop(*expression, binop_leading_trivia),
-                ),
+                expression: Box::new(self.expression_split_binop(
+                    *expression,
+                    binop_leading_trivia,
+                    indent_increase,
+                )),
             },
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop,
-                expression: Box::new(
-                    self.expression_split_binop(*expression, binop_leading_trivia),
-                ),
+                expression: Box::new(self.expression_split_binop(
+                    *expression,
+                    binop_leading_trivia,
+                    indent_increase,
+                )),
             },
             Expression::Value { value, binop } => {
                 // Need to check if there is a binop
                 let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
                 trailing_trivia.push(self.create_newline_trivia());
 
-                let mut new_value = Box::new(value_add_trailing_trivia(
+                let mut new_value = value_add_trailing_trivia(
                     (*value).to_owned(),
                     FormatTriviaType::Replace(trailing_trivia),
-                ));
+                );
 
                 let binop = match binop {
                     Some(binop) => {
@@ -76,7 +235,7 @@ impl CodeFormatter {
                             | BinOp::TildeEqual(_)
                             | BinOp::TwoEqual(_) => {
                                 // Remove the new value because we don't want that anymore
-                                new_value = value;
+                                new_value = *value;
                                 // Return original binop
                                 binop
                             }
@@ -88,18 +247,18 @@ impl CodeFormatter {
                             ),
                         };
 
-                        let rhs =
-                            Box::new(self.expression_split_binop(
-                                binop.rhs().to_owned(),
-                                binop_leading_trivia,
-                            ));
+                        let rhs = Box::new(self.expression_split_binop(
+                            binop.rhs().to_owned(),
+                            binop_leading_trivia,
+                            indent_increase,
+                        ));
                         Some(binop.with_rhs(rhs))
                     }
                     None => None,
                 };
 
                 Expression::Value {
-                    value: new_value,
+                    value: Box::new(self.reindent_expanded_values(new_value, indent_increase)),
                     binop,
                 }
             }
@@ -114,16 +273,16 @@ impl CodeFormatter {
         additional_indent_level: Option<usize>,
         hang_level: Option<usize>,
     ) -> Expression<'ast> {
-        let hang_level =
-            self.indent_level + additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
-        let indent_trivia = match self.config.indent_type {
-            IndentType::Tabs => Token::new(TokenType::tabs(hang_level)),
-            IndentType::Spaces => {
-                Token::new(TokenType::spaces(hang_level * self.config.indent_width))
-            }
-        };
+        let additional_indent_level =
+            additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
+        let hang_level = self.indent_level + additional_indent_level;
+        let indent_trivia = self.create_plain_indent_trivia(hang_level);
 
-        self.expression_split_binop(expression, FormatTriviaType::Replace(vec![indent_trivia]))
+        self.expression_split_binop(
+            expression,
+            FormatTriviaType::Replace(vec![indent_trivia]),
+            additional_indent_level + 1,
+        )
     }
 
     pub fn assignment_add_trivia<'ast>(

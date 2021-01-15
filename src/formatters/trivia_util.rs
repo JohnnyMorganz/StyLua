@@ -8,6 +8,17 @@ use full_moon::{
 };
 use std::borrow::Cow;
 
+pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
+    for trivia in trivia_vec {
+        if let TokenType::Whitespace { characters } = trivia.token_type() {
+            if characters.find('\n').is_some() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
 fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Vec<Token<'ast>> {
     match function_args {
