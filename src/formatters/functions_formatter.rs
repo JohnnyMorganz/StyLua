@@ -14,17 +14,6 @@ use crate::formatters::{
     trivia_util, CodeFormatter,
 };
 
-fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
-    for trivia in trivia_vec {
-        if let TokenType::Whitespace { characters } = trivia.token_type() {
-            if characters.find('\n').is_some() {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 impl CodeFormatter {
     /// Formats an Anonymous Function
     /// This doesn't have its own struct, but it is part of Value::Function
@@ -151,8 +140,9 @@ impl CodeFormatter {
                                     Value::TableConstructor(table) => {
                                         // Check to see whether it has been expanded
                                         let start_brace = table.braces().tokens().0;
-                                        let is_expanded =
-                                            trivia_contains_newline(start_brace.trailing_trivia());
+                                        let is_expanded = trivia_util::trivia_contains_newline(
+                                            start_brace.trailing_trivia(),
+                                        );
                                         if is_expanded {
                                             keep_single_line = true
                                         } else {

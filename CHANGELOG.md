@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - StyLua will now test escapes of characters other than quotes in strings to see if they are unnecessary and remove them if so
+- Adds wrapping for large expressions to push them onto multiple lines. Statements with line of longer than 120 characters will trigger expression wrapping where possible.
+The expression will be split at its Binary Operators, excluding relational operators.
 
 ### Fixed
 - Fixed `.styluaignore` file extension matching not working due to the default override glob

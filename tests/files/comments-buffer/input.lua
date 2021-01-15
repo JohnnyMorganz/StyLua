@@ -18,5 +18,11 @@ do
 	)
 end
 
+if code == 9 -- \t
+or code == 32 -- <space>
+   then
+    print(code)
+end
+
 return foo, -- a comment
 bar

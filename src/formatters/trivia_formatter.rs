@@ -1,3 +1,7 @@
+use crate::{
+    formatters::{trivia_util, CodeFormatter},
+    IndentType,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     AsAssertion, CompoundAssignment, ExportedTypeDeclaration, IndexedTypeInfo, TypeDeclaration,
@@ -6,11 +10,12 @@ use full_moon::ast::types::{
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Assignment, BinOpRhs, Call, Do, ElseIf, Expression, FunctionArgs, FunctionBody, FunctionCall,
-    FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction, MethodCall,
-    NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
+    Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody,
+    FunctionCall, FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction,
+    MethodCall, NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var,
+    VarExpression, While,
 };
-use full_moon::tokenizer::{Token, TokenReference};
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::borrow::Cow;
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
@@ -24,51 +29,775 @@ pub enum FormatTriviaType<'ast> {
     NoChange,
 }
 
-pub fn assignment_add_trivia<'ast>(
-    assignment: &Assignment<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Assignment<'ast> {
-    let mut formatted_var_list = Punctuated::new();
-    let mut iterator = assignment.var_list().pairs();
+fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
+    token.token().to_string()
+}
 
-    // Retrieve first item and add indent to trailing trivia
-    if let Some(first_pair) = iterator.next() {
-        match first_pair {
-            Pair::End(value) => {
-                formatted_var_list.push(Pair::new(
-                    var_add_leading_trivia(value.to_owned(), leading_trivia),
-                    None,
-                ));
-            }
-            Pair::Punctuated(value, punctuation) => {
-                formatted_var_list.push(Pair::new(
-                    var_add_leading_trivia(value.to_owned(), leading_trivia),
-                    Some(punctuation.to_owned()),
-                ));
+impl CodeFormatter {
+    /// Creates indent trivia without including `self.indent_level`.
+    /// You should pass the exact amount of indent you require to this function
+    fn create_plain_indent_trivia<'ast>(&self, indent_level: usize) -> Token<'ast> {
+        match self.config.indent_type {
+            IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
+            IndentType::Spaces => {
+                Token::new(TokenType::spaces(indent_level * self.config.indent_width))
             }
         }
     }
 
-    for pair in iterator {
-        formatted_var_list.push(pair.to_owned())
-    }
+    fn reindent_function_args<'ast>(
+        &self,
+        function_args: FunctionArgs<'ast>,
+        indent_increase: usize,
+    ) -> FunctionArgs<'ast> {
+        let leading_trivia = vec![self.create_plain_indent_trivia(indent_increase)];
+        match function_args {
+            FunctionArgs::Parentheses {
+                parentheses,
+                arguments,
+            } => {
+                let (start_parens, end_parens) = parentheses.tokens();
+                if trivia_util::trivia_contains_newline(start_parens.trailing_trivia()) {
+                    // Need to add indent to closing parentheses
+                    let parentheses = ContainedSpan::new(
+                        Cow::Owned(start_parens.to_owned()),
+                        Cow::Owned(token_reference_add_trivia(
+                            end_parens.to_owned(),
+                            FormatTriviaType::Append(leading_trivia.to_owned()),
+                            FormatTriviaType::NoChange,
+                        )),
+                    );
+                    let mut new_arguments = Punctuated::new();
 
-    let mut formatted_expression_list = assignment.expr_list().to_owned();
+                    for argument in arguments.pairs() {
+                        new_arguments.push(Pair::new(
+                            expression_add_leading_trivia(
+                                argument.value().to_owned(),
+                                FormatTriviaType::Append(leading_trivia.to_owned()),
+                            ),
+                            argument.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                        ))
+                    }
 
-    // Retrieve last item and add new line to it
-    if let Some(last_pair) = formatted_expression_list.pop() {
-        match last_pair {
-            Pair::End(value) => {
-                let expression = expression_add_trailing_trivia(value, trailing_trivia);
-                formatted_expression_list.push(Pair::End(expression));
+                    FunctionArgs::Parentheses {
+                        parentheses,
+                        arguments: new_arguments,
+                    }
+                } else {
+                    FunctionArgs::Parentheses {
+                        parentheses,
+                        arguments,
+                    }
+                }
             }
-            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+            _ => panic!("got a formatted function args which isnt a parentheses"),
         }
     }
 
-    Assignment::new(formatted_var_list, formatted_expression_list)
-        .with_equal_token(Cow::Owned(assignment.equal_token().to_owned()))
+    // Reindents values which are normally expanded (TableConstructor, FunctionArgs, etc.) because the indentation has changed
+    fn reindent_expanded_values<'ast>(
+        &self,
+        value: Value<'ast>,
+        indent_increase: usize,
+    ) -> Value<'ast> {
+        match &value {
+            Value::FunctionCall(function_call) => {
+                let mut new_suffixes: Vec<Suffix<'ast>> = Vec::new();
+                for suffix in function_call.iter_suffixes() {
+                    let suffix = suffix.to_owned();
+                    new_suffixes.push(match suffix {
+                        Suffix::Call(call) => Suffix::Call(match call {
+                            Call::AnonymousCall(function_args) => Call::AnonymousCall(
+                                self.reindent_function_args(function_args, indent_increase),
+                            ),
+                            Call::MethodCall(method_call) => {
+                                let new_args = self.reindent_function_args(
+                                    method_call.args().to_owned(),
+                                    indent_increase,
+                                );
+                                Call::MethodCall(method_call.with_args(new_args))
+                            }
+                        }),
+                        _ => suffix,
+                    })
+                }
+
+                Value::FunctionCall(function_call.to_owned().with_suffixes(new_suffixes))
+            }
+            Value::TableConstructor(table_constructor) => {
+                let start_brace = table_constructor.braces().tokens().1;
+                if trivia_util::trivia_contains_newline(start_brace.trailing_trivia()) {
+                    let mut new_fields = Punctuated::new();
+                    let leading_trivia = vec![self.create_plain_indent_trivia(indent_increase)];
+
+                    // Is a multiline table
+                    for field in table_constructor.fields().pairs() {
+                        let new_field;
+                        let leading_trivia = leading_trivia.to_owned();
+                        match field.value().to_owned() {
+                            Field::ExpressionKey {
+                                brackets,
+                                key,
+                                equal,
+                                value,
+                            } => {
+                                new_field = Field::ExpressionKey {
+                                    brackets: contained_span_add_trivia(
+                                        brackets,
+                                        FormatTriviaType::Append(leading_trivia),
+                                        FormatTriviaType::NoChange,
+                                    ),
+                                    key,
+                                    equal,
+                                    value,
+                                }
+                            }
+                            Field::NameKey { key, equal, value } => {
+                                new_field = Field::NameKey {
+                                    key: Cow::Owned(token_reference_add_trivia(
+                                        key.into_owned().to_owned(),
+                                        FormatTriviaType::Append(leading_trivia),
+                                        FormatTriviaType::NoChange,
+                                    )),
+                                    equal,
+                                    value,
+                                }
+                            }
+                            Field::NoKey(expression) => {
+                                new_field = Field::NoKey(expression_add_leading_trivia(
+                                    expression,
+                                    FormatTriviaType::Append(leading_trivia),
+                                ))
+                            }
+                        }
+
+                        new_fields.push(Pair::new(
+                            new_field,
+                            field.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                        ))
+                    }
+
+                    Value::TableConstructor(table_constructor.to_owned().with_fields(new_fields))
+                } else {
+                    value
+                }
+            }
+
+            // No other values are normally expanded, so its safe to ignore them
+            _ => value,
+        }
+    }
+
+    fn expression_split_binop<'ast>(
+        &self,
+        expression: Expression<'ast>,
+        binop_leading_trivia: FormatTriviaType<'ast>,
+        indent_increase: usize,
+    ) -> Expression<'ast> {
+        match expression {
+            Expression::Parentheses {
+                contained,
+                expression,
+            } => Expression::Parentheses {
+                contained,
+                expression: Box::new(self.expression_split_binop(
+                    *expression,
+                    binop_leading_trivia,
+                    indent_increase,
+                )),
+            },
+            Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
+                unop,
+                expression: Box::new(self.expression_split_binop(
+                    *expression,
+                    binop_leading_trivia,
+                    indent_increase,
+                )),
+            },
+            Expression::Value {
+                value,
+                binop,
+                #[cfg(feature = "luau")]
+                as_assertion,
+            } => {
+                // Need to check if there is a binop
+                let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
+                trailing_trivia.push(self.create_newline_trivia());
+
+                let mut new_value = value_add_trailing_trivia(
+                    (*value).to_owned(),
+                    FormatTriviaType::Replace(trailing_trivia),
+                );
+
+                let binop = match binop {
+                    Some(binop) => {
+                        // Don't add the trivia if the binop is binding
+                        let binop = match binop.bin_op() {
+                            BinOp::GreaterThan(_)
+                            | BinOp::GreaterThanEqual(_)
+                            | BinOp::LessThan(_)
+                            | BinOp::LessThanEqual(_)
+                            | BinOp::TildeEqual(_)
+                            | BinOp::TwoEqual(_) => {
+                                // Remove the new value because we don't want that anymore
+                                new_value = *value;
+                                // Return original binop
+                                binop
+                            }
+
+                            _ => binop_rhs_add_trivia(
+                                binop,
+                                binop_leading_trivia.to_owned(),
+                                FormatTriviaType::NoChange,
+                            ),
+                        };
+
+                        let rhs = Box::new(self.expression_split_binop(
+                            binop.rhs().to_owned(),
+                            binop_leading_trivia,
+                            indent_increase,
+                        ));
+                        Some(binop.with_rhs(rhs))
+                    }
+                    None => None,
+                };
+
+                Expression::Value {
+                    value: Box::new(self.reindent_expanded_values(new_value, indent_increase)),
+                    binop,
+                    #[cfg(feature = "luau")]
+                    as_assertion,
+                }
+            }
+        }
+    }
+
+    // Splits an expression at its binops, pushing each binop part onto a newline
+    // Optionally, will also indent any further binops apart from the first one if an indent hang is wanted
+    pub fn hang_expression<'ast>(
+        &self,
+        expression: Expression<'ast>,
+        additional_indent_level: Option<usize>,
+        hang_level: Option<usize>,
+    ) -> Expression<'ast> {
+        let additional_indent_level =
+            additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
+        let hang_level = self.indent_level + additional_indent_level;
+        let indent_trivia = self.create_plain_indent_trivia(hang_level);
+
+        self.expression_split_binop(
+            expression,
+            FormatTriviaType::Replace(vec![indent_trivia]),
+            additional_indent_level + 1,
+        )
+    }
+
+    pub fn assignment_add_trivia<'ast>(
+        &self,
+        assignment: Assignment<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> Assignment<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Test whether to place expression on multiple lines
+        let first_line_str = assignment.var_list().to_string()
+            + &assignment.equal_token().to_string()
+            + &assignment.expr_list().to_string();
+        let indent_characters = self.indent_level * self.config.indent_width;
+        let require_multiline_expression = (indent_characters
+            + first_line_str
+                .trim()
+                .lines()
+                .next()
+                .expect("no lines")
+                .len())
+            > 120
+            || assignment.expr_list().pairs().any(|pair| {
+                pair.punctuation()
+                    .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                    || trivia_util::expression_contains_inline_comments(pair.value())
+            });
+
+        let mut formatted_var_list = Punctuated::new();
+        let mut iterator = assignment.var_list().pairs();
+
+        // Retrieve first item and add indent to trailing trivia
+        if let Some(first_pair) = iterator.next() {
+            match first_pair {
+                Pair::End(value) => {
+                    formatted_var_list.push(Pair::new(
+                        var_add_leading_trivia(
+                            value.to_owned(),
+                            FormatTriviaType::Append(leading_trivia),
+                        ),
+                        None,
+                    ));
+                }
+                Pair::Punctuated(value, punctuation) => {
+                    formatted_var_list.push(Pair::new(
+                        var_add_leading_trivia(
+                            value.to_owned(),
+                            FormatTriviaType::Append(leading_trivia),
+                        ),
+                        Some(punctuation.to_owned()),
+                    ));
+                }
+            }
+        }
+        for pair in iterator {
+            formatted_var_list.push(pair.to_owned())
+        }
+
+        let mut formatted_expression_list = assignment.expr_list().to_owned();
+        match require_multiline_expression {
+            true => {
+                // Hang each expression
+                let mut new_list = Punctuated::new();
+                for pair in formatted_expression_list.pairs() {
+                    let value = self.hang_expression(
+                        pair.value().to_owned(),
+                        additional_indent_level,
+                        None,
+                    );
+                    new_list.push(Pair::new(
+                        value,
+                        pair.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                    ))
+                }
+
+                formatted_expression_list = new_list
+            }
+            false => {
+                // Retrieve last item and add new line to it
+                if let Some(last_pair) = formatted_expression_list.pop() {
+                    match last_pair {
+                        Pair::End(value) => {
+                            let expression = expression_add_trailing_trivia(
+                                value,
+                                FormatTriviaType::Append(trailing_trivia),
+                            );
+                            formatted_expression_list.push(Pair::End(expression));
+                        }
+                        Pair::Punctuated(_, _) => {
+                            panic!("we got a punctuated as the last sequence in expression")
+                        }
+                    }
+                }
+            }
+        }
+
+        Assignment::new(formatted_var_list, formatted_expression_list)
+            .with_equal_token(Cow::Owned(assignment.equal_token().to_owned()))
+    }
+
+    pub fn local_assignment_add_trivia<'ast>(
+        &self,
+        local_assignment: LocalAssignment<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> LocalAssignment<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Test whether to place expression on multiple lines
+        let require_multiline_expression = match local_assignment.equal_token() {
+            Some(equal_token) => {
+                let mut first_line_str = no_comments(local_assignment.local_token())
+                    + &local_assignment.name_list().to_string()
+                    + &equal_token.to_string()
+                    + &local_assignment.expr_list().to_string();
+                let indent_characters = self.indent_level * self.config.indent_width;
+
+                #[cfg(feature = "luau")]
+                {
+                    first_line_str += &local_assignment
+                        .type_specifiers()
+                        .map(|opt| opt.map_or(String::new(), |x| x.to_string()))
+                        .collect::<Vec<String>>()
+                        .join("")
+                }
+                (indent_characters
+                    + first_line_str
+                        .trim()
+                        .lines()
+                        .next()
+                        .expect("no lines")
+                        .len())
+                    > 120
+                    || local_assignment.expr_list().pairs().any(|pair| {
+                        pair.punctuation()
+                            .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                            || trivia_util::expression_contains_inline_comments(pair.value())
+                    })
+            }
+            None => false,
+        };
+
+        let local_token = Cow::Owned(token_reference_add_trivia(
+            local_assignment.local_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        ));
+
+        // TODO: Can we simplify the following?
+        if local_assignment.expr_list().is_empty() {
+            // Unassigned local variable
+            let mut formatted_name_list = local_assignment.name_list().to_owned();
+            #[cfg(feature = "luau")]
+            {
+                // See if the last variable assigned has a type specifier, and add a new line to that
+                let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = local_assignment
+                    .type_specifiers()
+                    .map(|x| x.cloned())
+                    .collect();
+                if let Some(type_specifier) = type_specifiers.pop() {
+                    if let Some(specifier) = type_specifier {
+                        let specifier = type_specifier_add_trailing_trivia(
+                            specifier,
+                            FormatTriviaType::Append(trailing_trivia),
+                        );
+                        type_specifiers.push(Some(specifier));
+                        return local_assignment
+                            .with_local_token(local_token)
+                            .with_type_specifiers(type_specifiers);
+                    }
+                }
+            }
+            // Retrieve last item and add new line to it
+            if let Some(last_pair) = formatted_name_list.pop() {
+                match last_pair {
+                    Pair::End(value) => {
+                        let value = Cow::Owned(token_reference_add_trivia(
+                            value.into_owned(),
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Append(trailing_trivia),
+                        ));
+                        formatted_name_list.push(Pair::End(value));
+                    }
+                    Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
+                }
+            }
+            local_assignment
+                .with_local_token(local_token)
+                .with_name_list(formatted_name_list)
+        } else {
+            // Add newline at the end of LocalAssignment expression list
+            // Expression list should already be formatted
+            let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+            match require_multiline_expression {
+                true => {
+                    // Hang each expression
+                    let mut new_list = Punctuated::new();
+                    for pair in formatted_expression_list.pairs() {
+                        let value = self.hang_expression(
+                            pair.value().to_owned(),
+                            additional_indent_level,
+                            None,
+                        );
+                        new_list.push(Pair::new(
+                            value,
+                            pair.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                        ))
+                    }
+
+                    formatted_expression_list = new_list
+                }
+                false => {
+                    // Retrieve last item and add new line to it
+                    if let Some(last_pair) = formatted_expression_list.pop() {
+                        match last_pair {
+                            Pair::End(value) => {
+                                let expression = expression_add_trailing_trivia(
+                                    value,
+                                    FormatTriviaType::Append(trailing_trivia),
+                                );
+                                formatted_expression_list.push(Pair::End(expression));
+                            }
+                            Pair::Punctuated(_, _) => {
+                                panic!("got a last pair which was punctuated")
+                            }
+                        }
+                    }
+                }
+            }
+            local_assignment
+                .with_local_token(local_token)
+                .with_expr_list(formatted_expression_list)
+        }
+    }
+
+    fn else_if_block_add_trivia<'ast>(
+        &self,
+        else_if_block: ElseIf<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> ElseIf<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Need to take into account if we should make the conditions multiple lines
+        let first_line_str = no_comments(else_if_block.else_if_token())
+            + &else_if_block.condition().to_string()
+            + &no_comments(else_if_block.then_token());
+        let indent_characters = self.indent_level * self.config.indent_width;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(else_if_block.condition());
+
+        let mut else_if_token = token_reference_add_trivia(
+            else_if_block.else_if_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        );
+        let mut then_token = token_reference_add_trivia(
+            else_if_block.then_token().to_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(trailing_trivia),
+        );
+
+        let condition = match require_multiline_condition {
+            true => {
+                // Trim the trailing whitespace in if_token, add a new line and indent
+                else_if_token = TokenReference::new(
+                    else_if_token
+                        .leading_trivia()
+                        .map(|x| x.to_owned())
+                        .collect(),
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::ElseIf,
+                    }),
+                    vec![self.create_newline_trivia()],
+                );
+                // Trim the leading whitespace in then_token
+                then_token = TokenReference::new(
+                    vec![self.create_indent_trivia(None)],
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::Then,
+                    }),
+                    then_token.trailing_trivia().map(|x| x.to_owned()).collect(),
+                );
+
+                let condition = else_if_block.condition().to_owned();
+                expression_add_leading_trivia(
+                    self.hang_expression(condition, additional_indent_level, None),
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
+                    ]),
+                )
+            }
+            false => else_if_block.condition().to_owned(),
+        };
+
+        else_if_block
+            .with_else_if_token(Cow::Owned(else_if_token))
+            .with_condition(condition)
+            .with_then_token(Cow::Owned(then_token))
+    }
+
+    pub fn if_block_add_trivia<'ast>(
+        &self,
+        if_block: If<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> If<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Need to take into account if we should make the conditions multiple lines
+        let first_line_str = no_comments(if_block.if_token())
+            + &if_block.condition().to_string()
+            + &no_comments(if_block.then_token());
+        let indent_characters = self.indent_level * self.config.indent_width;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(if_block.condition());
+
+        let mut if_token = token_reference_add_trivia(
+            if_block.if_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        );
+
+        let mut then_token = token_reference_add_trivia(
+            if_block.then_token().to_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
+
+        let condition = match require_multiline_condition {
+            true => {
+                // Trim the trailing whitespace in if_token, add a new line and indent
+                if_token = TokenReference::new(
+                    if_token.leading_trivia().map(|x| x.to_owned()).collect(),
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::If,
+                    }),
+                    vec![self.create_newline_trivia()],
+                );
+                // Trim the leading whitespace in then_token
+                then_token = TokenReference::new(
+                    vec![self.create_indent_trivia(None)],
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::Then,
+                    }),
+                    then_token.trailing_trivia().map(|x| x.to_owned()).collect(),
+                );
+
+                let condition = if_block.condition().to_owned();
+                expression_add_leading_trivia(
+                    self.hang_expression(condition, additional_indent_level, None),
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
+                    ]),
+                )
+            }
+            false => if_block.condition().to_owned(),
+        };
+
+        let end_token = token_reference_add_trivia(
+            if_block.end_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
+
+        let else_if_block = match if_block.else_if() {
+            Some(else_if) => Some(
+                else_if
+                    .iter()
+                    .map(|else_if| {
+                        self.else_if_block_add_trivia(else_if.to_owned(), additional_indent_level)
+                    })
+                    .collect(),
+            ),
+            None => None,
+        };
+
+        let else_token = match if_block.else_token() {
+            Some(else_token) => Some(Cow::Owned(token_reference_add_trivia(
+                else_token.to_owned(),
+                FormatTriviaType::Append(leading_trivia.to_owned()),
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            ))),
+            None => None,
+        };
+
+        if_block
+            .with_if_token(Cow::Owned(if_token))
+            .with_condition(condition)
+            .with_then_token(Cow::Owned(then_token))
+            .with_else_if(else_if_block)
+            .with_else_token(else_token)
+            .with_end_token(Cow::Owned(end_token))
+    }
+
+    pub fn repeat_block_add_trivia<'ast>(
+        &self,
+        repeat_block: Repeat<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> Repeat<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Need to take into account if we should make the conditions multiple lines
+        let last_line_str =
+            no_comments(repeat_block.until_token()) + &repeat_block.until().to_string();
+        let indent_characters = self.indent_level * self.config.indent_width;
+        let require_multiline_condition = (indent_characters + last_line_str.len()) > 120
+            || trivia_util::expression_contains_inline_comments(repeat_block.until());
+
+        let repeat_token = token_reference_add_trivia(
+            repeat_block.repeat_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
+        let until_token = token_reference_add_trivia(
+            repeat_block.until_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        );
+        let until_expression = match require_multiline_condition {
+            true => self.hang_expression(
+                repeat_block.until().to_owned(),
+                additional_indent_level,
+                None,
+            ),
+            false => expression_add_trailing_trivia(
+                repeat_block.until().to_owned(),
+                FormatTriviaType::Append(trailing_trivia),
+            ),
+        };
+
+        repeat_block
+            .with_repeat_token(Cow::Owned(repeat_token))
+            .with_until_token(Cow::Owned(until_token))
+            .with_until(until_expression)
+    }
+
+    pub fn while_block_add_trivia<'ast>(
+        &self,
+        while_block: While<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> While<'ast> {
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Need to take into account if we should make the conditions multiple lines
+        let first_line_str = no_comments(while_block.while_token())
+            + &while_block.condition().to_string()
+            + &no_comments(while_block.do_token());
+        let indent_characters = self.indent_level * self.config.indent_width;
+        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
+            || trivia_util::expression_contains_comments(while_block.condition());
+
+        let mut while_token = token_reference_add_trivia(
+            while_block.while_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        );
+        let mut do_token = token_reference_add_trivia(
+            while_block.do_token().to_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
+
+        let condition = match require_multiline_condition {
+            true => {
+                // Trim the trailing whitespace in if_token, add a new line and indent
+                while_token = TokenReference::new(
+                    while_token.leading_trivia().map(|x| x.to_owned()).collect(),
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::While,
+                    }),
+                    vec![self.create_newline_trivia()],
+                );
+                // Trim the leading whitespace in then_token
+                do_token = TokenReference::new(
+                    vec![self.create_indent_trivia(None)],
+                    Token::new(full_moon::tokenizer::TokenType::Symbol {
+                        symbol: full_moon::tokenizer::Symbol::Do,
+                    }),
+                    do_token.trailing_trivia().map(|x| x.to_owned()).collect(),
+                );
+
+                let condition = while_block.condition().to_owned();
+                expression_add_leading_trivia(
+                    self.hang_expression(condition, additional_indent_level, None),
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
+                    ]),
+                )
+            }
+            false => while_block.condition().to_owned(),
+        };
+
+        let end_token = token_reference_add_trivia(
+            while_block.end_token().to_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::Append(trailing_trivia),
+        );
+
+        while_block
+            .with_while_token(Cow::Owned(while_token))
+            .with_condition(condition)
+            .with_do_token(Cow::Owned(do_token))
+            .with_end_token(Cow::Owned(end_token))
+    }
 }
 
 pub fn function_call_add_trivia<'ast>(
@@ -80,82 +809,6 @@ pub fn function_call_add_trivia<'ast>(
         function_call_add_leading_trivia(function_call, leading_trivia),
         trailing_trivia,
     )
-}
-
-pub fn local_assignment_add_trivia<'ast>(
-    local_assignment: LocalAssignment<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> LocalAssignment<'ast> {
-    let local_token = Cow::Owned(token_reference_add_trivia(
-        local_assignment.local_token().to_owned(),
-        leading_trivia,
-        FormatTriviaType::NoChange,
-    ));
-
-    // TODO: Can we simplify the following?
-    if local_assignment.expr_list().is_empty() {
-        // Unassigned local variable
-        let mut formatted_name_list = local_assignment.name_list().to_owned();
-
-        #[cfg(feature = "luau")]
-        {
-            // See if the last variable assigned has a type specifier, and add a new line to that
-            let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = local_assignment
-                .type_specifiers()
-                .map(|x| x.cloned())
-                .collect();
-
-            if let Some(type_specifier) = type_specifiers.pop() {
-                if let Some(specifier) = type_specifier {
-                    let specifier = type_specifier_add_trailing_trivia(specifier, trailing_trivia);
-                    type_specifiers.push(Some(specifier));
-
-                    return local_assignment
-                        .with_local_token(local_token)
-                        .with_type_specifiers(type_specifiers);
-                }
-            }
-        }
-
-        // Retrieve last item and add new line to it
-        if let Some(last_pair) = formatted_name_list.pop() {
-            match last_pair {
-                Pair::End(value) => {
-                    let value = Cow::Owned(token_reference_add_trivia(
-                        value.into_owned(),
-                        FormatTriviaType::NoChange,
-                        trailing_trivia,
-                    ));
-                    formatted_name_list.push(Pair::End(value));
-                }
-                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
-            }
-        }
-
-        local_assignment
-            .with_local_token(local_token)
-            .with_name_list(formatted_name_list)
-    } else {
-        // Add newline at the end of LocalAssignment expression list
-        // Expression list should already be formatted
-        let mut formatted_expression_list = local_assignment.expr_list().to_owned();
-
-        // Retrieve last item and add new line to it
-        if let Some(last_pair) = formatted_expression_list.pop() {
-            match last_pair {
-                Pair::End(value) => {
-                    let expression = expression_add_trailing_trivia(value, trailing_trivia);
-                    formatted_expression_list.push(Pair::End(expression));
-                }
-                Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
-            }
-        }
-
-        local_assignment
-            .with_local_token(local_token)
-            .with_expr_list(formatted_expression_list)
-    }
 }
 
 pub fn do_block_add_trivia<'ast>(
@@ -201,81 +854,6 @@ pub fn generic_for_add_trivia<'ast>(
     generic_for
         .with_for_token(Cow::Owned(for_token))
         .with_do_token(Cow::Owned(do_token))
-        .with_end_token(Cow::Owned(end_token))
-}
-
-fn else_if_block_add_trivia<'ast>(
-    else_if_block: ElseIf<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> ElseIf<'ast> {
-    let else_if_token = token_reference_add_trivia(
-        else_if_block.else_if_token().to_owned(),
-        leading_trivia,
-        FormatTriviaType::NoChange,
-    );
-    let then_token = token_reference_add_trivia(
-        else_if_block.then_token().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia,
-    );
-
-    else_if_block
-        .with_else_if_token(Cow::Owned(else_if_token))
-        .with_then_token(Cow::Owned(then_token))
-}
-
-pub fn if_block_add_trivia<'ast>(
-    if_block: If<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> If<'ast> {
-    let if_token = token_reference_add_trivia(
-        if_block.if_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-    let then_token = token_reference_add_trivia(
-        if_block.then_token().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia.to_owned(),
-    );
-    let end_token = token_reference_add_trivia(
-        if_block.end_token().to_owned(),
-        leading_trivia.to_owned(),
-        trailing_trivia.to_owned(),
-    );
-
-    let else_if_block = match if_block.else_if() {
-        Some(else_if) => Some(
-            else_if
-                .iter()
-                .map(|else_if| {
-                    else_if_block_add_trivia(
-                        else_if.to_owned(),
-                        leading_trivia.to_owned(),
-                        trailing_trivia.to_owned(),
-                    )
-                })
-                .collect(),
-        ),
-        None => None,
-    };
-
-    let else_token = match if_block.else_token() {
-        Some(else_token) => Some(Cow::Owned(token_reference_add_trivia(
-            else_token.to_owned(),
-            leading_trivia,
-            trailing_trivia,
-        ))),
-        None => None,
-    };
-
-    if_block
-        .with_if_token(Cow::Owned(if_token))
-        .with_then_token(Cow::Owned(then_token))
-        .with_else_if(else_if_block)
-        .with_else_token(else_token)
         .with_end_token(Cow::Owned(end_token))
 }
 
@@ -426,58 +1004,52 @@ pub fn numeric_for_add_trivia<'ast>(
         .with_end_token(Cow::Owned(end_token))
 }
 
-pub fn repeat_block_add_trivia<'ast>(
-    repeat_block: Repeat<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Repeat<'ast> {
-    let repeat_token = token_reference_add_trivia(
-        repeat_block.repeat_token().to_owned(),
-        leading_trivia.to_owned(),
-        trailing_trivia.to_owned(),
-    );
-    let until_token = token_reference_add_trivia(
-        repeat_block.until_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-    let until_expression =
-        expression_add_trailing_trivia(repeat_block.until().to_owned(), trailing_trivia);
-    repeat_block
-        .with_repeat_token(Cow::Owned(repeat_token))
-        .with_until_token(Cow::Owned(until_token))
-        .with_until(until_expression)
-}
-
-pub fn while_block_add_trivia<'ast>(
-    while_block: While<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> While<'ast> {
-    let while_token = token_reference_add_trivia(
-        while_block.while_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-    let do_token = token_reference_add_trivia(
-        while_block.do_token().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia.to_owned(),
-    );
-    let end_token = token_reference_add_trivia(
-        while_block.end_token().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-    while_block
-        .with_while_token(Cow::Owned(while_token))
-        .with_do_token(Cow::Owned(do_token))
-        .with_end_token(Cow::Owned(end_token))
-}
-
 // Remainder of Nodes
+macro_rules! binop_leading_trivia {
+    ($enum:ident, $value:ident, $leading_trivia:ident, { $($operator:ident,)+ }) => {
+        match $value {
+            $(
+                $enum::$operator(token) => $enum::$operator(Cow::Owned(token_reference_add_trivia(token.into_owned(), $leading_trivia, FormatTriviaType::NoChange))),
+            )+
+        }
+    };
+}
 
-/// Adds trailing trivia at the end of a BinOpRhs expression
+pub fn binop_rhs_add_trivia<'ast>(
+    binop_rhs: BinOpRhs<'ast>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
+) -> BinOpRhs<'ast> {
+    let binop = if let FormatTriviaType::NoChange = leading_trivia {
+        binop_rhs.bin_op().to_owned()
+    } else {
+        let op = binop_rhs.bin_op().to_owned();
+        binop_leading_trivia!(BinOp, op, leading_trivia, {
+            And,
+            Caret,
+            GreaterThan,
+            GreaterThanEqual,
+            LessThan,
+            LessThanEqual,
+            Minus,
+            Or,
+            Percent,
+            Plus,
+            Slash,
+            Star,
+            TildeEqual,
+            TwoDots,
+            TwoEqual,
+        })
+    };
+
+    let rhs = std::boxed::Box::new(expression_add_trailing_trivia(
+        binop_rhs.rhs().to_owned(),
+        trailing_trivia,
+    ));
+    binop_rhs.with_bin_op(binop).with_rhs(rhs)
+}
+
 pub fn binop_rhs_add_trailing_trivia<'ast>(
     binop_rhs: BinOpRhs<'ast>,
     trailing_trivia: FormatTriviaType<'ast>,

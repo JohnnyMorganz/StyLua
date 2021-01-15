@@ -229,11 +229,7 @@ impl CodeFormatter {
 
         match stmt {
             Stmt::Assignment(assignment) => {
-                Stmt::Assignment(trivia_formatter::assignment_add_trivia(
-                    &assignment,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
+                Stmt::Assignment(self.assignment_add_trivia(assignment, additional_indent_level))
             }
             Stmt::Do(do_block) => Stmt::Do(trivia_formatter::do_block_add_trivia(
                 do_block,
@@ -261,18 +257,12 @@ impl CodeFormatter {
                     trailing_trivia,
                 ))
             }
-            Stmt::If(if_block) => Stmt::If(trivia_formatter::if_block_add_trivia(
-                if_block,
-                leading_trivia,
-                trailing_trivia,
-            )),
-            Stmt::LocalAssignment(local_assignment) => {
-                Stmt::LocalAssignment(trivia_formatter::local_assignment_add_trivia(
-                    local_assignment,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
+            Stmt::If(if_block) => {
+                Stmt::If(self.if_block_add_trivia(if_block, additional_indent_level))
             }
+            Stmt::LocalAssignment(local_assignment) => Stmt::LocalAssignment(
+                self.local_assignment_add_trivia(local_assignment, additional_indent_level),
+            ),
             Stmt::LocalFunction(local_function) => {
                 Stmt::LocalFunction(trivia_formatter::local_function_add_trivia(
                     local_function,
@@ -287,16 +277,12 @@ impl CodeFormatter {
                     trailing_trivia,
                 ))
             }
-            Stmt::Repeat(repeat_block) => Stmt::Repeat(trivia_formatter::repeat_block_add_trivia(
-                repeat_block,
-                leading_trivia,
-                trailing_trivia,
-            )),
-            Stmt::While(while_block) => Stmt::While(trivia_formatter::while_block_add_trivia(
-                while_block,
-                leading_trivia,
-                trailing_trivia,
-            )),
+            Stmt::Repeat(repeat_block) => {
+                Stmt::Repeat(self.repeat_block_add_trivia(repeat_block, additional_indent_level))
+            }
+            Stmt::While(while_block) => {
+                Stmt::While(self.while_block_add_trivia(while_block, additional_indent_level))
+            }
 
             #[cfg(feature = "luau")]
             Stmt::CompoundAssignment(compound_assignment) => {
