@@ -54,18 +54,15 @@ impl CodeFormatter {
             .collect();
 
         if assignment.expr_list().is_empty() {
-            match name_list.pop() {
-                Some(pair) => {
-                    let pair = pair.map(|name| {
-                        Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                            name.to_owned().into_owned(),
-                            FormatTriviaType::NoChange,
-                            FormatTriviaType::Append(name_list_comments_buf),
-                        ))
-                    });
-                    name_list.push(pair);
-                }
-                None => (),
+            if let Some(pair) = name_list.pop() {
+                let pair = pair.map(|name| {
+                    Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        name.to_owned().into_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(name_list_comments_buf),
+                    ))
+                });
+                name_list.push(pair);
             }
 
             let local_assignment = LocalAssignment::new(name_list)
@@ -81,19 +78,16 @@ impl CodeFormatter {
             let (mut expr_list, mut expr_comments_buf) =
                 self.format_punctuated(assignment.expr_list(), &CodeFormatter::format_expression);
 
-            match expr_list.pop() {
-                Some(pair) => {
-                    name_list_comments_buf.append(&mut expr_comments_buf);
+            if let Some(pair) = expr_list.pop() {
+                name_list_comments_buf.append(&mut expr_comments_buf);
 
-                    let pair = pair.map(|expr| {
-                        trivia_formatter::expression_add_trailing_trivia(
-                            expr,
-                            FormatTriviaType::Append(name_list_comments_buf),
-                        )
-                    });
-                    expr_list.push(pair);
-                }
-                None => (),
+                let pair = pair.map(|expr| {
+                    trivia_formatter::expression_add_trailing_trivia(
+                        expr,
+                        FormatTriviaType::Append(name_list_comments_buf),
+                    )
+                });
+                expr_list.push(pair);
             }
 
             let local_assignment = LocalAssignment::new(name_list)

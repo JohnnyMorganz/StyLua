@@ -8,7 +8,6 @@ use full_moon::{
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
-use std::borrow::Cow;
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
 fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Vec<Token<'ast>> {
@@ -258,7 +257,6 @@ pub fn get_expression_trailing_comments<'ast>(
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .flatten()
-        .map(|x| x.to_owned())
         .collect();
 
     let new_expression = trivia_formatter::expression_add_trailing_trivia(
@@ -266,47 +264,7 @@ pub fn get_expression_trailing_comments<'ast>(
         FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
     );
 
-    return (new_expression, trailing_comments);
-}
-
-pub fn get_var_trailing_comments<'ast>(var: &Var<'ast>) -> (Var<'ast>, Vec<Token<'ast>>) {
-    let trailing_comments = var_trailing_trivia(var)
-        .iter()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
-        .map(|x| x.to_owned())
-        .collect();
-
-    let new_var = trivia_formatter::var_add_trailing_trivia(
-        var.to_owned(),
-        FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-    );
-
-    return (new_var, trailing_comments);
-}
-
-pub fn get_token_ref_trailing_comments<'ast>(
-    token_ref: &Cow<'ast, TokenReference<'ast>>,
-) -> (Cow<'ast, TokenReference<'ast>>, Vec<Token<'ast>>) {
-    println!("getting trailing comments for {:?}", token_ref);
-    let trailing_comments = token_ref
-        .trailing_trivia()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
-        .map(|x| x.to_owned())
-        .collect();
-    println!("{:?}", trailing_comments);
-    let new_token_ref = trivia_formatter::token_reference_add_trivia(
-        token_ref.to_owned().into_owned(),
-        FormatTriviaType::NoChange,
-        FormatTriviaType::Replace(vec![]),
-    );
-
-    return (Cow::Owned(new_token_ref), trailing_comments);
+    (new_expression, trailing_comments)
 }
 
 pub fn token_trivia_contains_comments<'ast>(
