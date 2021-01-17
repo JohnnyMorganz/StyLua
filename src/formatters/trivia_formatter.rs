@@ -568,7 +568,7 @@ impl CodeFormatter {
                 );
                 // Trim the leading whitespace in then_token
                 then_token = TokenReference::new(
-                    vec![self.create_indent_trivia(None)],
+                    vec![self.create_indent_trivia(additional_indent_level)],
                     Token::new(full_moon::tokenizer::TokenType::Symbol {
                         symbol: full_moon::tokenizer::Symbol::Then,
                     }),
@@ -632,7 +632,7 @@ impl CodeFormatter {
                 );
                 // Trim the leading whitespace in then_token
                 then_token = TokenReference::new(
-                    vec![self.create_indent_trivia(None)],
+                    vec![self.create_indent_trivia(additional_indent_level)],
                     Token::new(full_moon::tokenizer::TokenType::Symbol {
                         symbol: full_moon::tokenizer::Symbol::Then,
                     }),
@@ -768,7 +768,7 @@ impl CodeFormatter {
                 );
                 // Trim the leading whitespace in then_token
                 do_token = TokenReference::new(
-                    vec![self.create_indent_trivia(None)],
+                    vec![self.create_indent_trivia(additional_indent_level)],
                     Token::new(full_moon::tokenizer::TokenType::Symbol {
                         symbol: full_moon::tokenizer::Symbol::Do,
                     }),

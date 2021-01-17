@@ -59,3 +59,16 @@ if
 then
 	print("foo")
 end
+
+baz(
+	first_arg___ooooooooooooooooooooooooooooooooooooooooooo,
+	second_arg___qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq,
+	function()
+		if
+			multiline_if___aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			and multiline_if___bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+		then
+			foo()
+		end
+	end
+)
