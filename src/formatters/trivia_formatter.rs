@@ -12,7 +12,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody,
     FunctionCall, FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction,
-    MethodCall, NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var,
+    MethodCall, NumericFor, Prefix, Repeat, Return, Suffix, TableConstructor, UnOp, Value, Var,
     VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -797,6 +797,91 @@ impl CodeFormatter {
             .with_condition(condition)
             .with_do_token(Cow::Owned(do_token))
             .with_end_token(Cow::Owned(end_token))
+    }
+
+    pub fn return_add_trivia<'ast>(
+        &self,
+        return_node: Return<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> Return<'ast> {
+        {
+            let mut token = return_node.token().to_owned();
+            let mut returns = return_node.returns().to_owned();
+
+            if return_node.returns().is_empty() {
+                token = token_reference_add_trivia(
+                    token,
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                );
+            } else {
+                token = token_reference_add_trivia(
+                    token,
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::NoChange,
+                );
+
+                // If the expression is too long, we should hang it
+                // otherwise, retrieve the last item and add a new line to it
+                let first_line_str =
+                    no_comments(return_node.token()) + &return_node.returns().to_string();
+                let indent_characters = self.indent_level * self.config.indent_width;
+                let require_multiline_return = (indent_characters
+                    + first_line_str
+                        .trim()
+                        .lines()
+                        .next()
+                        .expect("no lines")
+                        .len())
+                    > 120;
+
+                match require_multiline_return {
+                    true => {
+                        // Hang each expression
+                        let mut new_list = Punctuated::new();
+                        for pair in returns.pairs() {
+                            let value = self.hang_expression(
+                                pair.value().to_owned(),
+                                additional_indent_level,
+                                None,
+                            );
+                            new_list.push(Pair::new(
+                                value,
+                                pair.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                            ))
+                        }
+                        returns = new_list
+                    }
+                    false => {
+                        // Retrieve last item and add new line to it
+                        if let Some(last_pair) = returns.pop() {
+                            match last_pair {
+                                Pair::End(value) => {
+                                    let expression = expression_add_trailing_trivia(
+                                        value,
+                                        FormatTriviaType::Append(
+                                            vec![self.create_newline_trivia()],
+                                        ),
+                                    );
+                                    returns.push(Pair::End(expression));
+                                }
+                                Pair::Punctuated(_, _) => {
+                                    panic!("we got a punctuated as the last sequence in expression")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return_node
+                .with_token(Cow::Owned(token))
+                .with_returns(returns)
+        }
     }
 }
 

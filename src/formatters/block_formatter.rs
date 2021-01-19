@@ -2,9 +2,7 @@ use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
     CodeFormatter, Range,
 };
-use full_moon::ast::{
-    punctuated::Pair, Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var,
-};
+use full_moon::ast::{Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var};
 #[cfg(feature = "luau")]
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -185,47 +183,7 @@ impl CodeFormatter {
                 )))
             }
             LastStmt::Return(return_node) => {
-                let mut token = return_node.token().to_owned();
-                let mut returns = return_node.returns().to_owned();
-
-                if return_node.returns().is_empty() {
-                    token = trivia_formatter::token_reference_add_trivia(
-                        token,
-                        FormatTriviaType::Append(vec![
-                            self.create_indent_trivia(additional_indent_level)
-                        ]),
-                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                    );
-                } else {
-                    token = trivia_formatter::token_reference_add_trivia(
-                        token,
-                        FormatTriviaType::Append(vec![
-                            self.create_indent_trivia(additional_indent_level)
-                        ]),
-                        FormatTriviaType::NoChange,
-                    );
-
-                    // TODO: This is copied from the Assignment/LocalAssignment formatters
-                    // Retrieve last item and add new line to it
-                    if let Some(last_pair) = returns.pop() {
-                        match last_pair {
-                            Pair::End(value) => {
-                                let expression = trivia_formatter::expression_add_trailing_trivia(
-                                    value,
-                                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                                );
-                                returns.push(Pair::End(expression));
-                            }
-                            Pair::Punctuated(_, _) => (), // TODO: Is it possible for this to happen? Do we need to account for it?
-                        }
-                    }
-                }
-
-                LastStmt::Return(
-                    return_node
-                        .with_token(Cow::Owned(token))
-                        .with_returns(returns),
-                )
+                LastStmt::Return(self.return_add_trivia(return_node, additional_indent_level))
             }
             #[cfg(feature = "luau")]
             LastStmt::Continue(continue_node) => {

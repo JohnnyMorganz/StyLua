@@ -1,0 +1,9 @@
+return node.kind == Kind.VARIABLE
+  or node.kind == Kind.INT
+  or node.kind == Kind.FLOAT
+  or node.kind == Kind.STRING
+  or node.kind == Kind.BOOLEAN
+  or node.kind == Kind.NULL
+  or node.kind == Kind.ENUM
+  or node.kind == Kind.LIST
+  or node.kind == Kind.OBJECT
