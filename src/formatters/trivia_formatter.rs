@@ -198,14 +198,70 @@ impl CodeFormatter {
             Expression::Parentheses {
                 contained,
                 expression,
-            } => Expression::Parentheses {
-                contained,
-                expression: Box::new(self.expression_split_binop(
-                    *expression,
-                    binop_leading_trivia,
-                    indent_increase,
-                )),
-            },
+            } => {
+                // Examine the expression itself to see if needs to be split onto multiple lines
+                let expression_str = expression.to_string();
+                println!("current expression: {}", expression_str);
+                if expression_str.len()
+                    + 2 // Account for the two parentheses
+                    + (self.indent_level * self.config.indent_width) // Account for the current indent level
+                    + (indent_increase * self.config.indent_width) // Account for any further indent increase
+                    < 120
+                {
+                    // The expression inside the parentheses is small, we do not need to break it down further
+                    return Expression::Parentheses {
+                        contained,
+                        expression,
+                    };
+                }
+
+                // Increase the indent level of the trivia
+                let mut current_indent_vec = match &binop_leading_trivia {
+                    FormatTriviaType::Append(vec) | FormatTriviaType::Replace(vec) => vec.to_vec(),
+                    FormatTriviaType::NoChange => {
+                        panic!("we are hanging an expression with no indent trivia")
+                    }
+                };
+
+                // Modify the parentheses to hang the expression
+                let (start_token, end_token) = contained.tokens();
+
+                let contained = ContainedSpan::new(
+                    Cow::Owned(token_reference_add_trivia(
+                        start_token.to_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append({
+                            // Create a new line at the end of the start token, then indent enough for the first expression
+                            let mut new_vec = current_indent_vec.to_vec();
+                            new_vec.insert(0, self.create_newline_trivia());
+                            new_vec.push(self.create_plain_indent_trivia(1));
+                            new_vec
+                        }),
+                    )),
+                    Cow::Owned(token_reference_add_trivia(
+                        end_token.to_owned(),
+                        FormatTriviaType::Append(current_indent_vec.to_vec()),
+                        FormatTriviaType::NoChange,
+                    )),
+                );
+
+                // Modify the binop leading trivia to increment by one
+                current_indent_vec.push(self.create_plain_indent_trivia(1));
+                let binop_leading_trivia = match binop_leading_trivia {
+                    FormatTriviaType::Append(_) => FormatTriviaType::Append(current_indent_vec),
+                    FormatTriviaType::Replace(_) => FormatTriviaType::Replace(current_indent_vec),
+                    FormatTriviaType::NoChange => FormatTriviaType::NoChange,
+                };
+
+                Expression::Parentheses {
+                    contained,
+                    expression: Box::new(self.expression_split_binop(
+                        *expression,
+                        binop_leading_trivia,
+                        indent_increase + 1, // Apply indent increase
+                    )),
+                }
+            }
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop,
                 expression: Box::new(self.expression_split_binop(
@@ -224,8 +280,20 @@ impl CodeFormatter {
                 let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
                 trailing_trivia.push(self.create_newline_trivia());
 
+                let old_value = *value;
                 let mut new_value = value_add_trailing_trivia(
-                    (*value).to_owned(),
+                    match &old_value {
+                        // Handle any values which may have expressions inside of them
+                        // which we may need to split onto multiple lines
+                        Value::ParseExpression(expression) => {
+                            Value::ParseExpression(self.expression_split_binop(
+                                expression.to_owned(),
+                                binop_leading_trivia.to_owned(),
+                                indent_increase,
+                            ))
+                        }
+                        _ => old_value.to_owned(),
+                    },
                     FormatTriviaType::Replace(trailing_trivia),
                 );
 
@@ -240,7 +308,7 @@ impl CodeFormatter {
                             | BinOp::TildeEqual(_)
                             | BinOp::TwoEqual(_) => {
                                 // Remove the new value because we don't want that anymore
-                                new_value = *value;
+                                new_value = old_value;
                                 // Return original binop
                                 binop
                             }
