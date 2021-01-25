@@ -201,7 +201,6 @@ impl CodeFormatter {
             } => {
                 // Examine the expression itself to see if needs to be split onto multiple lines
                 let expression_str = expression.to_string();
-                println!("current expression: {}", expression_str);
                 if expression_str.len()
                     + 2 // Account for the two parentheses
                     + (self.indent_level * self.config.indent_width) // Account for the current indent level
