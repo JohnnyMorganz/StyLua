@@ -155,6 +155,19 @@ impl CodeFormatter {
         let mut trailing_trivia: Option<Vec<Token<'ast>>> = None;
 
         let token_type = match token.token_type() {
+            TokenType::Number { text } => TokenType::Number {
+                text: Cow::Owned(if text.starts_with('.') {
+                    String::from("0")
+                        + match text {
+                            Cow::Owned(text) => text.as_str(),
+                            Cow::Borrowed(text) => text,
+                        }
+                } else if text.starts_with("-.") {
+                    String::from("-0") + text.get(1..).expect("unknown number literal")
+                } else {
+                    text.to_owned().into_owned()
+                }),
+            },
             TokenType::StringLiteral {
                 literal,
                 multi_line,

@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added formatting for number literals which begin with a decimal. For consistency, a "0" will be prepended (i.e. `.5` turns to `0.5`)
 - Long expressions in a return statement will now hang onto multiple lines if necessary
 - StyLua will now handle expressions in parentheses if they are long, by breaking them down further.
 
 ### Fixed
 - Fixed "then" and "do" tokens not being correctly indented when if-then and while-do statements are pushed onto multiple lines
+- Fixed incorrect newline formatting when a return type is present for an anonymous function in Luau
 
 ## [0.3.0] - 2021-01-15
 ### Added

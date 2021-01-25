@@ -26,14 +26,44 @@ impl CodeFormatter {
         let additional_indent_level = self.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
 
         let function_token = crate::fmt_symbol!(self, function_token, "function");
-        let function_body = self.format_function_body(function_body);
+        let mut function_body = self.format_function_body(function_body);
 
         // Need to insert any additional trivia, as it isn't being inserted elsewhere
-        let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
-            function_body.parameters_parentheses().to_owned(),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-        );
+        #[cfg(feature = "luau")]
+        {
+            let (parameters_parentheses, return_type) = match function_body.return_type() {
+                Some(return_type) => (
+                    function_body.parameters_parentheses().to_owned(),
+                    Some(trivia_formatter::type_specifier_add_trailing_trivia(
+                        return_type.to_owned(),
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                    )),
+                ),
+                None => {
+                    // No return type, so add trivia to the parentheses instead
+                    let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+                        function_body.parameters_parentheses().to_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                    );
+                    (parameters_parentheses, None)
+                }
+            };
+
+            function_body = function_body
+                .with_parameters_parentheses(parameters_parentheses)
+                .with_return_type(return_type);
+        }
+
+        #[cfg(not(feature = "luau"))]
+        {
+            let parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+                function_body.parameters_parentheses().to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+            );
+            function_body = function_body.with_parameters_parentheses(parameters_parentheses);
+        };
 
         let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
             function_body.end_token().to_owned(),
@@ -41,12 +71,7 @@ impl CodeFormatter {
             FormatTriviaType::NoChange,
         ));
 
-        (
-            function_token,
-            function_body
-                .with_parameters_parentheses(parameters_parentheses)
-                .with_end_token(end_token),
-        )
+        (function_token, function_body.with_end_token(end_token))
     }
 
     /// Formats a Call node
@@ -402,17 +427,18 @@ impl CodeFormatter {
 
         let end_token = self.format_end_token(function_body.end_token());
 
-        #[cfg(feature = "luau")]
         let function_body = function_body
             .to_owned()
+            .with_parameters_parentheses(parameters_parentheses)
+            .with_parameters(formatted_parameters)
+            .with_end_token(end_token);
+
+        #[cfg(feature = "luau")]
+        let function_body = function_body
             .with_type_specifiers(type_specifiers)
             .with_return_type(return_type);
 
         function_body
-            .to_owned()
-            .with_parameters_parentheses(parameters_parentheses)
-            .with_parameters(formatted_parameters)
-            .with_end_token(end_token)
     }
 
     /// Formats a FunctionCall node
