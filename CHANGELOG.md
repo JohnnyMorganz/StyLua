@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed "then" and "do" tokens not being correctly indented when if-then and while-do statements are pushed onto multiple lines
+- Fixed incorrect newline formatting when a return type is present for an anonymous function in Luau
 
 ## [0.3.0] - 2021-01-15
 ### Added
