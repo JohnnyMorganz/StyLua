@@ -241,19 +241,42 @@ impl CodeFormatter {
     }
 
     pub fn format_block<'ast>(&mut self, block: Block<'ast>) -> Block<'ast> {
-        let formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
-            block
-                .iter_stmts()
-                .map(|stmt| {
-                    let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt);
-                    let additional_indent_level = self.get_range_indent_increase(range_in_stmt);
-                    let stmt = self.format_stmt(stmt);
-                    (
-                        self.stmt_add_trivia(stmt, additional_indent_level),
-                        None, // The second parameter in the tuple is for semicolons - we do not want any semi-colons
-                    )
-                })
-                .collect();
+        let mut formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
+            Vec::new();
+
+        let mut stmt_iterator = block.iter_stmts().peekable();
+        while let Some(stmt) = stmt_iterator.next() {
+            let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt);
+            let additional_indent_level = self.get_range_indent_increase(range_in_stmt);
+            let stmt = self.format_stmt(stmt);
+
+            // Need to check next statement if it is a function call, with a parameters expression as the prefix
+            // If so, removing a semicolon may lead to ambiguous syntax
+            let next_stmt = stmt_iterator.peek();
+            let semicolon = match next_stmt {
+                Some(next_stmt) => match next_stmt {
+                    Stmt::FunctionCall(function_call) => match function_call.prefix() {
+                        Prefix::Expression(expr) => match expr {
+                            Expression::Parentheses { .. } => Some(Cow::Owned(
+                                TokenReference::symbol(";").expect("could not make semicolon"),
+                            )),
+                            _ => None,
+                        },
+                        _ => None,
+                    },
+                    _ => None,
+                },
+                None => None,
+            };
+
+            formatted_statements.push((
+                self.stmt_add_trivia(stmt, additional_indent_level),
+                semicolon,
+            ))
+        }
+
+        // Drop the stmt_iterator as we do not need it anymore and we still need to use `block`
+        drop(stmt_iterator);
 
         let formatted_last_stmt = match block.last_stmt() {
             Some(last_stmt) => {
