@@ -12,7 +12,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody,
     FunctionCall, FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction,
-    MethodCall, NumericFor, Prefix, Repeat, Suffix, TableConstructor, UnOp, Value, Var,
+    MethodCall, NumericFor, Prefix, Repeat, Return, Suffix, TableConstructor, UnOp, Value, Var,
     VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -198,14 +198,69 @@ impl CodeFormatter {
             Expression::Parentheses {
                 contained,
                 expression,
-            } => Expression::Parentheses {
-                contained,
-                expression: Box::new(self.expression_split_binop(
-                    *expression,
-                    binop_leading_trivia,
-                    indent_increase,
-                )),
-            },
+            } => {
+                // Examine the expression itself to see if needs to be split onto multiple lines
+                let expression_str = expression.to_string();
+                if expression_str.len()
+                    + 2 // Account for the two parentheses
+                    + (self.indent_level * self.config.indent_width) // Account for the current indent level
+                    + (indent_increase * self.config.indent_width) // Account for any further indent increase
+                    < 120
+                {
+                    // The expression inside the parentheses is small, we do not need to break it down further
+                    return Expression::Parentheses {
+                        contained,
+                        expression,
+                    };
+                }
+
+                // Increase the indent level of the trivia
+                let mut current_indent_vec = match &binop_leading_trivia {
+                    FormatTriviaType::Append(vec) | FormatTriviaType::Replace(vec) => vec.to_vec(),
+                    FormatTriviaType::NoChange => {
+                        panic!("we are hanging an expression with no indent trivia")
+                    }
+                };
+
+                // Modify the parentheses to hang the expression
+                let (start_token, end_token) = contained.tokens();
+
+                let contained = ContainedSpan::new(
+                    Cow::Owned(token_reference_add_trivia(
+                        start_token.to_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append({
+                            // Create a new line at the end of the start token, then indent enough for the first expression
+                            let mut new_vec = current_indent_vec.to_vec();
+                            new_vec.insert(0, self.create_newline_trivia());
+                            new_vec.push(self.create_plain_indent_trivia(1));
+                            new_vec
+                        }),
+                    )),
+                    Cow::Owned(token_reference_add_trivia(
+                        end_token.to_owned(),
+                        FormatTriviaType::Append(current_indent_vec.to_vec()),
+                        FormatTriviaType::NoChange,
+                    )),
+                );
+
+                // Modify the binop leading trivia to increment by one
+                current_indent_vec.push(self.create_plain_indent_trivia(1));
+                let binop_leading_trivia = match binop_leading_trivia {
+                    FormatTriviaType::Append(_) => FormatTriviaType::Append(current_indent_vec),
+                    FormatTriviaType::Replace(_) => FormatTriviaType::Replace(current_indent_vec),
+                    FormatTriviaType::NoChange => FormatTriviaType::NoChange,
+                };
+
+                Expression::Parentheses {
+                    contained,
+                    expression: Box::new(self.expression_split_binop(
+                        *expression,
+                        binop_leading_trivia,
+                        indent_increase + 1, // Apply indent increase
+                    )),
+                }
+            }
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop,
                 expression: Box::new(self.expression_split_binop(
@@ -224,8 +279,20 @@ impl CodeFormatter {
                 let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
                 trailing_trivia.push(self.create_newline_trivia());
 
+                let old_value = *value;
                 let mut new_value = value_add_trailing_trivia(
-                    (*value).to_owned(),
+                    match &old_value {
+                        // Handle any values which may have expressions inside of them
+                        // which we may need to split onto multiple lines
+                        Value::ParseExpression(expression) => {
+                            Value::ParseExpression(self.expression_split_binop(
+                                expression.to_owned(),
+                                binop_leading_trivia.to_owned(),
+                                indent_increase,
+                            ))
+                        }
+                        _ => old_value.to_owned(),
+                    },
                     FormatTriviaType::Replace(trailing_trivia),
                 );
 
@@ -240,7 +307,7 @@ impl CodeFormatter {
                             | BinOp::TildeEqual(_)
                             | BinOp::TwoEqual(_) => {
                                 // Remove the new value because we don't want that anymore
-                                new_value = *value;
+                                new_value = old_value;
                                 // Return original binop
                                 binop
                             }
@@ -797,6 +864,91 @@ impl CodeFormatter {
             .with_condition(condition)
             .with_do_token(Cow::Owned(do_token))
             .with_end_token(Cow::Owned(end_token))
+    }
+
+    pub fn return_add_trivia<'ast>(
+        &self,
+        return_node: Return<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> Return<'ast> {
+        {
+            let mut token = return_node.token().to_owned();
+            let mut returns = return_node.returns().to_owned();
+
+            if return_node.returns().is_empty() {
+                token = token_reference_add_trivia(
+                    token,
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                );
+            } else {
+                token = token_reference_add_trivia(
+                    token,
+                    FormatTriviaType::Append(vec![
+                        self.create_indent_trivia(additional_indent_level)
+                    ]),
+                    FormatTriviaType::NoChange,
+                );
+
+                // If the expression is too long, we should hang it
+                // otherwise, retrieve the last item and add a new line to it
+                let first_line_str =
+                    no_comments(return_node.token()) + &return_node.returns().to_string();
+                let indent_characters = self.indent_level * self.config.indent_width;
+                let require_multiline_return = (indent_characters
+                    + first_line_str
+                        .trim()
+                        .lines()
+                        .next()
+                        .expect("no lines")
+                        .len())
+                    > 120;
+
+                match require_multiline_return {
+                    true => {
+                        // Hang each expression
+                        let mut new_list = Punctuated::new();
+                        for pair in returns.pairs() {
+                            let value = self.hang_expression(
+                                pair.value().to_owned(),
+                                additional_indent_level,
+                                None,
+                            );
+                            new_list.push(Pair::new(
+                                value,
+                                pair.punctuation().map(|x| Cow::Owned(x.to_owned())),
+                            ))
+                        }
+                        returns = new_list
+                    }
+                    false => {
+                        // Retrieve last item and add new line to it
+                        if let Some(last_pair) = returns.pop() {
+                            match last_pair {
+                                Pair::End(value) => {
+                                    let expression = expression_add_trailing_trivia(
+                                        value,
+                                        FormatTriviaType::Append(
+                                            vec![self.create_newline_trivia()],
+                                        ),
+                                    );
+                                    returns.push(Pair::End(expression));
+                                }
+                                Pair::Punctuated(_, _) => {
+                                    panic!("we got a punctuated as the last sequence in expression")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return_node
+                .with_token(Cow::Owned(token))
+                .with_returns(returns)
+        }
     }
 }
 
