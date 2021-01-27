@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.0.3] - 2021-01-27
+
 ### Fixes
 - Extension now handles bigger files better, previously it could cut them off
 - StyLua binary can now be placed in a folder with spaces in it
