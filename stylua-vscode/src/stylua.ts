@@ -30,12 +30,12 @@ export function formatCode(
     const child = spawn(`${path}`, ["-"], {
       cwd,
     });
-    let output = ''
+    let output = '';
     child.stdout.on("data", (data) => {
-      output += data
+      output += data.toString();
     });
     child.stdout.on("close", () => {
-      resolve(output)
+      resolve(output);
     });
     child.stderr.on("data", (data) => reject(data.toString()));
     child.on("err", (err) => reject("Failed to start StyLua"));
