@@ -30,9 +30,12 @@ export function formatCode(
     const child = spawn(`${path}`, ["-"], {
       cwd,
     });
+    let output = ''
     child.stdout.on("data", (data) => {
-      child.kill(); // The process should close on its own, but we kill it here anyways
-      resolve(data.toString());
+      output += data
+    });
+    child.stdout.on("close", () => {
+      resolve(output)
     });
     child.stderr.on("data", (data) => reject(data.toString()));
     child.on("err", (err) => reject("Failed to start StyLua"));
@@ -50,7 +53,7 @@ export function executeStylua(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = exec(
-      `${path} ${args?.join(" ") ?? ""}`,
+      `"${path}" ${args?.join(" ") ?? ""}`,
       {
         cwd,
       },
