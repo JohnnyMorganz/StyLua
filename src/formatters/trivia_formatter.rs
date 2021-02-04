@@ -526,6 +526,7 @@ impl CodeFormatter {
         // Test whether to place expression on multiple lines
         let require_multiline_expression = match local_assignment.equal_token() {
             Some(equal_token) => {
+                #[allow(unused_mut)]
                 let mut first_line_str = no_comments(local_assignment.local_token())
                     + &local_assignment.name_list().to_string()
                     + &equal_token.to_string()
