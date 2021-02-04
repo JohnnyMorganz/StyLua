@@ -562,6 +562,67 @@ fn as_assertion_contains_comments<'ast>(as_assertion: &AsAssertion<'ast>) -> boo
         || type_info_contains_comments(as_assertion.cast_to())
 }
 
+fn value_contains_comments<'ast>(value: &Value<'ast>) -> bool {
+    match value {
+        Value::Function((token, body)) => {
+            if token_contains_comments(token) {
+                true
+            } else {
+                contained_span_contains_comments(body.parameters_parentheses())
+                // TODO: Do we need to do any more?
+            }
+        }
+        Value::FunctionCall(function_call) => {
+            let contained = match function_call.prefix() {
+                Prefix::Name(token) => token_contains_comments(token),
+                Prefix::Expression(expression) => expression_contains_comments(expression),
+            };
+
+            if contained {
+                true
+            } else {
+                let mut contained_comments = false;
+                for suffix in function_call.iter_suffixes() {
+                    contained_comments = suffix_contains_comments(suffix);
+                    if contained_comments {
+                        break;
+                    }
+                }
+                contained_comments
+            }
+        }
+        Value::TableConstructor(table_constructor) => {
+            table_constructor_contains_comments(table_constructor)
+        }
+        Value::Number(token) => token_contains_comments(token),
+        Value::ParseExpression(expression) => expression_contains_comments(expression),
+        Value::String(token) => token_contains_comments(token),
+        Value::Symbol(token) => token_contains_comments(token),
+        Value::Var(var) => match var {
+            Var::Name(token) => token_contains_comments(token),
+            Var::Expression(var_expr) => {
+                let contained = match var_expr.prefix() {
+                    Prefix::Name(token) => token_contains_comments(token),
+                    Prefix::Expression(expression) => expression_contains_comments(expression),
+                };
+
+                if contained {
+                    true
+                } else {
+                    let mut contained_comments = false;
+                    for suffix in var_expr.iter_suffixes() {
+                        contained_comments = suffix_contains_comments(suffix);
+                        if contained_comments {
+                            break;
+                        }
+                    }
+                    contained_comments
+                }
+            }
+        },
+    }
+}
+
 // Check whether any comments are present within an Expression
 pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool {
     match expression {
@@ -588,68 +649,7 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
             #[cfg(feature = "luau")]
             as_assertion,
         } => {
-            let contains_comments = match &**value {
-                Value::Function((token, body)) => {
-                    if token_contains_comments(token) {
-                        true
-                    } else {
-                        contained_span_contains_comments(body.parameters_parentheses())
-                        // TODO: Do we need to do any more?
-                    }
-                }
-                Value::FunctionCall(function_call) => {
-                    let contained = match function_call.prefix() {
-                        Prefix::Name(token) => token_contains_comments(token),
-                        Prefix::Expression(expression) => expression_contains_comments(expression),
-                    };
-
-                    if contained {
-                        true
-                    } else {
-                        let mut contained_comments = false;
-                        for suffix in function_call.iter_suffixes() {
-                            contained_comments = suffix_contains_comments(suffix);
-                            if contained_comments {
-                                break;
-                            }
-                        }
-                        contained_comments
-                    }
-                }
-                Value::TableConstructor(table_constructor) => {
-                    table_constructor_contains_comments(table_constructor)
-                }
-                Value::Number(token) => token_contains_comments(token),
-                Value::ParseExpression(expression) => expression_contains_comments(expression),
-                Value::String(token) => token_contains_comments(token),
-                Value::Symbol(token) => token_contains_comments(token),
-                Value::Var(var) => match var {
-                    Var::Name(token) => token_contains_comments(token),
-                    Var::Expression(var_expr) => {
-                        let contained = match var_expr.prefix() {
-                            Prefix::Name(token) => token_contains_comments(token),
-                            Prefix::Expression(expression) => {
-                                expression_contains_comments(expression)
-                            }
-                        };
-
-                        if contained {
-                            true
-                        } else {
-                            let mut contained_comments = false;
-                            for suffix in var_expr.iter_suffixes() {
-                                contained_comments = suffix_contains_comments(suffix);
-                                if contained_comments {
-                                    break;
-                                }
-                            }
-                            contained_comments
-                        }
-                    }
-                },
-            };
-
-            if contains_comments {
+            if value_contains_comments(value) {
                 true
             } else {
                 let binop_contains_comments = match binop {
@@ -694,13 +694,48 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
 
 // Checks to see whether an expression contains comments inline inside of it
 // This can only happen if the expression is a BinOp
+// We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments<'ast>(expression: &Expression<'ast>) -> bool {
     match expression {
-        Expression::Value { binop, .. } => {
-            if binop.is_some() {
-                expression_contains_comments(expression)
-            } else {
-                false
+        Expression::Value { binop, value, .. } => {
+            match binop {
+                Some(binop_rhs) => {
+                    let rhs = binop_rhs.rhs();
+                    let contains = match binop_rhs.bin_op() {
+                        BinOp::And(t)
+                        | BinOp::Caret(t)
+                        | BinOp::GreaterThan(t)
+                        | BinOp::GreaterThanEqual(t)
+                        | BinOp::LessThan(t)
+                        | BinOp::LessThanEqual(t)
+                        | BinOp::Minus(t)
+                        | BinOp::Or(t)
+                        | BinOp::Percent(t)
+                        | BinOp::Plus(t)
+                        | BinOp::Slash(t)
+                        | BinOp::Star(t)
+                        | BinOp::TildeEqual(t)
+                        | BinOp::TwoDots(t)
+                        | BinOp::TwoEqual(t) => token_contains_comments(t),
+                    };
+                    contains
+                        || value_contains_comments(value)
+                        // Check if the binop chain still continues
+                        // If so, we should keep checking the expresion
+                        // Otherwise, stop checking
+                        || match rhs {
+                            Expression::Value { binop, value, .. } => {
+                                if binop.is_some() {
+                                    value_contains_comments(value)
+                                        || expression_contains_inline_comments(rhs)
+                                } else {
+                                    false
+                                }
+                            }
+                            _ => expression_contains_comments(rhs),
+                        }
+                }
+                None => false,
             }
         }
         _ => false,

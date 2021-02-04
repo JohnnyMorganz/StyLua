@@ -1,3 +1,5 @@
+local val = 1 + 2 + 1 -- add
+
 -- Stop Movement
 if
 -- Moved for at least 0.1 seconds
