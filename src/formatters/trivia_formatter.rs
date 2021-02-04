@@ -15,7 +15,7 @@ use full_moon::ast::{
     MethodCall, NumericFor, Prefix, Repeat, Return, Suffix, TableConstructor, UnOp, Value, Var,
     VarExpression, While,
 };
-use full_moon::tokenizer::{Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
@@ -27,6 +27,43 @@ pub enum FormatTriviaType<'ast> {
     Replace(Vec<Token<'ast>>),
     /// Trivia will not be changed
     NoChange,
+}
+
+macro_rules! move_binop_comments {
+    ($binop:expr, $trivia:expr, { $($operator:ident,)+ }) => {
+        match $binop.bin_op() {
+            $(
+                BinOp::$operator(token) => {
+                    let mut trailing_comments = token
+                        .trailing_trivia()
+                        .filter(|token| {
+                            token.token_kind() == TokenKind::SingleLineComment
+                                || token.token_kind()
+                                    == TokenKind::MultiLineComment
+                        })
+                        .map(|x| {
+                            // Prepend a single space beforehand
+                            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                        })
+                        .flatten()
+                        .collect();
+
+                    // Move the comments over
+                    $trivia.append(&mut trailing_comments);
+
+                    // Recreate BinOp with no comments
+                    BinOp::$operator(Cow::Owned(token_reference_add_trivia(
+                        token.to_owned().into_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Replace(vec![Token::new(
+                            TokenType::spaces(1),
+                        )]),
+                    )))
+                }
+            )+
+            _ => panic!("unknown binop found"),
+        }
+    };
 }
 
 fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
@@ -277,24 +314,8 @@ impl CodeFormatter {
             } => {
                 // Need to check if there is a binop
                 let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
-                trailing_trivia.push(self.create_newline_trivia());
 
-                let old_value = *value;
-                let mut new_value = value_add_trailing_trivia(
-                    match &old_value {
-                        // Handle any values which may have expressions inside of them
-                        // which we may need to split onto multiple lines
-                        Value::ParseExpression(expression) => {
-                            Value::ParseExpression(self.expression_split_binop(
-                                expression.to_owned(),
-                                binop_leading_trivia.to_owned(),
-                                indent_increase,
-                            ))
-                        }
-                        _ => old_value.to_owned(),
-                    },
-                    FormatTriviaType::Replace(trailing_trivia),
-                );
+                let mut update_value = true;
 
                 let binop = match binop {
                     Some(binop) => {
@@ -307,26 +328,62 @@ impl CodeFormatter {
                             | BinOp::TildeEqual(_)
                             | BinOp::TwoEqual(_) => {
                                 // Remove the new value because we don't want that anymore
-                                new_value = old_value;
+                                update_value = false;
                                 // Return original binop
                                 binop
                             }
 
-                            _ => binop_rhs_add_trivia(
-                                binop,
-                                binop_leading_trivia.to_owned(),
-                                FormatTriviaType::NoChange,
-                            ),
+                            _ => {
+                                // Move any comments after the binop to trailing the value, otherwise we will create issues
+                                let new_bin_op = move_binop_comments!(binop, trailing_trivia, {
+                                    And,
+                                    Caret,
+                                    Minus,
+                                    Or,
+                                    Percent,
+                                    Plus,
+                                    Slash,
+                                    Star,
+                                    TwoDots,
+                                });
+
+                                let new_binop = binop_rhs_add_trivia(
+                                    BinOpRhs::new(new_bin_op, Box::new(binop.rhs().to_owned())),
+                                    binop_leading_trivia.to_owned(),
+                                    FormatTriviaType::NoChange,
+                                );
+                                new_binop
+                            }
                         };
 
                         let rhs = Box::new(self.expression_split_binop(
                             binop.rhs().to_owned(),
-                            binop_leading_trivia,
+                            binop_leading_trivia.to_owned(),
                             indent_increase,
                         ));
                         Some(binop.with_rhs(rhs))
                     }
                     None => None,
+                };
+
+                trailing_trivia.push(self.create_newline_trivia());
+                let new_value = match update_value {
+                    true => value_add_trailing_trivia(
+                        match *value {
+                            // Handle any values which may have expressions inside of them
+                            // which we may need to split onto multiple lines
+                            Value::ParseExpression(expression) => {
+                                Value::ParseExpression(self.expression_split_binop(
+                                    expression.to_owned(),
+                                    binop_leading_trivia.to_owned(),
+                                    indent_increase,
+                                ))
+                            }
+                            _ => *value,
+                        },
+                        FormatTriviaType::Replace(trailing_trivia),
+                    ),
+                    false => *value,
                 };
 
                 Expression::Value {
