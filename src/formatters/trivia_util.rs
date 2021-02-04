@@ -3,11 +3,12 @@ use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, Prefix, Suffix,
-        TableConstructor, UnOp, Value, Var,
+        punctuated::Pair, span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index,
+        Prefix, Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
+use std::borrow::Cow;
 
 pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
     for trivia in trivia_vec {
@@ -295,6 +296,109 @@ pub fn get_expression_trailing_comments<'ast>(
     );
 
     (new_expression, trailing_comments)
+}
+
+pub fn get_stmt_trailing_trivia<'ast>(stmt: Stmt<'ast>) -> (Stmt<'ast>, Vec<Token<'ast>>) {
+    let mut trailing_trivia = Vec::new();
+    let updated_stmt = match stmt {
+        Stmt::Assignment(assignment) => {
+            let mut formatted_expression_list = assignment.expr_list().to_owned();
+            if let Some(last_pair) = formatted_expression_list.pop() {
+                match last_pair {
+                    Pair::End(value) => {
+                        trailing_trivia = get_expression_trailing_trivia(&value);
+                        let expression = trivia_formatter::expression_add_trailing_trivia(
+                            value,
+                            FormatTriviaType::Replace(vec![]),
+                        );
+                        formatted_expression_list.push(Pair::End(expression));
+                    }
+                    Pair::Punctuated(_, _) => {
+                        panic!("we got a punctuated as the last sequence in expression")
+                    }
+                }
+            }
+
+            Stmt::Assignment(assignment.with_expr_list(formatted_expression_list))
+        }
+
+        Stmt::LocalAssignment(local_assignment) => {
+            let new_assignment = if local_assignment.expr_list().is_empty() {
+                // Unassigned local variable
+                let mut formatted_name_list = local_assignment.name_list().to_owned();
+
+                // Retrieve last item and take its trailing comments
+                if let Some(last_pair) = formatted_name_list.pop() {
+                    match last_pair {
+                        Pair::End(value) => {
+                            trailing_trivia =
+                                value.trailing_trivia().map(|x| x.to_owned()).collect();
+                            let value = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                                value.into_owned(),
+                                FormatTriviaType::NoChange,
+                                FormatTriviaType::Replace(vec![]),
+                            ));
+                            formatted_name_list.push(Pair::End(value));
+                        }
+                        Pair::Punctuated(_, _) => {
+                            panic!("punctuated sequence not ended with a Pair::End")
+                        }
+                    }
+                }
+                local_assignment.with_name_list(formatted_name_list)
+            } else {
+                // Add newline at the end of LocalAssignment expression list
+                // Expression list should already be formatted
+                let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+
+                // Retrieve last item and remove trailing trivia
+                if let Some(last_pair) = formatted_expression_list.pop() {
+                    match last_pair {
+                        Pair::End(value) => {
+                            trailing_trivia = get_expression_trailing_trivia(&value);
+                            let expression = trivia_formatter::expression_add_trailing_trivia(
+                                value,
+                                FormatTriviaType::Replace(vec![]),
+                            );
+                            formatted_expression_list.push(Pair::End(expression));
+                        }
+                        Pair::Punctuated(_, _) => {
+                            panic!("got a last pair which was punctuated")
+                        }
+                    }
+                }
+
+                local_assignment.with_expr_list(formatted_expression_list)
+            };
+
+            Stmt::LocalAssignment(new_assignment)
+        }
+
+        Stmt::FunctionCall(function_call) => {
+            let last_suffix = function_call.iter_suffixes().last();
+            trailing_trivia = match last_suffix {
+                Some(suffix) => suffix_trailing_trivia(suffix),
+                None => Vec::new(),
+            };
+
+            Stmt::FunctionCall(trivia_formatter::function_call_add_trailing_trivia(
+                function_call,
+                FormatTriviaType::Replace(vec![]),
+            ))
+        }
+        Stmt::Repeat(repeat_block) => {
+            trailing_trivia = get_expression_trailing_trivia(repeat_block.until());
+            let until_expr = trivia_formatter::expression_add_trailing_trivia(
+                repeat_block.until().to_owned(),
+                FormatTriviaType::Replace(vec![]),
+            );
+
+            Stmt::Repeat(repeat_block.with_until(until_expr))
+        }
+        _ => panic!("stmt trailing comments not implemented"),
+    };
+
+    (updated_stmt, trailing_trivia)
 }
 
 pub fn token_trivia_contains_comments<'ast>(
