@@ -1,6 +1,6 @@
 use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
-    CodeFormatter, Range,
+    trivia_util, CodeFormatter, Range,
 };
 use full_moon::ast::{Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var};
 #[cfg(feature = "luau")]
@@ -210,27 +210,48 @@ impl CodeFormatter {
 
             // Need to check next statement if it is a function call, with a parameters expression as the prefix
             // If so, removing a semicolon may lead to ambiguous syntax
-            let next_stmt = stmt_iterator.peek();
-            let semicolon = match next_stmt {
-                Some(next_stmt) => match next_stmt {
-                    Stmt::FunctionCall(function_call) => match function_call.prefix() {
-                        Prefix::Expression(expr) => match expr {
-                            Expression::Parentheses { .. } => Some(Cow::Owned(
-                                TokenReference::symbol(";").expect("could not make semicolon"),
-                            )),
-                            _ => None,
+            // Ambiguous syntax can only occur if the current statement is a (Local)Assignment, FunctionCall or a Repeat block
+            let require_semicolon = match stmt {
+                Stmt::Assignment(_)
+                | Stmt::LocalAssignment(_)
+                | Stmt::FunctionCall(_)
+                | Stmt::Repeat(_) => {
+                    let next_stmt = stmt_iterator.peek();
+                    match next_stmt {
+                        Some(next_stmt) => match next_stmt {
+                            Stmt::FunctionCall(function_call) => match function_call.prefix() {
+                                Prefix::Expression(expr) => match expr {
+                                    Expression::Parentheses { .. } => true,
+                                    _ => false,
+                                },
+                                _ => false,
+                            },
+                            _ => false,
                         },
-                        _ => None,
-                    },
-                    _ => None,
-                },
-                None => None,
+                        None => false,
+                    }
+                }
+                _ => false,
             };
 
-            formatted_statements.push((
-                self.stmt_add_trivia(stmt, additional_indent_level),
-                semicolon,
-            ))
+            let mut trivia_stmt = self.stmt_add_trivia(stmt, additional_indent_level);
+
+            // If we have a semicolon, we need to push all the trailing trivia from the statement
+            // and move it to the end of the semicolon
+            let semicolon = match require_semicolon {
+                true => {
+                    let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(trivia_stmt);
+                    trivia_stmt = updated_stmt;
+                    Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        TokenReference::symbol(";").expect("could not make semicolon"),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(trivia),
+                    )))
+                }
+                false => None,
+            };
+
+            formatted_statements.push((trivia_stmt, semicolon))
         }
 
         // Drop the stmt_iterator as we do not need it anymore and we still need to use `block`
