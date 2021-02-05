@@ -4,7 +4,7 @@ local App = Roact.createElement("Frame", {
 }, {
 	Child1 = Roact.createElement("TextLabel", {
 		Text = "foo",
-		AnchorPoint = Vector2.new(0, 0),
+		AnchorPoint = Vector2.new(0, 0), -- comment
 		foo = bar
 	}),
 

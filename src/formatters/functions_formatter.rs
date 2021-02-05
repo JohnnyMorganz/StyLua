@@ -122,7 +122,19 @@ impl CodeFormatter {
                     } else {
                         let mut contains_comments = false;
                         for argument in arguments.pairs() {
-                            if trivia_util::expression_contains_comments(argument.value()) {
+                            // Only check the leading and trailing trivia of the expression
+                            // If the expression has inline comments, it should be handled elsewhere
+                            if trivia_util::get_expression_leading_trivia(argument.value())
+                                .iter()
+                                .chain(
+                                    trivia_util::get_expression_trailing_trivia(argument.value())
+                                        .iter(),
+                                )
+                                .any(|x| {
+                                    x.token_kind() == TokenKind::SingleLineComment
+                                        || x.token_kind() == TokenKind::MultiLineComment
+                                })
+                            {
                                 contains_comments = true;
                             } else if let Some(punctuation) = argument.punctuation() {
                                 if trivia_util::token_contains_comments(punctuation) {
@@ -196,6 +208,7 @@ impl CodeFormatter {
                                 }
                             }
                         }
+
                         if keep_single_line {
                             is_multiline = false;
                         }
