@@ -412,9 +412,47 @@ impl CodeFormatter {
         &mut self,
         function_body: &FunctionBody<'ast>,
     ) -> FunctionBody<'ast> {
-        let parameters_parentheses =
-            self.format_contained_span(function_body.parameters_parentheses());
-        let formatted_parameters = self.format_parameters(function_body);
+        let (formatted_parameters, multiline_params) = self.format_parameters(function_body);
+
+        let parameters_parentheses = match multiline_params {
+            true => {
+                // TODO: This is similar to multiline in FunctionArgs, can we resolve?
+                // Format start and end brace properly with correct trivia
+                let (start_parens, end_parens) = function_body.parameters_parentheses().tokens();
+
+                // Calculate to see if the end parentheses requires any additional indentation
+                let end_parens_additional_indent_level = self.get_range_indent_increase((
+                    end_parens.start_position().bytes(),
+                    end_parens.end_position().bytes(),
+                ));
+                let end_parens_leading_trivia = vec![
+                    self.create_newline_trivia(),
+                    self.create_indent_trivia(end_parens_additional_indent_level),
+                ];
+
+                // Add new_line trivia to start_parens
+                let start_parens_token = crate::fmt_symbol!(self, start_parens, "(");
+                let start_parens_token = trivia_formatter::token_reference_add_trivia(
+                    start_parens_token.into_owned(),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                );
+
+                let end_parens_token = TokenReference::new(
+                    end_parens_leading_trivia,
+                    Token::new(TokenType::Symbol {
+                        symbol: Symbol::RightParen,
+                    }),
+                    vec![],
+                );
+
+                ContainedSpan::new(
+                    Cow::Owned(start_parens_token),
+                    self.format_symbol(end_parens, &end_parens_token),
+                )
+            }
+            false => self.format_contained_span(function_body.parameters_parentheses()),
+        };
 
         #[cfg(feature = "luau")]
         let mut type_specifiers;
@@ -558,23 +596,59 @@ impl CodeFormatter {
         }
     }
 
+    // Checks whether the input Parameter contains comments
+    fn parameter_contains_comments(parameter: &Parameter<'_>) -> bool {
+        match parameter {
+            Parameter::Ellipse(token) | Parameter::Name(token) => match token {
+                Cow::Owned(t) => trivia_util::token_contains_comments(&t),
+                Cow::Borrowed(t) => trivia_util::token_contains_comments(t),
+            },
+        }
+    }
     /// Utilises the FunctionBody iterator to format a list of Parameter nodes
+    /// Returns the formatted Punctuated sequence of parameters, and a bool indicating whether the parameters were forced onto multiple lines
     fn format_parameters<'ast>(
         &mut self,
         function_body: &FunctionBody<'ast>,
-    ) -> Punctuated<'ast, Parameter<'ast>> {
+    ) -> (Punctuated<'ast, Parameter<'ast>>, bool) {
         let mut formatted_parameters = Punctuated::new();
-        let mut parameters_iterator = function_body.parameters().iter().peekable();
-        while let Some(parameter) = parameters_iterator.next() {
-            let formatted_parameter = self.format_parameter(parameter);
-            let mut punctuation = None;
+        let force_multiline = function_body.parameters().pairs().any(|pair| {
+            pair.punctuation()
+                .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                || CodeFormatter::parameter_contains_comments(pair.value())
+        });
 
-            if parameters_iterator.peek().is_some() {
-                punctuation = Some(Cow::Owned(TokenReference::symbol(", ").unwrap()));
-            }
+        let mut parameters_iterator = function_body.parameters().pairs();
+        while let Some(pair) = parameters_iterator.next() {
+            let formatted_parameter = {
+                let param = self.format_parameter(pair.value());
+                if force_multiline {
+                    trivia_formatter::parameter_add_trivia(
+                        param,
+                        FormatTriviaType::Append(vec![self.create_indent_trivia(Some(1))]),
+                        FormatTriviaType::NoChange,
+                    )
+                } else {
+                    param
+                }
+            };
 
-            formatted_parameters.push(Pair::new(formatted_parameter, punctuation));
+            let formatted_punctuation = match pair.punctuation() {
+                Some(punctuation) => Some(match force_multiline {
+                    true => Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        // Create a comma with no trailing space, and instead we will add a newline character
+                        crate::fmt_symbol!(self, punctuation, ",").into_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                    )),
+                    // Create a comma, with a trailing space at the end
+                    false => crate::fmt_symbol!(self, punctuation, ", "),
+                }),
+                None => None,
+            };
+
+            formatted_parameters.push(Pair::new(formatted_parameter, formatted_punctuation));
         }
-        formatted_parameters
+        (formatted_parameters, force_multiline)
     }
 }

@@ -12,8 +12,8 @@ use full_moon::ast::{
     span::ContainedSpan,
     Assignment, BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody,
     FunctionCall, FunctionDeclaration, GenericFor, If, Index, LocalAssignment, LocalFunction,
-    MethodCall, NumericFor, Prefix, Repeat, Return, Suffix, TableConstructor, UnOp, Value, Var,
-    VarExpression, While,
+    MethodCall, NumericFor, Parameter, Prefix, Repeat, Return, Suffix, TableConstructor, UnOp,
+    Value, Var, VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -1520,6 +1520,26 @@ pub fn method_call_add_trailing_trivia<'ast>(
         method_call_args,
         trailing_trivia,
     ))
+}
+
+/// Adds trivia to a Parameter node
+pub fn parameter_add_trivia<'ast>(
+    parameter: Parameter<'ast>,
+    leading_trivia: FormatTriviaType<'ast>,
+    trailing_trivia: FormatTriviaType<'ast>,
+) -> Parameter<'ast> {
+    match parameter {
+        Parameter::Ellipse(token) => Parameter::Ellipse(Cow::Owned(token_reference_add_trivia(
+            token.into_owned(),
+            leading_trivia,
+            trailing_trivia,
+        ))),
+        Parameter::Name(token) => Parameter::Name(Cow::Owned(token_reference_add_trivia(
+            token.into_owned(),
+            leading_trivia,
+            trailing_trivia,
+        ))),
+    }
 }
 
 /// Adds leading trivia to the start of a Prefix node

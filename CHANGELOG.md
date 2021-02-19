@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed an expression ending with an UnOp (e.g. `#foo`) and a trailing comment forcing an unnecessary hanging expression
+- Fixed loss of comments trailing punctuation within function parameters
+- Comments within function parameters now force the parameter to go mutliline, fixing syntax errors created from previous formatting
 
 ## [0.4.1] - 2021-02-05
 ### Fixed
