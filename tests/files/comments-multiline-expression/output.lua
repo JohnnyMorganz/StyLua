@@ -1,4 +1,6 @@
 local val = 1 + 2 + 1 -- add
+foo = bar or #baz -- test
+local foo = bar or (baz and foo) -- test
 
 -- Stop Movement
 if

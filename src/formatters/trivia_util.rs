@@ -836,6 +836,12 @@ pub fn expression_contains_inline_comments<'ast>(expression: &Expression<'ast>) 
                                     false
                                 }
                             }
+                            Expression::UnaryOperator { unop, expression } => {
+                                let op_contains_comments = match unop {
+                                    UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token)
+                                };
+                                op_contains_comments || expression_contains_inline_comments(expression)
+                            }
                             _ => expression_contains_comments(rhs),
                         }
                 }
