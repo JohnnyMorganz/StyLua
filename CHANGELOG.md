@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added support for removing excess parentheses around expressions.
+e.g. `print((x))` will be formatted to `print(x)`, as the parentheses are unnecessary. We also consider cases
+where parentheses should not be removed, e.g. `print((x()))` - removing the parentheses changes the meaning of the code.
+
 ### Fixed
 - Fixed an expression ending with an UnOp (e.g. `#foo`) and a trailing comment forcing an unnecessary hanging expression
 - Fixed loss of comments trailing punctuation within function parameters

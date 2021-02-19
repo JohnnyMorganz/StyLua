@@ -1,7 +1,7 @@
 use full_moon::ast::{
     BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
 };
-use full_moon::tokenizer::TokenReference;
+use full_moon::tokenizer::{Symbol, TokenReference, TokenType};
 use std::boxed::Box;
 
 use crate::formatters::CodeFormatter;
@@ -68,10 +68,49 @@ impl CodeFormatter {
             Expression::Parentheses {
                 contained,
                 expression,
-            } => Expression::Parentheses {
-                contained: self.format_contained_span(&contained),
-                expression: Box::new(self.format_expression(expression)),
-            },
+            } => {
+                // Examine whether the internal expression requires parentheses
+                // If it doesn't, `use_internal_expression` will return a Some(), containing the external expression
+                // We should then return that external expression
+                // Otherwise, it will return None, and therefore we should use the original expression
+                let use_internal_expression = match &**expression {
+                    // Parentheses inside parentheses, not necessary
+                    Expression::Parentheses { .. } => Some(expression),
+                    Expression::Value { value, binop, .. } => {
+                        if binop.is_some() {
+                            // Don't bother removing them if there is a binop, as they may be needed
+                            None
+                        } else {
+                            match &**value {
+                                // Internal expression is a function call
+                                // We could potentially be culling values, so we should not remove parentheses
+                                Value::FunctionCall(_) => None,
+                                Value::Symbol(token_ref) => {
+                                    match token_ref.token_type() {
+                                        TokenType::Symbol { symbol } => match symbol {
+                                            // If we have an ellipse inside of parentheses, we may also be culling values
+                                            // Therefore, we don't remove parentheses
+                                            Symbol::Ellipse => None,
+                                            _ => Some(expression),
+                                        },
+                                        _ => Some(expression),
+                                    }
+                                }
+                                _ => Some(expression),
+                            }
+                        }
+                    }
+                    _ => Some(expression),
+                };
+
+                match use_internal_expression {
+                    Some(expr) => self.format_expression(expr),
+                    None => Expression::Parentheses {
+                        contained: self.format_contained_span(&contained),
+                        expression: Box::new(self.format_expression(expression)),
+                    },
+                }
+            }
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop: self.format_unop(unop),
                 expression: Box::new(self.format_expression(expression)),
