@@ -200,6 +200,8 @@ impl CodeFormatter {
     }
 
     pub fn format_stmt<'ast>(&mut self, stmt: &Stmt<'ast>) -> Stmt<'ast> {
+        crate::check_in_range!(self, stmt.to_owned());
+
         fmt_stmt!(self, stmt, {
             Assignment = format_assignment,
             Do = format_do_block,
@@ -223,6 +225,8 @@ impl CodeFormatter {
         stmt: Stmt<'ast>,
         additional_indent_level: Option<usize>,
     ) -> Stmt<'ast> {
+        crate::check_in_range!(self, stmt.to_owned());
+
         let leading_trivia =
             FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
         let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
