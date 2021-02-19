@@ -30,6 +30,21 @@ impl Default for LineEndings {
     }
 }
 
+/// An optional formatting range.
+/// If provided, only content within these boundaries (inclusive) will be formatted
+/// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub struct Range {
+    start: Option<usize>,
+    end: Option<usize>,
+}
+
+impl Range {
+    pub fn from_values(start: Option<usize>, end: Option<usize>) -> Self {
+        Self { start, end }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -49,7 +64,7 @@ impl Default for Config {
 }
 
 /// Formats given Lua code
-pub fn format_code(code: &str, config: Config) -> Result<String> {
+pub fn format_code(code: &str, config: Config, range: Option<Range>) -> Result<String> {
     let mut ast = match full_moon::parse(&code) {
         Ok(ast) => ast.owned(),
         Err(error) => {
@@ -57,7 +72,7 @@ pub fn format_code(code: &str, config: Config) -> Result<String> {
         }
     };
 
-    let mut code_formatter = formatters::CodeFormatter::new(config);
+    let mut code_formatter = formatters::CodeFormatter::new(config, range);
     ast = code_formatter.visit_ast(ast);
 
     Ok(full_moon::print(&ast))

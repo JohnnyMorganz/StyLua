@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::{Path, PathBuf};
 use structopt::{clap::arg_enum, StructOpt};
-use stylua_lib::{format_code, Config};
+use stylua_lib::{format_code, Config, Range};
 
 mod output_diff;
 
@@ -31,6 +31,16 @@ struct Opt {
     #[structopt(short, long)]
     glob: Option<Vec<String>>,
 
+    /// A starting range to format files, given as a byte offset from the beginning of the file.
+    /// Any content before this value will be ignored.
+    #[structopt(long)]
+    range_start: Option<usize>,
+
+    /// An ending range to format files, given as a byte offset from the beginning of the file.
+    /// Any content after this value will be ignored.
+    #[structopt(long)]
+    range_end: Option<usize>,
+
     /// A list of files to format
     #[structopt(parse(from_os_str))]
     files: Vec<PathBuf>,
@@ -55,11 +65,17 @@ impl Color {
     }
 }
 
-fn format_file(path: &Path, config: Config, check_only: bool, color: Color) -> Result<i32> {
+fn format_file(
+    path: &Path,
+    config: Config,
+    range: Option<Range>,
+    check_only: bool,
+    color: Color,
+) -> Result<i32> {
     match fs::read(path) {
         Ok(contents) => {
             let contents = String::from_utf8_lossy(&contents);
-            let formatted_contents = match format_code(&contents, config) {
+            let formatted_contents = match format_code(&contents, config, range) {
                 Ok(formatted) => formatted,
                 Err(error) => {
                     return Err(format_err!(
@@ -103,9 +119,9 @@ fn format_file(path: &Path, config: Config, check_only: bool, color: Color) -> R
 
 /// Takes in a string and outputs the formatted version to stdout
 /// Used when input has been provided to stdin
-fn format_string(input: String, config: Config) -> Result<()> {
+fn format_string(input: String, config: Config, range: Option<Range>) -> Result<()> {
     let out = &mut stdout();
-    let formatted_contents = match format_code(&input, config) {
+    let formatted_contents = match format_code(&input, config, range) {
         Ok(formatted) => formatted,
         Err(error) => return Err(format_err!("error: could not format from stdin: {}", error)),
     };
@@ -150,6 +166,13 @@ fn format(opt: Opt) -> Result<i32> {
 
             Err(_) => Config::default(),
         },
+    };
+
+    // Create range if provided
+    let range = if opt.range_start.is_some() || opt.range_end.is_some() {
+        Some(Range::from_values(opt.range_start, opt.range_end))
+    } else {
+        None
     };
 
     let mut errors = vec![];
@@ -205,7 +228,7 @@ fn format(opt: Opt) -> Result<i32> {
 
                     let mut buf = String::new();
                     match stdin().read_to_string(&mut buf) {
-                        Ok(_) => match format_string(buf, config) {
+                        Ok(_) => match format_string(buf, config, range) {
                             Ok(_) => continue,
                             Err(error) => errors.push(error),
                         },
@@ -225,7 +248,7 @@ fn format(opt: Opt) -> Result<i32> {
                                 continue;
                             }
                         }
-                        match format_file(path, config, opt.check, opt.color) {
+                        match format_file(path, config, range, opt.check, opt.color) {
                             Ok(code) => {
                                 if code != 0 {
                                     error_code = code

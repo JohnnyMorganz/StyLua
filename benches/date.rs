@@ -7,6 +7,7 @@ pub fn format_date(c: &mut Criterion) {
             format_code(
                 black_box(include_str!("./date.lua")),
                 black_box(Config::default()),
+                black_box(None),
             )
         })
     });
