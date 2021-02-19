@@ -24,10 +24,23 @@ export async function checkIgnored(
 export function formatCode(
   path: string,
   code: string,
-  cwd?: string
+  cwd?: string,
+  startPos?: number,
+  endPos?: number,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(`${path}`, ["-"], {
+    const args = [];
+    if (startPos) {
+      args.push('--range-start');
+      args.push(startPos.toString());
+    }
+    if (endPos) {
+      args.push('--range-end');
+      args.push(endPos.toString());
+    }
+    args.push("-");
+
+    const child = spawn(`${path}`, args, {
       cwd,
     });
     let output = '';
