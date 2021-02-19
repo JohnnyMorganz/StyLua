@@ -11,7 +11,7 @@ fn test_folder<P: AsRef<Path>>(folder: P) {
         let path = entry.path();
         let input = fs::read_to_string(path.join("input.lua")).expect("couldn't read input.lua");
 
-        let formatted_code = match format_code(&input, Config::default()) {
+        let formatted_code = match format_code(&input, Config::default(), None) {
             Ok(code) => code,
             Err(error) => {
                 panic!("error formatting {}: {}", path.display(), error)
@@ -41,3 +41,6 @@ fn test_examples_folder() {
 fn test_luau_folder() {
     test_folder("./tests/luau_files");
 }
+
+#[test]
+fn test_format_range() {}
