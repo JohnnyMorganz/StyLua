@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 e.g. `print((x))` will be formatted to `print(x)`, as the parentheses are unnecessary. We also consider cases
 where parentheses should not be removed, e.g. `print((x()))` - removing the parentheses changes the meaning of the code.
 
+### Changed
+- Improved CLI `--check` output. We now use a more detailed output which should help in determining diffs
+
 ### Fixed
 - Fixed an expression ending with an UnOp (e.g. `#foo`) and a trailing comment forcing an unnecessary hanging expression
 - Fixed loss of comments trailing punctuation within function parameters
