@@ -785,26 +785,6 @@ pub fn function_call_add_trivia<'ast>(
     )
 }
 
-pub fn do_block_add_trivia<'ast>(
-    do_block: Do<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Do<'ast> {
-    let do_token = token_reference_add_trivia(
-        do_block.do_token().to_owned(),
-        leading_trivia.to_owned(),
-        trailing_trivia.to_owned(),
-    );
-    let end_token = token_reference_add_trivia(
-        do_block.end_token().to_owned(),
-        leading_trivia.to_owned(),
-        trailing_trivia.to_owned(),
-    );
-    do_block
-        .with_do_token(Cow::Owned(do_token))
-        .with_end_token(Cow::Owned(end_token))
-}
-
 pub fn generic_for_add_trivia<'ast>(
     generic_for: GenericFor<'ast>,
     leading_trivia: FormatTriviaType<'ast>,

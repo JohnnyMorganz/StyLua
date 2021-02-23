@@ -20,13 +20,28 @@ macro_rules! fmt_stmt {
 impl CodeFormatter {
     /// Format a Do node
     pub fn format_do_block<'ast>(&self, do_block: &Do<'ast>) -> Do<'ast> {
-        let do_token = crate::fmt_symbol!(self, do_block.do_token(), "do");
-        let end_token = self.format_end_token(do_block.end_token());
+        // Create trivia
+        let additional_indent_level =
+            self.get_range_indent_increase(CodeFormatter::get_token_range(do_block.do_token()));
+        let leading_trivia =
+            FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
+        let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
+
+        let do_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, do_block.do_token(), "do").into_owned(),
+            leading_trivia.to_owned(),
+            trailing_trivia.to_owned(),
+        );
+        let end_token = trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(do_block.end_token()).into_owned(),
+            leading_trivia,
+            trailing_trivia,
+        );
 
         do_block
             .to_owned()
-            .with_do_token(do_token)
-            .with_end_token(end_token)
+            .with_do_token(Cow::Owned(do_token))
+            .with_end_token(Cow::Owned(end_token))
     }
 
     /// Format a GenericFor node
@@ -228,11 +243,6 @@ impl CodeFormatter {
         let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
 
         match stmt {
-            Stmt::Do(do_block) => Stmt::Do(trivia_formatter::do_block_add_trivia(
-                do_block,
-                leading_trivia,
-                trailing_trivia,
-            )),
             Stmt::FunctionCall(function_call) => {
                 Stmt::FunctionCall(trivia_formatter::function_call_add_trivia(
                     function_call,
