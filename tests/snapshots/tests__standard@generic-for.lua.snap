@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+for i, v in pairs(table) do
+	print(i, v)
+end
+

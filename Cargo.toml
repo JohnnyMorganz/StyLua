@@ -37,6 +37,7 @@ toml = "0.5.7"
 
 [dev-dependencies]
 criterion = "0.3.3"
+insta = { version = "1.6.3", features = ["glob"] }
 
 [[bench]]
 name = "date"

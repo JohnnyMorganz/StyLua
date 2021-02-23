@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local foo = {
+	{ "foobarbazfoobarbaz", "foobarbazfoobarbaz" },
+	{ "foobarbazfoobarbaz", "foobarbazfoobarbaz" },
+	{ "foobarbazfoobarbaz", "foobarbazfoobarbaz" },
+	{ "foobarbazfoobarbaz", "foobarbazfoobarbaz" },
+}
+
