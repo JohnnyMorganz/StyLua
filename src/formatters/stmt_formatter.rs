@@ -1,8 +1,9 @@
 use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
-    CodeFormatter,
+    trivia_util, CodeFormatter,
 };
 use full_moon::ast::{Do, ElseIf, GenericFor, If, NumericFor, Repeat, Stmt, While};
+use full_moon::node::Node;
 use full_moon::tokenizer::TokenReference;
 use std::borrow::Cow;
 
@@ -221,15 +222,53 @@ impl CodeFormatter {
 
     /// Format a Repeat node
     pub fn format_repeat_block<'ast>(&mut self, repeat_block: &Repeat<'ast>) -> Repeat<'ast> {
-        let repeat_token = crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat");
-        let until_token = crate::fmt_symbol!(self, repeat_block.until_token(), "until ");
+        // Calculate trivia
+        let additional_indent_level = self
+            .get_range_indent_increase(CodeFormatter::get_token_range(repeat_block.repeat_token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        let repeat_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat").into_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        ));
+        let until_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, repeat_block.until_token(), "until ").into_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        ));
+
+        // Determine if we need to hang the until expression
+        let last_line_str = trivia_formatter::no_comments(repeat_block.until_token())
+            + &repeat_block.until().to_string();
+        let indent_spacing =
+            (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
+        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+            || trivia_util::expression_contains_inline_comments(repeat_block.until());
+
         let formatted_until = self.format_expression(repeat_block.until());
+        let formatted_until_trivia = match require_multiline_expression {
+            true => {
+                // Add the expression list into the indent range, as it will be indented by one
+                let expr_range = repeat_block
+                    .until()
+                    .range()
+                    .expect("no range for local assignment expr");
+                self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+                self.hang_expression(formatted_until, additional_indent_level, None)
+            }
+            false => trivia_formatter::expression_add_trailing_trivia(
+                formatted_until,
+                FormatTriviaType::Append(trailing_trivia),
+            ),
+        };
 
         repeat_block
             .to_owned()
             .with_repeat_token(repeat_token)
             .with_until_token(until_token)
-            .with_until(formatted_until)
+            .with_until(formatted_until_trivia)
     }
 
     /// Format a While node
@@ -299,9 +338,6 @@ impl CodeFormatter {
                     leading_trivia,
                     trailing_trivia,
                 ))
-            }
-            Stmt::Repeat(repeat_block) => {
-                Stmt::Repeat(self.repeat_block_add_trivia(repeat_block, additional_indent_level))
             }
             Stmt::While(while_block) => {
                 Stmt::While(self.while_block_add_trivia(while_block, additional_indent_level))

@@ -11,8 +11,8 @@ use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
     BinOp, BinOpRhs, Call, ElseIf, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
-    FunctionDeclaration, If, Index, LocalFunction, MethodCall, Parameter, Prefix, Repeat, Return,
-    Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
+    FunctionDeclaration, If, Index, LocalFunction, MethodCall, Parameter, Prefix, Return, Suffix,
+    TableConstructor, UnOp, Value, Var, VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -65,7 +65,8 @@ macro_rules! move_binop_comments {
     };
 }
 
-fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
+/// Returns a string presentation of a TokenReference with all trivia removed
+pub fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
     token.token().to_string()
 }
 
@@ -573,49 +574,6 @@ impl CodeFormatter {
             .with_else_if(else_if_block)
             .with_else_token(else_token)
             .with_end_token(Cow::Owned(end_token))
-    }
-
-    pub fn repeat_block_add_trivia<'ast>(
-        &self,
-        repeat_block: Repeat<'ast>,
-        additional_indent_level: Option<usize>,
-    ) -> Repeat<'ast> {
-        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
-        let trailing_trivia = vec![self.create_newline_trivia()];
-
-        // Need to take into account if we should make the conditions multiple lines
-        let last_line_str =
-            no_comments(repeat_block.until_token()) + &repeat_block.until().to_string();
-        let indent_characters = self.indent_level * self.config.indent_width;
-        let require_multiline_condition = (indent_characters + last_line_str.len()) > 120
-            || trivia_util::expression_contains_inline_comments(repeat_block.until());
-
-        let repeat_token = token_reference_add_trivia(
-            repeat_block.repeat_token().to_owned(),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
-        let until_token = token_reference_add_trivia(
-            repeat_block.until_token().to_owned(),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::NoChange,
-        );
-        let until_expression = match require_multiline_condition {
-            true => self.hang_expression(
-                repeat_block.until().to_owned(),
-                additional_indent_level,
-                None,
-            ),
-            false => expression_add_trailing_trivia(
-                repeat_block.until().to_owned(),
-                FormatTriviaType::Append(trailing_trivia),
-            ),
-        };
-
-        repeat_block
-            .with_repeat_token(Cow::Owned(repeat_token))
-            .with_until_token(Cow::Owned(until_token))
-            .with_until(until_expression)
     }
 
     pub fn while_block_add_trivia<'ast>(
