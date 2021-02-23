@@ -228,9 +228,6 @@ impl CodeFormatter {
         let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
 
         match stmt {
-            Stmt::Assignment(assignment) => {
-                Stmt::Assignment(self.assignment_add_trivia(assignment, additional_indent_level))
-            }
             Stmt::Do(do_block) => Stmt::Do(trivia_formatter::do_block_add_trivia(
                 do_block,
                 leading_trivia,
@@ -260,9 +257,6 @@ impl CodeFormatter {
             Stmt::If(if_block) => {
                 Stmt::If(self.if_block_add_trivia(if_block, additional_indent_level))
             }
-            Stmt::LocalAssignment(local_assignment) => Stmt::LocalAssignment(
-                self.local_assignment_add_trivia(local_assignment, additional_indent_level),
-            ),
             Stmt::LocalFunction(local_function) => {
                 Stmt::LocalFunction(trivia_formatter::local_function_add_trivia(
                     local_function,
@@ -312,6 +306,8 @@ impl CodeFormatter {
                     trailing_trivia,
                 ))
             }
+
+            _ => stmt,
         }
     }
 }
