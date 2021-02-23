@@ -46,7 +46,17 @@ impl CodeFormatter {
 
     /// Format a GenericFor node
     pub fn format_generic_for<'ast>(&mut self, generic_for: &GenericFor<'ast>) -> GenericFor<'ast> {
-        let for_token = crate::fmt_symbol!(self, generic_for.for_token(), "for ");
+        // Create trivia
+        let additional_indent_level =
+            self.get_range_indent_increase(CodeFormatter::get_token_range(generic_for.for_token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let mut trailing_trivia = vec![self.create_newline_trivia()];
+
+        let for_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, generic_for.for_token(), "for ").into_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        ));
         let (formatted_names, mut names_comments_buf) = self.format_punctuated(
             generic_for.names(),
             &CodeFormatter::format_token_reference_mut,
@@ -67,15 +77,20 @@ impl CodeFormatter {
 
         // Create comments buffer and append to end of do token
         names_comments_buf.append(&mut expr_comments_buf);
+        // Append trailing trivia to the end
+        names_comments_buf.append(&mut trailing_trivia);
 
-        let do_token = crate::fmt_symbol!(self, generic_for.do_token(), " do");
         let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            do_token.to_owned().into_owned(),
+            crate::fmt_symbol!(self, generic_for.do_token(), " do").into_owned(),
             FormatTriviaType::NoChange,
             FormatTriviaType::Append(names_comments_buf),
         ));
 
-        let end_token = self.format_end_token(generic_for.end_token());
+        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(generic_for.end_token()).into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::Append(vec![self.create_newline_trivia()]), // trailing_trivia was emptied when it was appended to names_comment_buf
+        ));
 
         let generic_for = generic_for
             .to_owned()
@@ -138,7 +153,17 @@ impl CodeFormatter {
 
     /// Format a NumericFor node
     pub fn format_numeric_for<'ast>(&mut self, numeric_for: &NumericFor<'ast>) -> NumericFor<'ast> {
-        let for_token = crate::fmt_symbol!(self, numeric_for.for_token(), "for ");
+        // Create trivia
+        let additional_indent_level =
+            self.get_range_indent_increase(CodeFormatter::get_token_range(numeric_for.for_token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        let for_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, numeric_for.for_token(), "for ").into_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        ));
         let formatted_index_variable =
             Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable()));
 
@@ -165,8 +190,16 @@ impl CodeFormatter {
             None => (None, None),
         };
 
-        let do_token = crate::fmt_symbol!(self, numeric_for.do_token(), " do");
-        let end_token = self.format_end_token(numeric_for.end_token());
+        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, numeric_for.do_token(), " do").into_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        ));
+        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(numeric_for.end_token()).into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::Append(trailing_trivia),
+        ));
 
         let numeric_for = numeric_for
             .to_owned()
@@ -257,26 +290,12 @@ impl CodeFormatter {
                     trailing_trivia,
                 ))
             }
-            Stmt::GenericFor(generic_for) => {
-                Stmt::GenericFor(trivia_formatter::generic_for_add_trivia(
-                    generic_for,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
             Stmt::If(if_block) => {
                 Stmt::If(self.if_block_add_trivia(if_block, additional_indent_level))
             }
             Stmt::LocalFunction(local_function) => {
                 Stmt::LocalFunction(trivia_formatter::local_function_add_trivia(
                     local_function,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-            Stmt::NumericFor(numeric_for) => {
-                Stmt::NumericFor(trivia_formatter::numeric_for_add_trivia(
-                    numeric_for,
                     leading_trivia,
                     trailing_trivia,
                 ))

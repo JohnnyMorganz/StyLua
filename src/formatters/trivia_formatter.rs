@@ -10,9 +10,9 @@ use full_moon::ast::types::{
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    BinOp, BinOpRhs, Call, Do, ElseIf, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
-    FunctionDeclaration, GenericFor, If, Index, LocalFunction, MethodCall, NumericFor, Parameter,
-    Prefix, Repeat, Return, Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
+    BinOp, BinOpRhs, Call, ElseIf, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
+    FunctionDeclaration, If, Index, LocalFunction, MethodCall, Parameter, Prefix, Repeat, Return,
+    Suffix, TableConstructor, UnOp, Value, Var, VarExpression, While,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -785,32 +785,6 @@ pub fn function_call_add_trivia<'ast>(
     )
 }
 
-pub fn generic_for_add_trivia<'ast>(
-    generic_for: GenericFor<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> GenericFor<'ast> {
-    let for_token = token_reference_add_trivia(
-        generic_for.for_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-    let do_token = token_reference_add_trivia(
-        generic_for.do_token().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia.to_owned(),
-    );
-    let end_token = token_reference_add_trivia(
-        generic_for.end_token().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-    generic_for
-        .with_for_token(Cow::Owned(for_token))
-        .with_do_token(Cow::Owned(do_token))
-        .with_end_token(Cow::Owned(end_token))
-}
-
 pub fn function_declaration_add_trivia<'ast>(
     function_declaration: FunctionDeclaration<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
@@ -929,33 +903,6 @@ pub fn local_function_add_trivia<'ast>(
     local_function
         .with_local_token(Cow::Owned(local_token))
         .with_func_body(function_body.with_end_token(Cow::Owned(end_token)))
-}
-
-pub fn numeric_for_add_trivia<'ast>(
-    numeric_for: NumericFor<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> NumericFor<'ast> {
-    // TODO: This is a copy of generic_for, can we reduce this?
-    let for_token = token_reference_add_trivia(
-        numeric_for.for_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-    let do_token = token_reference_add_trivia(
-        numeric_for.do_token().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia.to_owned(),
-    );
-    let end_token = token_reference_add_trivia(
-        numeric_for.end_token().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-    numeric_for
-        .with_for_token(Cow::Owned(for_token))
-        .with_do_token(Cow::Owned(do_token))
-        .with_end_token(Cow::Owned(end_token))
 }
 
 // Remainder of Nodes
