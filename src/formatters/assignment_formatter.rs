@@ -110,7 +110,6 @@ impl CodeFormatter {
             // Clean up expr_list
             match expr_list.pop() {
                 Some(pair) => {
-                    println!("Adding trailing trivia to expr_list");
                     var_comments_buf.append(&mut expr_comments_buf);
                     // Add on trailing trivia
                     var_comments_buf.append(&mut trailing_trivia);
