@@ -2,6 +2,12 @@ if not (one and two and three and not (four and five) and six and not (seven and
 	print("foo")
 end
 
+local longString = foo(
+	"We are wrapping this %s " .. "onto multiple lines " .. "for ease of editing and %d readability" .. "and I continue to extend this string" .. "so it can wrap even further",
+	myStringVar,
+	myNumberVar
+)
+
 return node.kind == Kind.VARIABLE
   or node.kind == Kind.INT
   or node.kind == Kind.FLOAT

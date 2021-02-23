@@ -2,7 +2,11 @@ use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
     trivia_util, CodeFormatter, Range,
 };
-use full_moon::ast::{Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var};
+use full_moon::ast::{
+    punctuated::{Pair, Punctuated},
+    Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var,
+};
+use full_moon::node::Node;
 #[cfg(feature = "luau")]
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -112,29 +116,77 @@ impl CodeFormatter {
     }
 
     pub fn format_return<'ast>(&mut self, return_node: &Return<'ast>) -> Return<'ast> {
-        let (mut formatted_returns, comments_buf) =
+        // Calculate trivia
+        let additional_indent_level =
+            self.get_range_indent_increase(CodeFormatter::get_token_range(return_node.token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let mut trailing_trivia = vec![self.create_newline_trivia()];
+
+        let (mut formatted_returns, mut comments_buf) =
             self.format_punctuated(return_node.returns(), &CodeFormatter::format_expression);
 
-        let wanted_token: TokenReference<'ast> = if formatted_returns.is_empty() {
-            TokenReference::symbol("return").unwrap()
+        let formatted_token = if formatted_returns.is_empty() {
+            trivia_formatter::token_reference_add_trivia(
+                crate::fmt_symbol!(self, return_node.token(), "return").into_owned(),
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(trailing_trivia),
+            )
         } else {
-            // Append the comments buffer to the last return
-            if let Some(pair) = formatted_returns.pop() {
-                let pair = pair.map(|expr| {
-                    trivia_formatter::expression_add_trailing_trivia(
-                        expr,
-                        FormatTriviaType::Append(comments_buf),
-                    )
-                });
-                formatted_returns.push(pair);
+            // Determine if we need to hang the condition
+            let first_line_str =
+                trivia_formatter::no_comments(return_node.token()) + &formatted_returns.to_string();
+            let indent_spacing = (self.indent_level + additional_indent_level.unwrap_or(0))
+                * self.config.indent_width;
+            let require_multiline_expression = (indent_spacing
+                + first_line_str
+                    .trim()
+                    .lines()
+                    .next()
+                    .expect("no lines")
+                    .len())
+                > 120;
+
+            if require_multiline_expression {
+                // Add the expression list into the indent range, as it will be indented by one
+                let expr_range = return_node.returns().range().expect("no range for returns");
+                self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+
+                // Hang each expression
+                let mut new_list = Punctuated::new();
+                for pair in return_node.returns().pairs() {
+                    let expr = self.format_expression(pair.value());
+                    let value = self.hang_expression(expr, additional_indent_level, None);
+                    new_list.push(Pair::new(
+                        value,
+                        pair.punctuation()
+                            .map(|x| crate::fmt_symbol!(self, x, ", ")),
+                    ));
+                }
+                formatted_returns = new_list
+            } else {
+                // Append the comments buffer to the last return
+                // Also include the trailing trivia
+                comments_buf.append(&mut trailing_trivia);
+                if let Some(pair) = formatted_returns.pop() {
+                    let pair = pair.map(|expr| {
+                        trivia_formatter::expression_add_trailing_trivia(
+                            expr,
+                            FormatTriviaType::Append(comments_buf),
+                        )
+                    });
+                    formatted_returns.push(pair);
+                }
             }
 
-            TokenReference::symbol("return ").unwrap()
+            trivia_formatter::token_reference_add_trivia(
+                crate::fmt_symbol!(self, return_node.token(), "return ").into_owned(),
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::NoChange,
+            )
         };
-        let formatted_token = self.format_symbol(return_node.token(), &wanted_token);
 
         Return::new()
-            .with_token(formatted_token)
+            .with_token(Cow::Owned(formatted_token))
             .with_returns(formatted_returns)
     }
 
@@ -182,9 +234,6 @@ impl CodeFormatter {
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
-            LastStmt::Return(return_node) => {
-                LastStmt::Return(self.return_add_trivia(return_node, additional_indent_level))
-            }
             #[cfg(feature = "luau")]
             LastStmt::Continue(continue_node) => {
                 LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
@@ -195,6 +244,7 @@ impl CodeFormatter {
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
+            _ => last_stmt,
         }
     }
 
