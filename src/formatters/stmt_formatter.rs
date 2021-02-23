@@ -254,7 +254,7 @@ impl CodeFormatter {
                 let expr_range = repeat_block
                     .until()
                     .range()
-                    .expect("no range for local assignment expr");
+                    .expect("no range for repeat until");
                 self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
                 self.hang_expression(formatted_until, additional_indent_level, None)
             }
@@ -273,10 +273,66 @@ impl CodeFormatter {
 
     /// Format a While node
     pub fn format_while_block<'ast>(&mut self, while_block: &While<'ast>) -> While<'ast> {
-        let while_token = crate::fmt_symbol!(self, while_block.while_token(), "while ");
-        let formatted_condition = self.format_expression(while_block.condition());
-        let do_token = crate::fmt_symbol!(self, while_block.do_token(), " do");
-        let end_token = self.format_end_token(while_block.end_token());
+        // Calculate trivia
+        let additional_indent_level = self
+            .get_range_indent_increase(CodeFormatter::get_token_range(while_block.while_token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        // Determine if we need to hang the condition
+        let last_line_str = trivia_formatter::no_comments(while_block.while_token())
+            + &while_block.condition().to_string()
+            + &trivia_formatter::no_comments(while_block.do_token());
+        let indent_spacing =
+            (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
+        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+            || trivia_util::expression_contains_inline_comments(while_block.condition());
+
+        let while_text = if require_multiline_expression {
+            "while\n"
+        } else {
+            "while "
+        };
+        let do_text = if require_multiline_expression {
+            "do"
+        } else {
+            " do"
+        };
+
+        let while_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, while_block.while_token(), while_text).into_owned(),
+            FormatTriviaType::Append(leading_trivia.to_owned()),
+            FormatTriviaType::NoChange,
+        ));
+
+        let mut formatted_condition = self.format_expression(while_block.condition());
+        if require_multiline_expression {
+            // Add the expression list into the indent range, as it will be indented by one
+            let expr_range = while_block
+                .condition()
+                .range()
+                .expect("no range for while condition");
+            self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+
+            formatted_condition = trivia_formatter::expression_add_leading_trivia(
+                self.hang_expression(formatted_condition, additional_indent_level, None),
+                FormatTriviaType::Append(vec![
+                    self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
+                ]),
+            )
+        }
+
+        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, while_block.do_token(), do_text).into_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        ));
+
+        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(while_block.end_token()).into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::Append(trailing_trivia),
+        ));
 
         while_block
             .to_owned()
@@ -338,9 +394,6 @@ impl CodeFormatter {
                     leading_trivia,
                     trailing_trivia,
                 ))
-            }
-            Stmt::While(while_block) => {
-                Stmt::While(self.while_block_add_trivia(while_block, additional_indent_level))
             }
 
             #[cfg(feature = "luau")]

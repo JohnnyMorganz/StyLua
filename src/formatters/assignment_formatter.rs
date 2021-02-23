@@ -91,7 +91,7 @@ impl CodeFormatter {
             let expr_range = assignment
                 .expr_list()
                 .range()
-                .expect("no range for local assignment expr");
+                .expect("no range for assignment expr");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
             expr_list = Punctuated::new();

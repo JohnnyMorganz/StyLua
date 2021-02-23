@@ -12,7 +12,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     BinOp, BinOpRhs, Call, ElseIf, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
     FunctionDeclaration, If, Index, LocalFunction, MethodCall, Parameter, Prefix, Return, Suffix,
-    TableConstructor, UnOp, Value, Var, VarExpression, While,
+    TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -573,76 +573,6 @@ impl CodeFormatter {
             .with_then_token(Cow::Owned(then_token))
             .with_else_if(else_if_block)
             .with_else_token(else_token)
-            .with_end_token(Cow::Owned(end_token))
-    }
-
-    pub fn while_block_add_trivia<'ast>(
-        &self,
-        while_block: While<'ast>,
-        additional_indent_level: Option<usize>,
-    ) -> While<'ast> {
-        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
-        let trailing_trivia = vec![self.create_newline_trivia()];
-
-        // Need to take into account if we should make the conditions multiple lines
-        let first_line_str = no_comments(while_block.while_token())
-            + &while_block.condition().to_string()
-            + &no_comments(while_block.do_token());
-        let indent_characters = self.indent_level * self.config.indent_width;
-        let require_multiline_condition = (indent_characters + first_line_str.len()) > 120
-            || trivia_util::expression_contains_comments(while_block.condition());
-
-        let mut while_token = token_reference_add_trivia(
-            while_block.while_token().to_owned(),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
-        let mut do_token = token_reference_add_trivia(
-            while_block.do_token().to_owned(),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
-
-        let condition = match require_multiline_condition {
-            true => {
-                // Trim the trailing whitespace in if_token, add a new line and indent
-                while_token = TokenReference::new(
-                    while_token.leading_trivia().map(|x| x.to_owned()).collect(),
-                    Token::new(full_moon::tokenizer::TokenType::Symbol {
-                        symbol: full_moon::tokenizer::Symbol::While,
-                    }),
-                    vec![self.create_newline_trivia()],
-                );
-                // Trim the leading whitespace in then_token
-                do_token = TokenReference::new(
-                    vec![self.create_indent_trivia(additional_indent_level)],
-                    Token::new(full_moon::tokenizer::TokenType::Symbol {
-                        symbol: full_moon::tokenizer::Symbol::Do,
-                    }),
-                    do_token.trailing_trivia().map(|x| x.to_owned()).collect(),
-                );
-
-                let condition = while_block.condition().to_owned();
-                expression_add_leading_trivia(
-                    self.hang_expression(condition, additional_indent_level, None),
-                    FormatTriviaType::Append(vec![
-                        self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
-                    ]),
-                )
-            }
-            false => while_block.condition().to_owned(),
-        };
-
-        let end_token = token_reference_add_trivia(
-            while_block.end_token().to_owned(),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
-
-        while_block
-            .with_while_token(Cow::Owned(while_token))
-            .with_condition(condition)
-            .with_do_token(Cow::Owned(do_token))
             .with_end_token(Cow::Owned(end_token))
     }
 
