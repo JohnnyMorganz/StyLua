@@ -1,3 +1,5 @@
+#[cfg(feature = "luau")]
+use full_moon::ast::types::TypeSpecifier;
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     Assignment, LocalAssignment,
@@ -216,7 +218,7 @@ impl CodeFormatter {
         );
 
         #[cfg(feature = "luau")]
-        let type_specifiers = assignment
+        let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
             .map(|x| match x {
                 Some(type_specifier) => Some(self.format_type_specifier(type_specifier)),
@@ -232,9 +234,9 @@ impl CodeFormatter {
             #[cfg(feature = "luau")]
             if let Some(type_specifier) = type_specifiers.pop() {
                 if let Some(specifier) = type_specifier {
-                    let specifier = type_specifier_add_trailing_trivia(
+                    let specifier = trivia_formatter::type_specifier_add_trailing_trivia(
                         specifier,
-                        FormatTriviaType::Append(trailing_trivia),
+                        FormatTriviaType::Append(trailing_trivia.to_owned()),
                     );
                     type_specifiers.push(Some(specifier));
                     new_line_added = true;
