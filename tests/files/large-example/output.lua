@@ -813,15 +813,19 @@ function Promise.prototype:timeout(seconds, rejectionValue)
 
 	return Promise.race({
 		Promise.delay(seconds):andThen(function()
-			return Promise.reject(rejectionValue == nil and Error.new({
-				kind = Error.Kind.TimedOut,
-				error = "Timed out",
-				context = string.format(
-					"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
-					seconds,
-					traceback
-				),
-			}) or rejectionValue)
+			return Promise.reject(
+				rejectionValue == nil
+					and Error.new({
+						kind = Error.Kind.TimedOut,
+						error = "Timed out",
+						context = string.format(
+							"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
+							seconds,
+							traceback
+						),
+					})
+					or rejectionValue
+			)
 		end),
 		self,
 	})
@@ -1335,11 +1339,15 @@ function Promise.prototype:now(rejectionValue)
 			return ...
 		end)
 	else
-		return Promise.reject(rejectionValue == nil and Error.new({
-			kind = Error.Kind.NotResolvedInTime,
-			error = "This Promise was not resolved in time for :now()",
-			context = ":now() was called at:\n\n" .. traceback,
-		}) or rejectionValue)
+		return Promise.reject(
+			rejectionValue == nil
+				and Error.new({
+					kind = Error.Kind.NotResolvedInTime,
+					error = "This Promise was not resolved in time for :now()",
+					context = ":now() was called at:\n\n" .. traceback,
+				})
+				or rejectionValue
+		)
 	end
 end
 

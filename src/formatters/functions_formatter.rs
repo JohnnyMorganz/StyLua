@@ -4,6 +4,7 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Value,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
@@ -97,8 +98,8 @@ impl CodeFormatter {
                 let (start_parens, end_parens) = parentheses.tokens();
                 // Find the range of the function arguments
                 let function_call_range = (
-                    start_parens.end_position().bytes(),
-                    end_parens.start_position().bytes(),
+                    Token::end_position(&start_parens).bytes(),
+                    Token::start_position(&end_parens).bytes(),
                 );
                 let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
                 let current_arguments = arguments.pairs();
@@ -156,7 +157,10 @@ impl CodeFormatter {
 
                 if is_multiline && !force_mutliline {
                     // If we only have one argument then we will not make it multi line (expanding it would have little value)
-                    if formatted_arguments.len() == 1 {
+                    // Unless, the argument is a hangable expression
+                    if formatted_arguments.len() == 1
+                        && !trivia_util::can_hang_expression(formatted_arguments.first().unwrap())
+                    {
                         is_multiline = false;
                     } else {
                         // Find how far we are currently indented, we can use this to determine when to expand
@@ -221,8 +225,8 @@ impl CodeFormatter {
 
                     // Calculate to see if the end parentheses requires any additional indentation
                     let end_parens_additional_indent_level = self.get_range_indent_increase((
-                        end_parens.start_position().bytes(),
-                        end_parens.end_position().bytes(),
+                        Token::start_position(&end_parens).bytes(),
+                        Token::end_position(&end_parens).bytes(),
                     ));
                     let end_parens_leading_trivia =
                         vec![self.create_indent_trivia(end_parens_additional_indent_level)];
@@ -258,10 +262,36 @@ impl CodeFormatter {
                         let additional_indent_level =
                             self.get_range_indent_increase(argument_range);
 
+                        let indent_spacing = (self.indent_level
+                            + additional_indent_level.unwrap_or(0))
+                            * self.config.indent_width;
+                        let require_multiline_expression =
+                            trivia_util::can_hang_expression(argument.value())
+                                && indent_spacing + argument.to_string().len() > 120;
+
+                        if require_multiline_expression {
+                            let expr_range = argument
+                                .range()
+                                .expect("no range for function call argument");
+                            self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes() + 1));
+                        }
+
                         // Unfortunately, we need to format again, taking into account in indent increase
                         // TODO: Can we fix this? We don't want to have to format twice
-                        let formatted_argument = trivia_formatter::expression_add_leading_trivia(
-                            self.format_expression(argument.value()),
+                        let mut formatted_argument = self.format_expression(argument.value());
+
+                        // Hang the expression if necessary
+                        if require_multiline_expression {
+                            formatted_argument = self.hang_expression_no_trailing_newline(
+                                formatted_argument,
+                                additional_indent_level,
+                                None,
+                            );
+                        }
+
+                        // Add the leading indent for the argument
+                        formatted_argument = trivia_formatter::expression_add_leading_trivia(
+                            formatted_argument,
                             FormatTriviaType::Append(vec![
                                 self.create_indent_trivia(additional_indent_level)
                             ]),
@@ -422,8 +452,8 @@ impl CodeFormatter {
 
                 // Calculate to see if the end parentheses requires any additional indentation
                 let end_parens_additional_indent_level = self.get_range_indent_increase((
-                    end_parens.start_position().bytes(),
-                    end_parens.end_position().bytes(),
+                    Token::start_position(&end_parens).bytes(),
+                    Token::end_position(&end_parens).bytes(),
                 ));
                 let end_parens_leading_trivia = vec![
                     self.create_newline_trivia(),

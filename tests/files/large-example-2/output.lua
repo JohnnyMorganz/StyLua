@@ -1139,7 +1139,9 @@ script.Parent.Touched:connect(ot) ]],
 			for i = 1, #player do
 				local s = Instance.new("Script")
 				createscript(
-					[[name = "]] .. player[i].Name .. [[" 
+					[[name = "]]
+						.. player[i].Name
+						.. [[" 
 ov = Instance.new("ObjectValue")
 ov.Value = game.Players:FindFirstChild(name)
 ov.Name = "elplayerioloopkillioperson299io"

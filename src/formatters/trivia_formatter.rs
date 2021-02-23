@@ -8,10 +8,8 @@ use full_moon::ast::types::{
     TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    span::ContainedSpan,
-    BinOp, BinOpRhs, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
-    FunctionDeclaration, Index, LocalFunction, MethodCall, Parameter, Prefix, Suffix,
+    span::ContainedSpan, BinOp, BinOpRhs, Call, Expression, FunctionArgs, FunctionBody,
+    FunctionCall, FunctionDeclaration, Index, LocalFunction, MethodCall, Parameter, Prefix, Suffix,
     TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
@@ -271,6 +269,26 @@ impl CodeFormatter {
             FormatTriviaType::Replace(vec![indent_trivia]),
             additional_indent_level + 1,
         )
+    }
+
+    /// Similar to `hang_expression`, except will not force a new line character at the very end of the expression
+    pub fn hang_expression_no_trailing_newline<'ast>(
+        &self,
+        expression: Expression<'ast>,
+        additional_indent_level: Option<usize>,
+        hang_level: Option<usize>,
+    ) -> Expression<'ast> {
+        let expr = self.hang_expression(expression, additional_indent_level, hang_level);
+        let mut trailing_trivia = trivia_util::get_expression_trailing_trivia(&expr);
+
+        // Remove last trivia, check if its whitespace, then add it back if not
+        if let Some(trivia) = trailing_trivia.pop() {
+            if trivia.token_kind() != TokenKind::Whitespace {
+                trailing_trivia.push(trivia)
+            }
+        }
+
+        expression_add_trailing_trivia(expr, FormatTriviaType::Replace(trailing_trivia))
     }
 }
 
