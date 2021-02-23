@@ -136,8 +136,7 @@ impl CodeFormatter {
             FormatTriviaType::NoChange,
         ));
 
-        let mut formatted_condition = self.format_expression(else_if_node.condition());
-        if require_multiline_expression {
+        let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
             let expr_range = else_if_node
                 .condition()
@@ -145,13 +144,16 @@ impl CodeFormatter {
                 .expect("no range for else if condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            formatted_condition = trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(formatted_condition, additional_indent_level, None),
+            let condition = self.format_expression(else_if_node.condition());
+            trivia_formatter::expression_add_leading_trivia(
+                self.hang_expression(condition, additional_indent_level, None),
                 FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]),
             )
-        }
+        } else {
+            self.format_expression(else_if_node.condition())
+        };
 
         let formatted_then_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
             crate::fmt_symbol!(self, else_if_node.then_token(), then_text).into_owned(),
@@ -199,8 +201,7 @@ impl CodeFormatter {
             FormatTriviaType::NoChange,
         ));
 
-        let mut formatted_condition = self.format_expression(if_node.condition());
-        if require_multiline_expression {
+        let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
             let expr_range = if_node
                 .condition()
@@ -208,13 +209,16 @@ impl CodeFormatter {
                 .expect("no range for if condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            formatted_condition = trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(formatted_condition, additional_indent_level, None),
+            let condition = self.format_expression(if_node.condition());
+            trivia_formatter::expression_add_leading_trivia(
+                self.hang_expression(condition, additional_indent_level, None),
                 FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]),
             )
-        }
+        } else {
+            self.format_expression(if_node.condition())
+        };
 
         let formatted_then_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
             crate::fmt_symbol!(self, if_node.then_token(), then_text).into_owned(),
@@ -411,8 +415,7 @@ impl CodeFormatter {
             FormatTriviaType::NoChange,
         ));
 
-        let mut formatted_condition = self.format_expression(while_block.condition());
-        if require_multiline_expression {
+        let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
             let expr_range = while_block
                 .condition()
@@ -420,13 +423,16 @@ impl CodeFormatter {
                 .expect("no range for while condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            formatted_condition = trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(formatted_condition, additional_indent_level, None),
+            let condition = self.format_expression(while_block.condition());
+            trivia_formatter::expression_add_leading_trivia(
+                self.hang_expression(condition, additional_indent_level, None),
                 FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]),
             )
-        }
+        } else {
+            self.format_expression(while_block.condition())
+        };
 
         let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
             crate::fmt_symbol!(self, while_block.do_token(), do_text).into_owned(),
