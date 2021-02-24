@@ -85,6 +85,9 @@ impl CodeFormatter {
                                 // Internal expression is a function call
                                 // We could potentially be culling values, so we should not remove parentheses
                                 Value::FunctionCall(_) => None,
+                                // String literal inside of parentheses
+                                // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
+                                Value::String(_) => None,
                                 Value::Symbol(token_ref) => {
                                     match token_ref.token_type() {
                                         TokenType::Symbol { symbol } => match symbol {

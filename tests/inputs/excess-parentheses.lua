@@ -5,6 +5,8 @@ local x = (1 + 2) * 3
 local y = ((1) * 3)
 local z = (...) == nil and foo or bar
 
+("hello"):format()
+
 function x()
 	return 1, 2
 end
