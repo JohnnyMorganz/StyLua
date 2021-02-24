@@ -85,6 +85,19 @@ Currently, only whole statements lying withing the range are formatted. If part 
 
 There is also support for the formatting selected ranges in the [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua).
 
+### Ignoring parts of a file
+If there is a specific statement within your file which you wish to skip formatting on, you can precede it with `-- stylua: ignore`,
+and it will be skipped over during formatting. This may be useful when there is a specific formatting style you wish to preserve for
+a statement. For example:
+```lua
+-- stylua: ignore
+local matrix = {
+    { 0, 0, 0 },
+    { 0, 0, 0 },
+    { 0, 0, 0 },
+}
+```
+
 ## Configuration
 
 StyLua is **opinionated**, so there are as little configuration options as possible.

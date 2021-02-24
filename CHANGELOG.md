@@ -13,6 +13,8 @@ where parentheses should not be removed, e.g. `print((x()))` - removing the pare
 - Added a `column_width` setting, which is used to guide when StyLua should wrap lines. It defaults to `120`.
 - Added support for formatting ranges. You can now specificy ranges using ``--range-start <num>`` and ``--range-end <num>`` (both optional, and both inclusive).
 If a range is provided, only statements within the range will be formatted. Currently only supports ranges containing whole statements, and is not more granular.
+- Added support for ignore comments. If the line before a statement begins with the comment `-- stylua: ignore`, then the statement will be ignored during formatting.
+This currently only supports ignoring statement-level nodes
 
 ### Changed
 - Improved CLI `--check` output. We now use a more detailed output which should help in determining diffs

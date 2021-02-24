@@ -82,9 +82,28 @@ impl CodeFormatter {
     }
 
     /// Checks whether we should format the given node.
-    /// Determines whether the provided node is within the formatting range.
+    /// Firstly determines whether the node has an ignore comment present.
+    /// If not, checks whether the provided node is within the formatting range.
     /// If not, the node should not be formatted.
     pub fn should_format_node<'ast>(&self, node: &impl Node<'ast>) -> bool {
+        // Check comments
+        let leading_trivia = node.surrounding_trivia().0;
+        for trivia in leading_trivia {
+            let comment_lines = match trivia.token_type() {
+                TokenType::SingleLineComment { comment } => comment,
+                TokenType::MultiLineComment { comment, .. } => comment,
+                _ => continue,
+            }
+            .lines()
+            .map(|line| line.trim());
+
+            for line in comment_lines {
+                if line == "stylua: ignore" {
+                    return false;
+                }
+            }
+        }
+
         if let Some(range) = self.range {
             let mut in_range = true;
 
