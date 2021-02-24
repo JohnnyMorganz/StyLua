@@ -602,7 +602,7 @@ impl CodeFormatter {
 }
 
 /// Continues mutating a Vec of Tokens until there is no more trailing whitespace present
-fn pop_until_no_whitespace<'ast>(trivia: &mut Vec<Token<'ast>>) {
+fn pop_until_no_whitespace(trivia: &mut Vec<Token>) {
     if let Some(t) = trivia.pop() {
         match t.token_kind() {
             TokenKind::Whitespace => pop_until_no_whitespace(trivia), // Keep popping until no more whitespace

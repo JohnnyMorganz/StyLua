@@ -21,7 +21,7 @@ pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Toke
     false
 }
 
-pub fn can_hang_expression<'ast>(expression: &Expression<'ast>) -> bool {
+pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses { expression, .. } => can_hang_expression(expression),
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
@@ -306,7 +306,7 @@ pub fn get_expression_trailing_comments<'ast>(
     (new_expression, trailing_comments)
 }
 
-pub fn get_stmt_trailing_trivia<'ast>(stmt: Stmt<'ast>) -> (Stmt<'ast>, Vec<Token<'ast>>) {
+pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     let mut trailing_trivia = Vec::new();
     let updated_stmt = match stmt {
         Stmt::Assignment(assignment) => {
@@ -422,12 +422,12 @@ pub fn token_trivia_contains_comments<'ast>(
     false
 }
 
-pub fn token_contains_comments<'ast>(token_ref: &TokenReference<'ast>) -> bool {
+pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.leading_trivia())
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-fn table_constructor_contains_comments<'ast>(table_constructor: &TableConstructor<'ast>) -> bool {
+fn table_constructor_contains_comments(table_constructor: &TableConstructor) -> bool {
     let (start, end) = table_constructor.braces().tokens();
     if token_contains_comments(start) || token_contains_comments(end) {
         true
@@ -472,7 +472,7 @@ fn table_constructor_contains_comments<'ast>(table_constructor: &TableConstructo
     }
 }
 
-fn function_args_contains_comments<'ast>(function_args: &FunctionArgs<'ast>) -> bool {
+fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {
     match function_args {
         FunctionArgs::Parentheses {
             parentheses,
@@ -504,7 +504,7 @@ fn function_args_contains_comments<'ast>(function_args: &FunctionArgs<'ast>) -> 
     }
 }
 
-fn suffix_contains_comments<'ast>(suffix: &Suffix<'ast>) -> bool {
+fn suffix_contains_comments(suffix: &Suffix) -> bool {
     match suffix {
         Suffix::Call(call) => match call {
             Call::AnonymousCall(function_args) => function_args_contains_comments(function_args),
@@ -531,7 +531,7 @@ fn suffix_contains_comments<'ast>(suffix: &Suffix<'ast>) -> bool {
     }
 }
 
-fn contained_span_contains_comments<'ast>(contained_span: &ContainedSpan<'ast>) -> bool {
+fn contained_span_contains_comments(contained_span: &ContainedSpan) -> bool {
     let (start, end) = contained_span.tokens();
     token_contains_comments(start) || token_contains_comments(end)
 }
@@ -674,7 +674,7 @@ fn as_assertion_contains_comments<'ast>(as_assertion: &AsAssertion<'ast>) -> boo
         || type_info_contains_comments(as_assertion.cast_to())
 }
 
-fn value_contains_comments<'ast>(value: &Value<'ast>) -> bool {
+fn value_contains_comments(value: &Value) -> bool {
     match value {
         Value::Function((token, body)) => {
             if token_contains_comments(token) {
@@ -736,7 +736,7 @@ fn value_contains_comments<'ast>(value: &Value<'ast>) -> bool {
 }
 
 // Check whether any comments are present within an Expression
-pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool {
+pub fn expression_contains_comments(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses {
             contained,
@@ -807,7 +807,7 @@ pub fn expression_contains_comments<'ast>(expression: &Expression<'ast>) -> bool
 // Checks to see whether an expression contains comments inline inside of it
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
-pub fn expression_contains_inline_comments<'ast>(expression: &Expression<'ast>) -> bool {
+pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
         Expression::Value { binop, value, .. } => {
             match binop {

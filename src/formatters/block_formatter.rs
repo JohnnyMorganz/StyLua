@@ -13,11 +13,11 @@ use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
 
 impl CodeFormatter {
-    pub fn get_token_range<'ast>(token: &Token<'ast>) -> Range {
+    pub fn get_token_range(token: &Token) -> Range {
         (token.start_position().bytes(), token.end_position().bytes())
     }
 
-    pub fn get_range_in_expression<'ast>(expression: &Expression<'ast>) -> Range {
+    pub fn get_range_in_expression(expression: &Expression) -> Range {
         match expression {
             Expression::Parentheses { contained, .. } => {
                 CodeFormatter::get_token_range(contained.tokens().0)
@@ -199,16 +199,11 @@ impl CodeFormatter {
                 | Stmt::Repeat(_) => {
                     let next_stmt = stmt_iterator.peek();
                     match next_stmt {
-                        Some(next_stmt) => match next_stmt {
-                            Stmt::FunctionCall(function_call) => match function_call.prefix() {
-                                Prefix::Expression(expr) => {
-                                    matches!(expr, Expression::Parentheses{ .. })
-                                }
-                                _ => false,
-                            },
-                            _ => false,
-                        },
-                        None => false,
+                        Some(Stmt::FunctionCall(function_call)) => matches!(
+                            function_call.prefix(),
+                            Prefix::Expression(Expression::Parentheses { .. })
+                        ),
+                        _ => false,
                     }
                 }
                 _ => false,

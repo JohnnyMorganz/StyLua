@@ -61,7 +61,7 @@ macro_rules! move_binop_comments {
 }
 
 /// Returns a string presentation of a TokenReference with all trivia removed
-pub fn no_comments<'ast>(token: &TokenReference<'ast>) -> String {
+pub fn no_comments(token: &TokenReference) -> String {
     token.token().to_string()
 }
 
