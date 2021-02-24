@@ -133,13 +133,10 @@ do
 		for _, runtimeError in ipairs(self:getErrorChain()) do
 			table.insert(
 				errorStrings,
-				table.concat(
-					{
-						runtimeError.trace or runtimeError.error,
-						runtimeError.context,
-					},
-					"\n"
-				)
+				table.concat({
+					runtimeError.trace or runtimeError.error,
+					runtimeError.context,
+				}, "\n")
 			)
 		end
 
@@ -470,10 +467,7 @@ end
 
 function Promise.fold(list, callback, initialValue)
 	assert(type(list) == "table", "Bad argument #1 to Promise.fold: must be a table")
-	assert(
-		type(callback) == "function",
-		"Bad argument #2 to Promise.fold: must be a function"
-	)
+	assert(type(callback) == "function", "Bad argument #2 to Promise.fold: must be a function")
 
 	local accumulator = Promise.resolve(initialValue)
 	return Promise.each(list, function(resolvedElement, i)
@@ -557,10 +551,7 @@ function Promise.race(promises)
 	assert(type(promises) == "table", string.format(ERROR_NON_LIST, "Promise.race"))
 
 	for i, promise in pairs(promises) do
-		assert(
-			Promise.is(promise),
-			string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.race", tostring(i))
-		)
+		assert(Promise.is(promise), string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.race", tostring(i)))
 	end
 
 	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
@@ -942,10 +933,7 @@ end
 	value returned from the handler.
 ]]
 function Promise.prototype:tap(tapCallback)
-	assert(
-		type(tapCallback) == "function",
-		string.format(ERROR_NON_FUNCTION, "Promise:tap")
-	)
+	assert(type(tapCallback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:tap"))
 	return self:_andThen(debug.traceback(nil, 2), function(...)
 		local callbackReturn = tapCallback(...)
 
@@ -964,10 +952,7 @@ end
 	Calls a callback on `andThen` with specific arguments.
 ]]
 function Promise.prototype:andThenCall(callback, ...)
-	assert(
-		type(callback) == "function",
-		string.format(ERROR_NON_FUNCTION, "Promise:andThenCall")
-	)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:andThenCall"))
 	local length, values = pack(...)
 	return self:_andThen(debug.traceback(nil, 2), function()
 		return callback(unpack(values, 1, length))
@@ -1079,10 +1064,7 @@ end
 	Calls a callback on `finally` with specific arguments.
 ]]
 function Promise.prototype:finallyCall(callback, ...)
-	assert(
-		type(callback) == "function",
-		string.format(ERROR_NON_FUNCTION, "Promise:finallyCall")
-	)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:finallyCall"))
 	local length, values = pack(...)
 	return self:_finally(debug.traceback(nil, 2), function()
 		return callback(unpack(values, 1, length))
@@ -1114,18 +1096,11 @@ end
 	Calls a callback on `done` with specific arguments.
 ]]
 function Promise.prototype:doneCall(callback, ...)
-	assert(
-		type(callback) == "function",
-		string.format(ERROR_NON_FUNCTION, "Promise:doneCall")
-	)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:doneCall"))
 	local length, values = pack(...)
-	return self:_finally(
-		debug.traceback(nil, 2),
-		function()
-			return callback(unpack(values, 1, length))
-		end,
-		true
-	)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end, true)
 end
 
 --[[
@@ -1133,13 +1108,9 @@ end
 ]]
 function Promise.prototype:doneReturn(...)
 	local length, values = pack(...)
-	return self:_finally(
-		debug.traceback(nil, 2),
-		function()
-			return unpack(values, 1, length)
-		end,
-		true
-	)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return unpack(values, 1, length)
+	end, true)
 end
 
 --[[
