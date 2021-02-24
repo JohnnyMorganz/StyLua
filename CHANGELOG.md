@@ -11,6 +11,8 @@ e.g. `print((x))` will be formatted to `print(x)`, as the parentheses are unnece
 where parentheses should not be removed, e.g. `print((x()))` - removing the parentheses changes the meaning of the code.
 - Added formatting of BinOp expressions within function calls. If there is a long expression as a function argument and it contains binops, it will now span multiple lines
 - Added a `column_width` setting, which is used to guide when StyLua should wrap lines. It defaults to `120`.
+- Added support for formatting ranges. You can now specificy ranges using ``--range-start <num>`` and ``--range-end <num>`` (both optional, and both inclusive).
+If a range is provided, only statements within the range will be formatted. Currently only supports ranges containing whole statements, and is not more granular.
 
 ### Changed
 - Improved CLI `--check` output. We now use a more detailed output which should help in determining diffs

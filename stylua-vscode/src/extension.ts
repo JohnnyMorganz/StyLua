@@ -15,11 +15,12 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  let disposable = vscode.languages.registerDocumentFormattingEditProvider(
+  let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
     "lua",
     {
-      async provideDocumentFormattingEdits(
+      async provideDocumentRangeFormattingEdits(
         document: vscode.TextDocument,
+        range: vscode.Range,
         options: vscode.FormattingOptions,
         token: vscode.CancellationToken
       ) {
@@ -48,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const text = document.getText();
 
         try {
-          const formattedText = await formatCode(styluaBinaryPath, text, cwd);
+          const formattedText = await formatCode(styluaBinaryPath, text, cwd, document.offsetAt(range.start), document.offsetAt(range.end));
           // Replace the whole document with our new formatted version
           const lastLineNumber = document.lineCount - 1;
           const fullDocumentRange = new vscode.Range(

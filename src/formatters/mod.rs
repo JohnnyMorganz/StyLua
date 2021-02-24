@@ -4,6 +4,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Block,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{
     StringLiteralQuoteType, Symbol, Token, TokenKind, TokenReference, TokenType,
 };
@@ -30,6 +31,8 @@ pub type Range = (usize, usize);
 pub struct CodeFormatter {
     /// The configuration passed to the formatter
     config: Config,
+    /// An optional range of values to format within the file.
+    range: Option<crate::Range>,
     /// The current indent level
     indent_level: usize,
     /// A link of specific ranges to indent increases. The indent increases are added ontop of indent_level
@@ -58,13 +61,53 @@ macro_rules! fmt_symbol {
     };
 }
 
+#[macro_export]
+macro_rules! check_should_format {
+    ($fmter:expr, $token:expr) => {
+        if !$fmter.should_format_node($token) {
+            return $token.to_owned();
+        }
+    };
+}
+
 impl CodeFormatter {
     /// Creates a new CodeFormatter, with the given configuration
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, range: Option<crate::Range>) -> Self {
         CodeFormatter {
             indent_level: 0,
             config,
+            range,
             indent_ranges: HashSet::new(),
+        }
+    }
+
+    /// Checks whether we should format the given node.
+    /// Determines whether the provided node is within the formatting range.
+    /// If not, the node should not be formatted.
+    pub fn should_format_node<'ast>(&self, node: &impl Node<'ast>) -> bool {
+        if let Some(range) = self.range {
+            let mut in_range = true;
+
+            if let Some(start_bound) = range.start {
+                if let Some(node_start) = node.start_position() {
+                    if node_start.bytes() < start_bound {
+                        in_range = false;
+                    }
+                }
+            }
+
+            if let Some(end_bound) = range.end {
+                if let Some(node_end) = node.end_position() {
+                    if node_end.bytes() > end_bound {
+                        in_range = false;
+                    }
+                }
+            }
+
+            in_range
+        } else {
+            // No range provided, therefore always in formatting range
+            true
         }
     }
 
@@ -562,6 +605,8 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
 
     // Remove any extra whitespace at the end of the file
     fn visit_eof(&mut self, node: TokenReference<'ast>) -> TokenReference<'ast> {
+        check_should_format!(self, &node);
+
         // Need to preserve any comments in leading_trivia if present
         // The indent level will be 0 at this point, as we have finished the whole file, so we need to one-index it again
         self.indent_level += 1;
