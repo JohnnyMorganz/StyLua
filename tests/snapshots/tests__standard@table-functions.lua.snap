@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local foo = {}
+function foo.bar(baz)
+	print(x, y)
+end
+

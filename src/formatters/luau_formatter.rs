@@ -32,9 +32,22 @@ impl CodeFormatter {
         &mut self,
         compound_assignment: &CompoundAssignment<'ast>,
     ) -> CompoundAssignment<'ast> {
-        let lhs = self.format_var(compound_assignment.lhs());
+        // Calculate trivia
+        let additional_indent_level = self.get_range_indent_increase(
+            CodeFormatter::get_range_in_expression(compound_assignment.rhs()),
+        );
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        let lhs = trivia_formatter::var_add_leading_trivia(
+            self.format_var(compound_assignment.lhs()),
+            FormatTriviaType::Append(leading_trivia),
+        );
         let compound_operator = self.format_compound_op(compound_assignment.compound_operator());
-        let rhs = self.format_expression(compound_assignment.rhs());
+        let rhs = trivia_formatter::expression_add_trailing_trivia(
+            self.format_expression(compound_assignment.rhs()),
+            FormatTriviaType::Append(trailing_trivia),
+        );
 
         CompoundAssignment::new(lhs, compound_operator, rhs)
     }
@@ -360,11 +373,18 @@ impl CodeFormatter {
             .with_cast_to(cast_to)
     }
 
-    pub fn format_type_declaration<'ast>(
+    fn format_type_declaration<'ast>(
         &mut self,
         type_declaration: &TypeDeclaration<'ast>,
+        add_leading_trivia: bool,
     ) -> TypeDeclaration<'ast> {
-        let type_token = self.format_symbol(
+        // Calculate trivia
+        let additional_indent_level = self.get_range_indent_increase(
+            CodeFormatter::get_token_range(type_declaration.type_token()),
+        );
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        let mut type_token = self.format_symbol(
             type_declaration.type_token(),
             &TokenReference::new(
                 vec![],
@@ -374,13 +394,26 @@ impl CodeFormatter {
                 vec![Token::new(TokenType::spaces(1))],
             ),
         );
+
+        if add_leading_trivia {
+            let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+            type_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                type_token.into_owned(),
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::NoChange,
+            ))
+        }
+
         let type_name = Cow::Owned(self.format_plain_token_reference(type_declaration.type_name()));
         let generics = match type_declaration.generics() {
             Some(generics) => Some(self.format_generic_declaration(generics)),
             None => None,
         };
         let equal_token = crate::fmt_symbol!(self, type_declaration.equal_token(), " = ");
-        let type_definition = self.format_type_info(type_declaration.type_definition());
+        let type_definition = trivia_formatter::type_info_add_trailing_trivia(
+            self.format_type_info(type_declaration.type_definition()),
+            FormatTriviaType::Append(trailing_trivia),
+        );
 
         type_declaration
             .to_owned()
@@ -389,6 +422,15 @@ impl CodeFormatter {
             .with_generics(generics)
             .with_equal_token(equal_token)
             .with_type_definition(type_definition)
+    }
+
+    /// Wrapper around `format_type_declaration` for statements
+    /// This is required as `format_type_declaration` is also used for ExportedTypeDeclaration, and we don't want leading trivia there
+    pub fn format_type_declaration_stmt<'ast>(
+        &mut self,
+        type_declaration: &TypeDeclaration<'ast>,
+    ) -> TypeDeclaration<'ast> {
+        self.format_type_declaration(type_declaration, true)
     }
 
     pub fn format_generic_declaration<'ast>(
@@ -426,18 +468,29 @@ impl CodeFormatter {
         &mut self,
         exported_type_declaration: &ExportedTypeDeclaration<'ast>,
     ) -> ExportedTypeDeclaration<'ast> {
-        let export_token = self.format_symbol(
-            exported_type_declaration.export_token(),
-            &TokenReference::new(
-                vec![],
-                Token::new(TokenType::Identifier {
-                    identifier: Cow::Owned(String::from("export")),
-                }),
-                vec![Token::new(TokenType::spaces(1))],
-            ),
+        // Calculate trivia
+        let additional_indent_level = self.get_range_indent_increase(
+            CodeFormatter::get_token_range(exported_type_declaration.export_token()),
         );
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+
+        let export_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            self.format_symbol(
+                exported_type_declaration.export_token(),
+                &TokenReference::new(
+                    vec![],
+                    Token::new(TokenType::Identifier {
+                        identifier: Cow::Owned(String::from("export")),
+                    }),
+                    vec![Token::new(TokenType::spaces(1))],
+                ),
+            )
+            .into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        ));
         let type_declaration =
-            self.format_type_declaration(exported_type_declaration.type_declaration());
+            self.format_type_declaration(exported_type_declaration.type_declaration(), false);
 
         exported_type_declaration
             .to_owned()

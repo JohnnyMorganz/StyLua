@@ -147,7 +147,11 @@ impl CodeFormatter {
             start_brace.end_position().bytes(),
             end_brace.start_position().bytes(),
         );
-        let mut is_multiline = (braces_range.1 - braces_range.0) + self.get_indent_width() > 80;
+
+        // We subtract 20 as we don't have full information about what preceded this table constructor (e.g. the assignment).
+        // This is used as a general estimate. TODO: see if we can improve this calculation
+        let mut is_multiline = (braces_range.1 - braces_range.0) + self.get_indent_width()
+            > self.config.column_width - 20;
 
         // Determine if there was a new line at the end of the start brace
         // If so, then we should always be multiline

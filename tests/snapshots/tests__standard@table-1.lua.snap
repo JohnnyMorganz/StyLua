@@ -1,0 +1,48 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local foo = {
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+}
+
+local foo = {
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+	"foo",
+	"bar",
+	"baz",
+}
+

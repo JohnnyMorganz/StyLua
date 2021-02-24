@@ -55,16 +55,6 @@ structopt::clap::arg_enum! {
     }
 }
 
-impl Color {
-    /// Whether we should use a coloured terminal.
-    pub fn use_colored_tty(self) -> bool {
-        match self {
-            Color::Always | Color::Auto => true,
-            Color::Never => false,
-        }
-    }
-}
-
 fn format_file(
     path: &Path,
     config: Config,
@@ -87,16 +77,17 @@ fn format_file(
             };
 
             if check_only {
-                let diff = output_diff::make_diff(&contents, &formatted_contents, 3);
-                if diff.is_empty() {
-                    Ok(0)
-                } else {
-                    output_diff::print_diff(
-                        diff,
-                        |line| format!("Diff in {} at line {}:", path.display(), line),
-                        color,
-                    );
+                let is_diff = output_diff::output_diff(
+                    &contents,
+                    &formatted_contents,
+                    3,
+                    format!("Diff in {}:", path.display()),
+                    color,
+                );
+                if is_diff {
                     Ok(1)
+                } else {
+                    Ok(0)
                 }
             } else {
                 match fs::write(path, formatted_contents) {

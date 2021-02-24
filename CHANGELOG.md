@@ -9,11 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for removing excess parentheses around expressions.
 e.g. `print((x))` will be formatted to `print(x)`, as the parentheses are unnecessary. We also consider cases
 where parentheses should not be removed, e.g. `print((x()))` - removing the parentheses changes the meaning of the code.
+- Added formatting of BinOp expressions within function calls. If there is a long expression as a function argument and it contains binops, it will now span multiple lines
+- Added a `column_width` setting, which is used to guide when StyLua should wrap lines. It defaults to `120`.
+
+### Changed
+- Improved CLI `--check` output. We now use a more detailed output which should help in determining diffs
+- Improved calculations in places to determine when to wrap lines
 
 ### Fixed
 - Fixed an expression ending with an UnOp (e.g. `#foo`) and a trailing comment forcing an unnecessary hanging expression
 - Fixed loss of comments trailing punctuation within function parameters
 - Comments within function parameters now force the parameter to go mutliline, fixing syntax errors created from previous formatting
+- Fixed incorrect indentation of body of expressions spanning multiple lines (e.g. anonymous functions/tables) when the expression is part of a hanging binop
+- Fixed incorrect formatting of multiple long comma-separated assignment/returns causing the comma to be placed onto a new line
 
 ## [0.4.1] - 2021-02-05
 ### Fixed

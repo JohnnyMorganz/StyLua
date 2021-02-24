@@ -21,6 +21,14 @@ pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Toke
     false
 }
 
+pub fn can_hang_expression<'ast>(expression: &Expression<'ast>) -> bool {
+    match expression {
+        Expression::Parentheses { expression, .. } => can_hang_expression(expression),
+        Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
+        Expression::Value { binop, .. } => binop.is_some(), // If a binop is present, then we can hang the expression
+    }
+}
+
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
 fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Vec<Token<'ast>> {
     match function_args {
