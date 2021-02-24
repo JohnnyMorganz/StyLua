@@ -1,8 +1,0 @@
----
-source: tests/tests.rs
-expression: format(&contents)
-
----
-x += 1
-x -= 7
-
