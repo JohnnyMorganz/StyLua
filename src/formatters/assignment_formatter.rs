@@ -99,30 +99,31 @@ impl CodeFormatter {
             // We need to format again because we will now take into account the indent increase
             for pair in assignment.expr_list().pairs() {
                 let expr = self.format_expression(pair.value());
-                let value = self.hang_expression(expr, additional_indent_level, None);
+                let value =
+                    self.hang_expression_no_trailing_newline(expr, additional_indent_level, None);
                 expr_list.push(Pair::new(
                     value,
                     pair.punctuation()
                         .map(|x| crate::fmt_symbol!(self, x, ", ")),
                 ))
             }
-        } else {
-            // Clean up expr_list
-            match expr_list.pop() {
-                Some(pair) => {
-                    var_comments_buf.append(&mut expr_comments_buf);
-                    // Add on trailing trivia
-                    var_comments_buf.append(&mut trailing_trivia);
-                    let pair = pair.map(|expr| {
-                        trivia_formatter::expression_add_trailing_trivia(
-                            expr,
-                            FormatTriviaType::Append(var_comments_buf),
-                        )
-                    });
-                    expr_list.push(pair);
-                }
-                None => panic!("assignment with no expression"),
+        }
+
+        // Add any trailing trivia to the lasts expression
+        match expr_list.pop() {
+            Some(pair) => {
+                var_comments_buf.append(&mut expr_comments_buf);
+                // Add on trailing trivia
+                var_comments_buf.append(&mut trailing_trivia);
+                let pair = pair.map(|expr| {
+                    trivia_formatter::expression_add_trailing_trivia(
+                        expr,
+                        FormatTriviaType::Append(var_comments_buf),
+                    )
+                });
+                expr_list.push(pair);
             }
+            None => panic!("assignment with no expression"),
         }
 
         // Add on leading trivia
@@ -314,29 +315,33 @@ impl CodeFormatter {
                 // We need to format again because we will now take into account the indent increase
                 for pair in assignment.expr_list().pairs() {
                     let expr = self.format_expression(pair.value());
-                    let value = self.hang_expression(expr, additional_indent_level, None);
+                    let value = self.hang_expression_no_trailing_newline(
+                        expr,
+                        additional_indent_level,
+                        None,
+                    );
                     expr_list.push(Pair::new(
                         value,
                         pair.punctuation()
                             .map(|x| crate::fmt_symbol!(self, x, ", ")),
                     ))
                 }
-            } else {
-                // Expression already formatted, just need to tidy up
-                if let Some(pair) = expr_list.pop() {
-                    // Append any comments to the end of the pair
-                    name_list_comments_buf.append(&mut expr_comments_buf);
-                    // Append any trailing trivia, if we aren't hanging the expression
-                    name_list_comments_buf.append(&mut trailing_trivia);
+            }
 
-                    let pair = pair.map(|expr| {
-                        trivia_formatter::expression_add_trailing_trivia(
-                            expr,
-                            FormatTriviaType::Append(name_list_comments_buf),
-                        )
-                    });
-                    expr_list.push(pair);
-                }
+            // Add any trailing trivia to the end of the expression list
+            if let Some(pair) = expr_list.pop() {
+                // Append any comments to the end of the pair
+                name_list_comments_buf.append(&mut expr_comments_buf);
+                // Append any trailing trivia, if we aren't hanging the expression
+                name_list_comments_buf.append(&mut trailing_trivia);
+
+                let pair = pair.map(|expr| {
+                    trivia_formatter::expression_add_trailing_trivia(
+                        expr,
+                        FormatTriviaType::Append(name_list_comments_buf),
+                    )
+                });
+                expr_list.push(pair);
             }
 
             // Update our local assignment

@@ -21,6 +21,7 @@ where parentheses should not be removed, e.g. `print((x()))` - removing the pare
 - Fixed loss of comments trailing punctuation within function parameters
 - Comments within function parameters now force the parameter to go mutliline, fixing syntax errors created from previous formatting
 - Fixed incorrect indentation of body of expressions spanning multiple lines (e.g. anonymous functions/tables) when the expression is part of a hanging binop
+- Fixed incorrect formatting of multiple long comma-separated assignment/returns causing the comma to be placed onto a new line
 
 ## [0.4.1] - 2021-02-05
 ### Fixed

@@ -155,7 +155,11 @@ impl CodeFormatter {
                 let mut new_list = Punctuated::new();
                 for pair in return_node.returns().pairs() {
                     let expr = self.format_expression(pair.value());
-                    let value = self.hang_expression(expr, additional_indent_level, None);
+                    let value = self.hang_expression_no_trailing_newline(
+                        expr,
+                        additional_indent_level,
+                        None,
+                    );
                     new_list.push(Pair::new(
                         value,
                         pair.punctuation()
@@ -163,19 +167,18 @@ impl CodeFormatter {
                     ));
                 }
                 formatted_returns = new_list
-            } else {
-                // Append the comments buffer to the last return
-                // Also include the trailing trivia
-                comments_buf.append(&mut trailing_trivia);
-                if let Some(pair) = formatted_returns.pop() {
-                    let pair = pair.map(|expr| {
-                        trivia_formatter::expression_add_trailing_trivia(
-                            expr,
-                            FormatTriviaType::Append(comments_buf),
-                        )
-                    });
-                    formatted_returns.push(pair);
-                }
+            }
+
+            // Append any trailing trivia (incl. comments buffer) to the end of the last return
+            comments_buf.append(&mut trailing_trivia);
+            if let Some(pair) = formatted_returns.pop() {
+                let pair = pair.map(|expr| {
+                    trivia_formatter::expression_add_trailing_trivia(
+                        expr,
+                        FormatTriviaType::Append(comments_buf),
+                    )
+                });
+                formatted_returns.push(pair);
             }
 
             trivia_formatter::token_reference_add_trivia(
