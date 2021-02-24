@@ -1,8 +1,3 @@
-use std::{
-    fs::{self, File},
-    io::Write,
-    path::Path,
-};
 use stylua_lib::{format_code, Config};
 
 fn format(input: &str) -> String {
