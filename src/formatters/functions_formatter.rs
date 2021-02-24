@@ -27,7 +27,7 @@ impl CodeFormatter {
         let additional_indent_level = self.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
 
         let function_token = crate::fmt_symbol!(self, function_token, "function");
-        let mut function_body = self.format_function_body(function_body);
+        let mut function_body = self.format_function_body(function_body, false);
 
         // Need to insert any additional trivia, as it isn't being inserted elsewhere
         #[cfg(feature = "luau")]
@@ -445,10 +445,17 @@ impl CodeFormatter {
     pub fn format_function_body<'ast>(
         &mut self,
         function_body: &FunctionBody<'ast>,
+        add_trivia: bool,
     ) -> FunctionBody<'ast> {
+        // Calculate trivia
+        let additional_indent_level = self
+            .get_range_indent_increase(CodeFormatter::get_token_range(function_body.end_token()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
         let (formatted_parameters, multiline_params) = self.format_parameters(function_body);
 
-        let parameters_parentheses = match multiline_params {
+        let mut parameters_parentheses = match multiline_params {
             true => {
                 // TODO: This is similar to multiline in FunctionArgs, can we resolve?
                 // Format start and end brace properly with correct trivia
@@ -492,6 +499,8 @@ impl CodeFormatter {
         let mut type_specifiers;
         #[cfg(feature = "luau")]
         let return_type;
+        #[allow(unused_mut)]
+        let mut added_trailing_trivia = false;
 
         #[cfg(feature = "luau")]
         {
@@ -505,12 +514,40 @@ impl CodeFormatter {
             }
 
             return_type = match function_body.return_type() {
-                Some(return_type) => Some(self.format_type_specifier(return_type)),
+                Some(return_type) => Some({
+                    let formatted = self.format_type_specifier(return_type);
+                    if add_trivia {
+                        added_trailing_trivia = true;
+                        trivia_formatter::type_specifier_add_trailing_trivia(
+                            formatted,
+                            FormatTriviaType::Append(trailing_trivia.to_owned()),
+                        )
+                    } else {
+                        formatted
+                    }
+                }),
                 None => None,
             };
         }
 
-        let end_token = self.format_end_token(function_body.end_token());
+        if !added_trailing_trivia && add_trivia {
+            parameters_parentheses = trivia_formatter::contained_span_add_trivia(
+                parameters_parentheses,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            )
+        }
+
+        let end_token = if add_trivia {
+            Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                self.format_end_token(function_body.end_token())
+                    .into_owned(),
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(trailing_trivia),
+            ))
+        } else {
+            self.format_end_token(function_body.end_token())
+        };
 
         let function_body = function_body
             .to_owned()
@@ -584,10 +621,20 @@ impl CodeFormatter {
         &mut self,
         function_declaration: &FunctionDeclaration<'ast>,
     ) -> FunctionDeclaration<'ast> {
-        let function_token =
-            crate::fmt_symbol!(self, function_declaration.function_token(), "function ");
+        // Calculate trivia
+        let additional_indent_level = self.get_range_indent_increase(
+            CodeFormatter::get_token_range(function_declaration.function_token()),
+        );
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+
+        let function_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, function_declaration.function_token(), "function ")
+                .into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        ));
         let formatted_function_name = self.format_function_name(function_declaration.name());
-        let formatted_function_body = self.format_function_body(function_declaration.body());
+        let formatted_function_body = self.format_function_body(function_declaration.body(), true);
 
         FunctionDeclaration::new(formatted_function_name)
             .with_function_token(function_token)
@@ -599,10 +646,21 @@ impl CodeFormatter {
         &mut self,
         local_function: &LocalFunction<'ast>,
     ) -> LocalFunction<'ast> {
-        let local_token = crate::fmt_symbol!(self, local_function.local_token(), "local ");
+        // Calculate trivia
+        let additional_indent_level = self.get_range_indent_increase(
+            CodeFormatter::get_token_range(local_function.local_token()),
+        );
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+
+        let local_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, local_function.local_token(), "local ").into_owned(),
+            FormatTriviaType::Append(leading_trivia),
+            FormatTriviaType::NoChange,
+        ));
+
         let function_token = crate::fmt_symbol!(self, local_function.function_token(), "function ");
         let formatted_name = Cow::Owned(self.format_plain_token_reference(local_function.name()));
-        let formatted_function_body = self.format_function_body(local_function.func_body());
+        let formatted_function_body = self.format_function_body(local_function.func_body(), true);
 
         LocalFunction::new(formatted_name)
             .with_local_token(local_token)

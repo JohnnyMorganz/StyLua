@@ -3,14 +3,11 @@ use crate::{
     IndentType,
 };
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
-    AsAssertion, CompoundAssignment, ExportedTypeDeclaration, IndexedTypeInfo, TypeDeclaration,
-    TypeInfo, TypeSpecifier,
-};
+use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
     span::ContainedSpan, BinOp, BinOpRhs, Call, Expression, FunctionArgs, FunctionBody,
-    FunctionCall, FunctionDeclaration, Index, LocalFunction, MethodCall, Parameter, Prefix, Suffix,
-    TableConstructor, UnOp, Value, Var, VarExpression,
+    FunctionCall, Index, MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var,
+    VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
@@ -290,137 +287,6 @@ impl CodeFormatter {
 
         expression_add_trailing_trivia(expr, FormatTriviaType::Replace(trailing_trivia))
     }
-}
-
-pub fn function_call_add_trivia<'ast>(
-    function_call: FunctionCall<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> FunctionCall<'ast> {
-    function_call_add_trailing_trivia(
-        function_call_add_leading_trivia(function_call, leading_trivia),
-        trailing_trivia,
-    )
-}
-
-pub fn function_declaration_add_trivia<'ast>(
-    function_declaration: FunctionDeclaration<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> FunctionDeclaration<'ast> {
-    let function_token = token_reference_add_trivia(
-        function_declaration.function_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-
-    let mut function_body = function_declaration.body().to_owned();
-
-    #[cfg(feature = "luau")]
-    {
-        let (parameters_parentheses, return_type) = match function_body.return_type() {
-            Some(return_type) => (
-                function_body.parameters_parentheses().to_owned(),
-                Some(type_specifier_add_trailing_trivia(
-                    return_type.to_owned(),
-                    trailing_trivia.to_owned(),
-                )),
-            ),
-            None => {
-                // No return type, so add trivia to the parentheses instead
-                let parameters_parentheses = contained_span_add_trivia(
-                    function_body.parameters_parentheses().to_owned(),
-                    FormatTriviaType::NoChange,
-                    trailing_trivia.to_owned(),
-                );
-                (parameters_parentheses, None)
-            }
-        };
-
-        function_body = function_body
-            .with_parameters_parentheses(parameters_parentheses)
-            .with_return_type(return_type);
-    }
-
-    #[cfg(not(feature = "luau"))]
-    {
-        let parameters_parentheses = contained_span_add_trivia(
-            function_body.parameters_parentheses().to_owned(),
-            FormatTriviaType::NoChange,
-            trailing_trivia.to_owned(),
-        );
-        function_body = function_body.with_parameters_parentheses(parameters_parentheses);
-    };
-
-    let end_token = token_reference_add_trivia(
-        function_body.end_token().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-
-    function_declaration
-        .with_function_token(Cow::Owned(function_token))
-        .with_body(function_body.with_end_token(Cow::Owned(end_token)))
-}
-
-pub fn local_function_add_trivia<'ast>(
-    local_function: LocalFunction<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> LocalFunction<'ast> {
-    let local_token = token_reference_add_trivia(
-        local_function.local_token().to_owned(),
-        leading_trivia.to_owned(),
-        FormatTriviaType::NoChange,
-    );
-
-    let mut function_body = local_function.func_body().to_owned();
-
-    #[cfg(feature = "luau")]
-    {
-        let (parameters_parentheses, return_type) = match function_body.return_type() {
-            Some(return_type) => (
-                function_body.parameters_parentheses().to_owned(),
-                Some(type_specifier_add_trailing_trivia(
-                    return_type.to_owned(),
-                    trailing_trivia.to_owned(),
-                )),
-            ),
-            None => {
-                // No return type, so add trivia to the parentheses instead
-                let parameters_parentheses = contained_span_add_trivia(
-                    function_body.parameters_parentheses().to_owned(),
-                    FormatTriviaType::NoChange,
-                    trailing_trivia.to_owned(),
-                );
-                (parameters_parentheses, None)
-            }
-        };
-
-        function_body = function_body
-            .with_parameters_parentheses(parameters_parentheses)
-            .with_return_type(return_type);
-    }
-
-    #[cfg(not(feature = "luau"))]
-    {
-        let parameters_parentheses = contained_span_add_trivia(
-            function_body.parameters_parentheses().to_owned(),
-            FormatTriviaType::NoChange,
-            trailing_trivia.to_owned(),
-        );
-        function_body = function_body.with_parameters_parentheses(parameters_parentheses);
-    };
-
-    let end_token = token_reference_add_trivia(
-        function_body.end_token().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-
-    local_function
-        .with_local_token(Cow::Owned(local_token))
-        .with_func_body(function_body.with_end_token(Cow::Owned(end_token)))
 }
 
 // Remainder of Nodes
@@ -1190,72 +1056,4 @@ pub fn type_specifier_add_trailing_trivia<'ast>(
     let type_info =
         type_info_add_trailing_trivia(type_specifier.type_info().to_owned(), trailing_trivia);
     type_specifier.with_type_info(type_info)
-}
-
-#[cfg(feature = "luau")]
-pub fn type_declaration_add_trivia<'ast>(
-    type_declaration: TypeDeclaration<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TypeDeclaration<'ast> {
-    let type_token;
-    if let FormatTriviaType::NoChange = leading_trivia {
-        // TODO: Cleanup - this is unnecessary
-        type_token = Cow::Owned(type_declaration.type_token().to_owned())
-    } else {
-        type_token = Cow::Owned(token_reference_add_trivia(
-            type_declaration.type_token().to_owned(),
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        ))
-    };
-
-    let type_definition;
-    if let FormatTriviaType::NoChange = trailing_trivia {
-        // TODO: Cleanup - this is unnecessary
-        type_definition = type_declaration.type_definition().to_owned()
-    } else {
-        type_definition = type_info_add_trailing_trivia(
-            type_declaration.type_definition().to_owned(),
-            trailing_trivia,
-        )
-    }
-
-    type_declaration
-        .with_type_token(type_token)
-        .with_type_definition(type_definition)
-}
-
-#[cfg(feature = "luau")]
-pub fn exported_type_declaration_add_trivia<'ast>(
-    exported_type_declaration: ExportedTypeDeclaration<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> ExportedTypeDeclaration<'ast> {
-    let export_token = Cow::Owned(token_reference_add_trivia(
-        exported_type_declaration.export_token().to_owned(),
-        leading_trivia,
-        FormatTriviaType::NoChange,
-    ));
-    let type_declaration = type_declaration_add_trivia(
-        exported_type_declaration.type_declaration().to_owned(),
-        FormatTriviaType::NoChange,
-        trailing_trivia,
-    );
-
-    exported_type_declaration
-        .with_export_token(export_token)
-        .with_type_declaration(type_declaration)
-}
-
-#[cfg(feature = "luau")]
-pub fn compound_assignment_add_trivia<'ast>(
-    compound_assignment: CompoundAssignment<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> CompoundAssignment<'ast> {
-    let lhs = var_add_leading_trivia(compound_assignment.lhs().to_owned(), leading_trivia);
-    let rhs = expression_add_trailing_trivia(compound_assignment.rhs().to_owned(), trailing_trivia);
-
-    compound_assignment.with_lhs(lhs).with_rhs(rhs)
 }

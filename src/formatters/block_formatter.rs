@@ -67,54 +67,6 @@ impl CodeFormatter {
         }
     }
 
-    /// Returns an arbitrary token inside of the stmt, to see if it falls inside of an indent range.
-    /// The token returned does not matter, as we will be using the position of it, and if this token falls within the range, then the whole statement must do
-    fn get_range_in_stmt(stmt: &Stmt) -> Range {
-        match stmt {
-            Stmt::Assignment(assignment) => {
-                CodeFormatter::get_token_range(assignment.equal_token().token())
-            }
-            Stmt::Do(do_block) => CodeFormatter::get_token_range(do_block.do_token().token()),
-            Stmt::FunctionCall(function_call) => {
-                CodeFormatter::get_range_in_prefix(function_call.prefix())
-            }
-            Stmt::FunctionDeclaration(function_declaration) => {
-                CodeFormatter::get_token_range(function_declaration.function_token().token())
-            }
-            Stmt::GenericFor(generic_for) => {
-                CodeFormatter::get_token_range(generic_for.for_token().token())
-            }
-            Stmt::If(if_block) => CodeFormatter::get_token_range(if_block.if_token().token()),
-            Stmt::LocalAssignment(local_assignment) => {
-                CodeFormatter::get_token_range(local_assignment.local_token().token())
-            }
-            Stmt::LocalFunction(local_function) => {
-                CodeFormatter::get_token_range(local_function.local_token().token())
-            }
-            Stmt::NumericFor(numeric_for) => {
-                CodeFormatter::get_token_range(numeric_for.for_token().token())
-            }
-            Stmt::Repeat(repeat_block) => {
-                CodeFormatter::get_token_range(repeat_block.repeat_token().token())
-            }
-            Stmt::While(while_block) => {
-                CodeFormatter::get_token_range(while_block.while_token().token())
-            }
-            #[cfg(feature = "luau")]
-            Stmt::CompoundAssignment(compound_assignment) => {
-                CodeFormatter::get_range_in_expression(compound_assignment.rhs())
-            }
-            #[cfg(feature = "luau")]
-            Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
-                CodeFormatter::get_token_range(exported_type_declaration.export_token().token())
-            }
-            #[cfg(feature = "luau")]
-            Stmt::TypeDeclaration(type_declaration) => {
-                CodeFormatter::get_token_range(type_declaration.type_token().token())
-            }
-        }
-    }
-
     pub fn format_return<'ast>(&mut self, return_node: &Return<'ast>) -> Return<'ast> {
         // Calculate trivia
         let additional_indent_level =
@@ -195,59 +147,37 @@ impl CodeFormatter {
 
     pub fn format_last_stmt<'ast>(&mut self, last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
         match last_stmt {
-            LastStmt::Break(token) => LastStmt::Break(crate::fmt_symbol!(self, &token, "break")),
+            LastStmt::Break(token) => {
+                LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    crate::fmt_symbol!(self, &token, "break").into_owned(),
+                    FormatTriviaType::Append(vec![self.create_indent_trivia(
+                        self.get_range_indent_increase(CodeFormatter::get_token_range(&token)),
+                    )]),
+                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                )))
+            }
+
             LastStmt::Return(return_node) => LastStmt::Return(self.format_return(&return_node)),
             #[cfg(feature = "luau")]
-            LastStmt::Continue(token) => LastStmt::Continue(self.format_symbol(
-                &token,
-                &TokenReference::new(
-                    vec![],
-                    Token::new(TokenType::Identifier {
-                        identifier: Cow::Owned(String::from("continue")),
-                    }),
-                    vec![],
-                ),
-            )),
-        }
-    }
-
-    fn get_range_in_last_stmt<'ast>(last_stmt: &LastStmt<'ast>) -> Range {
-        match last_stmt {
-            LastStmt::Break(token_ref) => CodeFormatter::get_token_range(token_ref.token()),
-            LastStmt::Return(return_node) => {
-                CodeFormatter::get_token_range(return_node.token().token())
-            }
-            #[cfg(feature = "luau")]
-            LastStmt::Continue(token_ref) => CodeFormatter::get_token_range(token_ref.token()),
-        }
-    }
-
-    pub fn last_stmt_add_trivia<'ast>(
-        &self,
-        last_stmt: LastStmt<'ast>,
-        additional_indent_level: Option<usize>,
-    ) -> LastStmt<'ast> {
-        match last_stmt {
-            LastStmt::Break(break_node) => {
-                LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    break_node.into_owned(),
-                    FormatTriviaType::Append(vec![
-                        self.create_indent_trivia(additional_indent_level)
-                    ]),
-                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                )))
-            }
-            #[cfg(feature = "luau")]
-            LastStmt::Continue(continue_node) => {
+            LastStmt::Continue(token) => {
                 LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    continue_node.into_owned(),
-                    FormatTriviaType::Append(vec![
-                        self.create_indent_trivia(additional_indent_level)
-                    ]),
+                    self.format_symbol(
+                        &token,
+                        &TokenReference::new(
+                            vec![],
+                            Token::new(TokenType::Identifier {
+                                identifier: Cow::Owned(String::from("continue")),
+                            }),
+                            vec![],
+                        ),
+                    )
+                    .into_owned(),
+                    FormatTriviaType::Append(vec![self.create_indent_trivia(
+                        self.get_range_indent_increase(CodeFormatter::get_token_range(&token)),
+                    )]),
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
-            _ => last_stmt,
         }
     }
 
@@ -257,9 +187,7 @@ impl CodeFormatter {
 
         let mut stmt_iterator = block.iter_stmts().peekable();
         while let Some(stmt) = stmt_iterator.next() {
-            let range_in_stmt = CodeFormatter::get_range_in_stmt(stmt);
-            let additional_indent_level = self.get_range_indent_increase(range_in_stmt);
-            let stmt = self.format_stmt(stmt);
+            let mut stmt = self.format_stmt(stmt);
 
             // Need to check next statement if it is a function call, with a parameters expression as the prefix
             // If so, removing a semicolon may lead to ambiguous syntax
@@ -287,14 +215,12 @@ impl CodeFormatter {
                 _ => false,
             };
 
-            let mut trivia_stmt = self.stmt_add_trivia(stmt, additional_indent_level);
-
             // If we have a semicolon, we need to push all the trailing trivia from the statement
             // and move it to the end of the semicolon
             let semicolon = match require_semicolon {
                 true => {
-                    let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(trivia_stmt);
-                    trivia_stmt = updated_stmt;
+                    let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
+                    stmt = updated_stmt;
                     Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                         TokenReference::symbol(";").expect("could not make semicolon"),
                         FormatTriviaType::NoChange,
@@ -304,7 +230,7 @@ impl CodeFormatter {
                 false => None,
             };
 
-            formatted_statements.push((trivia_stmt, semicolon))
+            formatted_statements.push((stmt, semicolon))
         }
 
         // Drop the stmt_iterator as we do not need it anymore and we still need to use `block`
@@ -312,13 +238,8 @@ impl CodeFormatter {
 
         let formatted_last_stmt = match block.last_stmt() {
             Some(last_stmt) => {
-                let range_in_last_stmt = CodeFormatter::get_range_in_last_stmt(last_stmt);
-                let additional_indent_level = self.get_range_indent_increase(range_in_last_stmt);
                 let last_stmt = self.format_last_stmt(last_stmt.to_owned());
-                Some((
-                    self.last_stmt_add_trivia(last_stmt, additional_indent_level),
-                    None,
-                ))
+                Some((last_stmt, None))
             }
             None => None,
         };

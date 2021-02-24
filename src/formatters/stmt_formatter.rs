@@ -2,7 +2,7 @@ use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
     trivia_util, CodeFormatter,
 };
-use full_moon::ast::{Do, ElseIf, GenericFor, If, NumericFor, Repeat, Stmt, While};
+use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
 use full_moon::node::Node;
 use full_moon::tokenizer::TokenReference;
 use std::borrow::Cow;
@@ -458,11 +458,35 @@ impl CodeFormatter {
             .with_end_token(end_token)
     }
 
+    /// Wrapper around `format_function_call`, but also handles adding the trivia around the function call.
+    /// This can't be done in the original function, as function calls are not always statements, but can also be
+    /// in expressions.
+    pub fn format_function_call_stmt<'ast>(
+        &mut self,
+        function_call: &FunctionCall<'ast>,
+    ) -> FunctionCall<'ast> {
+        // Calculate trivia
+        let additional_indent_level = self
+            .get_range_indent_increase(CodeFormatter::get_range_in_prefix(function_call.prefix()));
+        let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
+        let trailing_trivia = vec![self.create_newline_trivia()];
+
+        let formatted_function_call = self.format_function_call(function_call);
+
+        trivia_formatter::function_call_add_trailing_trivia(
+            trivia_formatter::function_call_add_leading_trivia(
+                formatted_function_call,
+                FormatTriviaType::Append(leading_trivia),
+            ),
+            FormatTriviaType::Append(trailing_trivia),
+        )
+    }
+
     pub fn format_stmt<'ast>(&mut self, stmt: &Stmt<'ast>) -> Stmt<'ast> {
         fmt_stmt!(self, stmt, {
             Assignment = format_assignment,
             Do = format_do_block,
-            FunctionCall = format_function_call,
+            FunctionCall = format_function_call_stmt,
             FunctionDeclaration = format_function_declaration,
             GenericFor = format_generic_for,
             If = format_if,
@@ -473,72 +497,7 @@ impl CodeFormatter {
             While = format_while_block,
             #[cfg(feature = "luau")] CompoundAssignment = format_compound_assignment,
             #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
-            #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration,
+            #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
         })
-    }
-
-    pub fn stmt_add_trivia<'ast>(
-        &self,
-        stmt: Stmt<'ast>,
-        additional_indent_level: Option<usize>,
-    ) -> Stmt<'ast> {
-        let leading_trivia =
-            FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
-        let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
-
-        match stmt {
-            Stmt::FunctionCall(function_call) => {
-                Stmt::FunctionCall(trivia_formatter::function_call_add_trivia(
-                    function_call,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-            Stmt::FunctionDeclaration(function_declaration) => {
-                Stmt::FunctionDeclaration(trivia_formatter::function_declaration_add_trivia(
-                    function_declaration,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-            Stmt::LocalFunction(local_function) => {
-                Stmt::LocalFunction(trivia_formatter::local_function_add_trivia(
-                    local_function,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-
-            #[cfg(feature = "luau")]
-            Stmt::CompoundAssignment(compound_assignment) => {
-                Stmt::CompoundAssignment(trivia_formatter::compound_assignment_add_trivia(
-                    compound_assignment,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-
-            #[cfg(feature = "luau")]
-            Stmt::ExportedTypeDeclaration(exported_type_declaration) => {
-                Stmt::ExportedTypeDeclaration(
-                    trivia_formatter::exported_type_declaration_add_trivia(
-                        exported_type_declaration,
-                        leading_trivia,
-                        trailing_trivia,
-                    ),
-                )
-            }
-
-            #[cfg(feature = "luau")]
-            Stmt::TypeDeclaration(type_declaration) => {
-                Stmt::TypeDeclaration(trivia_formatter::type_declaration_add_trivia(
-                    type_declaration,
-                    leading_trivia,
-                    trailing_trivia,
-                ))
-            }
-
-            _ => stmt,
-        }
     }
 }
