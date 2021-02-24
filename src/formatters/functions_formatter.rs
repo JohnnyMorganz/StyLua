@@ -128,6 +128,8 @@ impl CodeFormatter {
                         for argument in arguments.pairs() {
                             // Only check the leading and trailing trivia of the expression
                             // If the expression has inline comments, it should be handled elsewhere
+                            // Allow this, as this is what rustfmt creates
+                            #[allow(clippy::blocks_in_if_conditions)]
                             if trivia_util::get_expression_leading_trivia(argument.value())
                                 .iter()
                                 .chain(
@@ -710,8 +712,8 @@ impl CodeFormatter {
                 || CodeFormatter::parameter_contains_comments(pair.value())
         });
 
-        let mut parameters_iterator = function_body.parameters().pairs();
-        while let Some(pair) = parameters_iterator.next() {
+        let parameters_iterator = function_body.parameters().pairs();
+        for pair in parameters_iterator {
             let formatted_parameter = {
                 let param = self.format_parameter(pair.value());
                 if force_multiline {

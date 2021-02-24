@@ -26,7 +26,7 @@ pub fn output_diff(
     let diff_opts = diff.grouped_ops(context_size);
     let mut iter = diff_opts.iter().enumerate().peekable();
 
-    if let None = iter.peek() {
+    if iter.peek().is_none() {
         // There are no changes
         return false;
     }

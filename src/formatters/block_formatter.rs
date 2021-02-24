@@ -201,10 +201,9 @@ impl CodeFormatter {
                     match next_stmt {
                         Some(next_stmt) => match next_stmt {
                             Stmt::FunctionCall(function_call) => match function_call.prefix() {
-                                Prefix::Expression(expr) => match expr {
-                                    Expression::Parentheses { .. } => true,
-                                    _ => false,
-                                },
+                                Prefix::Expression(expr) => {
+                                    matches!(expr, Expression::Parentheses{ .. })
+                                }
                                 _ => false,
                             },
                             _ => false,
