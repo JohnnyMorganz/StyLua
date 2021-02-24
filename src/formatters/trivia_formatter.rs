@@ -97,7 +97,7 @@ impl CodeFormatter {
                     + 2 // Account for the two parentheses
                     + (self.indent_level * self.config.indent_width) // Account for the current indent level
                     + (indent_increase * self.config.indent_width) // Account for any further indent increase
-                    < 120
+                    < self.config.column_width
                 {
                     // The expression inside the parentheses is small, we do not need to break it down further
                     return Expression::Parentheses {

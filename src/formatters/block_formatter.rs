@@ -144,7 +144,7 @@ impl CodeFormatter {
                     .next()
                     .expect("no lines")
                     .len())
-                > 120;
+                > self.config.column_width;
 
             if require_multiline_expression {
                 // Add the expression list into the indent range, as it will be indented by one

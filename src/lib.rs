@@ -33,6 +33,7 @@ impl Default for LineEndings {
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Config {
+    column_width: usize,
     line_endings: LineEndings,
     indent_type: IndentType,
     indent_width: usize,
@@ -41,6 +42,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            column_width: 120,
             line_endings: LineEndings::Unix,
             indent_type: IndentType::Tabs,
             indent_width: 4,

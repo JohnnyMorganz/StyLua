@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 e.g. `print((x))` will be formatted to `print(x)`, as the parentheses are unnecessary. We also consider cases
 where parentheses should not be removed, e.g. `print((x()))` - removing the parentheses changes the meaning of the code.
 - Added formatting of BinOp expressions within function calls. If there is a long expression as a function argument and it contains binops, it will now span multiple lines
+- Added a `column_width` setting, which is used to guide when StyLua should wrap lines. It defaults to `120`.
 
 ### Changed
 - Improved CLI `--check` output. We now use a more detailed output which should help in determining diffs
+- Improved calculations in places to determine when to wrap lines
 
 ### Fixed
 - Fixed an expression ending with an UnOp (e.g. `#foo`) and a trailing comment forcing an unnecessary hanging expression

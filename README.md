@@ -84,6 +84,16 @@ Alternatively, you can pass your own path using the `--config-path` argument.
 
 StyLua only offers the following options:
 
+### `column_width`
+
+The approximate line length for printing. This is used as a guide to determine when to wrap lines, but note this is
+not a hard upper bound.
+Defaults to `120`.
+
+```
+column_width = 120
+```
+
 ### `line_endings`
 
 The type of line endings to use, supports either `Unix` (LF) or `Windows` (CRLF) options.

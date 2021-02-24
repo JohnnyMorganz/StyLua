@@ -101,7 +101,10 @@ impl CodeFormatter {
                     Token::end_position(&start_parens).bytes(),
                     Token::start_position(&end_parens).bytes(),
                 );
-                let mut is_multiline = (function_call_range.1 - function_call_range.0) > 80; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
+                let mut is_multiline =
+                    // We subtract 20 as we don't have full information about what preceded these function arguments (e.g. the function name).
+                    // This is used as a general estimate. TODO: see if we can improve this calculation
+                    self.get_indent_width() + (function_call_range.1 - function_call_range.0) > self.config.column_width - 20;
                 let current_arguments = arguments.pairs();
 
                 // Format all the arguments, so that we can prepare them and check to see whether they need expanding
@@ -190,7 +193,7 @@ impl CodeFormatter {
                                             // We have a collapsed table constructor - add the width, and if it fails,
                                             // we need to expand
                                             width_passed += argument.to_string().len();
-                                            if width_passed > 80 {
+                                            if width_passed > self.config.column_width - 20 {
                                                 break;
                                             }
                                         }
@@ -203,7 +206,7 @@ impl CodeFormatter {
                                             break;
                                         }
                                         width_passed += argument.to_string().len();
-                                        if width_passed > 80 {
+                                        if width_passed > self.config.column_width - 20 {
                                             // We have passed 80 characters without a table or anonymous function
                                             // There is nothing else stopping us from expanding - so we will
                                             break;
@@ -267,7 +270,8 @@ impl CodeFormatter {
                             * self.config.indent_width;
                         let require_multiline_expression =
                             trivia_util::can_hang_expression(argument.value())
-                                && indent_spacing + argument.to_string().len() > 120;
+                                && indent_spacing + argument.to_string().len()
+                                    > self.config.column_width;
 
                         if require_multiline_expression {
                             let expr_range = argument

@@ -121,7 +121,8 @@ impl CodeFormatter {
             + &trivia_formatter::no_comments(else_if_node.then_token());
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+        let require_multiline_expression = (indent_spacing + last_line_str.len())
+            > self.config.column_width
             || trivia_util::expression_contains_inline_comments(else_if_node.condition());
 
         let (else_if_text, then_text) = if require_multiline_expression {
@@ -186,7 +187,8 @@ impl CodeFormatter {
             + &trivia_formatter::no_comments(if_node.then_token());
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+        let require_multiline_expression = (indent_spacing + last_line_str.len())
+            > self.config.column_width
             || trivia_util::expression_contains_inline_comments(if_node.condition());
 
         let (if_text, then_text) = if require_multiline_expression {
@@ -359,7 +361,8 @@ impl CodeFormatter {
             + &repeat_block.until().to_string();
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+        let require_multiline_expression = (indent_spacing + last_line_str.len())
+            > self.config.column_width
             || trivia_util::expression_contains_inline_comments(repeat_block.until());
 
         let formatted_until = self.format_expression(repeat_block.until());
@@ -400,7 +403,8 @@ impl CodeFormatter {
             + &trivia_formatter::no_comments(while_block.do_token());
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len()) > 120
+        let require_multiline_expression = (indent_spacing + last_line_str.len())
+            > self.config.column_width
             || trivia_util::expression_contains_inline_comments(while_block.condition());
 
         let (while_text, do_text) = if require_multiline_expression {

@@ -79,7 +79,7 @@ impl CodeFormatter {
                 .next()
                 .expect("no lines")
                 .len()
-            > 120
+            > self.config.column_width
             || assignment.expr_list().pairs().any(|pair| {
                 pair.punctuation()
                     .map_or(false, |punc| trivia_util::token_contains_comments(punc))
@@ -291,7 +291,7 @@ impl CodeFormatter {
                     .next()
                     .expect("no lines")
                     .len()
-                > 120
+                > self.config.column_width
                 || assignment.expr_list().pairs().any(|pair| {
                     pair.punctuation()
                         .map_or(false, |punc| trivia_util::token_contains_comments(punc))
