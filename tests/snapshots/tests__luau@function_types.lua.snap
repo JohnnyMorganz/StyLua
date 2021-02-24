@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+function test(x: any, y: number): bar
+	print(test)
+end
+
