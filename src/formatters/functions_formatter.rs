@@ -257,11 +257,18 @@ impl CodeFormatter {
                         self.format_symbol(end_parens, &end_parens_token),
                     );
 
-                    let mut formatted_arguments = Punctuated::new();
+                    let mut arguments = Punctuated::new();
+                    // Iterate through the original formatted_arguments, so we can see how the formatted version would look like
+                    let mut formatted_versions = formatted_arguments.iter();
 
                     self.add_indent_range(function_call_range);
 
                     for argument in current_arguments {
+                        // See what the formatted version of the argument would look like
+                        let formatted_version = formatted_versions
+                            .next()
+                            .expect("less arguments than expected");
+
                         let argument_range =
                             CodeFormatter::get_range_in_expression(argument.value());
                         let additional_indent_level =
@@ -272,7 +279,13 @@ impl CodeFormatter {
                             * self.config.indent_width;
                         let require_multiline_expression =
                             trivia_util::can_hang_expression(argument.value())
-                                && indent_spacing + argument.to_string().len()
+                                && indent_spacing
+                                    + formatted_version
+                                        .to_string()
+                                        .lines()
+                                        .next()
+                                        .expect("no lines")
+                                        .len()
                                     > self.config.column_width;
 
                         if require_multiline_expression {
@@ -326,12 +339,12 @@ impl CodeFormatter {
                             ))),
                         };
 
-                        formatted_arguments.push(Pair::new(formatted_argument, punctuation))
+                        arguments.push(Pair::new(formatted_argument, punctuation))
                     }
 
                     FunctionArgs::Parentheses {
                         parentheses,
-                        arguments: formatted_arguments,
+                        arguments,
                     }
                 } else {
                     let parentheses = self.format_contained_span(&parentheses);
