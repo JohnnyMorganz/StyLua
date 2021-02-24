@@ -1,8 +1,0 @@
----
-source: tests/tests.rs
-expression: "format(&contents, Some(range))"
-
----
-local foo = bar
-
-local bar   =     baz    
