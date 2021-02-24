@@ -605,6 +605,8 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
 
     // Remove any extra whitespace at the end of the file
     fn visit_eof(&mut self, node: TokenReference<'ast>) -> TokenReference<'ast> {
+        check_should_format!(self, &node);
+
         // Need to preserve any comments in leading_trivia if present
         // The indent level will be 0 at this point, as we have finished the whole file, so we need to one-index it again
         self.indent_level += 1;
