@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.1.0] - 2021-02-24
+
 ### Added
 
 - Added support for formatting ranges rather than the whole document
