@@ -62,10 +62,10 @@ macro_rules! fmt_symbol {
 }
 
 #[macro_export]
-macro_rules! check_in_range {
+macro_rules! check_should_format {
     ($fmter:expr, $token:expr) => {
-        if !$fmter.in_formatting_range($token) {
-            return $token;
+        if !$fmter.should_format_node($token) {
+            return $token.to_owned();
         }
     };
 }
@@ -81,9 +81,10 @@ impl CodeFormatter {
         }
     }
 
+    /// Checks whether we should format the given node.
     /// Determines whether the provided node is within the formatting range.
     /// If not, the node should not be formatted.
-    pub fn in_formatting_range<'ast>(&self, node: impl Node<'ast>) -> bool {
+    pub fn should_format_node<'ast>(&self, node: &impl Node<'ast>) -> bool {
         if let Some(range) = self.range {
             let mut in_range = true;
 

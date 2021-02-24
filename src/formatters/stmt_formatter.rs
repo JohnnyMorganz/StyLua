@@ -483,7 +483,7 @@ impl CodeFormatter {
     }
 
     pub fn format_stmt<'ast>(&mut self, stmt: &Stmt<'ast>) -> Stmt<'ast> {
-        crate::check_in_range!(self, stmt.to_owned());
+        crate::check_should_format!(self, stmt);
 
         fmt_stmt!(self, stmt, {
             Assignment = format_assignment,
