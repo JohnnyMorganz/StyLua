@@ -76,6 +76,15 @@ If you want to check that files have been formatted, but not overwrite them, you
 StyLua will search through files as normal, but instead of writing the formatted code back to the file, StyLua will output a diff to stdout.
 If there are files which haven't been fully formatted, StyLua will exit with status code 1.
 
+### Formatting Ranges
+If you only want to format a specific range within a file, you can pass the `--range-start <num>` and/or `--range-end <num>` arguments,
+and only statements within the provided range will be formatted, with the rest ignored. Both arguments are optional, and are inclusive.
+If an argument is not provided, the start or end of the file will be used instead respectively.
+
+Currently, only whole statements lying withing the range are formatted. If part of the statement is outside of the range, the statement will be ignored.
+
+There is also support for the formatting selected ranges in the [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua).
+
 ## Configuration
 
 StyLua is **opinionated**, so there are as little configuration options as possible.
