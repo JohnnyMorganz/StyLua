@@ -2,6 +2,21 @@ import * as vscode from "vscode";
 import * as util from "./util";
 import { formatCode, checkIgnored } from "./stylua";
 
+/**
+ * Convert a Position within a Document to a byte offset.
+ * Required as `document.offsetAt(position)` returns a char offset, causing incosistencies when sending over to StyLua
+ * @param document The document to retreive the byte offset in
+ * @param position The possition to retreive the byte offset for
+ */
+const byteOffset = (document: vscode.TextDocument, position: vscode.Position) => {
+  // Retreive all the text from the start of the document to the position provided
+  const textRange = new vscode.Range(document.positionAt(0), position);
+  const text = document.getText(textRange);
+
+  // Retreive the byte length of the text range in a buffer
+  return Buffer.byteLength(text);
+};
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log("stylua activated");
 
@@ -49,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const text = document.getText();
 
         try {
-          const formattedText = await formatCode(styluaBinaryPath, text, cwd, document.offsetAt(range.start), document.offsetAt(range.end));
+          const formattedText = await formatCode(styluaBinaryPath, text, cwd, byteOffset(document, range.start), byteOffset(document, range.end));
           // Replace the whole document with our new formatted version
           const lastLineNumber = document.lineCount - 1;
           const fullDocumentRange = new vscode.Range(

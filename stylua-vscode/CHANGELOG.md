@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed unicode characters affecting formatting range. We now convert from a character offset to a byte offset
+
 ## [1.1.0] - 2021-02-24
 
 ### Added
