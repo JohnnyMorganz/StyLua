@@ -427,49 +427,45 @@ pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-fn table_constructor_contains_comments(table_constructor: &TableConstructor) -> bool {
-    let (start, end) = table_constructor.braces().tokens();
-    if token_contains_comments(start) || token_contains_comments(end) {
-        true
-    } else {
-        let mut contains_comments = false;
-
-        for field in table_constructor.fields().pairs() {
-            contains_comments = match field.value() {
-                Field::ExpressionKey {
-                    brackets,
-                    key,
-                    equal,
-                    value,
-                } => {
-                    let (start, end) = brackets.tokens();
-                    token_contains_comments(start)
-                        || token_contains_comments(end)
-                        || token_contains_comments(equal)
-                        || expression_contains_comments(value)
-                        || expression_contains_comments(key)
-                }
-                Field::NameKey { key, equal, value } => {
-                    token_contains_comments(equal)
-                        || token_contains_comments(key)
-                        || expression_contains_comments(value)
-                }
-                Field::NoKey(expression) => expression_contains_comments(expression),
-            };
-
-            if let Some(punctuation) = field.punctuation() {
-                if token_contains_comments(punctuation) {
-                    contains_comments = true;
-                }
+pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> bool {
+    table_constructor.fields().pairs().any(|field| {
+        let mut contains_comments = match field.value() {
+            Field::ExpressionKey {
+                brackets,
+                key,
+                equal,
+                value,
+            } => {
+                let (start, end) = brackets.tokens();
+                token_contains_comments(start)
+                    || token_contains_comments(end)
+                    || token_contains_comments(equal)
+                    || expression_contains_comments(value)
+                    || expression_contains_comments(key)
             }
+            Field::NameKey { key, equal, value } => {
+                token_contains_comments(equal)
+                    || token_contains_comments(key)
+                    || expression_contains_comments(value)
+            }
+            Field::NoKey(expression) => expression_contains_comments(expression),
+        };
 
-            if contains_comments {
-                break;
+        if let Some(punctuation) = field.punctuation() {
+            if token_contains_comments(punctuation) {
+                contains_comments = true;
             }
         }
 
         contains_comments
-    }
+    })
+}
+
+fn table_constructor_contains_comments(table_constructor: &TableConstructor) -> bool {
+    let (start, end) = table_constructor.braces().tokens();
+    token_contains_comments(start)
+        || token_contains_comments(end)
+        || table_fields_contains_comments(table_constructor)
 }
 
 fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {

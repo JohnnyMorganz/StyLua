@@ -13,3 +13,9 @@ local x = { -- comment
     hello = "world",
     foo = "bar",
 }
+
+local foo = { -- bar
+}
+
+local bar = { baz -- bar
+}

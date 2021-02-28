@@ -7,7 +7,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Field, TableConstructor,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 
 /// Used to provide information about the table
@@ -167,13 +167,29 @@ impl CodeFormatter {
             }
         }
 
-        let table_type = match current_fields.peek() {
-            Some(_) => match is_multiline {
-                true => TableType::MultiLine,
-                false => TableType::SingleLine,
+        // If we aren't currently multiline, determine if there are any comments within the table
+        // If so, we should go multiline
+        if !is_multiline {
+            let braces_contain_comments = start_brace.trailing_trivia().any(|trivia| {
+                trivia.token_kind() == TokenKind::SingleLineComment
+                    || trivia.token_kind() == TokenKind::MultiLineComment
+            }) || end_brace.leading_trivia().any(|trivia| {
+                trivia.token_kind() == TokenKind::SingleLineComment
+                    || trivia.token_kind() == TokenKind::MultiLineComment
+            });
+
+            is_multiline = braces_contain_comments
+                || trivia_util::table_fields_contains_comments(table_constructor)
+        }
+
+        let table_type = match is_multiline {
+            true => TableType::MultiLine,
+            false => match current_fields.peek() {
+                Some(_) => TableType::SingleLine,
+                None => TableType::Empty,
             },
-            None => TableType::Empty,
         };
+
         let additional_indent_level =
             self.get_range_indent_increase(CodeFormatter::get_token_range(end_brace.token()));
         let braces =
