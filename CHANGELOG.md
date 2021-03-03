@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed tables with internal comments (and no fields) incorrectly collapsing to a single line
+- Fixed parentheses being incorrectly removed around a BinOp where first value was a UnOp
 
 ## [0.5.0] - 2021-02-24
 ### Added

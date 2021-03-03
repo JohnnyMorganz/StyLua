@@ -45,6 +45,46 @@ impl CodeFormatter {
         )
     }
 
+    /// Check to determine whether expression parentheses are required, depending on the provided
+    /// internal expression contained within the parentheses
+    fn check_excess_parentheses(internal_expression: &Expression) -> bool {
+        match internal_expression {
+            // Parentheses inside parentheses, not necessary
+            Expression::Parentheses { .. } => true,
+            // Check whether the expression relating to the UnOp is safe
+            Expression::UnaryOperator { expression, .. } => {
+                CodeFormatter::check_excess_parentheses(expression)
+            }
+            Expression::Value { value, binop, .. } => {
+                if binop.is_some() {
+                    // Don't bother removing them if there is a binop, as they may be needed
+                    false
+                } else {
+                    match &**value {
+                        // Internal expression is a function call
+                        // We could potentially be culling values, so we should not remove parentheses
+                        Value::FunctionCall(_) => false,
+                        // String literal inside of parentheses
+                        // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
+                        Value::String(_) => false,
+                        Value::Symbol(token_ref) => {
+                            match token_ref.token_type() {
+                                TokenType::Symbol { symbol } => match symbol {
+                                    // If we have an ellipse inside of parentheses, we may also be culling values
+                                    // Therefore, we don't remove parentheses
+                                    Symbol::Ellipse => false,
+                                    _ => true,
+                                },
+                                _ => true,
+                            }
+                        }
+                        _ => true,
+                    }
+                }
+            }
+        }
+    }
+
     /// Formats an Expression node
     pub fn format_expression<'ast>(&mut self, expression: &Expression<'ast>) -> Expression<'ast> {
         match expression {
@@ -73,45 +113,15 @@ impl CodeFormatter {
                 // If it doesn't, `use_internal_expression` will return a Some(), containing the external expression
                 // We should then return that external expression
                 // Otherwise, it will return None, and therefore we should use the original expression
-                let use_internal_expression = match &**expression {
-                    // Parentheses inside parentheses, not necessary
-                    Expression::Parentheses { .. } => Some(expression),
-                    Expression::Value { value, binop, .. } => {
-                        if binop.is_some() {
-                            // Don't bother removing them if there is a binop, as they may be needed
-                            None
-                        } else {
-                            match &**value {
-                                // Internal expression is a function call
-                                // We could potentially be culling values, so we should not remove parentheses
-                                Value::FunctionCall(_) => None,
-                                // String literal inside of parentheses
-                                // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
-                                Value::String(_) => None,
-                                Value::Symbol(token_ref) => {
-                                    match token_ref.token_type() {
-                                        TokenType::Symbol { symbol } => match symbol {
-                                            // If we have an ellipse inside of parentheses, we may also be culling values
-                                            // Therefore, we don't remove parentheses
-                                            Symbol::Ellipse => None,
-                                            _ => Some(expression),
-                                        },
-                                        _ => Some(expression),
-                                    }
-                                }
-                                _ => Some(expression),
-                            }
-                        }
-                    }
-                    _ => Some(expression),
-                };
+                let use_internal_expression = CodeFormatter::check_excess_parentheses(expression);
 
-                match use_internal_expression {
-                    Some(expr) => self.format_expression(expr),
-                    None => Expression::Parentheses {
+                if use_internal_expression {
+                    self.format_expression(expression)
+                } else {
+                    Expression::Parentheses {
                         contained: self.format_contained_span(&contained),
                         expression: Box::new(self.format_expression(expression)),
-                    },
+                    }
                 }
             }
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
