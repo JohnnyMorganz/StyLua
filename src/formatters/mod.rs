@@ -5,9 +5,7 @@ use full_moon::ast::{
     Block,
 };
 use full_moon::node::Node;
-use full_moon::tokenizer::{
-    StringLiteralQuoteType, Symbol, Token, TokenKind, TokenReference, TokenType,
-};
+use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -573,8 +571,8 @@ impl CodeFormatter {
         ))
     }
 
-    /// Formats an `end` token, which is normally present to close a block
-    /// This is required due to comments bound to an `end` token - they need to have one level higher indentation
+    /// Formats a token present at the end of an indented block, such as the `end` token or closing brace in a multiline table.
+    /// This is required due to leading comments bound to the last token - they need to have one level higher indentation
     pub fn format_end_token<'ast>(
         &self,
         current_token: &TokenReference<'ast>,
@@ -593,9 +591,7 @@ impl CodeFormatter {
 
         Cow::Owned(TokenReference::new(
             formatted_leading_trivia,
-            Token::new(TokenType::Symbol {
-                symbol: Symbol::End,
-            }),
+            Token::new(current_token.token_type().to_owned()),
             formatted_trailing_trivia,
         ))
     }

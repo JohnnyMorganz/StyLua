@@ -7,7 +7,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Field, TableConstructor,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 
 /// Used to provide information about the table
@@ -99,24 +99,19 @@ impl CodeFormatter {
                     vec![self.create_indent_trivia(additional_indent_level)];
 
                 // Add new_line trivia to start_brace
-                let start_brace_token = crate::fmt_symbol!(self, start_brace, "{");
                 let start_brace_token = trivia_formatter::token_reference_add_trivia(
-                    start_brace_token.into_owned(),
+                    crate::fmt_symbol!(self, start_brace, "{").into_owned(),
                     FormatTriviaType::NoChange,
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 );
 
-                let end_brace_token = TokenReference::new(
-                    end_brace_leading_trivia,
-                    Token::new(TokenType::Symbol {
-                        symbol: Symbol::RightBrace,
-                    }),
-                    vec![],
+                let end_brace_token = trivia_formatter::token_reference_add_trivia(
+                    self.format_end_token(end_brace).into_owned(),
+                    FormatTriviaType::Append(end_brace_leading_trivia),
+                    FormatTriviaType::Replace(vec![]),
                 );
-                ContainedSpan::new(
-                    Cow::Owned(start_brace_token),
-                    self.format_symbol(end_brace, &end_brace_token),
-                )
+
+                ContainedSpan::new(Cow::Owned(start_brace_token), Cow::Owned(end_brace_token))
             }
 
             TableType::SingleLine => ContainedSpan::new(

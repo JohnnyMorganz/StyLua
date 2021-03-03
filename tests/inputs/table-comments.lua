@@ -19,3 +19,7 @@ local foo = { -- bar
 
 local bar = { baz -- bar
 }
+
+local baz = {
+	-- foo
+}
