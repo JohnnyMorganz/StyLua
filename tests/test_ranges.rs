@@ -29,14 +29,12 @@ local bar   =     baz
 fn test_ignore_last_stmt() {
     insta::assert_snapshot!(
         format(
-            r###"
-function foo() 
+            r###"function foo() 
     return bar
 end"###,
             Range::from_values(Some(0), Some(1))
         ),
     @r###"
-
     function foo() 
         return bar
     end
