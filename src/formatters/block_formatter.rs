@@ -145,24 +145,26 @@ impl CodeFormatter {
             .with_returns(formatted_returns)
     }
 
-    pub fn format_last_stmt<'ast>(&mut self, last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
+    pub fn format_last_stmt<'ast>(&mut self, last_stmt: &LastStmt<'ast>) -> LastStmt<'ast> {
+        crate::check_should_format!(self, last_stmt);
+
         match last_stmt {
             LastStmt::Break(token) => {
                 LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, &token, "break").into_owned(),
+                    crate::fmt_symbol!(self, token, "break").into_owned(),
                     FormatTriviaType::Append(vec![self.create_indent_trivia(
-                        self.get_range_indent_increase(CodeFormatter::get_token_range(&token)),
+                        self.get_range_indent_increase(CodeFormatter::get_token_range(token)),
                     )]),
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
 
-            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(&return_node)),
+            LastStmt::Return(return_node) => LastStmt::Return(self.format_return(return_node)),
             #[cfg(feature = "luau")]
             LastStmt::Continue(token) => {
                 LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
                     self.format_symbol(
-                        &token,
+                        token,
                         &TokenReference::new(
                             vec![],
                             Token::new(TokenType::Identifier {
@@ -173,7 +175,7 @@ impl CodeFormatter {
                     )
                     .into_owned(),
                     FormatTriviaType::Append(vec![self.create_indent_trivia(
-                        self.get_range_indent_increase(CodeFormatter::get_token_range(&token)),
+                        self.get_range_indent_increase(CodeFormatter::get_token_range(token)),
                     )]),
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
@@ -232,7 +234,7 @@ impl CodeFormatter {
 
         let formatted_last_stmt = match block.last_stmt() {
             Some(last_stmt) => {
-                let last_stmt = self.format_last_stmt(last_stmt.to_owned());
+                let last_stmt = self.format_last_stmt(last_stmt);
                 Some((last_stmt, None))
             }
             None => None,

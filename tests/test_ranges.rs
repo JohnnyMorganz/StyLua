@@ -26,6 +26,25 @@ local bar   =     baz
 
 #[test]
 #[cfg_attr(feature = "luau", ignore)]
+fn test_ignore_last_stmt() {
+    insta::assert_snapshot!(
+        format(
+            r###"
+function foo() 
+    return bar
+end"###,
+            Range::from_values(Some(0), Some(1))
+        ),
+    @r###"
+
+    function foo() 
+        return bar
+    end
+    "###);
+}
+
+#[test]
+#[cfg_attr(feature = "luau", ignore)]
 fn test_dont_modify_eof() {
     insta::assert_snapshot!(
         format(

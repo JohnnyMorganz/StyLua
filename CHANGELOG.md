@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed tables with internal comments (and no fields) incorrectly collapsing to a single line
 - Fixed parentheses being incorrectly removed around a BinOp where first value was a UnOp
 - Fixed indentation of leading comments bound to the end brace of a multiline table
+- Fixed LastStmt (return/break etc.) still being formatted when it wasn't defined inside the range
 
 ## [0.5.0] - 2021-02-24
 ### Added
