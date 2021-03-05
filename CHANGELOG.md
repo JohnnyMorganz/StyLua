@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Empty newlines at the start and end of a block will now be removed as they are unnecessary
+
 ### Fixed
 - Fixed tables with internal comments (and no fields) incorrectly collapsing to a single line
 - Fixed parentheses being incorrectly removed around a BinOp where first value was a UnOp
