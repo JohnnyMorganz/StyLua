@@ -142,3 +142,14 @@ Defaults to `4`.
 ```
 indent_width = 2
 ```
+
+### `quote_style`
+
+The types of quotes to use for string literals, supports either `AutoPreferDouble`, `AutoPreferSingle`, `ForceDouble` or `ForceSingle`.
+For the auto styles, we will prefer the quote type specified, but fall back to the opposite if it means there are fewer escapes in the string. For the
+force styles, we will always use the quote type specified.
+Defaults to `AutoPreferDouble`.
+
+```
+quote_style = "AutoPreferDouble"
+```
