@@ -101,17 +101,17 @@ impl CodeFormatter {
                     Token::end_position(&start_parens).bytes(),
                     Token::start_position(&end_parens).bytes(),
                 );
-                let mut is_multiline =
-                    // We subtract 20 as we don't have full information about what preceded these function arguments (e.g. the function name).
-                    // This is used as a general estimate. TODO: see if we can improve this calculation
-                    self.get_indent_width() + (function_call_range.1 - function_call_range.0) > self.config.column_width - 20;
-                let current_arguments = arguments.pairs();
+                let current_indent_width = self.get_indent_width()
+                    + (self
+                        .get_range_indent_increase(CodeFormatter::get_token_range(start_parens))
+                        .unwrap_or(0)
+                        * self.config.indent_width);
 
                 // Format all the arguments, so that we can prepare them and check to see whether they need expanding
                 // We will ignore punctuation for now
-                let mut formatted_arguments = Vec::new();
+                let mut first_iter_formatted_arguments = Vec::new();
                 for argument in arguments.iter() {
-                    formatted_arguments.push(self.format_expression(argument))
+                    first_iter_formatted_arguments.push(self.format_expression(argument))
                 }
 
                 // Apply some heuristics to determine whether we should expand the function call
@@ -156,70 +156,118 @@ impl CodeFormatter {
                         contains_comments
                     };
 
-                if force_mutliline {
-                    is_multiline = true;
-                }
+                let mut is_multiline = force_mutliline;
 
-                if is_multiline && !force_mutliline {
+                if !force_mutliline {
                     // If we only have one argument then we will not make it multi line (expanding it would have little value)
                     // Unless, the argument is a hangable expression
-                    if formatted_arguments.len() == 1
-                        && !trivia_util::can_hang_expression(formatted_arguments.first().unwrap())
+                    if first_iter_formatted_arguments.len() == 1
+                        && !trivia_util::can_hang_expression(
+                            first_iter_formatted_arguments.first().unwrap(),
+                        )
                     {
                         is_multiline = false;
                     } else {
                         // Find how far we are currently indented, we can use this to determine when to expand
+                        // We will expand on two occasions:
+                        // 1) If a group of arguments fall on a single line, and they surpass the column width setting
+                        // 2) If we have a mixture of multiline (tables/anonymous functions) and other values. For
+                        //    example, call({ ... }, foo, { ... }), should be expanded, but
+                        //    call(foo, { ... }) or call(foo, { ... }, foo) can stay on one line, provided the
+                        //    single line arguments dont surpass the column width setting
+
                         // TODO: We need to add more to this - there may be quite a lot before this function call
-                        // TODO: include additional_indent_level
-                        let mut width_passed = self.get_indent_width();
-                        let mut keep_single_line = false;
-                        // Check to see if we have a table constructor, or anonymous function
-                        for argument in formatted_arguments.iter() {
-                            // TODO: Do we need to worry about parentheses or UnOp?
-                            if let Expression::Value { value, .. } = argument {
-                                match &**value {
-                                    Value::Function(_) => {
-                                        // An anonymous function should always be expanded
-                                        // This is safe to prevent expansion
-                                        keep_single_line = true;
-                                    }
-                                    Value::TableConstructor(table) => {
-                                        // Check to see whether it has been expanded
-                                        let start_brace = table.braces().tokens().0;
-                                        let is_expanded = trivia_util::trivia_contains_newline(
-                                            start_brace.trailing_trivia(),
-                                        );
-                                        if is_expanded {
-                                            keep_single_line = true
-                                        } else {
-                                            // We have a collapsed table constructor - add the width, and if it fails,
-                                            // we need to expand
+                        let mut width_passed = current_indent_width;
+
+                        // Use state values to determine the type of arguments we have seen so far
+                        let mut seen_multiline_arg = false; // Whether we have seen a multiline table/function already
+                        let mut seen_other_arg_after_multiline = false; // Whether we have seen a non multiline table/function after a multiline one. In this case, we should expand
+
+                        for argument in first_iter_formatted_arguments.iter() {
+                            match argument {
+                                Expression::Value { value, .. } => {
+                                    match &**value {
+                                        // Check to see if we have a table constructor, or anonymous function
+                                        Value::Function(_) => {
+                                            // If we have a mixture of multiline args, and other arguments
+                                            // Then the function args should be expanded
+                                            if seen_multiline_arg && seen_other_arg_after_multiline
+                                            {
+                                                is_multiline = true;
+                                                break;
+                                            }
+
+                                            seen_multiline_arg = true;
+
+                                            // Reset the width count back
+                                            width_passed = current_indent_width;
+                                        }
+                                        Value::TableConstructor(table) => {
+                                            // Check to see whether it has been expanded
+                                            let start_brace = table.braces().tokens().0;
+                                            let is_expanded = trivia_util::trivia_contains_newline(
+                                                start_brace.trailing_trivia(),
+                                            );
+                                            if is_expanded {
+                                                // If we have a mixture of multiline args, and other arguments
+                                                // Then the function args should be expanded
+                                                if seen_multiline_arg
+                                                    && seen_other_arg_after_multiline
+                                                {
+                                                    is_multiline = true;
+                                                    break;
+                                                }
+
+                                                seen_multiline_arg = true;
+                                                // Reset the width count back
+                                                width_passed = current_indent_width;
+                                            } else {
+                                                // We have a collapsed table constructor - add the width, and if it fails,
+                                                // we need to expand
+                                                width_passed += argument.to_string().len();
+                                                if width_passed > self.config.column_width - 20 {
+                                                    is_multiline = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        _ => {
+                                            // If we previously had a table/anonymous function, and we have something else
+                                            // in the mix, update the state to respond to this
+                                            if seen_multiline_arg {
+                                                seen_other_arg_after_multiline = true;
+                                            }
                                             width_passed += argument.to_string().len();
                                             if width_passed > self.config.column_width - 20 {
+                                                // We have passed 80 characters without a table or anonymous function
+                                                // There is nothing else stopping us from expanding - so we will
+                                                is_multiline = true;
                                                 break;
                                             }
                                         }
                                     }
-                                    _ => {
-                                        // If we previously had a table/anonymous function, and we have something else
-                                        // in the mix, we should not expand
-                                        if keep_single_line {
-                                            keep_single_line = false;
-                                            break;
-                                        }
-                                        width_passed += argument.to_string().len();
-                                        if width_passed > self.config.column_width - 20 {
-                                            // We have passed 80 characters without a table or anonymous function
-                                            // There is nothing else stopping us from expanding - so we will
-                                            break;
-                                        }
+                                }
+                                // TODO: Parentheses/UnOp, do we need to do more checking?
+                                // We will continue counting on the width_passed
+                                _ => {
+                                    // If we previously had a table/anonymous function, and we have something else
+                                    // in the mix, update the state to respond to this
+                                    if seen_multiline_arg {
+                                        seen_other_arg_after_multiline = true;
+                                    }
+
+                                    width_passed += argument.to_string().len();
+                                    if width_passed > self.config.column_width - 20 {
+                                        // We have passed 80 characters without a table or anonymous function
+                                        // There is nothing else stopping us from expanding - so we will
+                                        is_multiline = true;
+                                        break;
                                     }
                                 }
                             }
-                        }
 
-                        if keep_single_line {
-                            is_multiline = false;
+                            // Add width which would be taken up by comment and space
+                            width_passed += 2;
                         }
                     }
                 }
@@ -257,13 +305,13 @@ impl CodeFormatter {
                         self.format_symbol(end_parens, &end_parens_token),
                     );
 
-                    let mut arguments = Punctuated::new();
+                    let mut formatted_arguments = Punctuated::new();
                     // Iterate through the original formatted_arguments, so we can see how the formatted version would look like
-                    let mut formatted_versions = formatted_arguments.iter();
+                    let mut formatted_versions = first_iter_formatted_arguments.iter();
 
                     self.add_indent_range(function_call_range);
 
-                    for argument in current_arguments {
+                    for argument in arguments.pairs() {
                         // See what the formatted version of the argument would look like
                         let formatted_version = formatted_versions
                             .next()
@@ -339,12 +387,12 @@ impl CodeFormatter {
                             ))),
                         };
 
-                        arguments.push(Pair::new(formatted_argument, punctuation))
+                        formatted_arguments.push(Pair::new(formatted_argument, punctuation))
                     }
 
                     FunctionArgs::Parentheses {
                         parentheses,
-                        arguments,
+                        arguments: formatted_arguments,
                     }
                 } else {
                     let parentheses = self.format_contained_span(&parentheses);

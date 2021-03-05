@@ -75,18 +75,15 @@ do
 
 	function Error.new(options, parent)
 		options = options or {}
-		return setmetatable(
-			{
-				error = tostring(options.error) or "[This error has no error text.]",
-				trace = options.trace,
-				context = options.context,
-				kind = options.kind,
-				parent = parent,
-				createdTick = os.clock(),
-				createdTrace = debug.traceback(),
-			},
-			Error
-		)
+		return setmetatable({
+			error = tostring(options.error) or "[This error has no error text.]",
+			trace = options.trace,
+			context = options.context,
+			kind = options.kind,
+			parent = parent,
+			createdTick = os.clock(),
+			createdTrace = debug.traceback(),
+		}, Error)
 	end
 
 	function Error.is(anything)
@@ -862,44 +859,40 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 	self._unhandledRejection = false
 
 	-- Create a new promise to follow this part of the chain
-	return Promise._new(
-		traceback,
-		function(resolve, reject)
-			-- Our default callbacks just pass values onto the next promise.
-			-- This lets success and failure cascade correctly!
+	return Promise._new(traceback, function(resolve, reject)
+		-- Our default callbacks just pass values onto the next promise.
+		-- This lets success and failure cascade correctly!
 
-			local successCallback = resolve
-			if successHandler then
-				successCallback = createAdvancer(traceback, successHandler, resolve, reject)
-			end
+		local successCallback = resolve
+		if successHandler then
+			successCallback = createAdvancer(traceback, successHandler, resolve, reject)
+		end
 
-			local failureCallback = reject
-			if failureHandler then
-				failureCallback = createAdvancer(traceback, failureHandler, resolve, reject)
-			end
+		local failureCallback = reject
+		if failureHandler then
+			failureCallback = createAdvancer(traceback, failureHandler, resolve, reject)
+		end
 
-			if self._status == Promise.Status.Started then
-				-- If we haven't resolved yet, put ourselves into the queue
-				table.insert(self._queuedResolve, successCallback)
-				table.insert(self._queuedReject, failureCallback)
-			elseif self._status == Promise.Status.Resolved then
-				-- This promise has already resolved! Trigger success immediately.
-				successCallback(unpack(self._values, 1, self._valuesLength))
-			elseif self._status == Promise.Status.Rejected then
-				-- This promise died a terrible death! Trigger failure immediately.
-				failureCallback(unpack(self._values, 1, self._valuesLength))
-			elseif self._status == Promise.Status.Cancelled then
-				-- We don't want to call the success handler or the failure handler,
-				-- we just reject this promise outright.
-				reject(Error.new({
-					error = "Promise is cancelled",
-					kind = Error.Kind.AlreadyCancelled,
-					context = "Promise created at\n\n" .. traceback,
-				}))
-			end
-		end,
-		self
-	)
+		if self._status == Promise.Status.Started then
+			-- If we haven't resolved yet, put ourselves into the queue
+			table.insert(self._queuedResolve, successCallback)
+			table.insert(self._queuedReject, failureCallback)
+		elseif self._status == Promise.Status.Resolved then
+			-- This promise has already resolved! Trigger success immediately.
+			successCallback(unpack(self._values, 1, self._valuesLength))
+		elseif self._status == Promise.Status.Rejected then
+			-- This promise died a terrible death! Trigger failure immediately.
+			failureCallback(unpack(self._values, 1, self._valuesLength))
+		elseif self._status == Promise.Status.Cancelled then
+			-- We don't want to call the success handler or the failure handler,
+			-- we just reject this promise outright.
+			reject(Error.new({
+				error = "Promise is cancelled",
+				kind = Error.Kind.AlreadyCancelled,
+				context = "Promise created at\n\n" .. traceback,
+			}))
+		end
+	end, self)
 end
 
 function Promise.prototype:andThen(successHandler, failureHandler)
@@ -1019,35 +1012,31 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 	end
 
 	-- Return a promise chained off of this promise
-	return Promise._new(
-		traceback,
-		function(resolve, reject)
-			local finallyCallback = resolve
-			if finallyHandler then
-				finallyCallback = createAdvancer(traceback, finallyHandler, resolve, reject)
-			end
+	return Promise._new(traceback, function(resolve, reject)
+		local finallyCallback = resolve
+		if finallyHandler then
+			finallyCallback = createAdvancer(traceback, finallyHandler, resolve, reject)
+		end
 
-			if onlyOk then
-				local callback = finallyCallback
-				finallyCallback = function(...)
-					if self._status == Promise.Status.Rejected then
-						return resolve(self)
-					end
-
-					return callback(...)
+		if onlyOk then
+			local callback = finallyCallback
+			finallyCallback = function(...)
+				if self._status == Promise.Status.Rejected then
+					return resolve(self)
 				end
-			end
 
-			if self._status == Promise.Status.Started then
-				-- The promise is not settled, so queue this.
-				table.insert(self._queuedFinally, finallyCallback)
-			else
-				-- The promise already settled or was cancelled, run the callback now.
-				finallyCallback(self._status)
+				return callback(...)
 			end
-		end,
-		self
-	)
+		end
+
+		if self._status == Promise.Status.Started then
+			-- The promise is not settled, so queue this.
+			table.insert(self._queuedFinally, finallyCallback)
+		else
+			-- The promise already settled or was cancelled, run the callback now.
+			finallyCallback(self._status)
+		end
+	end, self)
 end
 
 function Promise.prototype:finally(finallyHandler)
