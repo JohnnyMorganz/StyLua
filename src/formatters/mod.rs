@@ -589,6 +589,38 @@ impl CodeFormatter {
             None,
         );
 
+        // Special case for block end tokens:
+        // We will reverse the leading trivia, and keep removing any newlines we find, until we find something else, then we stop.
+        // This is to remove unnecessary newlines at the end of the block.
+        let mut iter = formatted_leading_trivia.iter().rev().peekable();
+
+        let mut formatted_leading_trivia = Vec::new();
+        let mut stop_removal = false;
+        while let Some(x) = iter.next() {
+            match x.token_type() {
+                TokenType::Whitespace { ref characters } => {
+                    if !stop_removal
+                        && characters.contains('\n')
+                        && !matches!(
+                            iter.peek().map(|x| x.token_kind()),
+                            Some(TokenKind::SingleLineComment) | Some(TokenKind::MultiLineComment)
+                        )
+                    {
+                        continue;
+                    } else {
+                        formatted_leading_trivia.push(x.to_owned());
+                    }
+                }
+                _ => {
+                    formatted_leading_trivia.push(x.to_owned());
+                    stop_removal = true; // Stop removing newlines once we have seen some sort of comment
+                }
+            }
+        }
+
+        // Need to reverse the vector since we reversed the iterator
+        formatted_leading_trivia.reverse();
+
         Cow::Owned(TokenReference::new(
             formatted_leading_trivia,
             Token::new(current_token.token_type().to_owned()),
