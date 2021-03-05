@@ -36,6 +36,7 @@ impl Default for LineEndings {
     }
 }
 
+/// The style of quotes to use within string literals
 #[derive(Debug, Copy, Clone, Deserialize)]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
@@ -87,6 +88,7 @@ pub struct Config {
     /// If `indent_type` is set to [`IndentType::Spaces`], then this is the number of spaces to use.
     /// If `indent_type` is set to [`IndentType::Tabs`], then this is used as a heuristic to guide when to wrap lines.
     indent_width: usize,
+    /// The style of quotes to use in string literals.
     quote_style: QuoteStyle,
 }
 
@@ -124,6 +126,14 @@ impl Config {
     pub fn with_indent_width(self, indent_width: usize) -> Self {
         Self {
             indent_width,
+            ..self
+        }
+    }
+
+    /// Returns a new config with the given quote style
+    pub fn with_quote_style(self, quote_style: QuoteStyle) -> Self {
+        Self {
+            quote_style,
             ..self
         }
     }
