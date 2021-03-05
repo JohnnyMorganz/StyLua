@@ -274,14 +274,14 @@ impl CodeFormatter {
                     // Match all escapes within the the string
                     // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                     lazy_static::lazy_static! {
-                        static ref RE: regex::Regex = regex::Regex::new(r#"\\([\S\s])|(["'])"#).unwrap();
+                        static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
                         static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\bfnrt-vx\u2028\u2029]$"#).unwrap();
                     }
                     let quote_to_use = self.get_quote_to_use(literal);
                     let literal = RE
                         .replace_all(literal, |caps: &regex::Captures| {
-                            let escaped = caps.get(1);
-                            let quote = caps.get(2);
+                            let quote = caps.get(1);
+                            let escaped = caps.get(2);
 
                             match quote {
                                 Some(quote) => {
@@ -291,7 +291,7 @@ impl CodeFormatter {
                                         "'" => {
                                             // Check whether to escape the quote
                                             if let StringLiteralQuoteType::Single = quote_to_use {
-                                                String::from("\'")
+                                                String::from("\\'")
                                             } else {
                                                 String::from("'")
                                             }
@@ -327,7 +327,7 @@ impl CodeFormatter {
                     TokenType::StringLiteral {
                         literal: Cow::Owned(literal),
                         multi_line: None,
-                        quote_type: StringLiteralQuoteType::Double,
+                        quote_type: quote_to_use,
                     }
                 }
             }
