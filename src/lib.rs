@@ -30,6 +30,24 @@ impl Default for LineEndings {
     }
 }
 
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub enum QuoteStyle {
+    /// Use double quotes where possible, but change to single quotes if it produces less escapes
+    AutoPreferDouble,
+    /// Use single quotes where possible, but change to double quotes if it produces less escapes
+    AutoPreferSingle,
+    /// Always use double quotes in all strings
+    ForceDouble,
+    /// Always use single quotes in all strings
+    ForceSingle,
+}
+
+impl Default for QuoteStyle {
+    fn default() -> Self {
+        QuoteStyle::AutoPreferDouble
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -52,6 +70,7 @@ pub struct Config {
     line_endings: LineEndings,
     indent_type: IndentType,
     indent_width: usize,
+    quote_style: QuoteStyle,
 }
 
 impl Default for Config {
@@ -61,6 +80,7 @@ impl Default for Config {
             line_endings: LineEndings::Unix,
             indent_type: IndentType::Tabs,
             indent_width: 4,
+            quote_style: QuoteStyle::default(),
         }
     }
 }

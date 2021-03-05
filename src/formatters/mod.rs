@@ -1,4 +1,4 @@
-use crate::{Config, IndentType, LineEndings};
+use crate::{Config, IndentType, LineEndings, QuoteStyle};
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -198,6 +198,36 @@ impl CodeFormatter {
         comment.trim_end().to_string()
     }
 
+    fn get_quote_to_use(&self, literal: &str) -> StringLiteralQuoteType {
+        match self.config.quote_style {
+            QuoteStyle::ForceDouble => StringLiteralQuoteType::Double,
+            QuoteStyle::ForceSingle => StringLiteralQuoteType::Single,
+            _ => {
+                let preferred = match self.config.quote_style {
+                    QuoteStyle::AutoPreferDouble => StringLiteralQuoteType::Double,
+                    QuoteStyle::AutoPreferSingle => StringLiteralQuoteType::Single,
+                    _ => unreachable!("have other quote styles we haven't looked into yet"),
+                };
+
+                // Check to see if there is a quote within it
+                if literal.contains("'") || literal.contains("\"") {
+                    let num_single_quotes = literal.matches("'").count();
+                    let num_double_quotes = literal.matches("\"").count();
+
+                    if num_single_quotes == num_double_quotes {
+                        preferred
+                    } else if num_single_quotes > num_double_quotes {
+                        StringLiteralQuoteType::Double
+                    } else {
+                        StringLiteralQuoteType::Single
+                    }
+                } else {
+                    preferred
+                }
+            }
+        }
+    }
+
     /// Formats a Token Node
     /// Also returns any extra leading or trailing trivia to add for the Token node
     /// This should only ever be called from format_token_reference
@@ -247,6 +277,7 @@ impl CodeFormatter {
                         static ref RE: regex::Regex = regex::Regex::new(r#"\\([\S\s])|(["'])"#).unwrap();
                         static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\bfnrt-vx\u2028\u2029]$"#).unwrap();
                     }
+                    let quote_to_use = self.get_quote_to_use(literal);
                     let literal = RE
                         .replace_all(literal, |caps: &regex::Captures| {
                             let escaped = caps.get(1);
@@ -254,17 +285,26 @@ impl CodeFormatter {
 
                             match quote {
                                 Some(quote) => {
-                                    // We have a quote, so lets see if it matches what we want, and
-                                    let quote_type = match quote.as_str() {
-                                        "'" => StringLiteralQuoteType::Single,
-                                        "\"" => StringLiteralQuoteType::Double,
-                                        _ => panic!("unknown quote type"),
-                                    };
-                                    if let StringLiteralQuoteType::Single = quote_type {
-                                        String::from("'")
-                                    } else {
-                                        // Double quote, make sure to escape it
-                                        String::from("\\\"")
+                                    // We have a quote, find what type it is, and see if we need to escape it
+                                    // then return the output string
+                                    match quote.as_str() {
+                                        "'" => {
+                                            // Check whether to escape the quote
+                                            if let StringLiteralQuoteType::Single = quote_to_use {
+                                                String::from("\'")
+                                            } else {
+                                                String::from("'")
+                                            }
+                                        }
+                                        "\"" => {
+                                            // Check whether to escape the quote
+                                            if let StringLiteralQuoteType::Double = quote_to_use {
+                                                String::from("\\\"")
+                                            } else {
+                                                String::from("\"")
+                                            }
+                                        }
+                                        other => unreachable!("unknown quote type {:?}", other),
                                     }
                                 }
                                 None => {
