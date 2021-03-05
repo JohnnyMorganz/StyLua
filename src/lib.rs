@@ -36,6 +36,25 @@ impl Default for LineEndings {
     }
 }
 
+/// The style of quotes to use within string literals
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub enum QuoteStyle {
+    /// Use double quotes where possible, but change to single quotes if it produces less escapes
+    AutoPreferDouble,
+    /// Use single quotes where possible, but change to double quotes if it produces less escapes
+    AutoPreferSingle,
+    /// Always use double quotes in all strings
+    ForceDouble,
+    /// Always use single quotes in all strings
+    ForceSingle,
+}
+
+impl Default for QuoteStyle {
+    fn default() -> Self {
+        QuoteStyle::AutoPreferDouble
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -69,6 +88,8 @@ pub struct Config {
     /// If `indent_type` is set to [`IndentType::Spaces`], then this is the number of spaces to use.
     /// If `indent_type` is set to [`IndentType::Tabs`], then this is used as a heuristic to guide when to wrap lines.
     indent_width: usize,
+    /// The style of quotes to use in string literals.
+    quote_style: QuoteStyle,
 }
 
 impl Config {
@@ -108,6 +129,14 @@ impl Config {
             ..self
         }
     }
+
+    /// Returns a new config with the given quote style
+    pub fn with_quote_style(self, quote_style: QuoteStyle) -> Self {
+        Self {
+            quote_style,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -117,6 +146,7 @@ impl Default for Config {
             line_endings: LineEndings::Unix,
             indent_type: IndentType::Tabs,
             indent_width: 4,
+            quote_style: QuoteStyle::default(),
         }
     }
 }
