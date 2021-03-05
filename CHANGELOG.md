@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added support for creating new `Config` structs when using StyLua as a library
+- Added configuration for quote style. There are four quote style options - `AutoPreferDouble`, `AutoPreferSingle`, `ForceDouble` and `ForceSingle`.
+For the auto styles, we will prefer the quote type specified, but fall back to the opposite if it means there are fewer escapes. For the
+force styles, we will always use the quote type specified.
+
+### Changed
+- Changed the default quote style from `ForceDouble` to `AutoPreferDouble`. We will now default to swapping quote type if it will reduce the number of escapes.
 
 ### Fixed
 - Fixed tables with internal comments (and no fields) incorrectly collapsing to a single line
