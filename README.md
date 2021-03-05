@@ -136,7 +136,7 @@ indent_type = "Tabs"
 
 ### `indent_width`
 
-The width of spaces a single indent level should be. This option is ignored if the `indent_type` is set to `Tabs`.
+The width of spaces a single indent level should be. This option is used for heuristics only to determine column width if the `indent_type` is set to `Tabs`.
 Defaults to `4`.
 
 ```
