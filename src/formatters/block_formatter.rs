@@ -7,11 +7,22 @@ use full_moon::ast::{
     Block, Expression, LastStmt, Prefix, Return, Stmt, UnOp, Value, Var,
 };
 use full_moon::node::Node;
-#[cfg(feature = "luau")]
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
 use std::borrow::Cow;
 
+macro_rules! update_first_token {
+    ($enum:ident, $var:ident, $token:expr, $update_method:ident) => {{
+        let leading_trivia =
+            CodeFormatter::trivia_remove_leading_newlines($token.leading_trivia().collect());
+        let new_token = trivia_formatter::token_reference_add_trivia(
+            $token.to_owned(),
+            FormatTriviaType::Replace(leading_trivia),
+            FormatTriviaType::NoChange,
+        );
+        Stmt::$enum($var.$update_method(Cow::Owned(new_token)))
+    }};
+}
 impl CodeFormatter {
     pub fn get_token_range(token: &Token) -> Range {
         (token.start_position().bytes(), token.end_position().bytes())
@@ -183,13 +194,230 @@ impl CodeFormatter {
         }
     }
 
+    fn trivia_remove_leading_newlines<'ast>(trivia: Vec<&Token<'ast>>) -> Vec<Token<'ast>> {
+        trivia
+            .iter()
+            .skip_while(|x| match x.token_type() {
+                TokenType::Whitespace { ref characters } => characters.contains('\n'),
+                _ => false,
+            })
+            .map(|x| x.to_owned().to_owned())
+            .collect()
+    }
+
+    fn prefix_remove_leading_newlines<'ast>(prefix: &Prefix<'ast>) -> Prefix<'ast> {
+        match prefix {
+            Prefix::Name(token) => {
+                let leading_trivia =
+                    CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+                let new_token = trivia_formatter::token_reference_add_trivia(
+                    token.to_owned().into_owned(),
+                    FormatTriviaType::Replace(leading_trivia),
+                    FormatTriviaType::NoChange,
+                );
+                Prefix::Name(Cow::Owned(new_token))
+            }
+            Prefix::Expression(expr) => Prefix::Expression(match expr {
+                Expression::Parentheses {
+                    contained,
+                    expression,
+                } => {
+                    let (start_parens, end_parens) = contained.tokens();
+                    let leading_trivia = CodeFormatter::trivia_remove_leading_newlines(
+                        start_parens.leading_trivia().collect(),
+                    );
+                    let new_token = trivia_formatter::token_reference_add_trivia(
+                        start_parens.to_owned(),
+                        FormatTriviaType::Replace(leading_trivia),
+                        FormatTriviaType::NoChange,
+                    );
+                    Expression::Parentheses {
+                        contained: full_moon::ast::span::ContainedSpan::new(
+                            Cow::Owned(new_token),
+                            Cow::Owned(end_parens.to_owned()),
+                        ),
+                        expression: Box::new(*expression.to_owned()),
+                    }
+                }
+                other => {
+                    unreachable!("got non-parentheses expression as prefix {:?}", other)
+                }
+            }),
+        }
+    }
+
+    fn var_remove_leading_newline<'ast>(var: Var<'ast>) -> Var<'ast> {
+        match var {
+            Var::Name(token) => {
+                let leading_trivia =
+                    CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+                let new_token = trivia_formatter::token_reference_add_trivia(
+                    token.into_owned(),
+                    FormatTriviaType::Replace(leading_trivia),
+                    FormatTriviaType::NoChange,
+                );
+                Var::Name(Cow::Owned(new_token))
+            }
+            Var::Expression(var_expr) => {
+                let prefix = CodeFormatter::prefix_remove_leading_newlines(var_expr.prefix());
+                Var::Expression(var_expr.with_prefix(prefix))
+            }
+        }
+    }
+
+    fn stmt_remove_leading_newlines<'ast>(stmt: Stmt<'ast>) -> Stmt<'ast> {
+        match stmt {
+            Stmt::Assignment(assignment) => {
+                let mut var_list = Punctuated::new();
+
+                for (idx, pair) in assignment.var_list().pairs().enumerate() {
+                    if idx == 0 {
+                        let pair = pair
+                            .to_owned()
+                            .map(CodeFormatter::var_remove_leading_newline);
+                        var_list.push(pair);
+                    } else {
+                        var_list.push(pair.to_owned());
+                    }
+                }
+
+                Stmt::Assignment(assignment.with_var_list(var_list))
+            }
+            Stmt::Do(do_block) => {
+                update_first_token!(Do, do_block, do_block.do_token(), with_do_token)
+            }
+            Stmt::FunctionCall(function_call) => {
+                let prefix = CodeFormatter::prefix_remove_leading_newlines(function_call.prefix());
+                Stmt::FunctionCall(function_call.with_prefix(prefix))
+            }
+            Stmt::FunctionDeclaration(function_declaration) => {
+                update_first_token!(
+                    FunctionDeclaration,
+                    function_declaration,
+                    function_declaration.function_token(),
+                    with_function_token
+                )
+            }
+            Stmt::GenericFor(generic_for) => update_first_token!(
+                GenericFor,
+                generic_for,
+                generic_for.for_token(),
+                with_for_token
+            ),
+            Stmt::If(if_block) => {
+                update_first_token!(If, if_block, if_block.if_token(), with_if_token)
+            }
+            Stmt::LocalAssignment(local_assignment) => update_first_token!(
+                LocalAssignment,
+                local_assignment,
+                local_assignment.local_token(),
+                with_local_token
+            ),
+            Stmt::LocalFunction(local_function) => update_first_token!(
+                LocalFunction,
+                local_function,
+                local_function.local_token(),
+                with_local_token
+            ),
+            Stmt::NumericFor(numeric_for) => update_first_token!(
+                NumericFor,
+                numeric_for,
+                numeric_for.for_token(),
+                with_for_token
+            ),
+            Stmt::Repeat(repeat_block) => {
+                update_first_token!(
+                    Repeat,
+                    repeat_block,
+                    repeat_block.repeat_token(),
+                    with_repeat_token
+                )
+            }
+            Stmt::While(while_block) => {
+                update_first_token!(
+                    While,
+                    while_block,
+                    while_block.while_token(),
+                    with_while_token
+                )
+            }
+            #[cfg(feature = "luau")]
+            Stmt::CompoundAssignment(compound_assignment) => {
+                let lhs =
+                    CodeFormatter::var_remove_leading_newline(compound_assignment.lhs().to_owned());
+                Stmt::CompoundAssignment(compound_assignment.with_lhs(lhs))
+            }
+
+            #[cfg(feature = "luau")]
+            Stmt::ExportedTypeDeclaration(exported_type_declaration) => update_first_token!(
+                ExportedTypeDeclaration,
+                exported_type_declaration,
+                exported_type_declaration.export_token(),
+                with_export_token
+            ),
+            #[cfg(feature = "luau")]
+            Stmt::TypeDeclaration(type_declaration) => update_first_token!(
+                TypeDeclaration,
+                type_declaration,
+                type_declaration.type_token(),
+                with_type_token
+            ),
+        }
+    }
+
+    fn last_stmt_remove_leading_newlines<'ast>(last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
+        match last_stmt {
+            LastStmt::Break(token) => {
+                let leading_trivia =
+                    CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+                let new_token = trivia_formatter::token_reference_add_trivia(
+                    token.into_owned(),
+                    FormatTriviaType::Replace(leading_trivia),
+                    FormatTriviaType::NoChange,
+                );
+                LastStmt::Break(Cow::Owned(new_token))
+            }
+            LastStmt::Return(return_node) => {
+                let old_token = return_node.token();
+                let token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    old_token.to_owned(),
+                    FormatTriviaType::Replace(CodeFormatter::trivia_remove_leading_newlines(
+                        old_token.leading_trivia().collect(),
+                    )),
+                    FormatTriviaType::NoChange,
+                ));
+
+                LastStmt::Return(return_node.with_token(token))
+            }
+            #[cfg(feature = "luau")]
+            LastStmt::Continue(token) => {
+                let leading_trivia =
+                    CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+                let new_token = trivia_formatter::token_reference_add_trivia(
+                    token.into_owned(),
+                    FormatTriviaType::Replace(leading_trivia),
+                    FormatTriviaType::NoChange,
+                );
+                LastStmt::Continue(Cow::Owned(new_token))
+            }
+        }
+    }
+
     pub fn format_block<'ast>(&mut self, block: Block<'ast>) -> Block<'ast> {
         let mut formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
             Vec::new();
-
+        let mut found_first_stmt = false;
         let mut stmt_iterator = block.iter_stmts().peekable();
         while let Some(stmt) = stmt_iterator.next() {
             let mut stmt = self.format_stmt(stmt);
+
+            // If this is the first stmt, then remove any leading newlines
+            if !found_first_stmt {
+                if self.should_format_node(&stmt) {
+                    stmt = CodeFormatter::stmt_remove_leading_newlines(stmt);
+                }
+                found_first_stmt = true;
+            }
 
             // Need to check next statement if it is a function call, with a parameters expression as the prefix
             // If so, removing a semicolon may lead to ambiguous syntax
@@ -234,7 +462,11 @@ impl CodeFormatter {
 
         let formatted_last_stmt = match block.last_stmt() {
             Some(last_stmt) => {
-                let last_stmt = self.format_last_stmt(last_stmt);
+                let mut last_stmt = self.format_last_stmt(last_stmt);
+                // If this is the first stmt, then remove any leading newlines
+                if !found_first_stmt && self.should_format_node(&last_stmt) {
+                    last_stmt = CodeFormatter::last_stmt_remove_leading_newlines(last_stmt);
+                }
                 Some((last_stmt, None))
             }
             None => None,
