@@ -477,7 +477,6 @@ function PERSON299(name)
 end
 
 function oc(msg, speaker)
-
 	if string.sub(string.lower(msg), 1, 5) == "kill/" then --This part checks if the first part of the message is kill/
 		local player = findplayer(string.sub(msg, 6), speaker) --This part refers to the findplayer function for a list of people associated with the input after kill/
 		if player ~= 0 then --This part makes sure that the findplayer function found someone, as it returns 0 when it hasnt
