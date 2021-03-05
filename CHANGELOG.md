@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added support for creating new `Config` structs when using StyLua as a library
 - Empty newlines at the start and end of a block will now be removed as they are unnecessary
+
+### Changed
+- Function call heuristic have been further improve to decide when to expand the function call arguments onto multiple lines.
+- StyLua now allows some arguments after a multiline table before forcing expansion. This makes sense for something like `setmetatable({ ... }, class)`, where
+`{ ... }` is a multiline table, but we don't want to expand onto multiple lines. StyLua will not allow a mixture of multiline tables and small identifiers in between
+(e.g. `call({ ... }, foo, { ... })`), in order to improve readability.
 
 ### Fixed
 - Fixed tables with internal comments (and no fields) incorrectly collapsing to a single line
