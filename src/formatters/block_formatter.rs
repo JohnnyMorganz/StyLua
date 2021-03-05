@@ -246,6 +246,25 @@ impl CodeFormatter {
         }
     }
 
+    fn var_remove_leading_newline<'ast>(var: Var<'ast>) -> Var<'ast> {
+        match var {
+            Var::Name(token) => {
+                let leading_trivia =
+                    CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+                let new_token = trivia_formatter::token_reference_add_trivia(
+                    token.into_owned(),
+                    FormatTriviaType::Replace(leading_trivia),
+                    FormatTriviaType::NoChange,
+                );
+                Var::Name(Cow::Owned(new_token))
+            }
+            Var::Expression(var_expr) => {
+                let prefix = CodeFormatter::prefix_remove_leading_newlines(var_expr.prefix());
+                Var::Expression(var_expr.with_prefix(prefix))
+            }
+        }
+    }
+
     fn stmt_remove_leading_newlines<'ast>(stmt: Stmt<'ast>) -> Stmt<'ast> {
         match stmt {
             Stmt::Assignment(assignment) => {
@@ -253,25 +272,9 @@ impl CodeFormatter {
 
                 for (idx, pair) in assignment.var_list().pairs().enumerate() {
                     if idx == 0 {
-                        let pair = pair.to_owned().map(|var| match var {
-                            Var::Name(token) => {
-                                let leading_trivia = CodeFormatter::trivia_remove_leading_newlines(
-                                    token.leading_trivia().collect(),
-                                );
-                                let new_token = trivia_formatter::token_reference_add_trivia(
-                                    token.into_owned(),
-                                    FormatTriviaType::Replace(leading_trivia),
-                                    FormatTriviaType::NoChange,
-                                );
-                                Var::Name(Cow::Owned(new_token))
-                            }
-                            Var::Expression(var_expr) => {
-                                let prefix = CodeFormatter::prefix_remove_leading_newlines(
-                                    var_expr.prefix(),
-                                );
-                                Var::Expression(var_expr.with_prefix(prefix))
-                            }
-                        });
+                        let pair = pair
+                            .to_owned()
+                            .map(CodeFormatter::var_remove_leading_newline);
                         var_list.push(pair);
                     } else {
                         var_list.push(pair.to_owned());
@@ -338,6 +341,27 @@ impl CodeFormatter {
                     with_while_token
                 )
             }
+            #[cfg(feature = "luau")]
+            Stmt::CompoundAssignment(compound_assignment) => {
+                let lhs =
+                    CodeFormatter::var_remove_leading_newline(compound_assignment.lhs().to_owned());
+                Stmt::CompoundAssignment(compound_assignment.with_lhs(lhs))
+            }
+
+            #[cfg(feature = "luau")]
+            Stmt::ExportedTypeDeclaration(exported_type_declaration) => update_first_token!(
+                ExportedTypeDeclaration,
+                exported_type_declaration,
+                exported_type_declaration.export_token(),
+                with_export_token
+            ),
+            #[cfg(feature = "luau")]
+            Stmt::TypeDeclaration(type_declaration) => update_first_token!(
+                TypeDeclaration,
+                type_declaration,
+                type_declaration.type_token(),
+                with_type_token
+            ),
         }
     }
 
