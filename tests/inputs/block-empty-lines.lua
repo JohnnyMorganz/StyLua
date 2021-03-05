@@ -22,6 +22,7 @@ do
 
 
 	local foo = bar
+
 	-- comment
 
 end

@@ -18,6 +18,7 @@ do
 	local x = 1
 
 	local foo = bar
+
 	-- comment
 end
 
