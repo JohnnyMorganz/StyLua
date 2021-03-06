@@ -168,7 +168,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
-        Value::ParseExpression(expr) => get_expression_trailing_trivia(&expr),
+        Value::ParenthesesExpressions(expr) => get_expression_trailing_trivia(&expr),
         Value::Symbol(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
@@ -238,7 +238,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                 .map(|x| x.to_owned())
                 .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParseExpression(expr) => get_expression_leading_trivia(&expr),
+            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(&expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Var(var) => match var {
@@ -703,7 +703,7 @@ fn value_contains_comments(value: &Value) -> bool {
             table_constructor_contains_comments(table_constructor)
         }
         Value::Number(token) => token_contains_comments(token),
-        Value::ParseExpression(expression) => expression_contains_comments(expression),
+        Value::ParenthesesExpression(expression) => expression_contains_comments(expression),
         Value::String(token) => token_contains_comments(token),
         Value::Symbol(token) => token_contains_comments(token),
         Value::Var(var) => match var {

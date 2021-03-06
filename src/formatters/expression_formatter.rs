@@ -181,8 +181,8 @@ impl CodeFormatter {
             Value::Number(token_reference) => {
                 Value::Number(self.format_token_reference(token_reference))
             }
-            Value::ParseExpression(expression) => {
-                Value::ParseExpression(self.format_expression(expression))
+            Value::ParenthesesExpression(expression) => {
+                Value::ParenthesesExpression(self.format_expression(expression))
             }
             Value::String(token_reference) => {
                 Value::String(self.format_token_reference(token_reference))

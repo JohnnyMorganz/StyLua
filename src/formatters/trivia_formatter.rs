@@ -224,8 +224,8 @@ impl CodeFormatter {
                         match *value {
                             // Handle any values which may have expressions inside of them
                             // which we may need to split onto multiple lines
-                            Value::ParseExpression(expression) => {
-                                Value::ParseExpression(self.expression_split_binop(
+                            Value::ParenthesesExpression(expression) => {
+                                Value::ParenthesesExpression(self.expression_split_binop(
                                     expression.to_owned(),
                                     binop_leading_trivia.to_owned(),
                                     indent_increase,
@@ -749,8 +749,8 @@ pub fn value_add_leading_trivia<'ast>(
             leading_trivia,
             FormatTriviaType::NoChange,
         ))),
-        Value::ParseExpression(expression) => {
-            Value::ParseExpression(expression_add_leading_trivia(expression, leading_trivia))
+        Value::ParenthesesExpression(expression) => {
+            Value::ParenthesesExpression(expression_add_leading_trivia(expression, leading_trivia))
         }
         Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
@@ -791,9 +791,9 @@ pub fn value_add_trailing_trivia<'ast>(
             FormatTriviaType::NoChange,
             trailing_trivia,
         ))),
-        Value::ParseExpression(expression) => {
-            Value::ParseExpression(expression_add_trailing_trivia(expression, trailing_trivia))
-        }
+        Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+            expression_add_trailing_trivia(expression, trailing_trivia),
+        ),
         Value::String(token_reference) => Value::String(Cow::Owned(token_reference_add_trivia(
             token_reference.into_owned(),
             FormatTriviaType::NoChange,

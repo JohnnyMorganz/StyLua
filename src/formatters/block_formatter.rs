@@ -57,7 +57,9 @@ impl CodeFormatter {
                         table_constructor.braces().tokens().0.token(),
                     ),
                     Value::Number(token_ref) => CodeFormatter::get_token_range(token_ref.token()),
-                    Value::ParseExpression(expr) => CodeFormatter::get_range_in_expression(&expr),
+                    Value::ParenthesesExpression(expr) => {
+                        CodeFormatter::get_range_in_expression(&expr)
+                    }
                     Value::String(token_ref) => CodeFormatter::get_token_range(token_ref.token()),
                     Value::Symbol(token_ref) => CodeFormatter::get_token_range(token_ref.token()),
                     Value::Var(var) => match var {
