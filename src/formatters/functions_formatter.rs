@@ -444,7 +444,6 @@ impl CodeFormatter {
                 let mut arguments = Punctuated::new();
                 let new_expression = self.format_expression(&Expression::Value {
                     value: Box::new(Value::String(token_reference.to_owned())),
-                    binop: None,
                     #[cfg(feature = "luau")]
                     as_assertion: None,
                 });
@@ -475,7 +474,6 @@ impl CodeFormatter {
                 let mut arguments = Punctuated::new();
                 let new_expression = self.format_expression(&Expression::Value {
                     value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
-                    binop: None,
                     #[cfg(feature = "luau")]
                     as_assertion: None,
                 });

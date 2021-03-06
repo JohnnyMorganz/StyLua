@@ -1,6 +1,4 @@
-use full_moon::ast::{
-    BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
-};
+use full_moon::ast::{BinOp, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression};
 use full_moon::tokenizer::{Symbol, TokenReference, TokenType};
 use std::boxed::Box;
 
@@ -38,13 +36,6 @@ impl CodeFormatter {
         })
     }
 
-    pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: &BinOpRhs<'ast>) -> BinOpRhs<'ast> {
-        BinOpRhs::new(
-            self.format_binop(bin_op_rhs.bin_op()),
-            Box::new(self.format_expression(bin_op_rhs.rhs())),
-        )
-    }
-
     /// Check to determine whether expression parentheses are required, depending on the provided
     /// internal expression contained within the parentheses
     fn check_excess_parentheses(internal_expression: &Expression) -> bool {
@@ -55,31 +46,28 @@ impl CodeFormatter {
             Expression::UnaryOperator { expression, .. } => {
                 CodeFormatter::check_excess_parentheses(expression)
             }
-            Expression::Value { value, binop, .. } => {
-                if binop.is_some() {
-                    // Don't bother removing them if there is a binop, as they may be needed
-                    false
-                } else {
-                    match &**value {
-                        // Internal expression is a function call
-                        // We could potentially be culling values, so we should not remove parentheses
-                        Value::FunctionCall(_) => false,
-                        // String literal inside of parentheses
-                        // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
-                        Value::String(_) => false,
-                        Value::Symbol(token_ref) => {
-                            match token_ref.token_type() {
-                                TokenType::Symbol { symbol } => match symbol {
-                                    // If we have an ellipse inside of parentheses, we may also be culling values
-                                    // Therefore, we don't remove parentheses
-                                    Symbol::Ellipse => false,
-                                    _ => true,
-                                },
+            // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
+            Expression::BinaryOperator { .. } => false,
+            Expression::Value { value, .. } => {
+                match &**value {
+                    // Internal expression is a function call
+                    // We could potentially be culling values, so we should not remove parentheses
+                    Value::FunctionCall(_) => false,
+                    // String literal inside of parentheses
+                    // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
+                    Value::String(_) => false,
+                    Value::Symbol(token_ref) => {
+                        match token_ref.token_type() {
+                            TokenType::Symbol { symbol } => match symbol {
+                                // If we have an ellipse inside of parentheses, we may also be culling values
+                                // Therefore, we don't remove parentheses
+                                Symbol::Ellipse => false,
                                 _ => true,
-                            }
+                            },
+                            _ => true,
                         }
-                        _ => true,
                     }
+                    _ => true,
                 }
             }
         }
@@ -90,15 +78,10 @@ impl CodeFormatter {
         match expression {
             Expression::Value {
                 value,
-                binop,
                 #[cfg(feature = "luau")]
                 as_assertion,
             } => Expression::Value {
                 value: Box::new(self.format_value(value)),
-                binop: match binop {
-                    Some(value) => Some(self.format_bin_op_rhs(value)),
-                    None => None,
-                },
                 #[cfg(feature = "luau")]
                 as_assertion: match as_assertion {
                     Some(assertion) => Some(self.format_as_assertion(assertion)),
@@ -127,6 +110,11 @@ impl CodeFormatter {
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop: self.format_unop(unop),
                 expression: Box::new(self.format_expression(expression)),
+            },
+            Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
+                lhs: Box::new(self.format_expression(lhs)),
+                binop: self.format_binop(binop),
+                rhs: Box::new(self.format_expression(rhs)),
             },
         }
     }

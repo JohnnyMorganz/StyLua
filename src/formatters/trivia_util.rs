@@ -25,7 +25,8 @@ pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses { expression, .. } => can_hang_expression(expression),
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
-        Expression::Value { binop, .. } => binop.is_some(), // If a binop is present, then we can hang the expression
+        Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
+        Expression::Value { .. } => false,
     }
 }
 
@@ -168,7 +169,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
-        Value::ParenthesesExpressions(expr) => get_expression_trailing_trivia(&expr),
+        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(&expr),
         Value::Symbol(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
@@ -187,9 +188,9 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
                 .collect()
         }
         Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(expression),
+        Expression::BinaryOperator { rhs, .. } => get_expression_trailing_trivia(rhs),
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
             as_assertion,
         } => {
@@ -198,11 +199,7 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
                 return type_info_trailing_trivia(as_assertion.cast_to());
             }
 
-            if let Some(binop) = binop {
-                get_expression_trailing_trivia(binop.rhs())
-            } else {
-                get_value_trailing_trivia(value)
-            }
+            get_value_trailing_trivia(value)
         }
     }
 }
@@ -731,6 +728,26 @@ fn value_contains_comments(value: &Value) -> bool {
     }
 }
 
+fn binop_contains_comments(binop: &BinOp) -> bool {
+    match binop {
+        BinOp::And(t)
+        | BinOp::Caret(t)
+        | BinOp::GreaterThan(t)
+        | BinOp::GreaterThanEqual(t)
+        | BinOp::LessThan(t)
+        | BinOp::LessThanEqual(t)
+        | BinOp::Minus(t)
+        | BinOp::Or(t)
+        | BinOp::Percent(t)
+        | BinOp::Plus(t)
+        | BinOp::Slash(t)
+        | BinOp::Star(t)
+        | BinOp::TildeEqual(t)
+        | BinOp::TwoDots(t)
+        | BinOp::TwoEqual(t) => token_contains_comments(t),
+    }
+}
+
 // Check whether any comments are present within an Expression
 pub fn expression_contains_comments(expression: &Expression) -> bool {
     match expression {
@@ -751,51 +768,25 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 
             expression_contains_comments(expression)
         }
+        Expression::BinaryOperator { lhs, binop, rhs } =>
+            binop_contains_comments(binop)
+                || expression_contains_comments(lhs)
+                || expression_contains_comments(rhs),
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
             as_assertion,
         } => {
-            if value_contains_comments(value) {
-                true
-            } else {
-                let binop_contains_comments = match binop {
-                    Some(binop) => {
-                        let contains = match binop.bin_op() {
-                            BinOp::And(t)
-                            | BinOp::Caret(t)
-                            | BinOp::GreaterThan(t)
-                            | BinOp::GreaterThanEqual(t)
-                            | BinOp::LessThan(t)
-                            | BinOp::LessThanEqual(t)
-                            | BinOp::Minus(t)
-                            | BinOp::Or(t)
-                            | BinOp::Percent(t)
-                            | BinOp::Plus(t)
-                            | BinOp::Slash(t)
-                            | BinOp::Star(t)
-                            | BinOp::TildeEqual(t)
-                            | BinOp::TwoDots(t)
-                            | BinOp::TwoEqual(t) => token_contains_comments(t),
-                        };
-
-                        contains || expression_contains_comments(binop.rhs())
-                    }
-                    None => false,
-                };
-
-                #[cfg(feature = "luau")]
-                {
-                    return binop_contains_comments
-                        || as_assertion
-                            .as_ref()
-                            .map_or(false, |x| as_assertion_contains_comments(x));
-                }
-
-                #[cfg(not(feature = "luau"))]
-                binop_contains_comments
+            #[cfg(feature = "luau")]
+            {
+                return value_contains_comments(value)
+                    || as_assertion
+                        .as_ref()
+                        .map_or(false, |x| as_assertion_contains_comments(x));
             }
+
+            #[cfg(not(feature = "luau"))]
+            value_contains_comments(value)
         }
     }
 }
@@ -805,51 +796,21 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
-        Expression::Value { binop, value, .. } => {
-            match binop {
-                Some(binop_rhs) => {
-                    let rhs = binop_rhs.rhs();
-                    let contains = match binop_rhs.bin_op() {
-                        BinOp::And(t)
-                        | BinOp::Caret(t)
-                        | BinOp::GreaterThan(t)
-                        | BinOp::GreaterThanEqual(t)
-                        | BinOp::LessThan(t)
-                        | BinOp::LessThanEqual(t)
-                        | BinOp::Minus(t)
-                        | BinOp::Or(t)
-                        | BinOp::Percent(t)
-                        | BinOp::Plus(t)
-                        | BinOp::Slash(t)
-                        | BinOp::Star(t)
-                        | BinOp::TildeEqual(t)
-                        | BinOp::TwoDots(t)
-                        | BinOp::TwoEqual(t) => token_contains_comments(t),
+        Expression::BinaryOperator { lhs, binop, rhs } => {            
+            binop_contains_comments(binop) || expression_contains_comments(lhs) 
+            // Check if the binop chain still continues
+            // If so, we should keep checking the expresion
+            // Otherwise, stop checking
+            || match &**rhs {
+                Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
+                Expression::UnaryOperator { unop, expression } => {
+                    let op_contains_comments = match unop {
+                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token)
                     };
-                    contains
-                        || value_contains_comments(value)
-                        // Check if the binop chain still continues
-                        // If so, we should keep checking the expresion
-                        // Otherwise, stop checking
-                        || match rhs {
-                            Expression::Value { binop, value, .. } => {
-                                if binop.is_some() {
-                                    value_contains_comments(value)
-                                        || expression_contains_inline_comments(rhs)
-                                } else {
-                                    false
-                                }
-                            }
-                            Expression::UnaryOperator { unop, expression } => {
-                                let op_contains_comments = match unop {
-                                    UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token)
-                                };
-                                op_contains_comments || expression_contains_inline_comments(expression)
-                            }
-                            _ => expression_contains_comments(rhs),
-                        }
+                    op_contains_comments || expression_contains_inline_comments(expression)
                 }
-                None => false,
+                Expression::Value{ .. } => false,
+                Expression::Parentheses { .. } => expression_contains_comments(rhs)
             }
         }
         _ => false,
