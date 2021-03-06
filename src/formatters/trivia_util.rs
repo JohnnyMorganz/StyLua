@@ -217,6 +217,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
         },
+        Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
         Expression::Value { value, .. } => match &**value {
             Value::Function((token_ref, _)) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()

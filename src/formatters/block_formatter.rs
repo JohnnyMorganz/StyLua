@@ -44,6 +44,7 @@ impl CodeFormatter {
                     CodeFormatter::get_token_range(token_reference.token())
                 }
             },
+            Expression::BinaryOperator { lhs, .. } => CodeFormatter::get_range_in_expression(lhs),
             Expression::Value { value, .. } => {
                 let value = &**value;
                 match value {
@@ -409,8 +410,8 @@ impl CodeFormatter {
         let mut formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
             Vec::new();
         let mut found_first_stmt = false;
-        let mut stmt_iterator = block.iter_stmts().peekable();
-        while let Some(stmt) = stmt_iterator.next() {
+        let mut stmt_iterator = block.iter_stmts_with_semicolon().peekable();
+        while let Some((stmt, semi)) = stmt_iterator.next() {
             let mut stmt = self.format_stmt(stmt);
 
             // If this is the first stmt, then remove any leading newlines
@@ -431,7 +432,7 @@ impl CodeFormatter {
                 | Stmt::Repeat(_) => {
                     let next_stmt = stmt_iterator.peek();
                     match next_stmt {
-                        Some(Stmt::FunctionCall(function_call)) => matches!(
+                        Some((Stmt::FunctionCall(function_call), _)) => matches!(
                             function_call.prefix(),
                             Prefix::Expression(Expression::Parentheses { .. })
                         ),
@@ -448,12 +449,37 @@ impl CodeFormatter {
                     let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
                     stmt = updated_stmt;
                     Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                        TokenReference::symbol(";").expect("could not make semicolon"),
+                        match semi {
+                            Some(semi) => crate::fmt_symbol!(self, semi, ";").into_owned(),
+                            None => TokenReference::symbol(";").expect("could not make semicolon"),
+                        },
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(trivia),
                     )))
                 }
-                false => None,
+                false => match semi {
+                    Some(semi) => {
+                        // We used to have a semicolon, but now we are removing it
+                        // We want to keep any old comments on the semicolon token, otherwise we will lose it
+                        let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
+                        stmt = updated_stmt;
+                        // We will do a hack here, where we insert an empty token, and add all the remaining trivia onto it
+                        Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                            self.format_symbol(
+                                semi,
+                                &TokenReference::new(
+                                    vec![],
+                                    Token::new(TokenType::spaces(0)),
+                                    vec![],
+                                ),
+                            )
+                            .into_owned(),
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Append(trivia),
+                        )))
+                    }
+                    None => None,
+                },
             };
 
             formatted_statements.push((stmt, semicolon))
