@@ -233,7 +233,7 @@ impl CodeFormatter {
     /// This should only ever be called from format_token_reference
     fn format_token<'ast>(
         &self,
-        token: Token<'ast>,
+        token: &Token<'ast>,
         format_type: &FormatTokenType,
         additional_indent_level: Option<usize>,
     ) -> (
@@ -406,24 +406,44 @@ impl CodeFormatter {
         let mut token_trivia = Vec::new();
 
         let mut newline_count_in_succession = 0;
+        let mut trivia_iter = current_trivia.iter().peekable();
 
-        for trivia in current_trivia {
+        while let Some(trivia) = trivia_iter.next() {
+            // Handle cases where the user has left a newline gap in between e.g. two statements
+            // If we are formatting trailing trivia, this can be ignored, as all trailing newlines will have already
+            // been handled by the formatter.
+            // If we are formatting leading trivia, we will allow a single newline to be kept in succession, if we
+            // find one.
             match trivia.token_type() {
                 TokenType::Whitespace { characters } => {
-                    if characters.contains('\n') {
-                        newline_count_in_succession += 1;
-                        if newline_count_in_succession == 2 {
-                            // We have two counts of a new line, we will allow one to be kept
-                            // This allows the user to define where they want to keep lines in between statements, whilst only allowing one empty line in between them
-                            token_trivia.push(Token::new(TokenType::Whitespace {
-                                characters: Cow::Owned(get_line_ending_character(
-                                    &self.config.line_endings,
-                                )),
-                            }));
+                    if let FormatTokenType::LeadingTrivia = format_token_type {
+                        if characters.contains('\n') {
+                            newline_count_in_succession += 1;
+                            if newline_count_in_succession == 1 {
+                                // We have a case where we will allow a single newline to be kept
+                                token_trivia.push(self.create_newline_trivia());
+                            }
                         }
                     }
+
                     // Move to next trivia
                     continue;
+                }
+                TokenType::SingleLineComment { .. } | TokenType::MultiLineComment { .. } => {
+                    // If we have a comment, when `format_token` is called, it will put a newline at the end
+                    // If this happens, we want to skip the next iteration if its a newline, as that has already been covered here
+                    if let FormatTokenType::LeadingTrivia = format_token_type {
+                        if let Some(next_trivia) = trivia_iter.peek() {
+                            if let TokenType::Whitespace { characters } = next_trivia.token_type() {
+                                if characters.contains('\n') {
+                                    // Consume iterator once to skip the next iteration
+                                    trivia_iter.next();
+                                }
+                            }
+                        }
+                    }
+                    // We will reset the counter as well, because the newline above is only to terminate the comment
+                    newline_count_in_succession = 0;
                 }
                 _ => {
                     // Reset new line counter, as we only want two new lines in a row
@@ -466,11 +486,8 @@ impl CodeFormatter {
             None,
         );
 
-        let (token, _leading_trivia, _trailing_trivia) = self.format_token(
-            token_reference.token().to_owned(),
-            &FormatTokenType::Token,
-            None,
-        );
+        let (token, _leading_trivia, _trailing_trivia) =
+            self.format_token(token_reference.token(), &FormatTokenType::Token, None);
         // TODO: is it possible for leading/trailing trivia to be present here?
         // if let Some(trivia) = leading_trivia {
         //     formatted_leading_trivia.append(trivia);

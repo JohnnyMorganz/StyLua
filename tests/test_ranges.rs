@@ -17,7 +17,6 @@ local bar   =     baz
         ),
         @r###"
     local foo = bar
-
     local bar   =     baz    
                 
     "###
@@ -58,7 +57,6 @@ local bar   =     baz
         ),
     @r###"
     local foo = bar
-
     local bar   =     baz    
 
 
