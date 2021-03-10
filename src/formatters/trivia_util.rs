@@ -10,12 +10,19 @@ use full_moon::{
 };
 use std::borrow::Cow;
 
+pub fn trivia_is_newline(trivia: &Token) -> bool {
+    if let TokenType::Whitespace { characters } = trivia.token_type() {
+        if characters.find('\n').is_some() {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
     for trivia in trivia_vec {
-        if let TokenType::Whitespace { characters } = trivia.token_type() {
-            if characters.find('\n').is_some() {
-                return true;
-            }
+        if trivia_is_newline(trivia) {
+            return true;
         }
     }
     false

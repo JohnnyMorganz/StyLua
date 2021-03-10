@@ -150,14 +150,10 @@ impl CodeFormatter {
 
         // Determine if there was a new line at the end of the start brace
         // If so, then we should always be multiline
-        // The newline is bound to the first field, so we need to check its leading trivia
-        if let Some(first_field) = current_fields.peek() {
-            let leading_trivia = trivia_util::get_field_leading_trivia(first_field.value());
-            for trivia in leading_trivia.iter() {
-                if let TokenType::Whitespace { characters } = trivia.token_type() {
-                    if characters.find('\n').is_some() {
-                        is_multiline = true
-                    }
+        for trivia in start_brace.trailing_trivia() {
+            if let TokenType::Whitespace { characters } = trivia.token_type() {
+                if characters.find('\n').is_some() {
+                    is_multiline = true
                 }
             }
         }
@@ -217,6 +213,13 @@ impl CodeFormatter {
             };
 
             let (formatted_field, mut trailing_trivia) = self.format_field(&field, leading_trivia);
+            // Filter trailing_trivia for any newlines
+            trailing_trivia = trailing_trivia
+                .iter()
+                .filter(|x| !trivia_util::trivia_is_newline(x))
+                .map(|x| x.to_owned())
+                .collect();
+
             let mut formatted_punctuation = None;
 
             match is_multiline {
