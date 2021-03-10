@@ -201,7 +201,7 @@ impl CodeFormatter {
     ) -> VarExpression<'ast> {
         let formatted_prefix = self.format_prefix(var_expression.prefix());
         let formatted_suffixes = var_expression
-            .iter_suffixes()
+            .suffixes()
             .map(|x| self.format_suffix(x))
             .collect();
 

@@ -273,7 +273,7 @@ impl CodeFormatter {
             Stmt::Assignment(assignment) => {
                 let mut var_list = Punctuated::new();
 
-                for (idx, pair) in assignment.var_list().pairs().enumerate() {
+                for (idx, pair) in assignment.variables().pairs().enumerate() {
                     if idx == 0 {
                         let pair = pair
                             .to_owned()
@@ -284,7 +284,7 @@ impl CodeFormatter {
                     }
                 }
 
-                Stmt::Assignment(assignment.with_var_list(var_list))
+                Stmt::Assignment(assignment.with_variables(var_list))
             }
             Stmt::Do(do_block) => {
                 update_first_token!(Do, do_block, do_block.do_token(), with_do_token)
@@ -410,7 +410,7 @@ impl CodeFormatter {
         let mut formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
             Vec::new();
         let mut found_first_stmt = false;
-        let mut stmt_iterator = block.iter_stmts_with_semicolon().peekable();
+        let mut stmt_iterator = block.stmts_with_semicolon().peekable();
         while let Some((stmt, semi)) = stmt_iterator.next() {
             let mut stmt = self.format_stmt(stmt);
 

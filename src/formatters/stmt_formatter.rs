@@ -74,7 +74,7 @@ impl CodeFormatter {
 
         let in_token = crate::fmt_symbol!(self, generic_for.in_token(), " in ");
         let (formatted_expr_list, mut expr_comments_buf) =
-            self.format_punctuated(generic_for.expr_list(), &CodeFormatter::format_expression);
+            self.format_punctuated(generic_for.expressions(), &CodeFormatter::format_expression);
 
         // Create comments buffer and append to end of do token
         names_comments_buf.append(&mut expr_comments_buf);
@@ -98,7 +98,7 @@ impl CodeFormatter {
             .with_for_token(for_token)
             .with_names(formatted_names)
             .with_in_token(in_token)
-            .with_expr_list(formatted_expr_list)
+            .with_expressions(formatted_expr_list)
             .with_do_token(do_token)
             .with_end_token(end_token);
         #[cfg(feature = "luau")]

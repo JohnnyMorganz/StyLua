@@ -631,7 +631,7 @@ impl CodeFormatter {
     ) -> FunctionCall<'ast> {
         let formatted_prefix = self.format_prefix(function_call.prefix());
         let formatted_suffixes = function_call
-            .iter_suffixes()
+            .suffixes()
             .map(|x| self.format_suffix(x))
             .collect();
 
@@ -721,7 +721,7 @@ impl CodeFormatter {
 
         let function_token = crate::fmt_symbol!(self, local_function.function_token(), "function ");
         let formatted_name = Cow::Owned(self.format_plain_token_reference(local_function.name()));
-        let formatted_function_body = self.format_function_body(local_function.func_body(), true);
+        let formatted_function_body = self.format_function_body(local_function.body(), true);
 
         LocalFunction::new(formatted_name)
             .with_local_token(local_token)

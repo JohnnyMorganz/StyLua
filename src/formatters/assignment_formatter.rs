@@ -19,7 +19,7 @@ impl CodeFormatter {
         let mut var_list = Punctuated::new();
         let mut added_first = false;
 
-        for pair in assignment.var_list().pairs() {
+        for pair in assignment.variables().pairs() {
             if added_first {
                 var_list.push(pair.to_owned());
             } else {
@@ -33,7 +33,7 @@ impl CodeFormatter {
             }
         }
 
-        let mut expr_list = assignment.expr_list().to_owned();
+        let mut expr_list = assignment.expressions().to_owned();
         if let Some(last_pair) = expr_list.pop() {
             expr_list.push(last_pair.map(|value| {
                 trivia_formatter::expression_add_trailing_trivia(
@@ -58,10 +58,10 @@ impl CodeFormatter {
         let mut trailing_trivia = vec![self.create_newline_trivia()];
 
         let (var_list, mut var_comments_buf) =
-            self.format_punctuated(assignment.var_list(), &CodeFormatter::format_var);
+            self.format_punctuated(assignment.variables(), &CodeFormatter::format_var);
 
         let (mut expr_list, mut expr_comments_buf) =
-            self.format_punctuated(assignment.expr_list(), &CodeFormatter::format_expression);
+            self.format_punctuated(assignment.expressions(), &CodeFormatter::format_expression);
 
         // Create preliminary assignment
         let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
@@ -80,7 +80,7 @@ impl CodeFormatter {
                 .expect("no lines")
                 .len()
             > self.config.column_width
-            || assignment.expr_list().pairs().any(|pair| {
+            || assignment.expressions().pairs().any(|pair| {
                 pair.punctuation()
                     .map_or(false, |punc| trivia_util::token_contains_comments(punc))
                     || trivia_util::expression_contains_inline_comments(pair.value())
@@ -89,7 +89,7 @@ impl CodeFormatter {
         if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
             let expr_range = assignment
-                .expr_list()
+                .expressions()
                 .range()
                 .expect("no range for assignment expr");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
@@ -97,7 +97,7 @@ impl CodeFormatter {
             expr_list = Punctuated::new();
             // Format each expression and hang them
             // We need to format again because we will now take into account the indent increase
-            for pair in assignment.expr_list().pairs() {
+            for pair in assignment.expressions().pairs() {
                 let expr = self.format_expression(pair.value());
                 let value =
                     self.hang_expression_no_trailing_newline(expr, additional_indent_level, None);
@@ -145,8 +145,8 @@ impl CodeFormatter {
         }
 
         formatted_assignment
-            .with_var_list(formatted_var_list)
-            .with_expr_list(expr_list)
+            .with_variables(formatted_var_list)
+            .with_expressions(expr_list)
     }
 
     /// Returns a LocalAssignment with leading and trailing trivia removed
@@ -159,8 +159,8 @@ impl CodeFormatter {
             FormatTriviaType::NoChange,
         );
 
-        if local_assignment.expr_list().is_empty() {
-            let mut name_list = local_assignment.name_list().to_owned();
+        if local_assignment.expressions().is_empty() {
+            let mut name_list = local_assignment.names().to_owned();
             if let Some(last_pair) = name_list.pop() {
                 name_list.push(last_pair.map(|value| {
                     Cow::Owned(trivia_formatter::token_reference_add_trivia(
@@ -173,7 +173,7 @@ impl CodeFormatter {
 
             LocalAssignment::new(name_list).with_local_token(Cow::Owned(local_token))
         } else {
-            let mut expr_list = local_assignment.expr_list().to_owned();
+            let mut expr_list = local_assignment.expressions().to_owned();
             if let Some(last_pair) = expr_list.pop() {
                 expr_list.push(last_pair.map(|value| {
                     trivia_formatter::expression_add_trailing_trivia(
@@ -182,14 +182,14 @@ impl CodeFormatter {
                     )
                 }));
             }
-            LocalAssignment::new(local_assignment.name_list().to_owned())
+            LocalAssignment::new(local_assignment.names().to_owned())
                 .with_local_token(Cow::Owned(local_token))
                 .with_equal_token(
                     local_assignment
                         .equal_token()
                         .map(|x| Cow::Owned(x.to_owned())),
                 )
-                .with_expr_list(expr_list)
+                .with_expressions(expr_list)
         }
     }
 
@@ -213,7 +213,7 @@ impl CodeFormatter {
         ));
 
         let (mut name_list, mut name_list_comments_buf) = self.format_punctuated(
-            assignment.name_list(),
+            assignment.names(),
             &CodeFormatter::format_token_reference_mut,
         );
 
@@ -226,7 +226,7 @@ impl CodeFormatter {
             })
             .collect();
 
-        if assignment.expr_list().is_empty() {
+        if assignment.expressions().is_empty() {
             // See if the last variable assigned has a type specifier, and add a new line to that
             #[allow(unused_mut)]
             let mut new_line_added = false;
@@ -262,7 +262,7 @@ impl CodeFormatter {
             let local_assignment = LocalAssignment::new(name_list)
                 .with_local_token(local_token)
                 .with_equal_token(None)
-                .with_expr_list(Punctuated::new());
+                .with_expressions(Punctuated::new());
 
             #[cfg(feature = "luau")]
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
@@ -271,12 +271,12 @@ impl CodeFormatter {
             let equal_token = crate::fmt_symbol!(self, assignment.equal_token().unwrap(), " = ");
             // Format the expression normally
             let (mut expr_list, mut expr_comments_buf) =
-                self.format_punctuated(assignment.expr_list(), &CodeFormatter::format_expression);
+                self.format_punctuated(assignment.expressions(), &CodeFormatter::format_expression);
             // Create our preliminary new assignment
             let local_assignment = LocalAssignment::new(name_list)
                 .with_local_token(local_token)
                 .with_equal_token(Some(equal_token))
-                .with_expr_list(expr_list.to_owned());
+                .with_expressions(expr_list.to_owned());
             #[cfg(feature = "luau")]
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
 
@@ -293,7 +293,7 @@ impl CodeFormatter {
                     .expect("no lines")
                     .len()
                 > self.config.column_width
-                || assignment.expr_list().pairs().any(|pair| {
+                || assignment.expressions().pairs().any(|pair| {
                     pair.punctuation()
                         .map_or(false, |punc| trivia_util::token_contains_comments(punc))
                         || trivia_util::expression_contains_inline_comments(pair.value())
@@ -304,7 +304,7 @@ impl CodeFormatter {
             if require_multiline_expression {
                 // Add the expression list into the indent range, as it will be indented by one
                 let expr_range = assignment
-                    .expr_list()
+                    .expressions()
                     .range()
                     .expect("no range for local assignment expr");
                 self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
@@ -313,7 +313,7 @@ impl CodeFormatter {
 
                 // Format each expression and hang them
                 // We need to format again because we will now take into account the indent increase
-                for pair in assignment.expr_list().pairs() {
+                for pair in assignment.expressions().pairs() {
                     let expr = self.format_expression(pair.value());
                     let value = self.hang_expression_no_trailing_newline(
                         expr,
@@ -345,7 +345,7 @@ impl CodeFormatter {
             }
 
             // Update our local assignment
-            local_assignment.with_expr_list(expr_list)
+            local_assignment.with_expressions(expr_list)
         }
     }
 }

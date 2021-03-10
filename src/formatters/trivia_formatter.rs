@@ -543,10 +543,8 @@ pub fn function_call_add_trailing_trivia<'ast>(
     function_call: FunctionCall<'ast>,
     trailing_trivia: FormatTriviaType<'ast>,
 ) -> FunctionCall<'ast> {
-    let mut new_suffixes: Vec<Suffix<'ast>> = function_call
-        .iter_suffixes()
-        .map(|x| x.to_owned())
-        .collect();
+    let mut new_suffixes: Vec<Suffix<'ast>> =
+        function_call.suffixes().map(|x| x.to_owned()).collect();
     if let Some(last_suffix) = new_suffixes.pop() {
         new_suffixes.push(suffix_add_trailing_trivia(
             last_suffix.to_owned(),
@@ -866,10 +864,8 @@ pub fn var_expression_add_trailing_trivia<'ast>(
     trailing_trivia: FormatTriviaType<'ast>,
 ) -> VarExpression<'ast> {
     // TODO: This is copied from FunctionCall, can we combine them?
-    let mut new_suffixes: Vec<Suffix<'ast>> = var_expression
-        .iter_suffixes()
-        .map(|x| x.to_owned())
-        .collect();
+    let mut new_suffixes: Vec<Suffix<'ast>> =
+        var_expression.suffixes().map(|x| x.to_owned()).collect();
     if let Some(last_suffix) = new_suffixes.pop() {
         new_suffixes.push(suffix_add_trailing_trivia(
             last_suffix.to_owned(),

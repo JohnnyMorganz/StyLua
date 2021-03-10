@@ -132,7 +132,7 @@ fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
             .map(|x| x.to_owned())
             .collect(),
         Var::Expression(var_expr) => {
-            if let Some(last_suffix) = var_expr.iter_suffixes().last() {
+            if let Some(last_suffix) = var_expr.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
                 // TODO: is it possible for this to happen?
@@ -150,7 +150,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .map(|x| x.to_owned())
             .collect(),
         Value::FunctionCall(function_call) => {
-            if let Some(last_suffix) = function_call.iter_suffixes().last() {
+            if let Some(last_suffix) = function_call.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
                 // TODO: is it possible for this to happen?
@@ -308,7 +308,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     let mut trailing_trivia = Vec::new();
     let updated_stmt = match stmt {
         Stmt::Assignment(assignment) => {
-            let mut formatted_expression_list = assignment.expr_list().to_owned();
+            let mut formatted_expression_list = assignment.expressions().to_owned();
             if let Some(last_pair) = formatted_expression_list.pop() {
                 match last_pair {
                     Pair::End(value) => {
@@ -325,13 +325,13 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 }
             }
 
-            Stmt::Assignment(assignment.with_expr_list(formatted_expression_list))
+            Stmt::Assignment(assignment.with_expressions(formatted_expression_list))
         }
 
         Stmt::LocalAssignment(local_assignment) => {
-            let new_assignment = if local_assignment.expr_list().is_empty() {
+            let new_assignment = if local_assignment.expressions().is_empty() {
                 // Unassigned local variable
-                let mut formatted_name_list = local_assignment.name_list().to_owned();
+                let mut formatted_name_list = local_assignment.names().to_owned();
 
                 // Retrieve last item and take its trailing comments
                 if let Some(last_pair) = formatted_name_list.pop() {
@@ -351,11 +351,11 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                         }
                     }
                 }
-                local_assignment.with_name_list(formatted_name_list)
+                local_assignment.with_names(formatted_name_list)
             } else {
                 // Add newline at the end of LocalAssignment expression list
                 // Expression list should already be formatted
-                let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+                let mut formatted_expression_list = local_assignment.expressions().to_owned();
 
                 // Retrieve last item and remove trailing trivia
                 if let Some(last_pair) = formatted_expression_list.pop() {
@@ -374,14 +374,14 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                     }
                 }
 
-                local_assignment.with_expr_list(formatted_expression_list)
+                local_assignment.with_expressions(formatted_expression_list)
             };
 
             Stmt::LocalAssignment(new_assignment)
         }
 
         Stmt::FunctionCall(function_call) => {
-            let last_suffix = function_call.iter_suffixes().last();
+            let last_suffix = function_call.suffixes().last();
             trailing_trivia = match last_suffix {
                 Some(suffix) => suffix_trailing_trivia(suffix),
                 None => Vec::new(),
@@ -688,7 +688,7 @@ fn value_contains_comments(value: &Value) -> bool {
                 true
             } else {
                 let mut contained_comments = false;
-                for suffix in function_call.iter_suffixes() {
+                for suffix in function_call.suffixes() {
                     contained_comments = suffix_contains_comments(suffix);
                     if contained_comments {
                         break;
@@ -716,7 +716,7 @@ fn value_contains_comments(value: &Value) -> bool {
                     true
                 } else {
                     let mut contained_comments = false;
-                    for suffix in var_expr.iter_suffixes() {
+                    for suffix in var_expr.suffixes() {
                         contained_comments = suffix_contains_comments(suffix);
                         if contained_comments {
                             break;
