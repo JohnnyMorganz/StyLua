@@ -152,7 +152,6 @@ end end end end end
     	end
     end
 
-
     if string.sub(msg, 1, 5) == "trip/" then local player = findplayer(string.sub(msg, 6), speaker)
     if player ~= 0 then for i = 1, #player do
     if player[i].Character ~= nil then
