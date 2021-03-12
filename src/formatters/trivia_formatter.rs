@@ -3,7 +3,7 @@ use crate::{
     IndentType,
 };
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeInfo, TypeSpecifier};
+use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
     span::ContainedSpan, BinOp, BinOpRhs, Call, Expression, FunctionArgs, FunctionBody,
     FunctionCall, Index, MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var,
@@ -408,12 +408,12 @@ pub fn expression_add_leading_trivia<'ast>(
             value,
             binop,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => Expression::Value {
             value: Box::new(value_add_leading_trivia(*value, leading_trivia)),
             binop,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         },
     }
 }
@@ -428,14 +428,13 @@ pub fn expression_add_trailing_trivia<'ast>(
             value,
             binop,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => {
             #[cfg(feature = "luau")]
-            if let Some(as_assertion) = as_assertion {
+            if let Some(as_assertion) = type_assertion {
                 return Expression::Value {
                     value,
-                    binop,
-                    as_assertion: Some(as_assertion_add_trailing_trivia(
+                    type_assertion: Some(type_assertion_add_trailing_trivia(
                         as_assertion,
                         trailing_trivia,
                     )),
@@ -452,10 +451,8 @@ pub fn expression_add_trailing_trivia<'ast>(
             } else {
                 Expression::Value {
                     value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
-                    binop,
-                    #[cfg(feature = "luau")]
-                    as_assertion,
-                }
+                #[cfg(feature = "luau")]
+                type_assertion,
             }
         }
 
@@ -1036,12 +1033,13 @@ pub fn indexed_type_info_add_trailing_trivia<'ast>(
 }
 
 #[cfg(feature = "luau")]
-pub fn as_assertion_add_trailing_trivia<'ast>(
-    as_assertion: AsAssertion<'ast>,
+pub fn type_assertion_add_trailing_trivia<'ast>(
+    type_assertion: TypeAssertion<'ast>,
     trailing_trivia: FormatTriviaType<'ast>,
-) -> AsAssertion<'ast> {
-    let cast_to = type_info_add_trailing_trivia(as_assertion.cast_to().to_owned(), trailing_trivia);
-    as_assertion.with_cast_to(cast_to)
+) -> TypeAssertion<'ast> {
+    let cast_to =
+        type_info_add_trailing_trivia(type_assertion.cast_to().to_owned(), trailing_trivia);
+    type_assertion.with_cast_to(cast_to)
 }
 
 #[cfg(feature = "luau")]

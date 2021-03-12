@@ -4,8 +4,8 @@ use crate::formatters::{
     CodeFormatter,
 };
 use full_moon::ast::types::{
-    AsAssertion, CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-    IndexedTypeInfo, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -351,26 +351,14 @@ impl CodeFormatter {
         }
     }
 
-    pub fn format_as_assertion<'ast>(
+    pub fn format_type_assertion<'ast>(
         &mut self,
-        as_assertion: &AsAssertion<'ast>,
-    ) -> AsAssertion<'ast> {
-        let as_token = self.format_symbol(
-            as_assertion.as_token(),
-            &TokenReference::new(
-                vec![],
-                Token::new(TokenType::Identifier {
-                    identifier: Cow::Owned(String::from("as")),
-                }),
-                vec![Token::new(TokenType::spaces(1))],
-            ),
-        );
-        let cast_to = self.format_type_info(as_assertion.cast_to());
+        type_assertion: &TypeAssertion<'ast>,
+    ) -> TypeAssertion<'ast> {
+        let assertion_op = crate::fmt_symbol!(self, type_assertion.assertion_op(), " :: ");
+        let cast_to = self.format_type_info(type_assertion.cast_to());
 
-        as_assertion
-            .to_owned()
-            .with_as_token(as_token)
-            .with_cast_to(cast_to)
+        TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
     }
 
     fn format_type_declaration<'ast>(

@@ -445,7 +445,7 @@ impl CodeFormatter {
                 let new_expression = self.format_expression(&Expression::Value {
                     value: Box::new(Value::String(token_reference.to_owned())),
                     #[cfg(feature = "luau")]
-                    as_assertion: None,
+                    type_assertion: None,
                 });
 
                 // Remove any trailing comments from the expression, and move them into a buffer
@@ -475,7 +475,7 @@ impl CodeFormatter {
                 let new_expression = self.format_expression(&Expression::Value {
                     value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
                     #[cfg(feature = "luau")]
-                    as_assertion: None,
+                    type_assertion: None,
                 });
 
                 // Remove any trailing comments from the expression, and move them into a buffer

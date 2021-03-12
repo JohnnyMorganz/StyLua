@@ -1,6 +1,6 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
+use full_moon::ast::types::{TypeAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
 use full_moon::{
     ast::{
         punctuated::Pair, span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index,
@@ -199,11 +199,11 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => {
             #[cfg(feature = "luau")]
-            if let Some(as_assertion) = as_assertion {
-                return type_info_trailing_trivia(as_assertion.cast_to());
+            if let Some(type_assertion) = type_assertion {
+                return type_info_trailing_trivia(type_assertion.cast_to());
             }
 
             get_value_trailing_trivia(value)
@@ -670,9 +670,9 @@ fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -
 }
 
 #[cfg(feature = "luau")]
-fn as_assertion_contains_comments<'ast>(as_assertion: &AsAssertion<'ast>) -> bool {
-    token_contains_comments(as_assertion.as_token())
-        || type_info_contains_comments(as_assertion.cast_to())
+fn type_assertion_contains_comments<'ast>(type_assertion: &TypeAssertion<'ast>) -> bool {
+    token_contains_comments(type_assertion.assertion_op())
+        || type_info_contains_comments(type_assertion.cast_to())
 }
 
 fn value_contains_comments(value: &Value) -> bool {
@@ -783,14 +783,14 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => {
             #[cfg(feature = "luau")]
             {
                 return value_contains_comments(value)
-                    || as_assertion
+                    || type_assertion
                         .as_ref()
-                        .map_or(false, |x| as_assertion_contains_comments(x));
+                        .map_or(false, |x| type_assertion_contains_comments(x));
             }
 
             #[cfg(not(feature = "luau"))]

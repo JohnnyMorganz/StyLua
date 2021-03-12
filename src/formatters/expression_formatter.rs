@@ -79,12 +79,12 @@ impl CodeFormatter {
             Expression::Value {
                 value,
                 #[cfg(feature = "luau")]
-                as_assertion,
+                type_assertion,
             } => Expression::Value {
                 value: Box::new(self.format_value(value)),
                 #[cfg(feature = "luau")]
-                as_assertion: match as_assertion {
-                    Some(assertion) => Some(self.format_as_assertion(assertion)),
+                type_assertion: match type_assertion {
+                    Some(assertion) => Some(self.format_type_assertion(assertion)),
                     None => None,
                 },
             },
