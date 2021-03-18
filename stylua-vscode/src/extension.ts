@@ -8,7 +8,10 @@ import { formatCode, checkIgnored } from "./stylua";
  * @param document The document to retreive the byte offset in
  * @param position The possition to retreive the byte offset for
  */
-const byteOffset = (document: vscode.TextDocument, position: vscode.Position) => {
+const byteOffset = (
+  document: vscode.TextDocument,
+  position: vscode.Position
+) => {
   // Retreive all the text from the start of the document to the position provided
   const textRange = new vscode.Range(document.positionAt(0), position);
   const text = document.getText(textRange);
@@ -53,18 +56,25 @@ export async function activate(context: vscode.ExtensionContext) {
           return [];
         }
 
-        const fileName = document.fileName;
-        const cwd = vscode.workspace.getWorkspaceFolder(
-          vscode.Uri.file(document.uri.fsPath)
-        )?.uri?.fsPath;
-        if (await checkIgnored(fileName, cwd)) {
+        const currentWorkspace = vscode.workspace.getWorkspaceFolder(
+          document.uri
+        );
+        const cwd = currentWorkspace?.uri?.fsPath;
+
+        if (await checkIgnored(document.uri, currentWorkspace?.uri)) {
           return [];
         }
 
         const text = document.getText();
 
         try {
-          const formattedText = await formatCode(styluaBinaryPath, text, cwd, byteOffset(document, range.start), byteOffset(document, range.end));
+          const formattedText = await formatCode(
+            styluaBinaryPath,
+            text,
+            cwd,
+            byteOffset(document, range.start),
+            byteOffset(document, range.end)
+          );
           // Replace the whole document with our new formatted version
           const lastLineNumber = document.lineCount - 1;
           const fullDocumentRange = new vscode.Range(
