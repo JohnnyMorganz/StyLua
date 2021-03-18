@@ -74,7 +74,7 @@ impl Range {
 
 /// The configuration to use when formatting.
 #[derive(Copy, Clone, Debug, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Config {
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
