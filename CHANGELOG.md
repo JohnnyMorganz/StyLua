@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added configuration for quote style. There are four quote style options - `AutoPreferDouble`, `AutoPreferSingle`, `ForceDouble` and `ForceSingle`.
 For the auto styles, we will prefer the quote type specified, but fall back to the opposite if it means there are fewer escapes. For the
 force styles, we will always use the quote type specified.
+- StyLua will now error when unknown fields are found in the configuration `stylua.toml` file
 
 ### Changed
 - Function call heuristic have been further improve to decide when to expand the function call arguments onto multiple lines.
