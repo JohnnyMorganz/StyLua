@@ -13,7 +13,7 @@ Please note, currently by default, StyLua is built with Luau features enabled. I
 
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
-```
+```toml
 stylua = { source = "JohnnyMorganz/stylua", version = "0.5.0" }
 ```
 
@@ -112,7 +112,7 @@ The approximate line length for printing. This is used as a guide to determine w
 not a hard upper bound.
 Defaults to `120`.
 
-```
+```toml
 column_width = 120
 ```
 
@@ -121,7 +121,7 @@ column_width = 120
 The type of line endings to use, supports either `Unix` (LF) or `Windows` (CRLF) options.
 Defaults to `Unix`.
 
-```
+```toml
 line_endings = "Unix"
 ```
 
@@ -130,7 +130,7 @@ line_endings = "Unix"
 The type of indents to use, supports either `Tabs` or `Spaces`.
 Defaults to `Tabs`.
 
-```
+```toml
 indent_type = "Tabs"
 ```
 
@@ -139,7 +139,7 @@ indent_type = "Tabs"
 The width of spaces a single indent level should be. This option is used for heuristics only to determine column width if the `indent_type` is set to `Tabs`.
 Defaults to `4`.
 
-```
+```toml
 indent_width = 2
 ```
 
@@ -150,6 +150,6 @@ For the auto styles, we will prefer the quote type specified, but fall back to t
 force styles, we will always use the quote type specified.
 Defaults to `AutoPreferDouble`.
 
-```
+```toml
 quote_style = "AutoPreferDouble"
 ```
