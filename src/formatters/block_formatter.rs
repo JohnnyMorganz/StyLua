@@ -246,7 +246,7 @@ impl CodeFormatter {
         }
     }
 
-    fn var_remove_leading_newline<'ast>(var: Var<'ast>) -> Var<'ast> {
+    fn var_remove_leading_newline(var: Var) -> Var {
         match var {
             Var::Name(token) => {
                 let leading_trivia =
@@ -265,7 +265,7 @@ impl CodeFormatter {
         }
     }
 
-    fn stmt_remove_leading_newlines<'ast>(stmt: Stmt<'ast>) -> Stmt<'ast> {
+    fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         match stmt {
             Stmt::Assignment(assignment) => {
                 let mut var_list = Punctuated::new();
@@ -365,7 +365,7 @@ impl CodeFormatter {
         }
     }
 
-    fn last_stmt_remove_leading_newlines<'ast>(last_stmt: LastStmt<'ast>) -> LastStmt<'ast> {
+    fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
         match last_stmt {
             LastStmt::Break(token) => {
                 let leading_trivia =

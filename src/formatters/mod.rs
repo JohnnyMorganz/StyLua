@@ -210,16 +210,14 @@ impl CodeFormatter {
                 };
 
                 // Check to see if there is a quote within it
-                if literal.contains("'") || literal.contains("\"") {
-                    let num_single_quotes = literal.matches("'").count();
-                    let num_double_quotes = literal.matches("\"").count();
+                if literal.contains('\'') || literal.contains('"') {
+                    let num_single_quotes = literal.matches('\'').count();
+                    let num_double_quotes = literal.matches('"').count();
 
-                    if num_single_quotes == num_double_quotes {
-                        preferred
-                    } else if num_single_quotes > num_double_quotes {
-                        StringLiteralQuoteType::Double
-                    } else {
-                        StringLiteralQuoteType::Single
+                    match num_single_quotes.cmp(&num_double_quotes) {
+                        std::cmp::Ordering::Equal => preferred,
+                        std::cmp::Ordering::Greater => StringLiteralQuoteType::Double,
+                        std::cmp::Ordering::Less => StringLiteralQuoteType::Single,
                     }
                 } else {
                     preferred
