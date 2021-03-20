@@ -43,6 +43,7 @@ impl CodeFormatter {
                 UnOp::Hash(token_reference) => {
                     CodeFormatter::get_token_range(token_reference.token())
                 }
+                other => panic!("unknown node {:?}", other),
             },
             Expression::BinaryOperator { lhs, .. } => CodeFormatter::get_range_in_expression(lhs),
             Expression::Value { value, .. } => {
@@ -68,9 +69,12 @@ impl CodeFormatter {
                         Var::Expression(var_expr) => {
                             CodeFormatter::get_range_in_prefix(var_expr.prefix())
                         }
+                        other => panic!("unknown node {:?}", other),
                     },
+                    other => panic!("unknown node {:?}", other),
                 }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -78,6 +82,7 @@ impl CodeFormatter {
         match prefix {
             Prefix::Name(token) => CodeFormatter::get_token_range(token.token()),
             Prefix::Expression(expression) => CodeFormatter::get_range_in_expression(expression),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -194,6 +199,8 @@ impl CodeFormatter {
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 )))
             }
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -246,6 +253,8 @@ impl CodeFormatter {
                     unreachable!("got non-parentheses expression as prefix {:?}", other)
                 }
             }),
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -265,6 +274,7 @@ impl CodeFormatter {
                 let prefix = CodeFormatter::prefix_remove_leading_newlines(var_expr.prefix());
                 Var::Expression(var_expr.with_prefix(prefix))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -365,6 +375,7 @@ impl CodeFormatter {
                 type_declaration.type_token(),
                 with_type_token
             ),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -403,6 +414,7 @@ impl CodeFormatter {
                 );
                 LastStmt::Continue(Cow::Owned(new_token))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 

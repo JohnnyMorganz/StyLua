@@ -11,6 +11,7 @@ macro_rules! fmt_op {
             $(
                 $enum::$operator(token) => $enum::$operator(crate::fmt_symbol!($fmter, token, $output)),
             )+
+            other => panic!("unknown node {:?}", other),
         }
     };
 }
@@ -70,6 +71,7 @@ impl CodeFormatter {
                     _ => true,
                 }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -116,6 +118,7 @@ impl CodeFormatter {
                 binop: self.format_binop(binop),
                 rhs: Box::new(self.format_expression(rhs)),
             },
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -134,6 +137,7 @@ impl CodeFormatter {
                 dot: self.format_token_reference(dot),
                 name: self.format_token_reference(name),
             },
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -146,6 +150,7 @@ impl CodeFormatter {
             Prefix::Name(token_reference) => {
                 Prefix::Name(self.format_token_reference(token_reference))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -154,6 +159,7 @@ impl CodeFormatter {
         match suffix {
             Suffix::Call(call) => Suffix::Call(self.format_call(call)),
             Suffix::Index(index) => Suffix::Index(self.format_index(index)),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -182,6 +188,7 @@ impl CodeFormatter {
                 Value::TableConstructor(self.format_table_constructor(table_constructor))
             }
             Value::Var(var) => Value::Var(self.format_var(var)),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -192,6 +199,7 @@ impl CodeFormatter {
             Var::Expression(var_expression) => {
                 Var::Expression(self.format_var_expression(var_expression))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 

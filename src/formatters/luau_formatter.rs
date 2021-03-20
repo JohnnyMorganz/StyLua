@@ -277,6 +277,8 @@ impl CodeFormatter {
 
                 TypeInfo::Union { left, pipe, right }
             }
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -306,6 +308,8 @@ impl CodeFormatter {
                     generics,
                 }
             }
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -348,6 +352,7 @@ impl CodeFormatter {
 
                 TypeFieldKey::IndexSignature { brackets, inner }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 

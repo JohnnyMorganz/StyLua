@@ -82,6 +82,7 @@ impl CodeFormatter {
                 Call::AnonymousCall(self.format_function_args(function_args))
             }
             Call::MethodCall(method_call) => Call::MethodCall(self.format_method_call(method_call)),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -499,6 +500,7 @@ impl CodeFormatter {
                     arguments,
                 }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -746,6 +748,7 @@ impl CodeFormatter {
             Parameter::Name(token_reference) => {
                 Parameter::Name(self.format_token_reference(token_reference))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -756,6 +759,7 @@ impl CodeFormatter {
                 Cow::Owned(t) => trivia_util::token_contains_comments(&t),
                 Cow::Borrowed(t) => trivia_util::token_contains_comments(t),
             },
+            other => panic!("unknown node {:?}", other),
         }
     }
     /// Utilises the FunctionBody iterator to format a list of Parameter nodes

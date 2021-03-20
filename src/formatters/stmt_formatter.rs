@@ -14,6 +14,7 @@ macro_rules! fmt_stmt {
                 $(#[$inner])*
                 Stmt::$operator(stmt) => Stmt::$operator($fmter.$output(stmt)),
             )+
+            other => panic!("unknown node {:?}", other),
         }
     };
 }

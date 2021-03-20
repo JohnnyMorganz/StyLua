@@ -80,6 +80,8 @@ impl CodeFormatter {
                     ))
                 }
             }
+
+            other => panic!("unknown node {:?}", other),
         };
 
         (field, trailing_trivia)
@@ -203,6 +205,7 @@ impl CodeFormatter {
                         }
                         Field::NameKey { key, .. } => CodeFormatter::get_token_range(key.token()),
                         Field::NoKey(expr) => CodeFormatter::get_range_in_expression(&expr),
+                        other => panic!("unknown node {:?}", other),
                     };
                     let additional_indent_level = self.get_range_indent_increase(range);
                     FormatTriviaType::Append(vec![

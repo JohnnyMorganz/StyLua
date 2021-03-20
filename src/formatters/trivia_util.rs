@@ -34,6 +34,7 @@ pub fn can_hang_expression(expression: &Expression) -> bool {
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
         Expression::Value { .. } => false,
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -52,6 +53,7 @@ fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Ve
             let (_, end_brace) = table_constructor.braces().tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -63,11 +65,14 @@ fn suffix_trailing_trivia<'ast>(suffix: &Suffix<'ast>) -> Vec<Token<'ast>> {
                 end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
             }
             Index::Dot { name, .. } => name.trailing_trivia().map(|x| x.to_owned()).collect(),
+            other => panic!("unknown node {:?}", other),
         },
         Suffix::Call(call) => match call {
             Call::AnonymousCall(function_args) => function_args_trailing_trivia(function_args),
             Call::MethodCall(method_call) => function_args_trailing_trivia(method_call.args()),
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -84,6 +89,7 @@ fn indexed_type_info_trailing_trivia<'ast>(
             let (_, end_brace) = arrows.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -129,6 +135,8 @@ fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast
         }
 
         TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
+
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -146,6 +154,7 @@ fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
                 vec![]
             }
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -182,6 +191,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .map(|x| x.to_owned())
             .collect(),
         Value::Var(var) => var_trailing_trivia(var),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -208,6 +218,7 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
 
             get_value_trailing_trivia(value)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -223,6 +234,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
             UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
+            other => panic!("unknown node {:?}", other),
         },
         Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
         Expression::Value { value, .. } => match &**value {
@@ -234,6 +246,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                     token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                 }
                 Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+                other => panic!("unknown node {:?}", other),
             },
             Value::TableConstructor(table) => table
                 .braces()
@@ -253,9 +266,13 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                         token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                     }
                     Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+                    other => panic!("unknown node {:?}", other),
                 },
+                other => panic!("unknown node {:?}", other),
             },
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -269,6 +286,7 @@ pub fn get_field_leading_trivia<'ast>(field: &Field<'ast>) -> Vec<Token<'ast>> {
             .collect(),
         Field::NameKey { key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
         Field::NoKey(expression) => get_expression_leading_trivia(expression),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -454,6 +472,7 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
                     || expression_contains_comments(value)
             }
             Field::NoKey(expression) => expression_contains_comments(expression),
+            other => panic!("unknown node {:?}", other),
         };
 
         if let Some(punctuation) = field.punctuation() {
@@ -502,6 +521,7 @@ fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {
         FunctionArgs::TableConstructor(table_constructor) => {
             table_constructor_contains_comments(table_constructor)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -514,6 +534,7 @@ fn suffix_contains_comments(suffix: &Suffix) -> bool {
                     || token_contains_comments(method_call.colon_token())
                     || function_args_contains_comments(method_call.args())
             }
+            other => panic!("unknown node {:?}", other),
         },
         Suffix::Index(index) => match index {
             Index::Brackets {
@@ -528,7 +549,9 @@ fn suffix_contains_comments(suffix: &Suffix) -> bool {
             Index::Dot { dot, name } => {
                 token_contains_comments(dot) || token_contains_comments(name)
             }
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -628,6 +651,7 @@ fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
                 || token_contains_comments(pipe)
                 || type_info_contains_comments(right)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -649,6 +673,7 @@ fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) 
                             .map_or(false, |punc| token_contains_comments(punc))
                 })
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -666,6 +691,7 @@ fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -
         TypeFieldKey::IndexSignature { brackets, inner } => {
             contained_span_contains_comments(brackets) || type_info_contains_comments(inner)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -689,6 +715,7 @@ fn value_contains_comments(value: &Value) -> bool {
             let contained = match function_call.prefix() {
                 Prefix::Name(token) => token_contains_comments(token),
                 Prefix::Expression(expression) => expression_contains_comments(expression),
+                other => panic!("unknown node {:?}", other),
             };
 
             if contained {
@@ -717,6 +744,7 @@ fn value_contains_comments(value: &Value) -> bool {
                 let contained = match var_expr.prefix() {
                     Prefix::Name(token) => token_contains_comments(token),
                     Prefix::Expression(expression) => expression_contains_comments(expression),
+                    other => panic!("unknown node {:?}", other),
                 };
 
                 if contained {
@@ -732,7 +760,9 @@ fn value_contains_comments(value: &Value) -> bool {
                     contained_comments
                 }
             }
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -753,6 +783,7 @@ fn binop_contains_comments(binop: &BinOp) -> bool {
         | BinOp::TildeEqual(t)
         | BinOp::TwoDots(t)
         | BinOp::TwoEqual(t) => token_contains_comments(t),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -772,6 +803,7 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
                         return true;
                     }
                 }
+                other => panic!("unknown node {:?}", other),
             }
 
             expression_contains_comments(expression)
@@ -818,7 +850,7 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
                     op_contains_comments || expression_contains_inline_comments(expression)
                 }
                 Expression::Value{ .. } => false,
-                Expression::Parentheses { .. } => expression_contains_comments(rhs)
+                other => panic!("unknown node {:?}", other),
             }
         }
         _ => false,

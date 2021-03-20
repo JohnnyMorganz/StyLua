@@ -296,6 +296,7 @@ macro_rules! binop_leading_trivia {
             $(
                 $enum::$operator(token) => $enum::$operator(Cow::Owned(token_reference_add_trivia(token.into_owned(), $leading_trivia, FormatTriviaType::NoChange))),
             )+
+            other => panic!("unknown node {:?}", other),
         }
     };
 }
@@ -380,6 +381,7 @@ pub fn call_add_trailing_trivia<'ast>(
             method_call,
             trailing_trivia,
         )),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -415,6 +417,7 @@ pub fn expression_add_leading_trivia<'ast>(
             #[cfg(feature = "luau")]
             type_assertion,
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -474,6 +477,7 @@ pub fn expression_add_trailing_trivia<'ast>(
             unop,
             expression: Box::new(expression_add_trailing_trivia(*expression, trailing_trivia)),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -510,6 +514,7 @@ pub fn function_args_add_trailing_trivia<'ast>(
                 trailing_trivia,
             ))
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -577,6 +582,7 @@ pub fn index_add_trailing_trivia<'ast>(
                 trailing_trivia,
             )),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -609,6 +615,7 @@ pub fn parameter_add_trivia<'ast>(
             leading_trivia,
             trailing_trivia,
         ))),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -626,6 +633,7 @@ pub fn prefix_add_leading_trivia<'ast>(
         Prefix::Expression(expression) => {
             Prefix::Expression(expression_add_leading_trivia(expression, leading_trivia))
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -637,6 +645,7 @@ pub fn suffix_add_trailing_trivia<'ast>(
     match suffix {
         Suffix::Call(call) => Suffix::Call(call_add_trailing_trivia(call, trailing_trivia)),
         Suffix::Index(index) => Suffix::Index(index_add_trailing_trivia(index, trailing_trivia)),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -720,6 +729,7 @@ pub fn unop_add_leading_trivia<'ast>(
             leading_trivia,
             FormatTriviaType::NoChange,
         ))),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -765,6 +775,7 @@ pub fn value_add_leading_trivia<'ast>(
             ))
         }
         Value::Var(var) => Value::Var(var_add_leading_trivia(var, leading_trivia)),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -807,6 +818,7 @@ pub fn value_add_trailing_trivia<'ast>(
             ))
         }
         Value::Var(var) => Value::Var(var_add_trailing_trivia(var, trailing_trivia)),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -825,6 +837,7 @@ pub fn var_add_leading_trivia<'ast>(
             var_expresion,
             leading_trivia,
         )),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -843,6 +856,7 @@ pub fn var_add_trailing_trivia<'ast>(
             var_expression,
             trailing_trivia,
         )),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -999,6 +1013,8 @@ pub fn type_info_add_trailing_trivia<'ast>(
             let right = Box::new(type_info_add_trailing_trivia(*right, trailing_trivia));
             TypeInfo::Union { left, pipe, right }
         }
+
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -1029,6 +1045,8 @@ pub fn indexed_type_info_add_trailing_trivia<'ast>(
                 generics,
             }
         }
+
+        other => panic!("unknown node {:?}", other),
     }
 }
 
