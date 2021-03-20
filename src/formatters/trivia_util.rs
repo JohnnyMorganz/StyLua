@@ -8,7 +8,6 @@ use full_moon::{
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
-use std::borrow::Cow;
 
 pub fn trivia_is_newline(trivia: &Token) -> bool {
     if let TokenType::Whitespace { characters } = trivia.token_type() {
@@ -364,11 +363,11 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                         Pair::End(value) => {
                             trailing_trivia =
                                 value.trailing_trivia().map(|x| x.to_owned()).collect();
-                            let value = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                                value.into_owned(),
+                            let value = trivia_formatter::token_reference_add_trivia(
+                                value,
                                 FormatTriviaType::NoChange,
                                 FormatTriviaType::Replace(vec![]),
-                            ));
+                            );
                             formatted_name_list.push(Pair::End(value));
                         }
                         Pair::Punctuated(_, _) => {
@@ -828,6 +827,7 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
             #[cfg(not(feature = "luau"))]
             value_contains_comments(value)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -845,11 +845,13 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
                 Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
                 Expression::UnaryOperator { unop, expression } => {
                     let op_contains_comments = match unop {
-                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token)
+                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token),
+                        other => panic!("unknown node {:?}", other)
                     };
                     op_contains_comments || expression_contains_inline_comments(expression)
                 }
                 Expression::Value{ .. } => false,
+                Expression::Parentheses { .. } => expression_contains_comments(rhs),
                 other => panic!("unknown node {:?}", other),
             }
         }

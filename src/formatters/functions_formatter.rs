@@ -6,11 +6,9 @@ use full_moon::ast::{
 };
 use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
-use std::borrow::Cow;
 use std::boxed::Box;
 
 use crate::formatters::{
-    get_line_ending_character,
     trivia_formatter::{self, FormatTriviaType},
     trivia_util, CodeFormatter,
 };
@@ -22,7 +20,7 @@ impl CodeFormatter {
         &mut self,
         function_token: &TokenReference<'ast>,
         function_body: &FunctionBody<'ast>,
-    ) -> (Cow<'ast, TokenReference<'ast>>, FunctionBody<'ast>) {
+    ) -> (TokenReference<'ast>, FunctionBody<'ast>) {
         let function_token_range = CodeFormatter::get_token_range(function_token.token());
         let additional_indent_level = self.get_range_indent_increase(function_token_range); //code_formatter.get_token_indent_increase(function_token.token());
 
@@ -66,11 +64,11 @@ impl CodeFormatter {
             function_body = function_body.with_parameters_parentheses(parameters_parentheses);
         };
 
-        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+        let end_token = trivia_formatter::token_reference_add_trivia(
             function_body.end_token().to_owned(),
             FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         (function_token, function_body.with_end_token(end_token))
     }
@@ -288,7 +286,7 @@ impl CodeFormatter {
                     // Add new_line trivia to start_parens
                     let start_parens_token = crate::fmt_symbol!(self, start_parens, "(");
                     let start_parens_token = trivia_formatter::token_reference_add_trivia(
-                        start_parens_token.into_owned(),
+                        start_parens_token,
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                     );
@@ -302,7 +300,7 @@ impl CodeFormatter {
                     );
 
                     let parentheses = ContainedSpan::new(
-                        Cow::Owned(start_parens_token),
+                        start_parens_token,
                         self.format_symbol(end_parens, &end_parens_token),
                     );
 
@@ -370,22 +368,18 @@ impl CodeFormatter {
                                 // Continue adding a comma and a new line for multiline function args
                                 let symbol = crate::fmt_symbol!(self, punctuation, ",");
                                 let symbol = trivia_formatter::token_reference_add_trivia(
-                                    symbol.into_owned(),
+                                    symbol,
                                     FormatTriviaType::NoChange,
                                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                                 );
 
-                                Some(Cow::Owned(symbol))
+                                Some(symbol)
                             }
-                            None => Some(Cow::Owned(TokenReference::new(
+                            None => Some(TokenReference::new(
                                 vec![],
-                                Token::new(TokenType::Whitespace {
-                                    characters: Cow::Owned(get_line_ending_character(
-                                        &self.config.line_endings,
-                                    )),
-                                }),
+                                self.create_newline_trivia(),
                                 vec![],
-                            ))),
+                            )),
                         };
 
                         formatted_arguments.push(Pair::new(formatted_argument, punctuation))
@@ -422,16 +416,16 @@ impl CodeFormatter {
                     // Recreate parentheses with the comments removed from the opening parens
                     // and all the comments placed at the end of the closing parens
                     let parentheses = ContainedSpan::new(
-                        Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        trivia_formatter::token_reference_add_trivia(
                             start_parens.to_owned(),
                             FormatTriviaType::NoChange,
                             FormatTriviaType::Replace(vec![]),
-                        )),
-                        Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        ),
+                        trivia_formatter::token_reference_add_trivia(
                             end_parens.to_owned(),
                             FormatTriviaType::NoChange,
                             FormatTriviaType::Append(parens_comments),
-                        )),
+                        ),
                     );
 
                     FunctionArgs::Parentheses {
@@ -456,8 +450,8 @@ impl CodeFormatter {
                 // Create parentheses, and add the trailing comments to the end of the parentheses
                 let parentheses = trivia_formatter::contained_span_add_trivia(
                     ContainedSpan::new(
-                        Cow::Owned(TokenReference::symbol("(").unwrap()),
-                        Cow::Owned(TokenReference::symbol(")").unwrap()),
+                        TokenReference::symbol("(").unwrap(),
+                        TokenReference::symbol(")").unwrap(),
                     ),
                     FormatTriviaType::NoChange,
                     FormatTriviaType::Append(comments_buffer),
@@ -486,8 +480,8 @@ impl CodeFormatter {
                 // Create parentheses, and add the trailing comments to the end of the parentheses
                 let parentheses = trivia_formatter::contained_span_add_trivia(
                     ContainedSpan::new(
-                        Cow::Owned(TokenReference::symbol("(").unwrap()),
-                        Cow::Owned(TokenReference::symbol(")").unwrap()),
+                        TokenReference::symbol("(").unwrap(),
+                        TokenReference::symbol(")").unwrap(),
                     ),
                     FormatTriviaType::NoChange,
                     FormatTriviaType::Append(comments_buffer),
@@ -537,7 +531,7 @@ impl CodeFormatter {
                 // Add new_line trivia to start_parens
                 let start_parens_token = crate::fmt_symbol!(self, start_parens, "(");
                 let start_parens_token = trivia_formatter::token_reference_add_trivia(
-                    start_parens_token.into_owned(),
+                    start_parens_token,
                     FormatTriviaType::NoChange,
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 );
@@ -551,7 +545,7 @@ impl CodeFormatter {
                 );
 
                 ContainedSpan::new(
-                    Cow::Owned(start_parens_token),
+                    start_parens_token,
                     self.format_symbol(end_parens, &end_parens_token),
                 )
             }
@@ -602,12 +596,11 @@ impl CodeFormatter {
         }
 
         let end_token = if add_trivia {
-            Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                self.format_end_token(function_body.end_token())
-                    .into_owned(),
+            trivia_formatter::token_reference_add_trivia(
+                self.format_end_token(function_body.end_token()),
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::Append(trailing_trivia),
-            ))
+            )
         } else {
             self.format_end_token(function_body.end_token())
         };
@@ -662,16 +655,13 @@ impl CodeFormatter {
             }
         }
 
-        let mut formatted_method: Option<(
-            Cow<'ast, TokenReference<'ast>>,
-            Cow<'ast, TokenReference<'ast>>,
-        )> = None;
+        let mut formatted_method: Option<(TokenReference<'ast>, TokenReference<'ast>)> = None;
 
         if let Some(method_colon) = function_name.method_colon() {
             if let Some(token_reference) = function_name.method_name() {
                 formatted_method = Some((
                     crate::fmt_symbol!(self, method_colon, ":"),
-                    Cow::Owned(self.format_plain_token_reference(token_reference)),
+                    self.format_token_reference(token_reference),
                 ));
             }
         };
@@ -690,12 +680,11 @@ impl CodeFormatter {
         );
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
 
-        let function_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, function_declaration.function_token(), "function ")
-                .into_owned(),
+        let function_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, function_declaration.function_token(), "function "),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::NoChange,
-        ));
+        );
         let formatted_function_name = self.format_function_name(function_declaration.name());
         let formatted_function_body = self.format_function_body(function_declaration.body(), true);
 
@@ -715,14 +704,14 @@ impl CodeFormatter {
         );
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
 
-        let local_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, local_function.local_token(), "local ").into_owned(),
+        let local_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, local_function.local_token(), "local "),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         let function_token = crate::fmt_symbol!(self, local_function.function_token(), "function ");
-        let formatted_name = Cow::Owned(self.format_plain_token_reference(local_function.name()));
+        let formatted_name = self.format_token_reference(local_function.name());
         let formatted_function_body = self.format_function_body(local_function.body(), true);
 
         LocalFunction::new(formatted_name)
@@ -733,12 +722,12 @@ impl CodeFormatter {
 
     /// Formats a MethodCall node
     pub fn format_method_call<'ast>(&mut self, method_call: &MethodCall<'ast>) -> MethodCall<'ast> {
-        let formatted_colon_token = self.format_plain_token_reference(method_call.colon_token());
-        let formatted_name = self.format_plain_token_reference(method_call.name());
+        let formatted_colon_token = self.format_token_reference(method_call.colon_token());
+        let formatted_name = self.format_token_reference(method_call.name());
         let formatted_function_args = self.format_function_args(method_call.args());
 
-        MethodCall::new(Cow::Owned(formatted_name), formatted_function_args)
-            .with_colon_token(Cow::Owned(formatted_colon_token))
+        MethodCall::new(formatted_name, formatted_function_args)
+            .with_colon_token(formatted_colon_token)
     }
 
     /// Formats a single Parameter node
@@ -755,10 +744,9 @@ impl CodeFormatter {
     // Checks whether the input Parameter contains comments
     fn parameter_contains_comments(parameter: &Parameter<'_>) -> bool {
         match parameter {
-            Parameter::Ellipse(token) | Parameter::Name(token) => match token {
-                Cow::Owned(t) => trivia_util::token_contains_comments(&t),
-                Cow::Borrowed(t) => trivia_util::token_contains_comments(t),
-            },
+            Parameter::Ellipse(token) | Parameter::Name(token) => {
+                trivia_util::token_contains_comments(token)
+            }
             other => panic!("unknown node {:?}", other),
         }
     }
@@ -792,12 +780,12 @@ impl CodeFormatter {
 
             let formatted_punctuation = match pair.punctuation() {
                 Some(punctuation) => Some(match force_multiline {
-                    true => Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    true => trivia_formatter::token_reference_add_trivia(
                         // Create a comma with no trailing space, and instead we will add a newline character
-                        crate::fmt_symbol!(self, punctuation, ",").into_owned(),
+                        crate::fmt_symbol!(self, punctuation, ","),
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                    )),
+                    ),
                     // Create a comma, with a trailing space at the end
                     false => crate::fmt_symbol!(self, punctuation, ", "),
                 }),

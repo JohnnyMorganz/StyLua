@@ -8,7 +8,6 @@ use full_moon::ast::{
     Field, TableConstructor,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
-use std::borrow::Cow;
 
 /// Used to provide information about the table
 pub enum TableType {
@@ -53,11 +52,11 @@ impl CodeFormatter {
             Field::NameKey { key, equal, value } => {
                 trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
                 Field::NameKey {
-                    key: Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                        self.format_token_reference(key).into_owned(),
+                    key: trivia_formatter::token_reference_add_trivia(
+                        self.format_token_reference(key),
                         leading_trivia,
                         FormatTriviaType::NoChange,
-                    )),
+                    ),
                     equal: crate::fmt_symbol!(self, equal, " = "),
                     value: trivia_formatter::expression_add_trailing_trivia(
                         self.format_expression(value),
@@ -102,18 +101,18 @@ impl CodeFormatter {
 
                 // Add new_line trivia to start_brace
                 let start_brace_token = trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, start_brace, "{").into_owned(),
+                    crate::fmt_symbol!(self, start_brace, "{"),
                     FormatTriviaType::NoChange,
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                 );
 
                 let end_brace_token = trivia_formatter::token_reference_add_trivia(
-                    self.format_end_token(end_brace).into_owned(),
+                    self.format_end_token(end_brace),
                     FormatTriviaType::Append(end_brace_leading_trivia),
                     FormatTriviaType::Replace(vec![]),
                 );
 
-                ContainedSpan::new(Cow::Owned(start_brace_token), Cow::Owned(end_brace_token))
+                ContainedSpan::new(start_brace_token, end_brace_token)
             }
 
             TableType::SingleLine => ContainedSpan::new(
@@ -230,7 +229,7 @@ impl CodeFormatter {
                     // Continue adding a comma and a new line for multiline tables
                     let mut symbol = TokenReference::symbol(",").unwrap();
                     if let Some(punctuation) = punctuation {
-                        symbol = self.format_symbol(&punctuation, &symbol).into_owned();
+                        symbol = self.format_symbol(&punctuation, &symbol);
                     }
                     // Add newline trivia to the end of the symbol, and preserve any comments
                     trailing_trivia.push(self.create_newline_trivia());
@@ -239,7 +238,7 @@ impl CodeFormatter {
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(trailing_trivia),
                     );
-                    formatted_punctuation = Some(Cow::Owned(symbol))
+                    formatted_punctuation = Some(symbol)
                 }
                 false => {
                     if current_fields.peek().is_some() {
@@ -249,7 +248,7 @@ impl CodeFormatter {
                                 &punctuation,
                                 &TokenReference::symbol(", ").unwrap(),
                             )),
-                            None => Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
+                            None => Some(TokenReference::symbol(", ").unwrap()),
                         }
                     };
                 }

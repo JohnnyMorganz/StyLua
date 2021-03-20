@@ -20,7 +20,7 @@ macro_rules! update_first_token {
             FormatTriviaType::Replace(leading_trivia),
             FormatTriviaType::NoChange,
         );
-        Stmt::$enum($var.$update_method(Cow::Owned(new_token)))
+        Stmt::$enum($var.$update_method(new_token))
     }};
 }
 impl CodeFormatter {
@@ -98,7 +98,7 @@ impl CodeFormatter {
 
         let formatted_token = if formatted_returns.is_empty() {
             trivia_formatter::token_reference_add_trivia(
-                crate::fmt_symbol!(self, return_node.token(), "return").into_owned(),
+                crate::fmt_symbol!(self, return_node.token(), "return"),
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::Append(trailing_trivia),
             )
@@ -153,14 +153,14 @@ impl CodeFormatter {
             }
 
             trivia_formatter::token_reference_add_trivia(
-                crate::fmt_symbol!(self, return_node.token(), "return ").into_owned(),
+                crate::fmt_symbol!(self, return_node.token(), "return "),
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::NoChange,
             )
         };
 
         Return::new()
-            .with_token(Cow::Owned(formatted_token))
+            .with_token(formatted_token)
             .with_returns(formatted_returns)
     }
 
@@ -169,19 +169,19 @@ impl CodeFormatter {
 
         match last_stmt {
             LastStmt::Break(token) => {
-                LastStmt::Break(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, token, "break").into_owned(),
+                LastStmt::Break(trivia_formatter::token_reference_add_trivia(
+                    crate::fmt_symbol!(self, token, "break"),
                     FormatTriviaType::Append(vec![self.create_indent_trivia(
                         self.get_range_indent_increase(CodeFormatter::get_token_range(token)),
                     )]),
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                )))
+                ))
             }
 
             LastStmt::Return(return_node) => LastStmt::Return(self.format_return(return_node)),
             #[cfg(feature = "luau")]
             LastStmt::Continue(token) => {
-                LastStmt::Continue(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                LastStmt::Continue(trivia_formatter::token_reference_add_trivia(
                     self.format_symbol(
                         token,
                         &TokenReference::new(
@@ -191,13 +191,12 @@ impl CodeFormatter {
                             }),
                             vec![],
                         ),
-                    )
-                    .into_owned(),
+                    ),
                     FormatTriviaType::Append(vec![self.create_indent_trivia(
                         self.get_range_indent_increase(CodeFormatter::get_token_range(token)),
                     )]),
                     FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                )))
+                ))
             }
 
             other => panic!("unknown node {:?}", other),
@@ -221,11 +220,11 @@ impl CodeFormatter {
                 let leading_trivia =
                     CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
                 let new_token = trivia_formatter::token_reference_add_trivia(
-                    token.to_owned().into_owned(),
+                    token.to_owned(),
                     FormatTriviaType::Replace(leading_trivia),
                     FormatTriviaType::NoChange,
                 );
-                Prefix::Name(Cow::Owned(new_token))
+                Prefix::Name(new_token)
             }
             Prefix::Expression(expr) => Prefix::Expression(match expr {
                 Expression::Parentheses {
@@ -243,8 +242,8 @@ impl CodeFormatter {
                     );
                     Expression::Parentheses {
                         contained: full_moon::ast::span::ContainedSpan::new(
-                            Cow::Owned(new_token),
-                            Cow::Owned(end_parens.to_owned()),
+                            new_token,
+                            end_parens.to_owned(),
                         ),
                         expression: Box::new(*expression.to_owned()),
                     }
@@ -264,11 +263,11 @@ impl CodeFormatter {
                 let leading_trivia =
                     CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
                 let new_token = trivia_formatter::token_reference_add_trivia(
-                    token.into_owned(),
+                    token,
                     FormatTriviaType::Replace(leading_trivia),
                     FormatTriviaType::NoChange,
                 );
-                Var::Name(Cow::Owned(new_token))
+                Var::Name(new_token)
             }
             Var::Expression(var_expr) => {
                 let prefix = CodeFormatter::prefix_remove_leading_newlines(var_expr.prefix());
@@ -385,21 +384,21 @@ impl CodeFormatter {
                 let leading_trivia =
                     CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
                 let new_token = trivia_formatter::token_reference_add_trivia(
-                    token.into_owned(),
+                    token,
                     FormatTriviaType::Replace(leading_trivia),
                     FormatTriviaType::NoChange,
                 );
-                LastStmt::Break(Cow::Owned(new_token))
+                LastStmt::Break(new_token)
             }
             LastStmt::Return(return_node) => {
                 let old_token = return_node.token();
-                let token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                let token = trivia_formatter::token_reference_add_trivia(
                     old_token.to_owned(),
                     FormatTriviaType::Replace(CodeFormatter::trivia_remove_leading_newlines(
                         old_token.leading_trivia().collect(),
                     )),
                     FormatTriviaType::NoChange,
-                ));
+                );
 
                 LastStmt::Return(return_node.with_token(token))
             }
@@ -408,19 +407,18 @@ impl CodeFormatter {
                 let leading_trivia =
                     CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
                 let new_token = trivia_formatter::token_reference_add_trivia(
-                    token.into_owned(),
+                    token,
                     FormatTriviaType::Replace(leading_trivia),
                     FormatTriviaType::NoChange,
                 );
-                LastStmt::Continue(Cow::Owned(new_token))
+                LastStmt::Continue(new_token)
             }
             other => panic!("unknown node {:?}", other),
         }
     }
 
     pub fn format_block<'ast>(&mut self, block: Block<'ast>) -> Block<'ast> {
-        let mut formatted_statements: Vec<(Stmt<'ast>, Option<Cow<'ast, TokenReference<'ast>>>)> =
-            Vec::new();
+        let mut formatted_statements: Vec<(Stmt<'ast>, Option<TokenReference<'ast>>)> = Vec::new();
         let mut found_first_stmt = false;
         let mut stmt_iterator = block.stmts_with_semicolon().peekable();
         while let Some((stmt, semi)) = stmt_iterator.next() {
@@ -460,14 +458,14 @@ impl CodeFormatter {
                 true => {
                     let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
                     stmt = updated_stmt;
-                    Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    Some(trivia_formatter::token_reference_add_trivia(
                         match semi {
-                            Some(semi) => crate::fmt_symbol!(self, semi, ";").into_owned(),
+                            Some(semi) => crate::fmt_symbol!(self, semi, ";"),
                             None => TokenReference::symbol(";").expect("could not make semicolon"),
                         },
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(trivia),
-                    )))
+                    ))
                 }
                 false => match semi {
                     Some(semi) => {
@@ -476,7 +474,7 @@ impl CodeFormatter {
                         let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
                         stmt = updated_stmt;
                         // We will do a hack here, where we insert an empty token, and add all the remaining trivia onto it
-                        Some(Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        Some(trivia_formatter::token_reference_add_trivia(
                             self.format_symbol(
                                 semi,
                                 &TokenReference::new(
@@ -484,11 +482,10 @@ impl CodeFormatter {
                                     Token::new(TokenType::spaces(0)),
                                     vec![],
                                 ),
-                            )
-                            .into_owned(),
+                            ),
                             FormatTriviaType::NoChange,
                             FormatTriviaType::Append(trivia),
-                        )))
+                        ))
                     }
                     None => None,
                 },

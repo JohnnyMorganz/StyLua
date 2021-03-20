@@ -6,7 +6,6 @@ use full_moon::ast::{
 };
 use full_moon::node::Node;
 use full_moon::tokenizer::TokenReference;
-use std::borrow::Cow;
 
 use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
@@ -43,8 +42,7 @@ impl CodeFormatter {
             }));
         }
 
-        Assignment::new(var_list, expr_list)
-            .with_equal_token(Cow::Owned(assignment.equal_token().to_owned()))
+        Assignment::new(var_list, expr_list).with_equal_token(assignment.equal_token().to_owned())
     }
 
     pub fn format_assignment<'ast>(&mut self, assignment: &Assignment<'ast>) -> Assignment<'ast> {
@@ -65,7 +63,7 @@ impl CodeFormatter {
 
         // Create preliminary assignment
         let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
-            .with_equal_token(Cow::Owned(TokenReference::symbol(" = ").unwrap()));
+            .with_equal_token(TokenReference::symbol(" = ").unwrap());
 
         // Test whether we need to hang the expression, using the updated assignment
         // We have to format normally before this, since we may be expanding the expression onto multiple lines
@@ -163,15 +161,15 @@ impl CodeFormatter {
             let mut name_list = local_assignment.names().to_owned();
             if let Some(last_pair) = name_list.pop() {
                 name_list.push(last_pair.map(|value| {
-                    Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                        value.into_owned(),
+                    trivia_formatter::token_reference_add_trivia(
+                        value,
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Replace(vec![]),
-                    ))
+                    )
                 }));
             }
 
-            LocalAssignment::new(name_list).with_local_token(Cow::Owned(local_token))
+            LocalAssignment::new(name_list).with_local_token(local_token)
         } else {
             let mut expr_list = local_assignment.expressions().to_owned();
             if let Some(last_pair) = expr_list.pop() {
@@ -183,12 +181,8 @@ impl CodeFormatter {
                 }));
             }
             LocalAssignment::new(local_assignment.names().to_owned())
-                .with_local_token(Cow::Owned(local_token))
-                .with_equal_token(
-                    local_assignment
-                        .equal_token()
-                        .map(|x| Cow::Owned(x.to_owned())),
-                )
+                .with_local_token(local_token)
+                .with_equal_token(local_assignment.equal_token().map(|x| x.to_owned()))
                 .with_expressions(expr_list)
         }
     }
@@ -206,11 +200,11 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let mut trailing_trivia = vec![self.create_newline_trivia()];
 
-        let local_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, assignment.local_token(), "local ").into_owned(),
+        let local_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, assignment.local_token(), "local "),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         let (mut name_list, mut name_list_comments_buf) = self.format_punctuated(
             assignment.names(),
@@ -250,11 +244,11 @@ impl CodeFormatter {
                 }
 
                 let pair = pair.map(|name| {
-                    Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                        name.to_owned().into_owned(),
+                    trivia_formatter::token_reference_add_trivia(
+                        name.to_owned(),
                         FormatTriviaType::NoChange,
                         FormatTriviaType::Append(name_list_comments_buf),
-                    ))
+                    )
                 });
                 name_list.push(pair);
             }

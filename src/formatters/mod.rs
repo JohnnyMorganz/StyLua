@@ -470,7 +470,7 @@ impl CodeFormatter {
         token_trivia
     }
 
-    fn format_plain_token_reference<'a>(
+    fn format_token_reference<'a>(
         &self,
         token_reference: &TokenReference<'a>,
     ) -> TokenReference<'a> {
@@ -500,18 +500,11 @@ impl CodeFormatter {
         TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
     }
 
-    pub fn format_token_reference<'a>(
-        &self,
-        token_reference: &TokenReference<'a>,
-    ) -> Cow<'a, TokenReference<'a>> {
-        Cow::Owned(self.format_plain_token_reference(&token_reference))
-    }
-
     pub fn format_token_reference_mut<'ast>(
         &mut self,
-        token_reference: &Cow<'ast, TokenReference<'ast>>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
-        Cow::Owned(self.format_plain_token_reference(&token_reference))
+        token_reference: &TokenReference<'ast>,
+    ) -> TokenReference<'ast> {
+        self.format_token_reference(token_reference)
     }
 
     // Formats a punctuation for a Punctuated sequence
@@ -519,7 +512,7 @@ impl CodeFormatter {
     pub fn format_punctuation<'ast>(
         &self,
         punctuation: &TokenReference<'ast>,
-    ) -> (Cow<'ast, TokenReference<'ast>>, Vec<Token<'ast>>) {
+    ) -> (TokenReference<'ast>, Vec<Token<'ast>>) {
         let trailing_comments = punctuation
             .trailing_trivia()
             .filter(|token| {
@@ -534,11 +527,11 @@ impl CodeFormatter {
             .collect();
 
         (
-            Cow::Owned(TokenReference::new(
+            TokenReference::new(
                 Vec::new(),
                 punctuation.token().to_owned(),
                 vec![Token::new(TokenType::spaces(1))], // Single space whitespace
-            )),
+            ),
             trailing_comments,
         )
     }
@@ -582,8 +575,8 @@ impl CodeFormatter {
         let (start_token, end_token) = contained_span.tokens();
 
         ContainedSpan::new(
-            Cow::Owned(self.format_plain_token_reference(start_token)),
-            Cow::Owned(self.format_plain_token_reference(end_token)),
+            self.format_token_reference(start_token),
+            self.format_token_reference(end_token),
         )
     }
 
@@ -593,7 +586,7 @@ impl CodeFormatter {
         &self,
         current_symbol: &TokenReference<'ast>,
         wanted_symbol: &TokenReference<'ast>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
+    ) -> TokenReference<'ast> {
         // Preserve comments in leading/trailing trivia
         let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_symbol.leading_trivia().collect(),
@@ -621,11 +614,11 @@ impl CodeFormatter {
         wanted_trailing_trivia.append(&mut formatted_trailing_trivia);
         formatted_leading_trivia.append(&mut wanted_leading_trivia);
 
-        Cow::Owned(TokenReference::new(
+        TokenReference::new(
             formatted_leading_trivia,
             wanted_symbol.token().to_owned(),
             wanted_trailing_trivia,
-        ))
+        )
     }
 
     /// Formats a token present at the end of an indented block, such as the `end` token or closing brace in a multiline table.
@@ -633,7 +626,7 @@ impl CodeFormatter {
     pub fn format_end_token<'ast>(
         &self,
         current_token: &TokenReference<'ast>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
+    ) -> TokenReference<'ast> {
         // Indent any comments leading a token, as these comments are technically part of the function body block
         let formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_token.leading_trivia().collect(),
@@ -678,11 +671,11 @@ impl CodeFormatter {
         // Need to reverse the vector since we reversed the iterator
         formatted_leading_trivia.reverse();
 
-        Cow::Owned(TokenReference::new(
+        TokenReference::new(
             formatted_leading_trivia,
             Token::new(current_token.token_type().to_owned()),
             formatted_trailing_trivia,
-        ))
+        )
     }
 }
 
@@ -729,9 +722,7 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
         } else {
             // We have some comments in here, so we need to remove any trailing whitespace then add a single new line
             pop_until_no_whitespace(&mut formatted_leading_trivia);
-            formatted_leading_trivia.push(Token::new(TokenType::Whitespace {
-                characters: Cow::Owned(get_line_ending_character(&self.config.line_endings)),
-            }));
+            formatted_leading_trivia.push(self.create_newline_trivia());
 
             TokenReference::new(
                 formatted_leading_trivia,
