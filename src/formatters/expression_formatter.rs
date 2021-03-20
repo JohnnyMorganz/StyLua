@@ -59,12 +59,9 @@ impl CodeFormatter {
                     Value::String(_) => false,
                     Value::Symbol(token_ref) => {
                         match token_ref.token_type() {
-                            TokenType::Symbol { symbol } => match symbol {
-                                // If we have an ellipse inside of parentheses, we may also be culling values
-                                // Therefore, we don't remove parentheses
-                                Symbol::Ellipse => false,
-                                _ => true,
-                            },
+                            // If we have an ellipse inside of parentheses, we may also be culling values
+                            // Therefore, we don't remove parentheses
+                            TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
                             _ => true,
                         }
                     }
