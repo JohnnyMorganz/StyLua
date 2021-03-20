@@ -7,9 +7,10 @@ use full_moon::ast::{
     span::ContainedSpan,
     Field, TableConstructor,
 };
-use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference};
 
 /// Used to provide information about the table
+#[derive(Debug, Clone, Copy)]
 pub enum TableType {
     /// The table will have multline fields
     MultiLine,
@@ -120,10 +121,35 @@ impl CodeFormatter {
                 crate::fmt_symbol!(self, end_brace, " }"),
             ),
 
-            TableType::Empty => ContainedSpan::new(
-                crate::fmt_symbol!(self, start_brace, "{"),
-                crate::fmt_symbol!(self, end_brace, "}"),
-            ),
+            TableType::Empty => {
+                let start_brace = crate::fmt_symbol!(self, start_brace, "{");
+                let end_brace = crate::fmt_symbol!(self, end_brace, "}");
+                // Remove any newline trivia trailing the start brace, as it shouldn't be present
+                let start_brace_trailing_trivia = start_brace
+                    .trailing_trivia()
+                    .filter(|t| !trivia_util::trivia_is_newline(t))
+                    .map(|x| x.to_owned())
+                    .collect();
+                // Remove any newline trivia leading the end brace, as it shouldn't be present
+                let end_brace_leading_trivia = end_brace
+                    .leading_trivia()
+                    .filter(|t| !trivia_util::trivia_is_newline(t))
+                    .map(|x| x.to_owned())
+                    .collect();
+
+                ContainedSpan::new(
+                    trivia_formatter::token_reference_add_trivia(
+                        start_brace,
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Replace(start_brace_trailing_trivia),
+                    ),
+                    trivia_formatter::token_reference_add_trivia(
+                        end_brace,
+                        FormatTriviaType::Replace(end_brace_leading_trivia),
+                        FormatTriviaType::NoChange,
+                    ),
+                )
+            }
         }
     }
 
@@ -149,18 +175,7 @@ impl CodeFormatter {
         let mut is_multiline = (braces_range.1 - braces_range.0) + self.get_indent_width()
             > self.config.column_width - 20;
 
-        // Determine if there was a new line at the end of the start brace
-        // If so, then we should always be multiline
-        for trivia in start_brace.trailing_trivia() {
-            if let TokenType::Whitespace { characters } = trivia.token_type() {
-                if characters.find('\n').is_some() {
-                    is_multiline = true
-                }
-            }
-        }
-
-        // If we aren't currently multiline, determine if there are any comments within the table
-        // If so, we should go multiline
+        // Determine if there are any comments within the table. If so, we should go multiline
         if !is_multiline {
             let braces_contain_comments = start_brace.trailing_trivia().any(|trivia| {
                 trivia.token_kind() == TokenKind::SingleLineComment
@@ -172,12 +187,23 @@ impl CodeFormatter {
 
             is_multiline = braces_contain_comments
                 || trivia_util::table_fields_contains_comments(table_constructor)
-        }
+        };
 
         let table_type = match is_multiline {
             true => TableType::MultiLine,
             false => match current_fields.peek() {
-                Some(_) => TableType::SingleLine,
+                Some(_) => {
+                    // Determine if there was a new line at the end of the start brace
+                    // If so, then we should always be multiline
+                    if start_brace
+                        .trailing_trivia()
+                        .any(trivia_util::trivia_is_newline)
+                    {
+                        TableType::MultiLine
+                    } else {
+                        TableType::SingleLine
+                    }
+                }
                 None => TableType::Empty,
             },
         };
@@ -187,7 +213,7 @@ impl CodeFormatter {
         let braces =
             self.create_table_braces(start_brace, end_brace, table_type, additional_indent_level);
 
-        if is_multiline {
+        if let TableType::MultiLine = table_type {
             // Need to take the inner portion of the braces, not including the braces themselves
             let braces_range = (braces_range.0, braces_range.1);
             self.add_indent_range(braces_range);
@@ -196,8 +222,8 @@ impl CodeFormatter {
         while let Some(pair) = current_fields.next() {
             let (field, punctuation) = pair.into_tuple();
 
-            let leading_trivia = match is_multiline {
-                true => {
+            let leading_trivia = match table_type {
+                TableType::MultiLine => {
                     let range = match field.to_owned() {
                         Field::ExpressionKey { brackets, .. } => {
                             CodeFormatter::get_token_range(brackets.tokens().0.token())
@@ -211,7 +237,7 @@ impl CodeFormatter {
                         self.create_indent_trivia(additional_indent_level)
                     ])
                 }
-                false => FormatTriviaType::NoChange,
+                _ => FormatTriviaType::NoChange,
             };
 
             let (formatted_field, mut trailing_trivia) = self.format_field(&field, leading_trivia);
@@ -224,8 +250,8 @@ impl CodeFormatter {
 
             let mut formatted_punctuation = None;
 
-            match is_multiline {
-                true => {
+            match table_type {
+                TableType::MultiLine => {
                     // Continue adding a comma and a new line for multiline tables
                     let mut symbol = TokenReference::symbol(",").unwrap();
                     if let Some(punctuation) = punctuation {
@@ -240,7 +266,7 @@ impl CodeFormatter {
                     );
                     formatted_punctuation = Some(symbol)
                 }
-                false => {
+                _ => {
                     if current_fields.peek().is_some() {
                         // Have more elements still to go
                         formatted_punctuation = match punctuation {
