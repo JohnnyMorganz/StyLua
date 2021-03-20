@@ -226,15 +226,13 @@ impl CodeFormatter {
             let mut new_line_added = false;
 
             #[cfg(feature = "luau")]
-            if let Some(type_specifier) = type_specifiers.pop() {
-                if let Some(specifier) = type_specifier {
-                    let specifier = trivia_formatter::type_specifier_add_trailing_trivia(
-                        specifier,
-                        FormatTriviaType::Append(trailing_trivia.to_owned()),
-                    );
-                    type_specifiers.push(Some(specifier));
-                    new_line_added = true;
-                }
+            if let Some(Some(specifier)) = type_specifiers.pop() {
+                let specifier = trivia_formatter::type_specifier_add_trailing_trivia(
+                    specifier,
+                    FormatTriviaType::Append(trailing_trivia.to_owned()),
+                );
+                type_specifiers.push(Some(specifier));
+                new_line_added = true;
             }
 
             if let Some(pair) = name_list.pop() {

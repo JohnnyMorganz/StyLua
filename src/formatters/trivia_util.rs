@@ -560,7 +560,7 @@ fn contained_span_contains_comments(contained_span: &ContainedSpan) -> bool {
 }
 
 #[cfg(feature = "luau")]
-fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
+fn type_info_contains_comments(type_info: &TypeInfo) -> bool {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
             contained_span_contains_comments(braces) || type_info_contains_comments(type_info)
@@ -655,7 +655,7 @@ fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
 }
 
 #[cfg(feature = "luau")]
-fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) -> bool {
+fn indexed_type_info_contains_comments(type_info: &IndexedTypeInfo) -> bool {
     match type_info {
         IndexedTypeInfo::Basic(token) => token_contains_comments(token),
         IndexedTypeInfo::Generic {
@@ -677,14 +677,14 @@ fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) 
 }
 
 #[cfg(feature = "luau")]
-fn type_field_contains_comments<'ast>(type_field: &TypeField<'ast>) -> bool {
+fn type_field_contains_comments(type_field: &TypeField) -> bool {
     type_field_key_contains_comments(type_field.key())
         || token_contains_comments(type_field.colon_token())
         || type_info_contains_comments(type_field.value())
 }
 
 #[cfg(feature = "luau")]
-fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -> bool {
+fn type_field_key_contains_comments(type_field_key: &TypeFieldKey) -> bool {
     match type_field_key {
         TypeFieldKey::Name(token) => token_contains_comments(token),
         TypeFieldKey::IndexSignature { brackets, inner } => {
@@ -695,7 +695,7 @@ fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -
 }
 
 #[cfg(feature = "luau")]
-fn type_assertion_contains_comments<'ast>(type_assertion: &TypeAssertion<'ast>) -> bool {
+fn type_assertion_contains_comments(type_assertion: &TypeAssertion) -> bool {
     token_contains_comments(type_assertion.assertion_op())
         || type_info_contains_comments(type_assertion.cast_to())
 }
