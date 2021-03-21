@@ -3,5 +3,9 @@ source: tests/tests.rs
 expression: format(&contents)
 
 ---
-local LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid = LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid
+local LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid =
+	LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid
+
+LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid =
+	LoadAddOn, UnitName, GetRealmName, UnitRace, UnitFactionGroup, IsInRaid
 

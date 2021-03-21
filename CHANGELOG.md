@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 For the auto styles, we will prefer the quote type specified, but fall back to the opposite if it means there are fewer escapes. For the
 force styles, we will always use the quote type specified.
 - StyLua will now error when unknown fields are found in the configuration `stylua.toml` file
+- Long lines of assignments, where the expressions aren't hangable, will now be put onto a newline, where a newline is created after the equal sign, and the expressions indented.
 
 ### Changed
 - Function call heuristic have been further improve to decide when to expand the function call arguments onto multiple lines.

@@ -5,7 +5,7 @@ use full_moon::ast::{
     Assignment, LocalAssignment,
 };
 use full_moon::node::Node;
-use full_moon::tokenizer::TokenReference;
+use full_moon::tokenizer::{TokenKind, TokenReference};
 use std::borrow::Cow;
 
 use crate::formatters::{
@@ -63,9 +63,11 @@ impl CodeFormatter {
         let (mut expr_list, mut expr_comments_buf) =
             self.format_punctuated(assignment.expr_list(), &CodeFormatter::format_expression);
 
+        let mut equal_token = crate::fmt_symbol!(self, assignment.equal_token(), " = ");
+
         // Create preliminary assignment
         let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
-            .with_equal_token(Cow::Owned(TokenReference::symbol(" = ").unwrap()));
+            .with_equal_token(equal_token.to_owned());
 
         // Test whether we need to hang the expression, using the updated assignment
         // We have to format normally before this, since we may be expanding the expression onto multiple lines
@@ -107,6 +109,35 @@ impl CodeFormatter {
                         .map(|x| crate::fmt_symbol!(self, x, ", ")),
                 ))
             }
+
+            // See if any of our expressions were hangable.
+            // If not, then its still a big long line - we should newline at the end of the equals token,
+            // then indent the first item
+            if !assignment
+                .expr_list()
+                .iter()
+                .any(|x| trivia_util::can_hang_expression(x))
+            {
+                let equal_token_trailing_trivia = vec![
+                    self.create_newline_trivia(),
+                    self.create_plain_indent_trivia(1),
+                ]
+                .iter()
+                .chain(
+                    // Remove the space that was present after the equal token
+                    equal_token
+                        .trailing_trivia()
+                        .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
+                )
+                .map(|x| x.to_owned())
+                .collect();
+
+                equal_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                    equal_token.into_owned(),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Replace(equal_token_trailing_trivia),
+                ));
+            }
         }
 
         // Add any trailing trivia to the lasts expression
@@ -146,6 +177,7 @@ impl CodeFormatter {
 
         formatted_assignment
             .with_var_list(formatted_var_list)
+            .with_equal_token(equal_token)
             .with_expr_list(expr_list)
     }
 
@@ -268,14 +300,15 @@ impl CodeFormatter {
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
             local_assignment
         } else {
-            let equal_token = crate::fmt_symbol!(self, assignment.equal_token().unwrap(), " = ");
+            let mut equal_token =
+                crate::fmt_symbol!(self, assignment.equal_token().unwrap(), " = ");
             // Format the expression normally
             let (mut expr_list, mut expr_comments_buf) =
                 self.format_punctuated(assignment.expr_list(), &CodeFormatter::format_expression);
             // Create our preliminary new assignment
             let local_assignment = LocalAssignment::new(name_list)
                 .with_local_token(local_token)
-                .with_equal_token(Some(equal_token))
+                .with_equal_token(Some(equal_token.to_owned()))
                 .with_expr_list(expr_list.to_owned());
             #[cfg(feature = "luau")]
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
@@ -326,6 +359,35 @@ impl CodeFormatter {
                             .map(|x| crate::fmt_symbol!(self, x, ", ")),
                     ))
                 }
+
+                // See if any of our expressions were hangable.
+                // If not, then its still a big long line - we should newline at the end of the equals token,
+                // then indent the first item
+                if !assignment
+                    .expr_list()
+                    .iter()
+                    .any(|x| trivia_util::can_hang_expression(x))
+                {
+                    let equal_token_trailing_trivia = vec![
+                        self.create_newline_trivia(),
+                        self.create_plain_indent_trivia(1),
+                    ]
+                    .iter()
+                    .chain(
+                        // Remove the space that was present after the equal token
+                        equal_token
+                            .trailing_trivia()
+                            .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
+                    )
+                    .map(|x| x.to_owned())
+                    .collect();
+
+                    equal_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+                        equal_token.into_owned(),
+                        FormatTriviaType::NoChange,
+                        FormatTriviaType::Replace(equal_token_trailing_trivia),
+                    ));
+                }
             }
 
             // Add any trailing trivia to the end of the expression list
@@ -345,7 +407,9 @@ impl CodeFormatter {
             }
 
             // Update our local assignment
-            local_assignment.with_expr_list(expr_list)
+            local_assignment
+                .with_equal_token(Some(equal_token))
+                .with_expr_list(expr_list)
         }
     }
 }
