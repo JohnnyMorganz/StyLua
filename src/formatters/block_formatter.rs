@@ -9,6 +9,7 @@ use full_moon::ast::{
 use full_moon::node::Node;
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
+#[cfg(feature = "luau")]
 use std::borrow::Cow;
 
 macro_rules! update_first_token {
