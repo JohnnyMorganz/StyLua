@@ -499,6 +499,8 @@ impl CodeFormatter {
             #[cfg(feature = "luau")] CompoundAssignment = format_compound_assignment,
             #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
             #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
+            #[cfg(feature = "lua52")] Goto = format_goto,
+            #[cfg(feature = "lua52")] Label = format_label,
         })
     }
 }

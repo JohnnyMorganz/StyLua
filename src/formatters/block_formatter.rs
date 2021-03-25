@@ -375,6 +375,12 @@ impl CodeFormatter {
                 type_declaration.type_token(),
                 with_type_token
             ),
+            #[cfg(feature = "lua52")]
+            Stmt::Goto(goto) => update_first_token!(Goto, goto, goto.goto_token(), with_goto_token),
+            #[cfg(feature = "lua52")]
+            Stmt::Label(label) => {
+                update_first_token!(Label, label, label.left_colons(), with_left_colons)
+            }
             other => panic!("unknown node {:?}", other),
         }
     }
