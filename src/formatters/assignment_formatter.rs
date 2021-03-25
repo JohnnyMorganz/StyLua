@@ -120,7 +120,7 @@ impl CodeFormatter {
             {
                 let equal_token_trailing_trivia = vec![
                     self.create_newline_trivia(),
-                    self.create_plain_indent_trivia(1),
+                    self.create_indent_trivia(additional_indent_level.or(Some(0)).map(|x| x + 1)),
                 ]
                 .iter()
                 .chain(
@@ -370,7 +370,9 @@ impl CodeFormatter {
                 {
                     let equal_token_trailing_trivia = vec![
                         self.create_newline_trivia(),
-                        self.create_plain_indent_trivia(1),
+                        self.create_indent_trivia(
+                            additional_indent_level.or(Some(0)).map(|x| x + 1),
+                        ),
                     ]
                     .iter()
                     .chain(
