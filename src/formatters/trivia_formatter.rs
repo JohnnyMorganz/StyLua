@@ -1,13 +1,9 @@
-use crate::{
-    formatters::{trivia_util, CodeFormatter},
-    IndentType,
-};
+use crate::{formatters::CodeFormatter, IndentType};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
-    span::ContainedSpan, BinOp, BinOpRhs, Call, Expression, FunctionArgs, FunctionBody,
-    FunctionCall, Index, MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var,
-    VarExpression,
+    span::ContainedSpan, BinOp, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index,
+    MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
@@ -22,41 +18,38 @@ pub enum FormatTriviaType<'ast> {
     NoChange,
 }
 
-macro_rules! move_binop_comments {
-    ($binop:expr, $trivia:expr, { $($operator:ident,)+ }) => {
-        match $binop.bin_op() {
-            $(
-                BinOp::$operator(token) => {
-                    let mut trailing_comments = token
-                        .trailing_trivia()
-                        .filter(|token| {
-                            token.token_kind() == TokenKind::SingleLineComment
-                                || token.token_kind()
-                                    == TokenKind::MultiLineComment
-                        })
-                        .map(|x| {
-                            // Prepend a single space beforehand
-                            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                        })
-                        .flatten()
-                        .collect();
-
-                    // Move the comments over
-                    $trivia.append(&mut trailing_comments);
-
-                    // Recreate BinOp with no comments
-                    BinOp::$operator(Cow::Owned(token_reference_add_trivia(
-                        token.to_owned().into_owned(),
-                        FormatTriviaType::NoChange,
-                        FormatTriviaType::Replace(vec![Token::new(
-                            TokenType::spaces(1),
-                        )]),
-                    )))
-                }
-            )+
-            _ => panic!("unknown binop found"),
+fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+    match binop {
+        BinOp::And(token)
+        | BinOp::Caret(token)
+        | BinOp::GreaterThan(token)
+        | BinOp::GreaterThanEqual(token)
+        | BinOp::LessThan(token)
+        | BinOp::LessThanEqual(token)
+        | BinOp::Minus(token)
+        | BinOp::Or(token)
+        | BinOp::Percent(token)
+        | BinOp::Plus(token)
+        | BinOp::Slash(token)
+        | BinOp::Star(token)
+        | BinOp::TildeEqual(token)
+        | BinOp::TwoDots(token)
+        | BinOp::TwoEqual(token) => {
+            token
+                .trailing_trivia()
+                .filter(|token| {
+                    token.token_kind() == TokenKind::SingleLineComment
+                        || token.token_kind() == TokenKind::MultiLineComment
+                })
+                .map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .flatten()
+                .collect()
         }
-    };
+        other => panic!("unknown node {:?}", other),
+    }
 }
 
 /// Returns a string presentation of a TokenReference with all trivia removed
@@ -79,7 +72,6 @@ impl CodeFormatter {
     fn expression_split_binop<'ast>(
         &self,
         expression: Expression<'ast>,
-        binop_leading_trivia: FormatTriviaType<'ast>,
         indent_increase: usize,
     ) -> Expression<'ast> {
         match expression {
@@ -102,154 +94,114 @@ impl CodeFormatter {
                     };
                 }
 
-                // Increase the indent level of the trivia
-                let mut current_indent_vec = match &binop_leading_trivia {
-                    FormatTriviaType::Append(vec) | FormatTriviaType::Replace(vec) => vec.to_vec(),
-                    FormatTriviaType::NoChange => {
-                        panic!("we are hanging an expression with no indent trivia")
-                    }
-                };
-
                 // Modify the parentheses to hang the expression
                 let (start_token, end_token) = contained.tokens();
-
+                // Create a newline after the start brace and before the end brace
+                // Also, indent enough for the first expression in the start brace
                 let contained = ContainedSpan::new(
                     token_reference_add_trivia(
                         start_token.to_owned(),
                         FormatTriviaType::NoChange,
-                        FormatTriviaType::Append({
-                            // Create a new line at the end of the start token, then indent enough for the first expression
-                            let mut new_vec = current_indent_vec.to_vec();
-                            new_vec.insert(0, self.create_newline_trivia());
-                            new_vec.push(self.create_plain_indent_trivia(1));
-                            new_vec
-                        }),
+                        FormatTriviaType::Append(vec![
+                            self.create_newline_trivia(),
+                            self.create_plain_indent_trivia(indent_increase + 1),
+                        ]),
                     ),
                     token_reference_add_trivia(
                         end_token.to_owned(),
-                        FormatTriviaType::Append(current_indent_vec.to_vec()),
+                        FormatTriviaType::Append(vec![
+                            self.create_newline_trivia(),
+                            self.create_plain_indent_trivia(indent_increase),
+                        ]),
                         FormatTriviaType::NoChange,
                     ),
                 );
-
-                // Modify the binop leading trivia to increment by one
-                current_indent_vec.push(self.create_plain_indent_trivia(1));
-                let binop_leading_trivia = match binop_leading_trivia {
-                    FormatTriviaType::Append(_) => FormatTriviaType::Append(current_indent_vec),
-                    FormatTriviaType::Replace(_) => FormatTriviaType::Replace(current_indent_vec),
-                    FormatTriviaType::NoChange => FormatTriviaType::NoChange,
-                };
 
                 Expression::Parentheses {
                     contained,
                     expression: Box::new(self.expression_split_binop(
                         *expression,
-                        binop_leading_trivia,
                         indent_increase + 1, // Apply indent increase
                     )),
                 }
             }
             Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
                 unop,
-                expression: Box::new(self.expression_split_binop(
-                    *expression,
-                    binop_leading_trivia,
-                    indent_increase,
-                )),
+                expression: Box::new(self.expression_split_binop(*expression, indent_increase)),
             },
-            Expression::Value {
-                value,
-                binop,
-                #[cfg(feature = "luau")]
-                as_assertion,
-            } => {
-                // Need to check if there is a binop
-                let mut trailing_trivia = trivia_util::get_value_trailing_comments(&value);
-
-                let mut update_value = true;
-
+            Expression::BinaryOperator { lhs, binop, rhs } => {
+                // // Check the LHS for further binary operators with the same precedence level
+                // // Binary expressions on the RHS means they have a different precedence level (unless they are right-associative)
+                // let should_flatten: bool = match *lhs {
+                //     Expression::BinaryOperator {
+                //         binop: childBinop, ..
+                //     } => {
+                //         if binop.precedence() != childBinop.precedence()
+                //             || binop.is_right_associative()
+                //         {
+                //             false
+                //         } else {
+                //             true
+                //         }
+                //     }
+                //     _ => false,
+                // };
                 let binop = match binop {
-                    Some(binop) => {
-                        // Don't add the trivia if the binop is binding
-                        let binop = match binop.bin_op() {
-                            BinOp::GreaterThan(_)
-                            | BinOp::GreaterThanEqual(_)
-                            | BinOp::LessThan(_)
-                            | BinOp::LessThanEqual(_)
-                            | BinOp::TildeEqual(_)
-                            | BinOp::TwoEqual(_) => {
-                                // Remove the new value because we don't want that anymore
-                                update_value = false;
-                                // Return original binop
-                                binop
-                            }
-
-                            _ => {
-                                // Move any comments after the binop to trailing the value, otherwise we will create issues
-                                let new_bin_op = move_binop_comments!(binop, trailing_trivia, {
-                                    And,
-                                    Caret,
-                                    Minus,
-                                    Or,
-                                    Percent,
-                                    Plus,
-                                    Slash,
-                                    Star,
-                                    TwoDots,
-                                });
-
-                                let new_binop = binop_rhs_add_trivia(
-                                    BinOpRhs::new(new_bin_op, Box::new(binop.rhs().to_owned())),
-                                    binop_leading_trivia.to_owned(),
-                                    FormatTriviaType::NoChange,
-                                );
-                                new_binop
-                            }
-                        };
-
-                        let rhs = Box::new(self.expression_split_binop(
-                            binop.rhs().to_owned(),
-                            binop_leading_trivia.to_owned(),
-                            indent_increase,
-                        ));
-                        Some(binop.with_rhs(rhs))
+                    // Don't add the trivia if the binop is binding
+                    BinOp::GreaterThan(_)
+                    | BinOp::GreaterThanEqual(_)
+                    | BinOp::LessThan(_)
+                    | BinOp::LessThanEqual(_)
+                    | BinOp::TildeEqual(_)
+                    | BinOp::TwoEqual(_) => {
+                        // Return original binop
+                        binop
                     }
-                    None => None,
+                    _ => {
+                        // If there are any comments trailing the BinOp, we need to move them to before the BinOp
+                        let mut trailing_comments = binop_trailing_comments(&binop);
+                        // Create a newline just before the BinOp, and preserve the indentation
+                        trailing_comments.push(self.create_newline_trivia());
+                        trailing_comments.push(self.create_plain_indent_trivia(indent_increase));
+
+                        binop_add_trivia(
+                            binop,
+                            FormatTriviaType::Replace(trailing_comments),
+                            FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
+                        )
+                    }
                 };
 
-                trailing_trivia.push(self.create_newline_trivia());
-                let new_value = match update_value {
-                    true => value_add_trailing_trivia(
-                        match *value {
-                            // Handle any values which may have expressions inside of them
-                            // which we may need to split onto multiple lines
-                            Value::ParenthesesExpression(expression) => {
-                                Value::ParenthesesExpression(self.expression_split_binop(
-                                    expression.to_owned(),
-                                    binop_leading_trivia.to_owned(),
-                                    indent_increase,
-                                ))
-                            }
-                            _ => *value,
-                        },
-                        FormatTriviaType::Replace(trailing_trivia),
-                    ),
-                    false => *value,
-                };
-
-                Expression::Value {
-                    value: Box::new(new_value),
+                Expression::BinaryOperator {
+                    lhs: Box::new(self.expression_split_binop(*lhs, indent_increase)),
                     binop,
-                    #[cfg(feature = "luau")]
-                    as_assertion,
+                    rhs: Box::new(self.expression_split_binop(*rhs, indent_increase)),
                 }
             }
+
+            Expression::Value {
+                value,
+                #[cfg(feature = "luau")]
+                type_assertion,
+            } => Expression::Value {
+                value: match *value {
+                    Value::ParenthesesExpression(expression) => {
+                        Box::new(Value::ParenthesesExpression(
+                            self.expression_split_binop(expression, indent_increase),
+                        ))
+                    }
+                    _ => value,
+                },
+                #[cfg(feature = "luau")]
+                type_assertion,
+            },
+
+            // Can't hang anything else, so just return the original expression
+            _ => expression,
         }
     }
 
-    // Splits an expression at its binops, pushing each binop part onto a newline
-    // Optionally, will also indent any further binops apart from the first one if an indent hang is wanted
-    pub fn hang_expression<'ast>(
+    pub fn hang_expression_no_trailing_newline<'ast>(
         &self,
         expression: Expression<'ast>,
         additional_indent_level: Option<usize>,
@@ -258,92 +210,63 @@ impl CodeFormatter {
         let additional_indent_level =
             additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
         let hang_level = self.indent_level + additional_indent_level;
-        let indent_trivia = self.create_plain_indent_trivia(hang_level);
 
-        self.expression_split_binop(
-            expression,
-            FormatTriviaType::Replace(vec![indent_trivia]),
-            additional_indent_level + 1,
-        )
+        self.expression_split_binop(expression, hang_level)
     }
 
-    /// Similar to `hang_expression`, except will not force a new line character at the very end of the expression
-    pub fn hang_expression_no_trailing_newline<'ast>(
+    pub fn hang_expression<'ast>(
         &self,
         expression: Expression<'ast>,
         additional_indent_level: Option<usize>,
         hang_level: Option<usize>,
     ) -> Expression<'ast> {
-        let expr = self.hang_expression(expression, additional_indent_level, hang_level);
-        let mut trailing_trivia = trivia_util::get_expression_trailing_trivia(&expr);
+        let expr = self.hang_expression_no_trailing_newline(
+            expression,
+            additional_indent_level,
+            hang_level,
+        );
 
-        // Remove last trivia, check if its whitespace, then add it back if not
-        if let Some(trivia) = trailing_trivia.pop() {
-            if trivia.token_kind() != TokenKind::Whitespace {
-                trailing_trivia.push(trivia)
-            }
-        }
-
-        expression_add_trailing_trivia(expr, FormatTriviaType::Replace(trailing_trivia))
+        expression_add_trailing_trivia(
+            expr,
+            FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+        )
     }
 }
 
 // Remainder of Nodes
-macro_rules! binop_leading_trivia {
-    ($enum:ident, $value:ident, $leading_trivia:ident, { $($operator:ident,)+ }) => {
+macro_rules! binop_trivia {
+    ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($operator:ident,)+ }) => {
         match $value {
             $(
-                $enum::$operator(token) => $enum::$operator(Cow::Owned(token_reference_add_trivia(token.into_owned(), $leading_trivia, FormatTriviaType::NoChange))),
+                $enum::$operator(token) => $enum::$operator(token_reference_add_trivia(token, $leading_trivia, $trailing_trivia)),
             )+
             other => panic!("unknown node {:?}", other),
         }
     };
 }
 
-pub fn binop_rhs_add_trivia<'ast>(
-    binop_rhs: BinOpRhs<'ast>,
+fn binop_add_trivia<'ast>(
+    binop: BinOp<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
     trailing_trivia: FormatTriviaType<'ast>,
-) -> BinOpRhs<'ast> {
-    let binop = if let FormatTriviaType::NoChange = leading_trivia {
-        binop_rhs.bin_op().to_owned()
-    } else {
-        let op = binop_rhs.bin_op().to_owned();
-        binop_leading_trivia!(BinOp, op, leading_trivia, {
-            And,
-            Caret,
-            GreaterThan,
-            GreaterThanEqual,
-            LessThan,
-            LessThanEqual,
-            Minus,
-            Or,
-            Percent,
-            Plus,
-            Slash,
-            Star,
-            TildeEqual,
-            TwoDots,
-            TwoEqual,
-        })
-    };
-
-    let rhs = std::boxed::Box::new(expression_add_trailing_trivia(
-        binop_rhs.rhs().to_owned(),
-        trailing_trivia,
-    ));
-    binop_rhs.with_bin_op(binop).with_rhs(rhs)
-}
-
-pub fn binop_rhs_add_trailing_trivia<'ast>(
-    binop_rhs: BinOpRhs<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> BinOpRhs<'ast> {
-    let rhs = std::boxed::Box::new(expression_add_trailing_trivia(
-        binop_rhs.rhs().to_owned(),
-        trailing_trivia,
-    ));
-    binop_rhs.with_rhs(rhs)
+) -> BinOp<'ast> {
+    binop_trivia!(BinOp, binop, leading_trivia, trailing_trivia, {
+        And,
+        Caret,
+        GreaterThan,
+        GreaterThanEqual,
+        LessThan,
+        LessThanEqual,
+        Minus,
+        Or,
+        Percent,
+        Plus,
+        Slash,
+        Star,
+        TildeEqual,
+        TwoDots,
+        TwoEqual,
+    })
 }
 
 /// Adds trailing trivia at the end of a ContainedSpan node
@@ -405,14 +328,17 @@ pub fn expression_add_leading_trivia<'ast>(
             unop: unop_add_leading_trivia(unop, leading_trivia),
             expression,
         },
+        Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
+            lhs: Box::new(expression_add_leading_trivia(*lhs, leading_trivia)),
+            binop,
+            rhs,
+        },
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
             type_assertion,
         } => Expression::Value {
             value: Box::new(value_add_leading_trivia(*value, leading_trivia)),
-            binop,
             #[cfg(feature = "luau")]
             type_assertion,
         },
@@ -428,7 +354,6 @@ pub fn expression_add_trailing_trivia<'ast>(
     match expression {
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
@@ -443,16 +368,8 @@ pub fn expression_add_trailing_trivia<'ast>(
                 };
             }
 
-            if let Some(binop) = binop {
-                Expression::Value {
-                    value,
-                    binop: Some(binop_rhs_add_trailing_trivia(binop, trailing_trivia)),
-                    #[cfg(feature = "luau")]
-                    as_assertion,
-                }
-            } else {
-                Expression::Value {
-                    value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
+            Expression::Value {
+                value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
                 #[cfg(feature = "luau")]
                 type_assertion,
             }
@@ -475,6 +392,12 @@ pub fn expression_add_trailing_trivia<'ast>(
         Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
             unop,
             expression: Box::new(expression_add_trailing_trivia(*expression, trailing_trivia)),
+        },
+
+        Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
+            lhs,
+            binop,
+            rhs: Box::new(expression_add_trailing_trivia(*rhs, trailing_trivia)),
         },
         other => panic!("unknown node {:?}", other),
     }
