@@ -1,11 +1,14 @@
-use crate::{formatters::CodeFormatter, IndentType};
+use crate::{
+    formatters::{trivia_util, CodeFormatter},
+    IndentType,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
     span::ContainedSpan, BinOp, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index,
     MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
 };
-use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
 #[derive(Clone, Debug)]
@@ -16,40 +19,6 @@ pub enum FormatTriviaType<'ast> {
     Replace(Vec<Token<'ast>>),
     /// Trivia will not be changed
     NoChange,
-}
-
-fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
-    match binop {
-        BinOp::And(token)
-        | BinOp::Caret(token)
-        | BinOp::GreaterThan(token)
-        | BinOp::GreaterThanEqual(token)
-        | BinOp::LessThan(token)
-        | BinOp::LessThanEqual(token)
-        | BinOp::Minus(token)
-        | BinOp::Or(token)
-        | BinOp::Percent(token)
-        | BinOp::Plus(token)
-        | BinOp::Slash(token)
-        | BinOp::Star(token)
-        | BinOp::TildeEqual(token)
-        | BinOp::TwoDots(token)
-        | BinOp::TwoEqual(token) => {
-            token
-                .trailing_trivia()
-                .filter(|token| {
-                    token.token_kind() == TokenKind::SingleLineComment
-                        || token.token_kind() == TokenKind::MultiLineComment
-                })
-                .map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .flatten()
-                .collect()
-        }
-        other => panic!("unknown node {:?}", other),
-    }
 }
 
 /// Returns a string presentation of a TokenReference with all trivia removed
@@ -130,22 +99,6 @@ impl CodeFormatter {
                 expression: Box::new(self.expression_split_binop(*expression, indent_increase)),
             },
             Expression::BinaryOperator { lhs, binop, rhs } => {
-                // // Check the LHS for further binary operators with the same precedence level
-                // // Binary expressions on the RHS means they have a different precedence level (unless they are right-associative)
-                // let should_flatten: bool = match *lhs {
-                //     Expression::BinaryOperator {
-                //         binop: childBinop, ..
-                //     } => {
-                //         if binop.precedence() != childBinop.precedence()
-                //             || binop.is_right_associative()
-                //         {
-                //             false
-                //         } else {
-                //             true
-                //         }
-                //     }
-                //     _ => false,
-                // };
                 let binop = match binop {
                     // Don't add the trivia if the binop is binding
                     BinOp::GreaterThan(_)
@@ -159,7 +112,7 @@ impl CodeFormatter {
                     }
                     _ => {
                         // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-                        let mut trailing_comments = binop_trailing_comments(&binop);
+                        let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
                         // Create a newline just before the BinOp, and preserve the indentation
                         trailing_comments.push(self.create_newline_trivia());
                         trailing_comments.push(self.create_plain_indent_trivia(indent_increase));
