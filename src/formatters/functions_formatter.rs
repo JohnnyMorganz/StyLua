@@ -336,13 +336,6 @@ impl CodeFormatter {
                                         .len()
                                     > self.config.column_width;
 
-                        if require_multiline_expression {
-                            let expr_range = argument
-                                .range()
-                                .expect("no range for function call argument");
-                            self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes() + 1));
-                        }
-
                         // Unfortunately, we need to format again, taking into account in indent increase
                         // TODO: Can we fix this? We don't want to have to format twice
                         let mut formatted_argument = self.format_expression(argument.value());
