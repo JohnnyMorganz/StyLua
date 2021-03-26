@@ -18,3 +18,7 @@ end
 print(x())
 print((x()))
 print(((x())))
+
+path = (function()
+  return true
+end)()

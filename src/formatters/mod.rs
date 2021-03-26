@@ -273,7 +273,7 @@ impl CodeFormatter {
                     // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                     lazy_static::lazy_static! {
                         static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
-                        static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\bfnrt-vx\u2028\u2029]$"#).unwrap();
+                        static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\abfnrtuvxz]$"#).unwrap();
                     }
                     let quote_to_use = self.get_quote_to_use(literal);
                     let literal = RE

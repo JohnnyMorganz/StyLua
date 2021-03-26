@@ -51,6 +51,9 @@ impl CodeFormatter {
             Expression::BinaryOperator { .. } => false,
             Expression::Value { value, .. } => {
                 match &**value {
+                    // Internal expression is a function definition
+                    // This may be something like (function() ... end)(); removing the parentheses will break the code
+                    Value::Function(_) => false,
                     // Internal expression is a function call
                     // We could potentially be culling values, so we should not remove parentheses
                     Value::FunctionCall(_) => false,

@@ -26,6 +26,8 @@ force styles, we will always use the quote type specified.
 - Fixed indentation of leading comments bound to the end brace of a multiline table
 - Fixed LastStmt (return/break etc.) still being formatted when it wasn't defined inside the range
 - Fixed hanging expressions which are inside function calls being indented unnecessarily by one extra level
+- Fixed parentheses being incorrectly removed around a function definition, which may be called like `(function() ... end)()`
+- Fixed some string escapes being incorrectly deemed as unnecessary
 - Fixed trailing comments after semicolons at the end of statements being lost when formatting
 - Fixed formatting issues in relation to newline and whitespace when using range formatting.
 - Fixed empty tables taking 2 formatting passes to format properly
