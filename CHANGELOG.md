@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.0] - 2021-03-27
 ### Added
 - Added support for creating new `Config` structs when using StyLua as a library
 - Added configuration for quote style. There are four quote style options - `AutoPreferDouble`, `AutoPreferSingle`, `ForceDouble` and `ForceSingle`.
