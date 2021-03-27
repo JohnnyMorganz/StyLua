@@ -4,8 +4,8 @@ use crate::formatters::{
     CodeFormatter,
 };
 use full_moon::ast::types::{
-    AsAssertion, CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-    IndexedTypeInfo, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -205,7 +205,7 @@ impl CodeFormatter {
                             // Continue adding a comma and a new line for multiline tables
                             let mut symbol = TokenReference::symbol(",").unwrap();
                             if let Some(punctuation) = punctuation {
-                                symbol = self.format_symbol(&punctuation, &symbol).into_owned();
+                                symbol = self.format_symbol(&punctuation, &symbol);
                             }
                             // Add newline trivia to the end of the symbol
                             let symbol = trivia_formatter::token_reference_add_trivia(
@@ -213,18 +213,17 @@ impl CodeFormatter {
                                 FormatTriviaType::NoChange,
                                 FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                             );
-                            formatted_punctuation = Some(Cow::Owned(symbol))
+                            formatted_punctuation = Some(symbol)
                         }
 
                         false => {
                             if current_fields.peek().is_some() {
                                 // Have more elements still to go
                                 formatted_punctuation = match punctuation {
-                                    Some(punctuation) => Some(self.format_symbol(
-                                        &punctuation,
-                                        &TokenReference::symbol(", ").unwrap(),
-                                    )),
-                                    None => Some(Cow::Owned(TokenReference::symbol(", ").unwrap())),
+                                    Some(punctuation) => {
+                                        Some(crate::fmt_symbol!(self, &punctuation, ", "))
+                                    }
+                                    None => Some(TokenReference::symbol(", ").unwrap()),
                                 }
                             };
                         }
@@ -277,6 +276,8 @@ impl CodeFormatter {
 
                 TypeInfo::Union { left, pipe, right }
             }
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -306,6 +307,8 @@ impl CodeFormatter {
                     generics,
                 }
             }
+
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -332,11 +335,11 @@ impl CodeFormatter {
     ) -> TypeFieldKey<'ast> {
         match type_field_key {
             TypeFieldKey::Name(token) => {
-                TypeFieldKey::Name(Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    self.format_token_reference(token).into_owned(),
+                TypeFieldKey::Name(trivia_formatter::token_reference_add_trivia(
+                    self.format_token_reference(token),
                     leading_trivia,
                     FormatTriviaType::NoChange,
-                )))
+                ))
             }
             TypeFieldKey::IndexSignature { brackets, inner } => {
                 let brackets = trivia_formatter::contained_span_add_trivia(
@@ -348,29 +351,18 @@ impl CodeFormatter {
 
                 TypeFieldKey::IndexSignature { brackets, inner }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
-    pub fn format_as_assertion<'ast>(
+    pub fn format_type_assertion<'ast>(
         &mut self,
-        as_assertion: &AsAssertion<'ast>,
-    ) -> AsAssertion<'ast> {
-        let as_token = self.format_symbol(
-            as_assertion.as_token(),
-            &TokenReference::new(
-                vec![],
-                Token::new(TokenType::Identifier {
-                    identifier: Cow::Owned(String::from("as")),
-                }),
-                vec![Token::new(TokenType::spaces(1))],
-            ),
-        );
-        let cast_to = self.format_type_info(as_assertion.cast_to());
+        type_assertion: &TypeAssertion<'ast>,
+    ) -> TypeAssertion<'ast> {
+        let assertion_op = crate::fmt_symbol!(self, type_assertion.assertion_op(), " :: ");
+        let cast_to = self.format_type_info(type_assertion.cast_to());
 
-        as_assertion
-            .to_owned()
-            .with_as_token(as_token)
-            .with_cast_to(cast_to)
+        TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
     }
 
     fn format_type_declaration<'ast>(
@@ -397,14 +389,14 @@ impl CodeFormatter {
 
         if add_leading_trivia {
             let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
-            type_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                type_token.into_owned(),
+            type_token = trivia_formatter::token_reference_add_trivia(
+                type_token,
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::NoChange,
-            ))
+            )
         }
 
-        let type_name = Cow::Owned(self.format_plain_token_reference(type_declaration.type_name()));
+        let type_name = self.format_token_reference(type_declaration.type_name());
         let generics = match type_declaration.generics() {
             Some(generics) => Some(self.format_generic_declaration(generics)),
             None => None,
@@ -474,7 +466,7 @@ impl CodeFormatter {
         );
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
 
-        let export_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
+        let export_token = trivia_formatter::token_reference_add_trivia(
             self.format_symbol(
                 exported_type_declaration.export_token(),
                 &TokenReference::new(
@@ -484,11 +476,10 @@ impl CodeFormatter {
                     }),
                     vec![Token::new(TokenType::spaces(1))],
                 ),
-            )
-            .into_owned(),
+            ),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::NoChange,
-        ));
+        );
         let type_declaration =
             self.format_type_declaration(exported_type_declaration.type_declaration(), false);
 

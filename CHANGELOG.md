@@ -28,6 +28,9 @@ force styles, we will always use the quote type specified.
 - Fixed hanging expressions which are inside function calls being indented unnecessarily by one extra level
 - Fixed parentheses being incorrectly removed around a function definition, which may be called like `(function() ... end)()`
 - Fixed some string escapes being incorrectly deemed as unnecessary
+- Fixed trailing comments after semicolons at the end of statements being lost when formatting
+- Fixed formatting issues in relation to newline and whitespace when using range formatting.
+- Fixed empty tables taking 2 formatting passes to format properly
 
 ## [0.5.0] - 2021-02-24
 ### Added
