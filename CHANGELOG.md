@@ -12,6 +12,7 @@ For the auto styles, we will prefer the quote type specified, but fall back to t
 force styles, we will always use the quote type specified.
 - StyLua will now error when unknown fields are found in the configuration `stylua.toml` file
 - Long lines of assignments, where the expressions aren't hangable, will now be put onto a newline, where a newline is created after the equal sign, and the expressions indented.
+- Added initial support for **Lua 5.2** syntax. StyLua can now format code containing `goto`s and labels. See [#87](https://github.com/JohnnyMorganz/StyLua/issues/87) to track further support for Lua 5.2 syntax.
 
 ### Changed
 - Function call heuristic have been further improve to decide when to expand the function call arguments onto multiple lines.
