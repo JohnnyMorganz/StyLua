@@ -40,7 +40,7 @@ impl CodeFormatter {
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::NoChange,
         );
-        let name = self.format_token_reference(label.body());
+        let name = self.format_token_reference(label.name());
 
         let right_colons = trivia_formatter::token_reference_add_trivia(
             crate::fmt_symbol!(self, label.right_colons(), "::"),
