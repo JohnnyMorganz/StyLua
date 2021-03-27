@@ -29,7 +29,7 @@ pub fn no_comments(token: &TokenReference) -> String {
 impl CodeFormatter {
     /// Creates indent trivia without including `self.indent_level`.
     /// You should pass the exact amount of indent you require to this function
-    fn create_plain_indent_trivia<'ast>(&self, indent_level: usize) -> Token<'ast> {
+    pub fn create_plain_indent_trivia<'ast>(&self, indent_level: usize) -> Token<'ast> {
         match self.config.indent_type {
             IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
             IndentType::Spaces => {

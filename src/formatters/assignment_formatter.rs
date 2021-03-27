@@ -5,7 +5,7 @@ use full_moon::ast::{
     Assignment, Expression, LocalAssignment,
 };
 use full_moon::node::Node;
-use full_moon::tokenizer::{Token, TokenReference};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference};
 
 use crate::formatters::{
     trivia_formatter::{self, FormatTriviaType},
@@ -154,6 +154,46 @@ impl CodeFormatter {
         output
     }
 
+    /// Checks the list of assigned expressions to see if any were hangable.
+    /// If not, then we still have a long list of assigned expressions - we split it onto a newline at the equal token.
+    /// Returns the new equal token [`TokenReference`]
+    fn check_long_expression<'ast>(
+        &mut self,
+        expressions: &Punctuated<'ast, Expression<'ast>>,
+        equal_token: TokenReference<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> TokenReference<'ast> {
+        // See if any of our expressions were hangable.
+        // If not, then its still a big long line - we should newline at the end of the equals token,
+        // then indent the first item
+        if !expressions
+            .iter()
+            .any(|x| trivia_util::can_hang_expression(x))
+        {
+            let equal_token_trailing_trivia = vec![
+                self.create_newline_trivia(),
+                self.create_indent_trivia(additional_indent_level.or(Some(0)).map(|x| x + 1)),
+            ]
+            .iter()
+            .chain(
+                // Remove the space that was present after the equal token
+                equal_token
+                    .trailing_trivia()
+                    .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
+            )
+            .map(|x| x.to_owned())
+            .collect();
+
+            trivia_formatter::token_reference_add_trivia(
+                equal_token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(equal_token_trailing_trivia),
+            )
+        } else {
+            equal_token
+        }
+    }
+
     pub fn format_assignment<'ast>(&mut self, assignment: &Assignment<'ast>) -> Assignment<'ast> {
         // Calculate trivia - pick an arbitrary range within the whole assignment expression to see if
         // indentation is required
@@ -170,9 +210,11 @@ impl CodeFormatter {
         let (mut expr_list, expr_comments_buf) =
             self.format_punctuated(assignment.expressions(), &CodeFormatter::format_expression);
 
+        let mut equal_token = crate::fmt_symbol!(self, assignment.equal_token(), " = ");
+
         // Create preliminary assignment
         let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
-            .with_equal_token(TokenReference::symbol(" = ").unwrap());
+            .with_equal_token(equal_token.to_owned());
 
         // Test whether we need to hang the expression, using the updated assignment
         // We have to format normally before this, since we may be expanding the expression onto multiple lines
@@ -196,6 +238,12 @@ impl CodeFormatter {
         if require_multiline_expression {
             expr_list =
                 self.hang_punctuated_list(assignment.expressions(), additional_indent_level);
+
+            equal_token = self.check_long_expression(
+                assignment.expressions(),
+                equal_token,
+                additional_indent_level,
+            );
         }
 
         // Add any trailing trivia to the end of the expression list
@@ -219,6 +267,7 @@ impl CodeFormatter {
 
         formatted_assignment
             .with_variables(formatted_var_list)
+            .with_equal_token(equal_token)
             .with_expressions(expr_list)
     }
 
@@ -293,14 +342,15 @@ impl CodeFormatter {
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
             local_assignment
         } else {
-            let equal_token = crate::fmt_symbol!(self, assignment.equal_token().unwrap(), " = ");
+            let mut equal_token =
+                crate::fmt_symbol!(self, assignment.equal_token().unwrap(), " = ");
             // Format the expression normally
             let (mut expr_list, expr_comments_buf) =
                 self.format_punctuated(assignment.expressions(), &CodeFormatter::format_expression);
             // Create our preliminary new assignment
             let local_assignment = LocalAssignment::new(name_list)
                 .with_local_token(local_token)
-                .with_equal_token(Some(equal_token))
+                .with_equal_token(Some(equal_token.to_owned()))
                 .with_expressions(expr_list.to_owned());
             #[cfg(feature = "luau")]
             let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
@@ -329,6 +379,12 @@ impl CodeFormatter {
             if require_multiline_expression {
                 expr_list =
                     self.hang_punctuated_list(assignment.expressions(), additional_indent_level);
+
+                equal_token = self.check_long_expression(
+                    assignment.expressions(),
+                    equal_token,
+                    additional_indent_level,
+                );
             }
 
             // Add any trailing trivia to the end of the expression list
@@ -344,7 +400,9 @@ impl CodeFormatter {
             );
 
             // Update our local assignment
-            local_assignment.with_expressions(expr_list)
+            local_assignment
+                .with_equal_token(Some(equal_token))
+                .with_expressions(expr_list)
         }
     }
 }
