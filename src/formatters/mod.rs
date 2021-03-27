@@ -15,6 +15,8 @@ pub mod block_formatter;
 #[macro_use]
 pub mod expression_formatter;
 pub mod functions_formatter;
+#[cfg(feature = "lua52")]
+pub mod lua52_formatter;
 #[cfg(feature = "luau")]
 pub mod luau_formatter;
 pub mod stmt_formatter;
@@ -231,7 +233,7 @@ impl CodeFormatter {
     /// This should only ever be called from format_token_reference
     fn format_token<'ast>(
         &self,
-        token: Token<'ast>,
+        token: &Token<'ast>,
         format_type: &FormatTokenType,
         additional_indent_level: Option<usize>,
     ) -> (
@@ -273,7 +275,7 @@ impl CodeFormatter {
                     // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                     lazy_static::lazy_static! {
                         static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
-                        static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\bfnrt-vx\u2028\u2029]$"#).unwrap();
+                        static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-7\\abfnrtuvxz]$"#).unwrap();
                     }
                     let quote_to_use = self.get_quote_to_use(literal);
                     let literal = RE
@@ -404,24 +406,44 @@ impl CodeFormatter {
         let mut token_trivia = Vec::new();
 
         let mut newline_count_in_succession = 0;
+        let mut trivia_iter = current_trivia.iter().peekable();
 
-        for trivia in current_trivia {
+        while let Some(trivia) = trivia_iter.next() {
+            // Handle cases where the user has left a newline gap in between e.g. two statements
+            // If we are formatting trailing trivia, this can be ignored, as all trailing newlines will have already
+            // been handled by the formatter.
+            // If we are formatting leading trivia, we will allow a single newline to be kept in succession, if we
+            // find one.
             match trivia.token_type() {
                 TokenType::Whitespace { characters } => {
-                    if characters.contains('\n') {
-                        newline_count_in_succession += 1;
-                        if newline_count_in_succession == 2 {
-                            // We have two counts of a new line, we will allow one to be kept
-                            // This allows the user to define where they want to keep lines in between statements, whilst only allowing one empty line in between them
-                            token_trivia.push(Token::new(TokenType::Whitespace {
-                                characters: Cow::Owned(get_line_ending_character(
-                                    &self.config.line_endings,
-                                )),
-                            }));
+                    if let FormatTokenType::LeadingTrivia = format_token_type {
+                        if characters.contains('\n') {
+                            newline_count_in_succession += 1;
+                            if newline_count_in_succession == 1 {
+                                // We have a case where we will allow a single newline to be kept
+                                token_trivia.push(self.create_newline_trivia());
+                            }
                         }
                     }
+
                     // Move to next trivia
                     continue;
+                }
+                TokenType::SingleLineComment { .. } | TokenType::MultiLineComment { .. } => {
+                    // If we have a comment, when `format_token` is called, it will put a newline at the end
+                    // If this happens, we want to skip the next iteration if its a newline, as that has already been covered here
+                    if let FormatTokenType::LeadingTrivia = format_token_type {
+                        if let Some(next_trivia) = trivia_iter.peek() {
+                            if let TokenType::Whitespace { characters } = next_trivia.token_type() {
+                                if characters.contains('\n') {
+                                    // Consume iterator once to skip the next iteration
+                                    trivia_iter.next();
+                                }
+                            }
+                        }
+                    }
+                    // We will reset the counter as well, because the newline above is only to terminate the comment
+                    newline_count_in_succession = 0;
                 }
                 _ => {
                     // Reset new line counter, as we only want two new lines in a row
@@ -448,7 +470,7 @@ impl CodeFormatter {
         token_trivia
     }
 
-    fn format_plain_token_reference<'a>(
+    fn format_token_reference<'a>(
         &self,
         token_reference: &TokenReference<'a>,
     ) -> TokenReference<'a> {
@@ -464,11 +486,8 @@ impl CodeFormatter {
             None,
         );
 
-        let (token, _leading_trivia, _trailing_trivia) = self.format_token(
-            token_reference.token().to_owned(),
-            &FormatTokenType::Token,
-            None,
-        );
+        let (token, _leading_trivia, _trailing_trivia) =
+            self.format_token(token_reference.token(), &FormatTokenType::Token, None);
         // TODO: is it possible for leading/trailing trivia to be present here?
         // if let Some(trivia) = leading_trivia {
         //     formatted_leading_trivia.append(trivia);
@@ -481,18 +500,11 @@ impl CodeFormatter {
         TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
     }
 
-    pub fn format_token_reference<'a>(
-        &self,
-        token_reference: &TokenReference<'a>,
-    ) -> Cow<'a, TokenReference<'a>> {
-        Cow::Owned(self.format_plain_token_reference(&token_reference))
-    }
-
     pub fn format_token_reference_mut<'ast>(
         &mut self,
-        token_reference: &Cow<'ast, TokenReference<'ast>>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
-        Cow::Owned(self.format_plain_token_reference(&token_reference))
+        token_reference: &TokenReference<'ast>,
+    ) -> TokenReference<'ast> {
+        self.format_token_reference(token_reference)
     }
 
     // Formats a punctuation for a Punctuated sequence
@@ -500,7 +512,7 @@ impl CodeFormatter {
     pub fn format_punctuation<'ast>(
         &self,
         punctuation: &TokenReference<'ast>,
-    ) -> (Cow<'ast, TokenReference<'ast>>, Vec<Token<'ast>>) {
+    ) -> (TokenReference<'ast>, Vec<Token<'ast>>) {
         let trailing_comments = punctuation
             .trailing_trivia()
             .filter(|token| {
@@ -515,11 +527,11 @@ impl CodeFormatter {
             .collect();
 
         (
-            Cow::Owned(TokenReference::new(
+            TokenReference::new(
                 Vec::new(),
                 punctuation.token().to_owned(),
                 vec![Token::new(TokenType::spaces(1))], // Single space whitespace
-            )),
+            ),
             trailing_comments,
         )
     }
@@ -563,8 +575,8 @@ impl CodeFormatter {
         let (start_token, end_token) = contained_span.tokens();
 
         ContainedSpan::new(
-            Cow::Owned(self.format_plain_token_reference(start_token)),
-            Cow::Owned(self.format_plain_token_reference(end_token)),
+            self.format_token_reference(start_token),
+            self.format_token_reference(end_token),
         )
     }
 
@@ -574,7 +586,7 @@ impl CodeFormatter {
         &self,
         current_symbol: &TokenReference<'ast>,
         wanted_symbol: &TokenReference<'ast>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
+    ) -> TokenReference<'ast> {
         // Preserve comments in leading/trailing trivia
         let mut formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_symbol.leading_trivia().collect(),
@@ -602,11 +614,11 @@ impl CodeFormatter {
         wanted_trailing_trivia.append(&mut formatted_trailing_trivia);
         formatted_leading_trivia.append(&mut wanted_leading_trivia);
 
-        Cow::Owned(TokenReference::new(
+        TokenReference::new(
             formatted_leading_trivia,
             wanted_symbol.token().to_owned(),
             wanted_trailing_trivia,
-        ))
+        )
     }
 
     /// Formats a token present at the end of an indented block, such as the `end` token or closing brace in a multiline table.
@@ -614,7 +626,7 @@ impl CodeFormatter {
     pub fn format_end_token<'ast>(
         &self,
         current_token: &TokenReference<'ast>,
-    ) -> Cow<'ast, TokenReference<'ast>> {
+    ) -> TokenReference<'ast> {
         // Indent any comments leading a token, as these comments are technically part of the function body block
         let formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_token.leading_trivia().collect(),
@@ -659,11 +671,11 @@ impl CodeFormatter {
         // Need to reverse the vector since we reversed the iterator
         formatted_leading_trivia.reverse();
 
-        Cow::Owned(TokenReference::new(
+        TokenReference::new(
             formatted_leading_trivia,
             Token::new(current_token.token_type().to_owned()),
             formatted_trailing_trivia,
-        ))
+        )
     }
 }
 
@@ -710,9 +722,7 @@ impl<'ast> VisitorMut<'ast> for CodeFormatter {
         } else {
             // We have some comments in here, so we need to remove any trailing whitespace then add a single new line
             pop_until_no_whitespace(&mut formatted_leading_trivia);
-            formatted_leading_trivia.push(Token::new(TokenType::Whitespace {
-                characters: Cow::Owned(get_line_ending_character(&self.config.line_endings)),
-            }));
+            formatted_leading_trivia.push(self.create_newline_trivia());
 
             TokenReference::new(
                 formatted_leading_trivia,

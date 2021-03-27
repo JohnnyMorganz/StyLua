@@ -1,6 +1,4 @@
-use full_moon::ast::{
-    BinOp, BinOpRhs, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
-};
+use full_moon::ast::{BinOp, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression};
 use full_moon::tokenizer::{Symbol, TokenReference, TokenType};
 use std::boxed::Box;
 
@@ -13,6 +11,7 @@ macro_rules! fmt_op {
             $(
                 $enum::$operator(token) => $enum::$operator(crate::fmt_symbol!($fmter, token, $output)),
             )+
+            other => panic!("unknown node {:?}", other),
         }
     };
 }
@@ -38,13 +37,6 @@ impl CodeFormatter {
         })
     }
 
-    pub fn format_bin_op_rhs<'ast>(&mut self, bin_op_rhs: &BinOpRhs<'ast>) -> BinOpRhs<'ast> {
-        BinOpRhs::new(
-            self.format_binop(bin_op_rhs.bin_op()),
-            Box::new(self.format_expression(bin_op_rhs.rhs())),
-        )
-    }
-
     /// Check to determine whether expression parentheses are required, depending on the provided
     /// internal expression contained within the parentheses
     fn check_excess_parentheses(internal_expression: &Expression) -> bool {
@@ -55,30 +47,31 @@ impl CodeFormatter {
             Expression::UnaryOperator { expression, .. } => {
                 CodeFormatter::check_excess_parentheses(expression)
             }
-            Expression::Value { value, binop, .. } => {
-                if binop.is_some() {
-                    // Don't bother removing them if there is a binop, as they may be needed
-                    false
-                } else {
-                    match &**value {
-                        // Internal expression is a function call
-                        // We could potentially be culling values, so we should not remove parentheses
-                        Value::FunctionCall(_) => false,
-                        // String literal inside of parentheses
-                        // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
-                        Value::String(_) => false,
-                        Value::Symbol(token_ref) => {
-                            match token_ref.token_type() {
-                                // If we have an ellipse inside of parentheses, we may also be culling values
-                                // Therefore, we don't remove parentheses
-                                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
-                                _ => true,
-                            }
+            // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
+            Expression::BinaryOperator { .. } => false,
+            Expression::Value { value, .. } => {
+                match &**value {
+                    // Internal expression is a function definition
+                    // This may be something like (function() ... end)(); removing the parentheses will break the code
+                    Value::Function(_) => false,
+                    // Internal expression is a function call
+                    // We could potentially be culling values, so we should not remove parentheses
+                    Value::FunctionCall(_) => false,
+                    // String literal inside of parentheses
+                    // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
+                    Value::String(_) => false,
+                    Value::Symbol(token_ref) => {
+                        match token_ref.token_type() {
+                            // If we have an ellipse inside of parentheses, we may also be culling values
+                            // Therefore, we don't remove parentheses
+                            TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
+                            _ => true,
                         }
-                        _ => true,
                     }
+                    _ => true,
                 }
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -87,18 +80,13 @@ impl CodeFormatter {
         match expression {
             Expression::Value {
                 value,
-                binop,
                 #[cfg(feature = "luau")]
-                as_assertion,
+                type_assertion,
             } => Expression::Value {
                 value: Box::new(self.format_value(value)),
-                binop: match binop {
-                    Some(value) => Some(self.format_bin_op_rhs(value)),
-                    None => None,
-                },
                 #[cfg(feature = "luau")]
-                as_assertion: match as_assertion {
-                    Some(assertion) => Some(self.format_as_assertion(assertion)),
+                type_assertion: match type_assertion {
+                    Some(assertion) => Some(self.format_type_assertion(assertion)),
                     None => None,
                 },
             },
@@ -125,6 +113,12 @@ impl CodeFormatter {
                 unop: self.format_unop(unop),
                 expression: Box::new(self.format_expression(expression)),
             },
+            Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
+                lhs: Box::new(self.format_expression(lhs)),
+                binop: self.format_binop(binop),
+                rhs: Box::new(self.format_expression(rhs)),
+            },
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -143,6 +137,7 @@ impl CodeFormatter {
                 dot: self.format_token_reference(dot),
                 name: self.format_token_reference(name),
             },
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -155,6 +150,7 @@ impl CodeFormatter {
             Prefix::Name(token_reference) => {
                 Prefix::Name(self.format_token_reference(token_reference))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -163,6 +159,7 @@ impl CodeFormatter {
         match suffix {
             Suffix::Call(call) => Suffix::Call(self.format_call(call)),
             Suffix::Index(index) => Suffix::Index(self.format_index(index)),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -178,8 +175,8 @@ impl CodeFormatter {
             Value::Number(token_reference) => {
                 Value::Number(self.format_token_reference(token_reference))
             }
-            Value::ParseExpression(expression) => {
-                Value::ParseExpression(self.format_expression(expression))
+            Value::ParenthesesExpression(expression) => {
+                Value::ParenthesesExpression(self.format_expression(expression))
             }
             Value::String(token_reference) => {
                 Value::String(self.format_token_reference(token_reference))
@@ -191,6 +188,7 @@ impl CodeFormatter {
                 Value::TableConstructor(self.format_table_constructor(table_constructor))
             }
             Value::Var(var) => Value::Var(self.format_var(var)),
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -201,6 +199,7 @@ impl CodeFormatter {
             Var::Expression(var_expression) => {
                 Var::Expression(self.format_var_expression(var_expression))
             }
+            other => panic!("unknown node {:?}", other),
         }
     }
 
@@ -210,7 +209,7 @@ impl CodeFormatter {
     ) -> VarExpression<'ast> {
         let formatted_prefix = self.format_prefix(var_expression.prefix());
         let formatted_suffixes = var_expression
-            .iter_suffixes()
+            .suffixes()
             .map(|x| self.format_suffix(x))
             .collect();
 

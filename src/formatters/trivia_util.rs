@@ -1,6 +1,6 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{AsAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
+use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo};
 use full_moon::{
     ast::{
         punctuated::Pair, span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index,
@@ -8,14 +8,20 @@ use full_moon::{
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
-use std::borrow::Cow;
+
+pub fn trivia_is_newline(trivia: &Token) -> bool {
+    if let TokenType::Whitespace { characters } = trivia.token_type() {
+        if characters.find('\n').is_some() {
+            return true;
+        }
+    }
+    false
+}
 
 pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
     for trivia in trivia_vec {
-        if let TokenType::Whitespace { characters } = trivia.token_type() {
-            if characters.find('\n').is_some() {
-                return true;
-            }
+        if trivia_is_newline(trivia) {
+            return true;
         }
     }
     false
@@ -25,7 +31,9 @@ pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses { expression, .. } => can_hang_expression(expression),
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
-        Expression::Value { binop, .. } => binop.is_some(), // If a binop is present, then we can hang the expression
+        Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
+        Expression::Value { .. } => false,
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -44,6 +52,7 @@ fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Ve
             let (_, end_brace) = table_constructor.braces().tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -55,11 +64,14 @@ fn suffix_trailing_trivia<'ast>(suffix: &Suffix<'ast>) -> Vec<Token<'ast>> {
                 end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
             }
             Index::Dot { name, .. } => name.trailing_trivia().map(|x| x.to_owned()).collect(),
+            other => panic!("unknown node {:?}", other),
         },
         Suffix::Call(call) => match call {
             Call::AnonymousCall(function_args) => function_args_trailing_trivia(function_args),
             Call::MethodCall(method_call) => function_args_trailing_trivia(method_call.args()),
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -76,6 +88,7 @@ fn indexed_type_info_trailing_trivia<'ast>(
             let (_, end_brace) = arrows.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -121,6 +134,8 @@ fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast
         }
 
         TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
+
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -131,13 +146,14 @@ fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
             .map(|x| x.to_owned())
             .collect(),
         Var::Expression(var_expr) => {
-            if let Some(last_suffix) = var_expr.iter_suffixes().last() {
+            if let Some(last_suffix) = var_expr.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
                 // TODO: is it possible for this to happen?
                 vec![]
             }
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -149,7 +165,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .map(|x| x.to_owned())
             .collect(),
         Value::FunctionCall(function_call) => {
-            if let Some(last_suffix) = function_call.iter_suffixes().last() {
+            if let Some(last_suffix) = function_call.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
                 // TODO: is it possible for this to happen?
@@ -168,12 +184,13 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
-        Value::ParseExpression(expr) => get_expression_trailing_trivia(&expr),
+        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(&expr),
         Value::Symbol(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
         Value::Var(var) => var_trailing_trivia(var),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -187,23 +204,20 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
                 .collect()
         }
         Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(expression),
+        Expression::BinaryOperator { rhs, .. } => get_expression_trailing_trivia(rhs),
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => {
             #[cfg(feature = "luau")]
-            if let Some(as_assertion) = as_assertion {
-                return type_info_trailing_trivia(as_assertion.cast_to());
+            if let Some(type_assertion) = type_assertion {
+                return type_info_trailing_trivia(type_assertion.cast_to());
             }
 
-            if let Some(binop) = binop {
-                get_expression_trailing_trivia(binop.rhs())
-            } else {
-                get_value_trailing_trivia(value)
-            }
+            get_value_trailing_trivia(value)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -219,7 +233,9 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
             UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
+            other => panic!("unknown node {:?}", other),
         },
+        Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
         Expression::Value { value, .. } => match &**value {
             Value::Function((token_ref, _)) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
@@ -229,6 +245,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                     token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                 }
                 Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+                other => panic!("unknown node {:?}", other),
             },
             Value::TableConstructor(table) => table
                 .braces()
@@ -238,7 +255,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                 .map(|x| x.to_owned())
                 .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParseExpression(expr) => get_expression_leading_trivia(&expr),
+            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(&expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Var(var) => match var {
@@ -248,38 +265,48 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
                         token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                     }
                     Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+                    other => panic!("unknown node {:?}", other),
                 },
+                other => panic!("unknown node {:?}", other),
             },
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
-pub fn get_field_leading_trivia<'ast>(field: &Field<'ast>) -> Vec<Token<'ast>> {
-    match field {
-        Field::ExpressionKey { brackets, .. } => brackets
-            .tokens()
-            .0
-            .leading_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Field::NameKey { key, .. } => key.leading_trivia().map(|x| x.to_owned()).collect(),
-        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+    match binop {
+        BinOp::And(token)
+        | BinOp::Caret(token)
+        | BinOp::GreaterThan(token)
+        | BinOp::GreaterThanEqual(token)
+        | BinOp::LessThan(token)
+        | BinOp::LessThanEqual(token)
+        | BinOp::Minus(token)
+        | BinOp::Or(token)
+        | BinOp::Percent(token)
+        | BinOp::Plus(token)
+        | BinOp::Slash(token)
+        | BinOp::Star(token)
+        | BinOp::TildeEqual(token)
+        | BinOp::TwoDots(token)
+        | BinOp::TwoEqual(token) => {
+            token
+                .trailing_trivia()
+                .filter(|token| {
+                    token.token_kind() == TokenKind::SingleLineComment
+                        || token.token_kind() == TokenKind::MultiLineComment
+                })
+                .map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .flatten()
+                .collect()
+        }
+        other => panic!("unknown node {:?}", other),
     }
-}
-
-pub fn get_value_trailing_comments<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> {
-    get_value_trailing_trivia(value)
-        .iter()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
-        .map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .flatten()
-        .collect()
 }
 
 pub fn get_expression_trailing_comments<'ast>(
@@ -310,7 +337,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     let mut trailing_trivia = Vec::new();
     let updated_stmt = match stmt {
         Stmt::Assignment(assignment) => {
-            let mut formatted_expression_list = assignment.expr_list().to_owned();
+            let mut formatted_expression_list = assignment.expressions().to_owned();
             if let Some(last_pair) = formatted_expression_list.pop() {
                 match last_pair {
                     Pair::End(value) => {
@@ -327,13 +354,13 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 }
             }
 
-            Stmt::Assignment(assignment.with_expr_list(formatted_expression_list))
+            Stmt::Assignment(assignment.with_expressions(formatted_expression_list))
         }
 
         Stmt::LocalAssignment(local_assignment) => {
-            let new_assignment = if local_assignment.expr_list().is_empty() {
+            let new_assignment = if local_assignment.expressions().is_empty() {
                 // Unassigned local variable
-                let mut formatted_name_list = local_assignment.name_list().to_owned();
+                let mut formatted_name_list = local_assignment.names().to_owned();
 
                 // Retrieve last item and take its trailing comments
                 if let Some(last_pair) = formatted_name_list.pop() {
@@ -341,11 +368,11 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                         Pair::End(value) => {
                             trailing_trivia =
                                 value.trailing_trivia().map(|x| x.to_owned()).collect();
-                            let value = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                                value.into_owned(),
+                            let value = trivia_formatter::token_reference_add_trivia(
+                                value,
                                 FormatTriviaType::NoChange,
                                 FormatTriviaType::Replace(vec![]),
-                            ));
+                            );
                             formatted_name_list.push(Pair::End(value));
                         }
                         Pair::Punctuated(_, _) => {
@@ -353,11 +380,11 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                         }
                     }
                 }
-                local_assignment.with_name_list(formatted_name_list)
+                local_assignment.with_names(formatted_name_list)
             } else {
                 // Add newline at the end of LocalAssignment expression list
                 // Expression list should already be formatted
-                let mut formatted_expression_list = local_assignment.expr_list().to_owned();
+                let mut formatted_expression_list = local_assignment.expressions().to_owned();
 
                 // Retrieve last item and remove trailing trivia
                 if let Some(last_pair) = formatted_expression_list.pop() {
@@ -376,14 +403,14 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                     }
                 }
 
-                local_assignment.with_expr_list(formatted_expression_list)
+                local_assignment.with_expressions(formatted_expression_list)
             };
 
             Stmt::LocalAssignment(new_assignment)
         }
 
         Stmt::FunctionCall(function_call) => {
-            let last_suffix = function_call.iter_suffixes().last();
+            let last_suffix = function_call.suffixes().last();
             trailing_trivia = match last_suffix {
                 Some(suffix) => suffix_trailing_trivia(suffix),
                 None => Vec::new(),
@@ -449,6 +476,7 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
                     || expression_contains_comments(value)
             }
             Field::NoKey(expression) => expression_contains_comments(expression),
+            other => panic!("unknown node {:?}", other),
         };
 
         if let Some(punctuation) = field.punctuation() {
@@ -497,6 +525,7 @@ fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {
         FunctionArgs::TableConstructor(table_constructor) => {
             table_constructor_contains_comments(table_constructor)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -509,6 +538,7 @@ fn suffix_contains_comments(suffix: &Suffix) -> bool {
                     || token_contains_comments(method_call.colon_token())
                     || function_args_contains_comments(method_call.args())
             }
+            other => panic!("unknown node {:?}", other),
         },
         Suffix::Index(index) => match index {
             Index::Brackets {
@@ -523,7 +553,9 @@ fn suffix_contains_comments(suffix: &Suffix) -> bool {
             Index::Dot { dot, name } => {
                 token_contains_comments(dot) || token_contains_comments(name)
             }
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -533,7 +565,7 @@ fn contained_span_contains_comments(contained_span: &ContainedSpan) -> bool {
 }
 
 #[cfg(feature = "luau")]
-fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
+fn type_info_contains_comments(type_info: &TypeInfo) -> bool {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
             contained_span_contains_comments(braces) || type_info_contains_comments(type_info)
@@ -623,11 +655,12 @@ fn type_info_contains_comments<'ast>(type_info: &TypeInfo<'ast>) -> bool {
                 || token_contains_comments(pipe)
                 || type_info_contains_comments(right)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[cfg(feature = "luau")]
-fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) -> bool {
+fn indexed_type_info_contains_comments(type_info: &IndexedTypeInfo) -> bool {
     match type_info {
         IndexedTypeInfo::Basic(token) => token_contains_comments(token),
         IndexedTypeInfo::Generic {
@@ -644,30 +677,32 @@ fn indexed_type_info_contains_comments<'ast>(type_info: &IndexedTypeInfo<'ast>) 
                             .map_or(false, |punc| token_contains_comments(punc))
                 })
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[cfg(feature = "luau")]
-fn type_field_contains_comments<'ast>(type_field: &TypeField<'ast>) -> bool {
+fn type_field_contains_comments(type_field: &TypeField) -> bool {
     type_field_key_contains_comments(type_field.key())
         || token_contains_comments(type_field.colon_token())
         || type_info_contains_comments(type_field.value())
 }
 
 #[cfg(feature = "luau")]
-fn type_field_key_contains_comments<'ast>(type_field_key: &TypeFieldKey<'ast>) -> bool {
+fn type_field_key_contains_comments(type_field_key: &TypeFieldKey) -> bool {
     match type_field_key {
         TypeFieldKey::Name(token) => token_contains_comments(token),
         TypeFieldKey::IndexSignature { brackets, inner } => {
             contained_span_contains_comments(brackets) || type_info_contains_comments(inner)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[cfg(feature = "luau")]
-fn as_assertion_contains_comments<'ast>(as_assertion: &AsAssertion<'ast>) -> bool {
-    token_contains_comments(as_assertion.as_token())
-        || type_info_contains_comments(as_assertion.cast_to())
+fn type_assertion_contains_comments(type_assertion: &TypeAssertion) -> bool {
+    token_contains_comments(type_assertion.assertion_op())
+        || type_info_contains_comments(type_assertion.cast_to())
 }
 
 fn value_contains_comments(value: &Value) -> bool {
@@ -684,13 +719,14 @@ fn value_contains_comments(value: &Value) -> bool {
             let contained = match function_call.prefix() {
                 Prefix::Name(token) => token_contains_comments(token),
                 Prefix::Expression(expression) => expression_contains_comments(expression),
+                other => panic!("unknown node {:?}", other),
             };
 
             if contained {
                 true
             } else {
                 let mut contained_comments = false;
-                for suffix in function_call.iter_suffixes() {
+                for suffix in function_call.suffixes() {
                     contained_comments = suffix_contains_comments(suffix);
                     if contained_comments {
                         break;
@@ -703,7 +739,7 @@ fn value_contains_comments(value: &Value) -> bool {
             table_constructor_contains_comments(table_constructor)
         }
         Value::Number(token) => token_contains_comments(token),
-        Value::ParseExpression(expression) => expression_contains_comments(expression),
+        Value::ParenthesesExpression(expression) => expression_contains_comments(expression),
         Value::String(token) => token_contains_comments(token),
         Value::Symbol(token) => token_contains_comments(token),
         Value::Var(var) => match var {
@@ -712,13 +748,14 @@ fn value_contains_comments(value: &Value) -> bool {
                 let contained = match var_expr.prefix() {
                     Prefix::Name(token) => token_contains_comments(token),
                     Prefix::Expression(expression) => expression_contains_comments(expression),
+                    other => panic!("unknown node {:?}", other),
                 };
 
                 if contained {
                     true
                 } else {
                     let mut contained_comments = false;
-                    for suffix in var_expr.iter_suffixes() {
+                    for suffix in var_expr.suffixes() {
                         contained_comments = suffix_contains_comments(suffix);
                         if contained_comments {
                             break;
@@ -727,7 +764,30 @@ fn value_contains_comments(value: &Value) -> bool {
                     contained_comments
                 }
             }
+            other => panic!("unknown node {:?}", other),
         },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+fn binop_contains_comments(binop: &BinOp) -> bool {
+    match binop {
+        BinOp::And(t)
+        | BinOp::Caret(t)
+        | BinOp::GreaterThan(t)
+        | BinOp::GreaterThanEqual(t)
+        | BinOp::LessThan(t)
+        | BinOp::LessThanEqual(t)
+        | BinOp::Minus(t)
+        | BinOp::Or(t)
+        | BinOp::Percent(t)
+        | BinOp::Plus(t)
+        | BinOp::Slash(t)
+        | BinOp::Star(t)
+        | BinOp::TildeEqual(t)
+        | BinOp::TwoDots(t)
+        | BinOp::TwoEqual(t) => token_contains_comments(t),
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -747,56 +807,33 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
                         return true;
                     }
                 }
+                other => panic!("unknown node {:?}", other),
             }
 
             expression_contains_comments(expression)
         }
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            binop_contains_comments(binop)
+                || expression_contains_comments(lhs)
+                || expression_contains_comments(rhs)
+        }
         Expression::Value {
             value,
-            binop,
             #[cfg(feature = "luau")]
-            as_assertion,
+            type_assertion,
         } => {
-            if value_contains_comments(value) {
-                true
-            } else {
-                let binop_contains_comments = match binop {
-                    Some(binop) => {
-                        let contains = match binop.bin_op() {
-                            BinOp::And(t)
-                            | BinOp::Caret(t)
-                            | BinOp::GreaterThan(t)
-                            | BinOp::GreaterThanEqual(t)
-                            | BinOp::LessThan(t)
-                            | BinOp::LessThanEqual(t)
-                            | BinOp::Minus(t)
-                            | BinOp::Or(t)
-                            | BinOp::Percent(t)
-                            | BinOp::Plus(t)
-                            | BinOp::Slash(t)
-                            | BinOp::Star(t)
-                            | BinOp::TildeEqual(t)
-                            | BinOp::TwoDots(t)
-                            | BinOp::TwoEqual(t) => token_contains_comments(t),
-                        };
-
-                        contains || expression_contains_comments(binop.rhs())
-                    }
-                    None => false,
-                };
-
-                #[cfg(feature = "luau")]
-                {
-                    return binop_contains_comments
-                        || as_assertion
-                            .as_ref()
-                            .map_or(false, |x| as_assertion_contains_comments(x));
-                }
-
-                #[cfg(not(feature = "luau"))]
-                binop_contains_comments
+            #[cfg(feature = "luau")]
+            {
+                return value_contains_comments(value)
+                    || type_assertion
+                        .as_ref()
+                        .map_or(false, |x| type_assertion_contains_comments(x));
             }
+
+            #[cfg(not(feature = "luau"))]
+            value_contains_comments(value)
         }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -805,51 +842,23 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
-        Expression::Value { binop, value, .. } => {
-            match binop {
-                Some(binop_rhs) => {
-                    let rhs = binop_rhs.rhs();
-                    let contains = match binop_rhs.bin_op() {
-                        BinOp::And(t)
-                        | BinOp::Caret(t)
-                        | BinOp::GreaterThan(t)
-                        | BinOp::GreaterThanEqual(t)
-                        | BinOp::LessThan(t)
-                        | BinOp::LessThanEqual(t)
-                        | BinOp::Minus(t)
-                        | BinOp::Or(t)
-                        | BinOp::Percent(t)
-                        | BinOp::Plus(t)
-                        | BinOp::Slash(t)
-                        | BinOp::Star(t)
-                        | BinOp::TildeEqual(t)
-                        | BinOp::TwoDots(t)
-                        | BinOp::TwoEqual(t) => token_contains_comments(t),
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            binop_contains_comments(binop) || expression_contains_comments(lhs)
+            // Check if the binop chain still continues
+            // If so, we should keep checking the expresion
+            // Otherwise, stop checking
+            || match &**rhs {
+                Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
+                Expression::UnaryOperator { unop, expression } => {
+                    let op_contains_comments = match unop {
+                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token),
+                        other => panic!("unknown node {:?}", other)
                     };
-                    contains
-                        || value_contains_comments(value)
-                        // Check if the binop chain still continues
-                        // If so, we should keep checking the expresion
-                        // Otherwise, stop checking
-                        || match rhs {
-                            Expression::Value { binop, value, .. } => {
-                                if binop.is_some() {
-                                    value_contains_comments(value)
-                                        || expression_contains_inline_comments(rhs)
-                                } else {
-                                    false
-                                }
-                            }
-                            Expression::UnaryOperator { unop, expression } => {
-                                let op_contains_comments = match unop {
-                                    UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token)
-                                };
-                                op_contains_comments || expression_contains_inline_comments(expression)
-                            }
-                            _ => expression_contains_comments(rhs),
-                        }
+                    op_contains_comments || expression_contains_inline_comments(expression)
                 }
-                None => false,
+                Expression::Value{ .. } => false,
+                Expression::Parentheses { .. } => expression_contains_comments(rhs),
+                other => panic!("unknown node {:?}", other),
             }
         }
         _ => false,

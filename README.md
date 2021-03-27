@@ -1,6 +1,6 @@
 # StyLua
 
-An opinionated code formatter for Lua 5.1 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
+An opinionated code formatter for Lua 5.1, Lua 5.2 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
 StyLua is inspired by the likes of [prettier](https://github.com/prettier/prettier), it parses your Lua codebase, and prints it back out from scratch,
 enforcing a consistent code style.
 
@@ -9,7 +9,8 @@ There are multiple ways to install StyLua:
 
 ### With Github Releases
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
-Please note, currently by default, StyLua is built with Luau features enabled. If you would just like to format Lua 5.1 code, please see installing from crates.io
+Please note, currently by default, **StyLua is built with Luau features enabled**. If you would just like to format Lua 5.1 code,
+or would like to format Lua 5.2 code, please see [installing from crates.io](#from-cratesio)
 
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
@@ -39,6 +40,10 @@ This will compile StyLua (for Lua 5.1) and install it on your local machine.
 If you would like Luau features, pass the `--features luau` argument.
 ```
 cargo install stylua --features luau
+```
+Similarly, for Lua 5.2 syntax, pass the `--features lua52` argument.
+```
+cargo install stylua --features lua52
 ```
 
 ## Usage

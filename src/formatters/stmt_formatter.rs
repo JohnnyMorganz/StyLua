@@ -5,7 +5,6 @@ use crate::formatters::{
 use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
 use full_moon::node::Node;
 use full_moon::tokenizer::TokenReference;
-use std::borrow::Cow;
 
 macro_rules! fmt_stmt {
     ($fmter:expr, $value:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
@@ -14,6 +13,7 @@ macro_rules! fmt_stmt {
                 $(#[$inner])*
                 Stmt::$operator(stmt) => Stmt::$operator($fmter.$output(stmt)),
             )+
+            other => panic!("unknown node {:?}", other),
         }
     };
 }
@@ -29,20 +29,20 @@ impl CodeFormatter {
         let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
 
         let do_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, do_block.do_token(), "do").into_owned(),
+            crate::fmt_symbol!(self, do_block.do_token(), "do"),
             leading_trivia.to_owned(),
             trailing_trivia.to_owned(),
         );
         let end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(do_block.end_token()).into_owned(),
+            self.format_end_token(do_block.end_token()),
             leading_trivia,
             trailing_trivia,
         );
 
         do_block
             .to_owned()
-            .with_do_token(Cow::Owned(do_token))
-            .with_end_token(Cow::Owned(end_token))
+            .with_do_token(do_token)
+            .with_end_token(end_token)
     }
 
     /// Format a GenericFor node
@@ -53,11 +53,11 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let mut trailing_trivia = vec![self.create_newline_trivia()];
 
-        let for_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, generic_for.for_token(), "for ").into_owned(),
+        let for_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, generic_for.for_token(), "for "),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
+        );
         let (formatted_names, mut names_comments_buf) = self.format_punctuated(
             generic_for.names(),
             &CodeFormatter::format_token_reference_mut,
@@ -74,31 +74,31 @@ impl CodeFormatter {
 
         let in_token = crate::fmt_symbol!(self, generic_for.in_token(), " in ");
         let (formatted_expr_list, mut expr_comments_buf) =
-            self.format_punctuated(generic_for.expr_list(), &CodeFormatter::format_expression);
+            self.format_punctuated(generic_for.expressions(), &CodeFormatter::format_expression);
 
         // Create comments buffer and append to end of do token
         names_comments_buf.append(&mut expr_comments_buf);
         // Append trailing trivia to the end
         names_comments_buf.append(&mut trailing_trivia);
 
-        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, generic_for.do_token(), " do").into_owned(),
+        let do_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, generic_for.do_token(), " do"),
             FormatTriviaType::NoChange,
             FormatTriviaType::Append(names_comments_buf),
-        ));
+        );
 
-        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(generic_for.end_token()).into_owned(),
+        let end_token = trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(generic_for.end_token()),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(vec![self.create_newline_trivia()]), // trailing_trivia was emptied when it was appended to names_comment_buf
-        ));
+        );
 
         let generic_for = generic_for
             .to_owned()
             .with_for_token(for_token)
             .with_names(formatted_names)
             .with_in_token(in_token)
-            .with_expr_list(formatted_expr_list)
+            .with_expressions(formatted_expr_list)
             .with_do_token(do_token)
             .with_end_token(end_token);
         #[cfg(feature = "luau")]
@@ -131,11 +131,11 @@ impl CodeFormatter {
             ("elseif ", " then")
         };
 
-        let formatted_else_if_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, else_if_node.else_if_token(), else_if_text).into_owned(),
+        let formatted_else_if_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, else_if_node.else_if_token(), else_if_text),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -156,15 +156,15 @@ impl CodeFormatter {
             self.format_expression(else_if_node.condition())
         };
 
-        let formatted_then_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, else_if_node.then_token(), then_text).into_owned(),
+        let formatted_then_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, else_if_node.then_token(), then_text),
             if require_multiline_expression {
                 FormatTriviaType::Append(leading_trivia)
             } else {
                 FormatTriviaType::NoChange
             },
             FormatTriviaType::Append(trailing_trivia),
-        ));
+        );
 
         else_if_node
             .to_owned()
@@ -197,11 +197,11 @@ impl CodeFormatter {
             ("if ", " then")
         };
 
-        let formatted_if_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, if_node.if_token(), if_text).into_owned(),
+        let formatted_if_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, if_node.if_token(), if_text),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -222,20 +222,20 @@ impl CodeFormatter {
             self.format_expression(if_node.condition())
         };
 
-        let formatted_then_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, if_node.then_token(), then_text).into_owned(),
+        let formatted_then_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, if_node.then_token(), then_text),
             if require_multiline_expression {
                 FormatTriviaType::Append(leading_trivia.to_owned())
             } else {
                 FormatTriviaType::NoChange
             },
             FormatTriviaType::Append(trailing_trivia.to_owned()),
-        ));
-        let formatted_end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(if_node.end_token()).into_owned(),
+        );
+        let formatted_end_token = trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(if_node.end_token()),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::Append(trailing_trivia.to_owned()),
-        ));
+        );
 
         let formatted_else_if = match if_node.else_if() {
             Some(else_if) => Some(
@@ -249,11 +249,11 @@ impl CodeFormatter {
 
         let formatted_else_token = match if_node.else_token() {
             Some(token) => {
-                let formatted = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, token, "else").into_owned(),
+                let formatted = trivia_formatter::token_reference_add_trivia(
+                    crate::fmt_symbol!(self, token, "else"),
                     FormatTriviaType::Append(leading_trivia),
                     FormatTriviaType::Append(trailing_trivia),
-                ));
+                );
                 Some(formatted)
             }
             None => None,
@@ -277,13 +277,12 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let for_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, numeric_for.for_token(), "for ").into_owned(),
+        let for_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, numeric_for.for_token(), "for "),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
-        let formatted_index_variable =
-            Cow::Owned(self.format_plain_token_reference(numeric_for.index_variable()));
+        );
+        let formatted_index_variable = self.format_token_reference(numeric_for.index_variable());
 
         #[cfg(feature = "luau")]
         let type_specifier = match numeric_for.type_specifier() {
@@ -308,16 +307,16 @@ impl CodeFormatter {
             None => (None, None),
         };
 
-        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, numeric_for.do_token(), " do").into_owned(),
+        let do_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, numeric_for.do_token(), " do"),
             FormatTriviaType::NoChange,
             FormatTriviaType::Append(trailing_trivia.to_owned()),
-        ));
-        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(numeric_for.end_token()).into_owned(),
+        );
+        let end_token = trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(numeric_for.end_token()),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
-        ));
+        );
 
         let numeric_for = numeric_for
             .to_owned()
@@ -345,16 +344,16 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let repeat_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat").into_owned(),
+        let repeat_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat"),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::Append(trailing_trivia.to_owned()),
-        ));
-        let until_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, repeat_block.until_token(), "until ").into_owned(),
+        );
+        let until_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, repeat_block.until_token(), "until "),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         // Determine if we need to hang the until expression
         let last_line_str = trivia_formatter::no_comments(repeat_block.until_token())
@@ -413,11 +412,11 @@ impl CodeFormatter {
             ("while ", " do")
         };
 
-        let while_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, while_block.while_token(), while_text).into_owned(),
+        let while_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, while_block.while_token(), while_text),
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::NoChange,
-        ));
+        );
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -438,17 +437,17 @@ impl CodeFormatter {
             self.format_expression(while_block.condition())
         };
 
-        let do_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, while_block.do_token(), do_text).into_owned(),
+        let do_token = trivia_formatter::token_reference_add_trivia(
+            crate::fmt_symbol!(self, while_block.do_token(), do_text),
             FormatTriviaType::NoChange,
             FormatTriviaType::Append(trailing_trivia.to_owned()),
-        ));
+        );
 
-        let end_token = Cow::Owned(trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(while_block.end_token()).into_owned(),
+        let end_token = trivia_formatter::token_reference_add_trivia(
+            self.format_end_token(while_block.end_token()),
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
-        ));
+        );
 
         while_block
             .to_owned()
@@ -500,6 +499,8 @@ impl CodeFormatter {
             #[cfg(feature = "luau")] CompoundAssignment = format_compound_assignment,
             #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
             #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
+            #[cfg(feature = "lua52")] Goto = format_goto,
+            #[cfg(feature = "lua52")] Label = format_label,
         })
     }
 }
