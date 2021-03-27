@@ -21,6 +21,7 @@ path = "src/cli/main.rs"
 [features]
 default = []
 luau = ["full_moon/roblox"]
+lua52 = ["full_moon/lua52"]
 
 [dependencies]
 anyhow = "1.0.35"

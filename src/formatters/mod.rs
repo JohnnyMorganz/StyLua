@@ -15,6 +15,8 @@ pub mod block_formatter;
 #[macro_use]
 pub mod expression_formatter;
 pub mod functions_formatter;
+#[cfg(feature = "lua52")]
+pub mod lua52_formatter;
 #[cfg(feature = "luau")]
 pub mod luau_formatter;
 pub mod stmt_formatter;
