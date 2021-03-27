@@ -1,6 +1,6 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{TypeAssertion, IndexedTypeInfo, TypeField, TypeFieldKey, TypeInfo};
+use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo};
 use full_moon::{
     ast::{
         punctuated::Pair, span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index,
@@ -812,10 +812,11 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 
             expression_contains_comments(expression)
         }
-        Expression::BinaryOperator { lhs, binop, rhs } =>
+        Expression::BinaryOperator { lhs, binop, rhs } => {
             binop_contains_comments(binop)
                 || expression_contains_comments(lhs)
-                || expression_contains_comments(rhs),
+                || expression_contains_comments(rhs)
+        }
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
@@ -841,8 +842,8 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
-        Expression::BinaryOperator { lhs, binop, rhs } => {            
-            binop_contains_comments(binop) || expression_contains_comments(lhs) 
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            binop_contains_comments(binop) || expression_contains_comments(lhs)
             // Check if the binop chain still continues
             // If so, we should keep checking the expresion
             // Otherwise, stop checking
