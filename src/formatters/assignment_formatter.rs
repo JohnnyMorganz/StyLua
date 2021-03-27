@@ -154,6 +154,46 @@ impl CodeFormatter {
         output
     }
 
+    /// Checks the list of assigned expressions to see if any were hangable.
+    /// If not, then we still have a long list of assigned expressions - we split it onto a newline at the equal token.
+    /// Returns the new equal token [`TokenReference`]
+    fn check_long_expression<'ast>(
+        &mut self,
+        expressions: &Punctuated<'ast, Expression<'ast>>,
+        equal_token: TokenReference<'ast>,
+        additional_indent_level: Option<usize>,
+    ) -> TokenReference<'ast> {
+        // See if any of our expressions were hangable.
+        // If not, then its still a big long line - we should newline at the end of the equals token,
+        // then indent the first item
+        if !expressions
+            .iter()
+            .any(|x| trivia_util::can_hang_expression(x))
+        {
+            let equal_token_trailing_trivia = vec![
+                self.create_newline_trivia(),
+                self.create_indent_trivia(additional_indent_level.or(Some(0)).map(|x| x + 1)),
+            ]
+            .iter()
+            .chain(
+                // Remove the space that was present after the equal token
+                equal_token
+                    .trailing_trivia()
+                    .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
+            )
+            .map(|x| x.to_owned())
+            .collect();
+
+            trivia_formatter::token_reference_add_trivia(
+                equal_token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(equal_token_trailing_trivia),
+            )
+        } else {
+            equal_token
+        }
+    }
+
     pub fn format_assignment<'ast>(&mut self, assignment: &Assignment<'ast>) -> Assignment<'ast> {
         // Calculate trivia - pick an arbitrary range within the whole assignment expression to see if
         // indentation is required
@@ -198,34 +238,12 @@ impl CodeFormatter {
         if require_multiline_expression {
             expr_list =
                 self.hang_punctuated_list(assignment.expressions(), additional_indent_level);
-            // See if any of our expressions were hangable.
-            // If not, then its still a big long line - we should newline at the end of the equals token,
-            // then indent the first item
-            if !assignment
-                .expressions()
-                .iter()
-                .any(|x| trivia_util::can_hang_expression(x))
-            {
-                let equal_token_trailing_trivia = vec![
-                    self.create_newline_trivia(),
-                    self.create_indent_trivia(additional_indent_level.or(Some(0)).map(|x| x + 1)),
-                ]
-                .iter()
-                .chain(
-                    // Remove the space that was present after the equal token
-                    equal_token
-                        .trailing_trivia()
-                        .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
-                )
-                .map(|x| x.to_owned())
-                .collect();
 
-                equal_token = trivia_formatter::token_reference_add_trivia(
-                    equal_token,
-                    FormatTriviaType::NoChange,
-                    FormatTriviaType::Replace(equal_token_trailing_trivia),
-                );
-            }
+            equal_token = self.check_long_expression(
+                assignment.expressions(),
+                equal_token,
+                additional_indent_level,
+            );
         }
 
         // Add any trailing trivia to the end of the expression list
@@ -362,36 +380,11 @@ impl CodeFormatter {
                 expr_list =
                     self.hang_punctuated_list(assignment.expressions(), additional_indent_level);
 
-                // See if any of our expressions were hangable.
-                // If not, then its still a big long line - we should newline at the end of the equals token,
-                // then indent the first item
-                if !assignment
-                    .expressions()
-                    .iter()
-                    .any(|x| trivia_util::can_hang_expression(x))
-                {
-                    let equal_token_trailing_trivia = vec![
-                        self.create_newline_trivia(),
-                        self.create_indent_trivia(
-                            additional_indent_level.or(Some(0)).map(|x| x + 1),
-                        ),
-                    ]
-                    .iter()
-                    .chain(
-                        // Remove the space that was present after the equal token
-                        equal_token
-                            .trailing_trivia()
-                            .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
-                    )
-                    .map(|x| x.to_owned())
-                    .collect();
-
-                    equal_token = trivia_formatter::token_reference_add_trivia(
-                        equal_token,
-                        FormatTriviaType::NoChange,
-                        FormatTriviaType::Replace(equal_token_trailing_trivia),
-                    );
-                }
+                equal_token = self.check_long_expression(
+                    assignment.expressions(),
+                    equal_token,
+                    additional_indent_level,
+                );
             }
 
             // Add any trailing trivia to the end of the expression list
