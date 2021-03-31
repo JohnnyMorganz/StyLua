@@ -110,7 +110,7 @@ impl CodeFormatter {
                 let end_brace_token = trivia_formatter::token_reference_add_trivia(
                     self.format_end_token(end_brace),
                     FormatTriviaType::Append(end_brace_leading_trivia),
-                    FormatTriviaType::Replace(vec![]),
+                    FormatTriviaType::NoChange,
                 );
 
                 ContainedSpan::new(start_brace_token, end_brace_token)

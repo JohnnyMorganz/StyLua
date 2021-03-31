@@ -23,3 +23,7 @@ local bar = { baz -- bar
 local baz = {
 	-- foo
 }
+
+local foobar = {
+	"string"
+} -- trailing comment
