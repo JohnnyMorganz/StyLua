@@ -30,3 +30,7 @@ local baz = {
 	-- foo
 }
 
+local foobar = {
+	"string",
+} -- trailing comment
+
