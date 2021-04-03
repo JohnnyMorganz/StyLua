@@ -504,14 +504,40 @@ impl CodeFormatter {
         // Drop the stmt_iterator as we do not need it anymore and we still need to use `block`
         drop(stmt_iterator);
 
-        let formatted_last_stmt = match block.last_stmt() {
-            Some(last_stmt) => {
+        let formatted_last_stmt = match block.last_stmt_with_semicolon() {
+            Some((last_stmt, semi)) => {
                 let mut last_stmt = self.format_last_stmt(last_stmt);
                 // If this is the first stmt, then remove any leading newlines
                 if !found_first_stmt && self.should_format_node(&last_stmt) {
                     last_stmt = CodeFormatter::last_stmt_remove_leading_newlines(last_stmt);
                 }
-                Some((last_stmt, None))
+                // LastStmt will never need a semicolon
+                // We need to check if we previously had a semicolon, and keep the comments if so
+                let semicolon = match semi {
+                    Some(semi) => {
+                        let (updated_last_stmt, trivia) =
+                            trivia_util::get_last_stmt_trailing_trivia(last_stmt);
+                        last_stmt = updated_last_stmt;
+
+                        // We want to keep any old comments on the semicolon token, otherwise we will lose it
+                        // We will do a hack here, where we replace the semicolon with an empty symbol
+                        let semicolon_token = trivia_formatter::token_reference_add_trivia(
+                            self.format_symbol(
+                                semi,
+                                &TokenReference::new(
+                                    vec![],
+                                    Token::new(TokenType::spaces(0)),
+                                    vec![],
+                                ),
+                            ),
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Append(trivia),
+                        );
+                        Some(semicolon_token)
+                    }
+                    None => None,
+                };
+                Some((last_stmt, semicolon))
             }
             None => None,
         };
