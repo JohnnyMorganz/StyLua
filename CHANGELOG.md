@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed trailing comments at the end of multiline tables being lost
+- Fixed panic "stmt trailing comments not implemented" occuring due to incomplete function
 
 ## [0.6.0] - 2021-03-27
 ### Added
