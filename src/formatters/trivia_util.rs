@@ -5,8 +5,8 @@ use full_moon::ast::types::{
 };
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, Prefix, Stmt,
-        Suffix, TableConstructor, UnOp, Value, Var,
+        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix,
+        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
@@ -791,6 +791,54 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     };
 
     (updated_stmt, trailing_trivia)
+}
+
+pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Token>) {
+    match last_stmt {
+        LastStmt::Return(ret) => {
+            let mut formatted_expression_list = ret.returns().to_owned();
+            let mut trailing_trivia = Vec::new();
+
+            // Retrieve last item and remove trailing trivia
+            if let Some(last_pair) = formatted_expression_list.pop() {
+                let pair = last_pair.map(|value| {
+                    trailing_trivia = get_expression_trailing_trivia(&value);
+                    trivia_formatter::expression_add_trailing_trivia(
+                        value,
+                        FormatTriviaType::Replace(vec![]),
+                    )
+                });
+                formatted_expression_list.push(pair);
+            }
+
+            (
+                LastStmt::Return(ret.with_returns(formatted_expression_list)),
+                trailing_trivia,
+            )
+        }
+        LastStmt::Break(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = trivia_formatter::token_reference_add_trivia(
+                token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+
+            (LastStmt::Break(token), trailing_trivia)
+        }
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = trivia_formatter::token_reference_add_trivia(
+                token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+
+            (LastStmt::Continue(token), trailing_trivia)
+        }
+        other => panic!("unknown node {:?}", other),
+    }
 }
 
 pub fn token_trivia_contains_comments<'ast>(
