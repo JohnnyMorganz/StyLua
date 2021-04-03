@@ -1,10 +1,12 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo};
+use full_moon::ast::types::{
+    IndexedTypeInfo, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo,
+};
 use full_moon::{
     ast::{
-        punctuated::Pair, span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index,
-        Prefix, Stmt, Suffix, TableConstructor, UnOp, Value, Var,
+        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, Prefix, Stmt,
+        Suffix, TableConstructor, UnOp, Value, Var,
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
@@ -333,52 +335,298 @@ pub fn get_expression_trailing_comments<'ast>(
     (new_expression, trailing_comments)
 }
 
+/// Macro for retrieving trailing trivia out of a stmt which ends with an `end` token
+macro_rules! end_stmt_trailing_trivia {
+    ($enum:ident, $value:ident) => {{
+        let end_token = $value.end_token();
+        let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
+        let new_end_token = trivia_formatter::token_reference_add_trivia(
+            end_token.to_owned(),
+            FormatTriviaType::NoChange,
+            FormatTriviaType::Replace(vec![]),
+        );
+
+        (
+            Stmt::$enum($value.with_end_token(new_end_token)),
+            trailing_trivia,
+        )
+    }};
+}
+
+#[cfg(feature = "luau")]
+fn get_indexed_type_info_trailing_trivia(
+    type_info: IndexedTypeInfo,
+) -> (IndexedTypeInfo, Vec<Token>) {
+    match type_info {
+        IndexedTypeInfo::Basic(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = trivia_formatter::token_reference_add_trivia(
+                token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            (IndexedTypeInfo::Basic(token), trailing_trivia)
+        }
+        IndexedTypeInfo::Generic {
+            base,
+            arrows,
+            generics,
+        } => {
+            let (start_brace, end_brace) = arrows.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (
+                IndexedTypeInfo::Generic {
+                    base,
+                    arrows: braces,
+                    generics,
+                },
+                trailing_trivia,
+            )
+        }
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+#[cfg(feature = "luau")]
+fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) {
+    match type_info {
+        TypeInfo::Array { braces, type_info } => {
+            let (start_brace, end_brace) = braces.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (TypeInfo::Array { braces, type_info }, trailing_trivia)
+        }
+        TypeInfo::Basic(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = trivia_formatter::token_reference_add_trivia(
+                token,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            (TypeInfo::Basic(token), trailing_trivia)
+        }
+        TypeInfo::Callback {
+            parentheses,
+            arguments,
+            arrow,
+            return_type,
+        } => {
+            let (return_type, trailing_trivia) = get_type_info_trailing_trivia(*return_type);
+            (
+                TypeInfo::Callback {
+                    parentheses,
+                    arguments,
+                    arrow,
+                    return_type: Box::new(return_type),
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Generic {
+            base,
+            arrows,
+            generics,
+        } => {
+            let (start_brace, end_brace) = arrows.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (
+                TypeInfo::Generic {
+                    base,
+                    arrows: braces,
+                    generics,
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Intersection {
+            left,
+            ampersand,
+            right,
+        } => {
+            let (right, trailing_trivia) = get_type_info_trailing_trivia(*right);
+            (
+                TypeInfo::Intersection {
+                    left,
+                    ampersand,
+                    right: Box::new(right),
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Module {
+            module,
+            punctuation,
+            type_info,
+        } => {
+            let (type_info, trailing_trivia) = get_indexed_type_info_trailing_trivia(*type_info);
+            (
+                TypeInfo::Module {
+                    module,
+                    punctuation,
+                    type_info: Box::new(type_info),
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Optional {
+            base,
+            question_mark,
+        } => {
+            let trailing_trivia = question_mark
+                .trailing_trivia()
+                .map(|x| x.to_owned())
+                .collect();
+            let question_mark = trivia_formatter::token_reference_add_trivia(
+                question_mark,
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            (
+                TypeInfo::Optional {
+                    base,
+                    question_mark,
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Table { braces, fields } => {
+            let (start_brace, end_brace) = braces.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (TypeInfo::Table { braces, fields }, trailing_trivia)
+        }
+        TypeInfo::Typeof {
+            typeof_token,
+            parentheses,
+            inner,
+        } => {
+            let (start_brace, end_brace) = parentheses.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (
+                TypeInfo::Typeof {
+                    typeof_token,
+                    parentheses: braces,
+                    inner,
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Tuple { parentheses, types } => {
+            let (start_brace, end_brace) = parentheses.tokens();
+            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
+            let end_brace = trivia_formatter::token_reference_add_trivia(
+                end_brace.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
+
+            (
+                TypeInfo::Tuple {
+                    types,
+                    parentheses: braces,
+                },
+                trailing_trivia,
+            )
+        }
+        TypeInfo::Union { left, pipe, right } => {
+            let (right, trailing_trivia) = get_type_info_trailing_trivia(*right);
+            (
+                TypeInfo::Union {
+                    left,
+                    pipe,
+                    right: Box::new(right),
+                },
+                trailing_trivia,
+            )
+        }
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+#[cfg(feature = "luau")]
+fn get_type_declaration_trailing_trivia(
+    type_declaration: TypeDeclaration,
+) -> (TypeDeclaration, Vec<Token>) {
+    let (type_definition, trailing_trivia) =
+        get_type_info_trailing_trivia(type_declaration.type_definition().to_owned());
+    (
+        type_declaration.with_type_definition(type_definition),
+        trailing_trivia,
+    )
+}
+
 pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
-    let mut trailing_trivia = Vec::new();
-    let updated_stmt = match stmt {
+    let (updated_stmt, trailing_trivia) = match stmt {
         Stmt::Assignment(assignment) => {
             let mut formatted_expression_list = assignment.expressions().to_owned();
+            let mut trailing_trivia = Vec::new();
             if let Some(last_pair) = formatted_expression_list.pop() {
-                match last_pair {
-                    Pair::End(value) => {
-                        trailing_trivia = get_expression_trailing_trivia(&value);
-                        let expression = trivia_formatter::expression_add_trailing_trivia(
-                            value,
-                            FormatTriviaType::Replace(vec![]),
-                        );
-                        formatted_expression_list.push(Pair::End(expression));
-                    }
-                    Pair::Punctuated(_, _) => {
-                        panic!("we got a punctuated as the last sequence in expression")
-                    }
-                }
+                let pair = last_pair.map(|value| {
+                    trailing_trivia = get_expression_trailing_trivia(&value);
+                    trivia_formatter::expression_add_trailing_trivia(
+                        value,
+                        FormatTriviaType::Replace(vec![]),
+                    )
+                });
+                formatted_expression_list.push(pair);
             }
 
-            Stmt::Assignment(assignment.with_expressions(formatted_expression_list))
+            (
+                Stmt::Assignment(assignment.with_expressions(formatted_expression_list)),
+                trailing_trivia,
+            )
         }
 
         Stmt::LocalAssignment(local_assignment) => {
+            let mut trailing_trivia = Vec::new();
             let new_assignment = if local_assignment.expressions().is_empty() {
                 // Unassigned local variable
                 let mut formatted_name_list = local_assignment.names().to_owned();
-
                 // Retrieve last item and take its trailing comments
                 if let Some(last_pair) = formatted_name_list.pop() {
-                    match last_pair {
-                        Pair::End(value) => {
-                            trailing_trivia =
-                                value.trailing_trivia().map(|x| x.to_owned()).collect();
-                            let value = trivia_formatter::token_reference_add_trivia(
-                                value,
-                                FormatTriviaType::NoChange,
-                                FormatTriviaType::Replace(vec![]),
-                            );
-                            formatted_name_list.push(Pair::End(value));
-                        }
-                        Pair::Punctuated(_, _) => {
-                            panic!("punctuated sequence not ended with a Pair::End")
-                        }
-                    }
+                    let pair = last_pair.map(|value| {
+                        trailing_trivia = value.trailing_trivia().map(|x| x.to_owned()).collect();
+                        trivia_formatter::token_reference_add_trivia(
+                            value,
+                            FormatTriviaType::NoChange,
+                            FormatTriviaType::Replace(vec![]),
+                        )
+                    });
+                    formatted_name_list.push(pair);
                 }
                 local_assignment.with_names(formatted_name_list)
             } else {
@@ -388,49 +636,158 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
 
                 // Retrieve last item and remove trailing trivia
                 if let Some(last_pair) = formatted_expression_list.pop() {
-                    match last_pair {
-                        Pair::End(value) => {
-                            trailing_trivia = get_expression_trailing_trivia(&value);
-                            let expression = trivia_formatter::expression_add_trailing_trivia(
-                                value,
-                                FormatTriviaType::Replace(vec![]),
-                            );
-                            formatted_expression_list.push(Pair::End(expression));
-                        }
-                        Pair::Punctuated(_, _) => {
-                            panic!("got a last pair which was punctuated")
-                        }
-                    }
+                    let pair = last_pair.map(|value| {
+                        trailing_trivia = get_expression_trailing_trivia(&value);
+                        trivia_formatter::expression_add_trailing_trivia(
+                            value,
+                            FormatTriviaType::Replace(vec![]),
+                        )
+                    });
+                    formatted_expression_list.push(pair);
                 }
 
                 local_assignment.with_expressions(formatted_expression_list)
             };
 
-            Stmt::LocalAssignment(new_assignment)
+            (Stmt::LocalAssignment(new_assignment), trailing_trivia)
         }
 
         Stmt::FunctionCall(function_call) => {
             let last_suffix = function_call.suffixes().last();
-            trailing_trivia = match last_suffix {
+            let trailing_trivia = match last_suffix {
                 Some(suffix) => suffix_trailing_trivia(suffix),
                 None => Vec::new(),
             };
 
-            Stmt::FunctionCall(trivia_formatter::function_call_add_trailing_trivia(
-                function_call,
-                FormatTriviaType::Replace(vec![]),
-            ))
+            (
+                Stmt::FunctionCall(trivia_formatter::function_call_add_trailing_trivia(
+                    function_call,
+                    FormatTriviaType::Replace(vec![]),
+                )),
+                trailing_trivia,
+            )
         }
         Stmt::Repeat(repeat_block) => {
-            trailing_trivia = get_expression_trailing_trivia(repeat_block.until());
+            let trailing_trivia = get_expression_trailing_trivia(repeat_block.until());
             let until_expr = trivia_formatter::expression_add_trailing_trivia(
                 repeat_block.until().to_owned(),
                 FormatTriviaType::Replace(vec![]),
             );
 
-            Stmt::Repeat(repeat_block.with_until(until_expr))
+            (
+                Stmt::Repeat(repeat_block.with_until(until_expr)),
+                trailing_trivia,
+            )
         }
-        _ => panic!("stmt trailing comments not implemented"),
+
+        Stmt::Do(stmt) => {
+            end_stmt_trailing_trivia!(Do, stmt)
+        }
+        Stmt::GenericFor(stmt) => {
+            end_stmt_trailing_trivia!(GenericFor, stmt)
+        }
+        Stmt::If(stmt) => {
+            end_stmt_trailing_trivia!(If, stmt)
+        }
+        Stmt::FunctionDeclaration(stmt) => {
+            let end_token = stmt.body().end_token();
+            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let new_end_token = trivia_formatter::token_reference_add_trivia(
+                end_token.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+
+            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            (
+                Stmt::FunctionDeclaration(stmt.with_body(body)),
+                trailing_trivia,
+            )
+        }
+        Stmt::LocalFunction(stmt) => {
+            let end_token = stmt.body().end_token();
+            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let new_end_token = trivia_formatter::token_reference_add_trivia(
+                end_token.to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+
+            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            (
+                Stmt::LocalFunction(stmt.with_func_body(body)),
+                trailing_trivia,
+            )
+        }
+        Stmt::NumericFor(stmt) => {
+            end_stmt_trailing_trivia!(NumericFor, stmt)
+        }
+        Stmt::While(stmt) => {
+            end_stmt_trailing_trivia!(While, stmt)
+        }
+
+        #[cfg(feature = "luau")]
+        Stmt::CompoundAssignment(stmt) => {
+            let trailing_trivia = get_expression_trailing_trivia(stmt.rhs());
+            let expr = trivia_formatter::expression_add_trailing_trivia(
+                stmt.rhs().to_owned(),
+                FormatTriviaType::Replace(vec![]),
+            );
+            (
+                Stmt::CompoundAssignment(stmt.with_rhs(expr)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeDeclaration(stmt) => {
+            let (type_declaration, trailing_trivia) =
+                get_type_declaration_trailing_trivia(stmt.type_declaration().to_owned());
+            (
+                Stmt::ExportedTypeDeclaration(stmt.with_type_declaration(type_declaration)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeDeclaration(stmt) => {
+            let (type_declaration, trailing_trivia) = get_type_declaration_trailing_trivia(stmt);
+            (Stmt::TypeDeclaration(type_declaration), trailing_trivia)
+        }
+        #[cfg(feature = "lua52")]
+        Stmt::Goto(stmt) => {
+            let trailing_trivia = stmt
+                .label_name()
+                .trailing_trivia()
+                .map(|x| x.to_owned())
+                .collect();
+            let label_name = trivia_formatter::token_reference_add_trivia(
+                stmt.label_name().to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            (
+                Stmt::Goto(stmt.with_label_name(label_name)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "lua52")]
+        Stmt::Label(stmt) => {
+            let trailing_trivia = stmt
+                .right_colons()
+                .trailing_trivia()
+                .map(|x| x.to_owned())
+                .collect();
+            let right_colons = trivia_formatter::token_reference_add_trivia(
+                stmt.right_colons().to_owned(),
+                FormatTriviaType::NoChange,
+                FormatTriviaType::Replace(vec![]),
+            );
+            (
+                Stmt::Label(stmt.with_right_colons(right_colons)),
+                trailing_trivia,
+            )
+        }
+
+        other => panic!("unknown node {:?}", other),
     };
 
     (updated_stmt, trailing_trivia)
