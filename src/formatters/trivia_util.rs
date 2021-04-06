@@ -796,6 +796,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
 pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Token>) {
     match last_stmt {
         LastStmt::Return(ret) => {
+            let mut return_token = ret.token().to_owned();
             let mut formatted_expression_list = ret.returns().to_owned();
             let mut trailing_trivia = Vec::new();
 
@@ -809,10 +810,23 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
                     )
                 });
                 formatted_expression_list.push(pair);
+            } else {
+                trailing_trivia = return_token
+                    .trailing_trivia()
+                    .map(|x| x.to_owned())
+                    .collect();
+                return_token = trivia_formatter::token_reference_add_trivia(
+                    return_token,
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Replace(vec![]),
+                );
             }
 
             (
-                LastStmt::Return(ret.with_returns(formatted_expression_list)),
+                LastStmt::Return(
+                    ret.with_token(return_token)
+                        .with_returns(formatted_expression_list),
+                ),
                 trailing_trivia,
             )
         }
