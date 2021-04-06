@@ -1,13 +1,12 @@
 use crate::formatters::trivia_formatter::{self, FormatTriviaType};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
-    IndexedTypeInfo, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo,
-};
+use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
 use full_moon::{
     ast::{
         span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix,
         Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
+    node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
@@ -873,387 +872,34 @@ pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
+pub fn contains_comments<'ast>(node: impl Node<'ast>) -> bool {
+    node.tokens().into_iter().any(token_contains_comments)
+}
+
+/// Checks whether any [`Field`] within a [`TableConstructor`] contains comments, without checking the braces
 pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> bool {
     table_constructor.fields().pairs().any(|field| {
-        let mut contains_comments = match field.value() {
+        let comments = match field.value() {
             Field::ExpressionKey {
                 brackets,
                 key,
                 equal,
                 value,
             } => {
-                let (start, end) = brackets.tokens();
-                token_contains_comments(start)
-                    || token_contains_comments(end)
-                    || token_contains_comments(equal)
-                    || expression_contains_comments(value)
-                    || expression_contains_comments(key)
+                contains_comments(brackets)
+                    || contains_comments(key)
+                    || contains_comments(equal)
+                    || contains_comments(value)
             }
             Field::NameKey { key, equal, value } => {
-                token_contains_comments(equal)
-                    || token_contains_comments(key)
-                    || expression_contains_comments(value)
+                contains_comments(key) || contains_comments(equal) || contains_comments(value)
             }
-            Field::NoKey(expression) => expression_contains_comments(expression),
+            Field::NoKey(expression) => contains_comments(expression),
             other => panic!("unknown node {:?}", other),
         };
 
-        if let Some(punctuation) = field.punctuation() {
-            if token_contains_comments(punctuation) {
-                contains_comments = true;
-            }
-        }
-
-        contains_comments
+        comments || field.punctuation().map_or(false, contains_comments)
     })
-}
-
-fn table_constructor_contains_comments(table_constructor: &TableConstructor) -> bool {
-    let (start, end) = table_constructor.braces().tokens();
-    token_contains_comments(start)
-        || token_contains_comments(end)
-        || table_fields_contains_comments(table_constructor)
-}
-
-fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {
-    match function_args {
-        FunctionArgs::Parentheses {
-            parentheses,
-            arguments,
-        } => {
-            let (start, end) = parentheses.tokens();
-            if token_contains_comments(start) || token_contains_comments(end) {
-                true
-            } else {
-                let mut contains_comments = false;
-                for argument in arguments.pairs() {
-                    contains_comments = expression_contains_comments(argument.value());
-                    if let Some(punctuation) = argument.punctuation() {
-                        if token_contains_comments(punctuation) {
-                            contains_comments = true;
-                        }
-                    }
-                    if contains_comments {
-                        break;
-                    }
-                }
-                contains_comments
-            }
-        }
-        FunctionArgs::String(token) => token_contains_comments(token),
-        FunctionArgs::TableConstructor(table_constructor) => {
-            table_constructor_contains_comments(table_constructor)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn suffix_contains_comments(suffix: &Suffix) -> bool {
-    match suffix {
-        Suffix::Call(call) => match call {
-            Call::AnonymousCall(function_args) => function_args_contains_comments(function_args),
-            Call::MethodCall(method_call) => {
-                token_contains_comments(method_call.name())
-                    || token_contains_comments(method_call.colon_token())
-                    || function_args_contains_comments(method_call.args())
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        Suffix::Index(index) => match index {
-            Index::Brackets {
-                brackets,
-                expression,
-            } => {
-                let (start, end) = brackets.tokens();
-                token_contains_comments(start)
-                    || token_contains_comments(end)
-                    || expression_contains_comments(expression)
-            }
-            Index::Dot { dot, name } => {
-                token_contains_comments(dot) || token_contains_comments(name)
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn contained_span_contains_comments(contained_span: &ContainedSpan) -> bool {
-    let (start, end) = contained_span.tokens();
-    token_contains_comments(start) || token_contains_comments(end)
-}
-
-#[cfg(feature = "luau")]
-fn type_info_contains_comments(type_info: &TypeInfo) -> bool {
-    match type_info {
-        TypeInfo::Array { braces, type_info } => {
-            contained_span_contains_comments(braces) || type_info_contains_comments(type_info)
-        }
-        TypeInfo::Basic(token) => token_contains_comments(token),
-        TypeInfo::Callback {
-            parentheses,
-            arguments,
-            arrow,
-            return_type,
-        } => {
-            contained_span_contains_comments(parentheses)
-                || token_contains_comments(arrow)
-                || type_info_contains_comments(return_type)
-                || arguments.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            token_contains_comments(base)
-                || contained_span_contains_comments(arrows)
-                || generics.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => {
-            type_info_contains_comments(left)
-                || token_contains_comments(ampersand)
-                || type_info_contains_comments(right)
-        }
-        TypeInfo::Module {
-            module,
-            punctuation,
-            type_info,
-        } => {
-            token_contains_comments(module)
-                || token_contains_comments(punctuation)
-                || indexed_type_info_contains_comments(type_info)
-        }
-        TypeInfo::Optional {
-            base,
-            question_mark,
-        } => type_info_contains_comments(base) || token_contains_comments(question_mark),
-        TypeInfo::Table { braces, fields } => {
-            contained_span_contains_comments(braces)
-                || fields.pairs().any(|pair| {
-                    type_field_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Typeof {
-            typeof_token,
-            parentheses,
-            inner,
-        } => {
-            token_contains_comments(typeof_token)
-                || contained_span_contains_comments(parentheses)
-                || expression_contains_comments(inner)
-        }
-        TypeInfo::Tuple { parentheses, types } => {
-            contained_span_contains_comments(parentheses)
-                || types.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Union { left, pipe, right } => {
-            type_info_contains_comments(left)
-                || token_contains_comments(pipe)
-                || type_info_contains_comments(right)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn indexed_type_info_contains_comments(type_info: &IndexedTypeInfo) -> bool {
-    match type_info {
-        IndexedTypeInfo::Basic(token) => token_contains_comments(token),
-        IndexedTypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            token_contains_comments(base)
-                || contained_span_contains_comments(arrows)
-                || generics.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn type_field_contains_comments(type_field: &TypeField) -> bool {
-    type_field_key_contains_comments(type_field.key())
-        || token_contains_comments(type_field.colon_token())
-        || type_info_contains_comments(type_field.value())
-}
-
-#[cfg(feature = "luau")]
-fn type_field_key_contains_comments(type_field_key: &TypeFieldKey) -> bool {
-    match type_field_key {
-        TypeFieldKey::Name(token) => token_contains_comments(token),
-        TypeFieldKey::IndexSignature { brackets, inner } => {
-            contained_span_contains_comments(brackets) || type_info_contains_comments(inner)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn type_assertion_contains_comments(type_assertion: &TypeAssertion) -> bool {
-    token_contains_comments(type_assertion.assertion_op())
-        || type_info_contains_comments(type_assertion.cast_to())
-}
-
-fn value_contains_comments(value: &Value) -> bool {
-    match value {
-        Value::Function((token, body)) => {
-            if token_contains_comments(token) {
-                true
-            } else {
-                contained_span_contains_comments(body.parameters_parentheses())
-                // TODO: Do we need to do any more?
-            }
-        }
-        Value::FunctionCall(function_call) => {
-            let contained = match function_call.prefix() {
-                Prefix::Name(token) => token_contains_comments(token),
-                Prefix::Expression(expression) => expression_contains_comments(expression),
-                other => panic!("unknown node {:?}", other),
-            };
-
-            if contained {
-                true
-            } else {
-                let mut contained_comments = false;
-                for suffix in function_call.suffixes() {
-                    contained_comments = suffix_contains_comments(suffix);
-                    if contained_comments {
-                        break;
-                    }
-                }
-                contained_comments
-            }
-        }
-        Value::TableConstructor(table_constructor) => {
-            table_constructor_contains_comments(table_constructor)
-        }
-        Value::Number(token) => token_contains_comments(token),
-        Value::ParenthesesExpression(expression) => expression_contains_comments(expression),
-        Value::String(token) => token_contains_comments(token),
-        Value::Symbol(token) => token_contains_comments(token),
-        Value::Var(var) => match var {
-            Var::Name(token) => token_contains_comments(token),
-            Var::Expression(var_expr) => {
-                let contained = match var_expr.prefix() {
-                    Prefix::Name(token) => token_contains_comments(token),
-                    Prefix::Expression(expression) => expression_contains_comments(expression),
-                    other => panic!("unknown node {:?}", other),
-                };
-
-                if contained {
-                    true
-                } else {
-                    let mut contained_comments = false;
-                    for suffix in var_expr.suffixes() {
-                        contained_comments = suffix_contains_comments(suffix);
-                        if contained_comments {
-                            break;
-                        }
-                    }
-                    contained_comments
-                }
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn binop_contains_comments(binop: &BinOp) -> bool {
-    match binop {
-        BinOp::And(t)
-        | BinOp::Caret(t)
-        | BinOp::GreaterThan(t)
-        | BinOp::GreaterThanEqual(t)
-        | BinOp::LessThan(t)
-        | BinOp::LessThanEqual(t)
-        | BinOp::Minus(t)
-        | BinOp::Or(t)
-        | BinOp::Percent(t)
-        | BinOp::Plus(t)
-        | BinOp::Slash(t)
-        | BinOp::Star(t)
-        | BinOp::TildeEqual(t)
-        | BinOp::TwoDots(t)
-        | BinOp::TwoEqual(t) => token_contains_comments(t),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-// Check whether any comments are present within an Expression
-pub fn expression_contains_comments(expression: &Expression) -> bool {
-    match expression {
-        Expression::Parentheses {
-            contained,
-            expression,
-        } => {
-            contained_span_contains_comments(contained) || expression_contains_comments(expression)
-        }
-        Expression::UnaryOperator { unop, expression } => {
-            match unop {
-                UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
-                    if token_contains_comments(token) {
-                        return true;
-                    }
-                }
-                other => panic!("unknown node {:?}", other),
-            }
-
-            expression_contains_comments(expression)
-        }
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            binop_contains_comments(binop)
-                || expression_contains_comments(lhs)
-                || expression_contains_comments(rhs)
-        }
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => {
-            #[cfg(feature = "luau")]
-            {
-                return value_contains_comments(value)
-                    || type_assertion
-                        .as_ref()
-                        .map_or(false, |x| type_assertion_contains_comments(x));
-            }
-
-            #[cfg(not(feature = "luau"))]
-            value_contains_comments(value)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
 }
 
 // Checks to see whether an expression contains comments inline inside of it
@@ -1262,7 +908,7 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            binop_contains_comments(binop) || expression_contains_comments(lhs)
+            contains_comments(binop) || contains_comments(lhs)
             // Check if the binop chain still continues
             // If so, we should keep checking the expresion
             // Otherwise, stop checking
@@ -1270,13 +916,13 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
                 Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
                 Expression::UnaryOperator { unop, expression } => {
                     let op_contains_comments = match unop {
-                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token),
+                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => contains_comments(token),
                         other => panic!("unknown node {:?}", other)
                     };
                     op_contains_comments || expression_contains_inline_comments(expression)
                 }
                 Expression::Value{ .. } => false,
-                Expression::Parentheses { .. } => expression_contains_comments(rhs),
+                Expression::Parentheses { .. } => contains_comments(rhs),
                 other => panic!("unknown node {:?}", other),
             }
         }
