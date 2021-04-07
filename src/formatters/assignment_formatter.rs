@@ -5,71 +5,21 @@ use full_moon::ast::{
     Assignment, Expression, LocalAssignment,
 };
 use full_moon::node::Node;
-use full_moon::tokenizer::{Token, TokenKind, TokenReference};
+use full_moon::tokenizer::{TokenKind, TokenReference};
 
 use crate::formatters::{
     trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
     trivia_util, CodeFormatter,
 };
 
-/// Adds trailing trivia at the end of a [`Punctuated`] sequence
-fn add_punctuated_trailing_trivia<'ast, T>(
-    punctuated: &mut Punctuated<'ast, T>,
-    trivia: Vec<Token<'ast>>,
-) where
-    T: UpdateTrailingTrivia<'ast>,
-{
-    // Add any trailing trivia to the end of the punctuated list
-    if let Some(pair) = punctuated.pop() {
-        let pair = pair.map(|expr| expr.update_trailing_trivia(FormatTriviaType::Append(trivia)));
-        punctuated.push(pair);
-    }
-}
-
-/// Adds trailing trivia at the end of a [`Punctuated`] sequence
-fn add_punctuated_leading_trivia<'ast, T>(
-    punctuated: Punctuated<'ast, T>,
-    trivia: Vec<Token<'ast>>,
-) -> Punctuated<'ast, T>
-where
-    T: UpdateLeadingTrivia<'ast>,
-{
-    let mut iterator = punctuated.into_pairs();
-
-    // Retrieve first item and add leading trivia
-    if let Some(first_pair) = iterator.next() {
-        let updated_pair =
-            first_pair.map(|value| value.update_leading_trivia(FormatTriviaType::Append(trivia)));
-        let iterator = std::iter::once(updated_pair).chain(iterator);
-        iterator.collect()
-    } else {
-        iterator.collect()
-    }
-}
-
 /// Returns an Assignment with leading and trailing trivia removed
 fn strip_assignment_trivia<'ast>(assignment: &Assignment<'ast>) -> Assignment<'ast> {
-    let mut var_list = Punctuated::new();
-    let mut added_first = false;
-
-    for pair in assignment.variables().pairs() {
-        if added_first {
-            var_list.push(pair.to_owned());
-        } else {
-            var_list.push(
-                pair.to_owned()
-                    .map(|value| value.update_leading_trivia(FormatTriviaType::Replace(vec![]))),
-            );
-            added_first = true;
-        }
-    }
-
-    let mut expr_list = assignment.expressions().to_owned();
-    if let Some(last_pair) = expr_list.pop() {
-        expr_list.push(
-            last_pair.map(|value| value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))),
-        );
-    }
+    let var_list = assignment
+        .variables()
+        .update_leading_trivia(FormatTriviaType::Replace(vec![]));
+    let expr_list = assignment
+        .expressions()
+        .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
     Assignment::new(var_list, expr_list).with_equal_token(assignment.equal_token().to_owned())
 }
@@ -83,23 +33,16 @@ fn strip_local_assignment_trivia<'ast>(
         .update_leading_trivia(FormatTriviaType::Replace(vec![]));
 
     if local_assignment.expressions().is_empty() {
-        let mut name_list = local_assignment.names().to_owned();
-        if let Some(last_pair) = name_list.pop() {
-            name_list.push(
-                last_pair
-                    .map(|value| value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))),
-            );
-        }
+        let name_list = local_assignment
+            .names()
+            .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
         LocalAssignment::new(name_list).with_local_token(local_token)
     } else {
-        let mut expr_list = local_assignment.expressions().to_owned();
-        if let Some(last_pair) = expr_list.pop() {
-            expr_list.push(
-                last_pair
-                    .map(|value| value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))),
-            );
-        }
+        let expr_list = local_assignment
+            .expressions()
+            .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
         LocalAssignment::new(local_assignment.names().to_owned())
             .with_local_token(local_token)
             .with_equal_token(local_assignment.equal_token().map(|x| x.to_owned()))
@@ -226,18 +169,18 @@ impl CodeFormatter {
         }
 
         // Add any trailing trivia to the end of the expression list
-        add_punctuated_trailing_trivia(
-            &mut expr_list,
+        let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(
             var_comments_buf
                 .iter()
                 .chain(expr_comments_buf.iter())
                 .chain(trailing_trivia.iter())
                 .map(|x| x.to_owned())
                 .collect(),
-        );
+        ));
 
         // Add on leading trivia
-        let formatted_var_list = add_punctuated_leading_trivia(var_list, leading_trivia);
+        let formatted_var_list =
+            var_list.update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         formatted_assignment
             .with_variables(formatted_var_list)
@@ -289,17 +232,15 @@ impl CodeFormatter {
             }
 
             // Add any trailing trivia to the end of the expression list
-            add_punctuated_trailing_trivia(
-                &mut name_list,
-                match new_line_added {
+            name_list =
+                name_list.update_trailing_trivia(FormatTriviaType::Append(match new_line_added {
                     true => name_list_comments_buf,
                     false => name_list_comments_buf
                         .iter()
                         .chain(trailing_trivia.iter())
                         .map(|x| x.to_owned())
                         .collect(),
-                },
-            );
+                }));
 
             let local_assignment = LocalAssignment::new(name_list)
                 .with_local_token(local_token)
@@ -356,15 +297,14 @@ impl CodeFormatter {
             }
 
             // Add any trailing trivia to the end of the expression list
-            add_punctuated_trailing_trivia(
-                &mut expr_list,
+            let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(
                 name_list_comments_buf
                     .iter()
                     .chain(expr_comments_buf.iter())
                     .chain(trailing_trivia.iter())
                     .map(|x| x.to_owned())
                     .collect(),
-            );
+            ));
 
             // Update our local assignment
             local_assignment

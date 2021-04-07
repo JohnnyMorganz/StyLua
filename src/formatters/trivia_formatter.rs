@@ -5,8 +5,9 @@ use crate::{
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
-    span::ContainedSpan, BinOp, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, Index,
-    MethodCall, Parameter, Prefix, Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
+    punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
+    FunctionBody, FunctionCall, Index, MethodCall, Parameter, Prefix, Suffix, TableConstructor,
+    UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
@@ -493,6 +494,49 @@ define_update_leading_trivia!(Prefix, |this, leading| {
         other => panic!("unknown node {:?}", other),
     }
 });
+
+impl<'ast, T> UpdateLeadingTrivia<'ast> for Punctuated<'ast, T>
+where
+    T: UpdateLeadingTrivia<'ast> + Clone,
+{
+    fn update_leading_trivia(&self, leading: FormatTriviaType<'ast>) -> Self {
+        let mut punctuated = Punctuated::new();
+        let mut pairs = self.to_owned().into_pairs();
+
+        // Retrieve first item and add leading trivia
+        if let Some(first_pair) = pairs.next() {
+            let updated_pair = first_pair.map(|value| value.update_leading_trivia(leading));
+            punctuated.push(updated_pair);
+        };
+
+        // Add back the rest of the values
+        for pair in pairs {
+            punctuated.push(full_moon::ast::punctuated::Pair::new(
+                pair.value().clone(),
+                pair.punctuation().map(|x| x.to_owned()),
+            ))
+        }
+
+        punctuated
+    }
+}
+
+impl<'ast, T> UpdateTrailingTrivia<'ast> for Punctuated<'ast, T>
+where
+    T: UpdateTrailingTrivia<'ast> + Clone,
+{
+    fn update_trailing_trivia(&self, trailing: FormatTriviaType<'ast>) -> Self {
+        let mut punctuated = self.to_owned();
+
+        // Add any trailing trivia to the end of the punctuated list
+        if let Some(pair) = punctuated.pop() {
+            let pair = pair.map(|value| value.update_trailing_trivia(trailing));
+            punctuated.push(pair);
+        }
+
+        punctuated
+    }
+}
 
 define_update_trailing_trivia!(Suffix, |this, trailing| {
     match this {
