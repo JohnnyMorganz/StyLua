@@ -1,10 +1,12 @@
 use crate::formatters::trivia_formatter::{FormatTriviaType, UpdateTrailingTrivia};
 #[cfg(feature = "luau")]
+use full_moon::ast::span::ContainedSpan;
+#[cfg(feature = "luau")]
 use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix,
-        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
+        BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix, Stmt, Suffix,
+        TableConstructor, UnOp, Value, Var,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -710,11 +712,9 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .trailing_trivia()
                 .map(|x| x.to_owned())
                 .collect();
-            let label_name = trivia_formatter::token_reference_add_trivia(
-                stmt.label_name().to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let label_name = stmt
+                .label_name()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 Stmt::Goto(stmt.with_label_name(label_name)),
                 trailing_trivia,
@@ -727,11 +727,9 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .trailing_trivia()
                 .map(|x| x.to_owned())
                 .collect();
-            let right_colons = trivia_formatter::token_reference_add_trivia(
-                stmt.right_colons().to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let right_colons = stmt
+                .right_colons()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 Stmt::Label(stmt.with_right_colons(right_colons)),
                 trailing_trivia,
