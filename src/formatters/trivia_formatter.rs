@@ -68,22 +68,14 @@ impl CodeFormatter {
                 // Create a newline after the start brace and before the end brace
                 // Also, indent enough for the first expression in the start brace
                 let contained = ContainedSpan::new(
-                    token_reference_add_trivia(
-                        start_token.to_owned(),
-                        FormatTriviaType::NoChange,
-                        FormatTriviaType::Append(vec![
-                            self.create_newline_trivia(),
-                            self.create_plain_indent_trivia(indent_increase + 1),
-                        ]),
-                    ),
-                    token_reference_add_trivia(
-                        end_token.to_owned(),
-                        FormatTriviaType::Append(vec![
-                            self.create_newline_trivia(),
-                            self.create_plain_indent_trivia(indent_increase),
-                        ]),
-                        FormatTriviaType::NoChange,
-                    ),
+                    start_token.update_trailing_trivia(FormatTriviaType::Append(vec![
+                        self.create_newline_trivia(),
+                        self.create_plain_indent_trivia(indent_increase + 1),
+                    ])),
+                    end_token.update_leading_trivia(FormatTriviaType::Append(vec![
+                        self.create_newline_trivia(),
+                        self.create_plain_indent_trivia(indent_increase),
+                    ])),
                 );
 
                 Expression::Parentheses {
@@ -117,8 +109,7 @@ impl CodeFormatter {
                         trailing_comments.push(self.create_newline_trivia());
                         trailing_comments.push(self.create_plain_indent_trivia(indent_increase));
 
-                        binop_add_trivia(
-                            binop,
+                        binop.update_trivia(
                             FormatTriviaType::Replace(trailing_comments),
                             FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
                         )
@@ -173,37 +164,136 @@ impl CodeFormatter {
         additional_indent_level: Option<usize>,
         hang_level: Option<usize>,
     ) -> Expression<'ast> {
-        let expr = self.hang_expression_no_trailing_newline(
-            expression,
-            additional_indent_level,
-            hang_level,
-        );
+        self.hang_expression_no_trailing_newline(expression, additional_indent_level, hang_level)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![self.create_newline_trivia()]))
+    }
+}
 
-        expression_add_trailing_trivia(
-            expr,
-            FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+pub trait UpdateLeadingTrivia<'ast> {
+    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self;
+}
+
+pub trait UpdateTrailingTrivia<'ast> {
+    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self;
+}
+
+pub trait UpdateTrivia<'ast> {
+    fn update_trivia(
+        &self,
+        leading_trivia: FormatTriviaType<'ast>,
+        trailing_trivia: FormatTriviaType<'ast>,
+    ) -> Self;
+}
+
+impl<'ast, T> UpdateLeadingTrivia<'ast> for T
+where
+    T: UpdateTrivia<'ast>,
+{
+    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self
+    where
+        Self: std::marker::Sized,
+    {
+        self.update_trivia(leading_trivia, FormatTriviaType::NoChange)
+    }
+}
+
+impl<'ast, T> UpdateTrailingTrivia<'ast> for T
+where
+    T: UpdateTrivia<'ast>,
+{
+    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self
+    where
+        Self: std::marker::Sized,
+    {
+        self.update_trivia(FormatTriviaType::NoChange, trailing_trivia)
+    }
+}
+
+impl<'ast> UpdateTrivia<'ast> for TokenReference<'ast> {
+    fn update_trivia(
+        &self,
+        leading_trivia: FormatTriviaType<'ast>,
+        trailing_trivia: FormatTriviaType<'ast>,
+    ) -> Self {
+        let added_leading_trivia = match leading_trivia {
+            FormatTriviaType::Append(trivia) => {
+                let mut current: Vec<Token> = self.leading_trivia().map(|x| x.to_owned()).collect();
+                current.extend(trivia);
+                current
+            }
+            FormatTriviaType::Replace(trivia) => trivia,
+            FormatTriviaType::NoChange => self.leading_trivia().map(|x| x.to_owned()).collect(),
+        };
+        let added_trailing_trivia = match trailing_trivia {
+            FormatTriviaType::Append(trivia) => {
+                let mut current: Vec<Token> =
+                    self.trailing_trivia().map(|x| x.to_owned()).collect();
+                current.extend(trivia);
+                current
+            }
+            FormatTriviaType::Replace(trivia) => trivia,
+            FormatTriviaType::NoChange => self.trailing_trivia().map(|x| x.to_owned()).collect(),
+        };
+        TokenReference::new(
+            added_leading_trivia,
+            self.token().to_owned(),
+            added_trailing_trivia,
         )
     }
 }
 
-// Remainder of Nodes
+macro_rules! define_update_trivia {
+    ($node:ident, |$self:ident, $leading_trivia:ident, $trailing_trivia:ident| $body:expr) => {
+        define_update_trivia! {$node, |$self:&$node<'ast>, $leading_trivia: FormatTriviaType<'ast>, $trailing_trivia: FormatTriviaType<'ast>| $body}
+    };
+    ($node:ident, $body:expr) => {
+        impl<'ast> UpdateTrivia<'ast> for $node<'ast> {
+            fn update_trivia(&self, leading_trivia: FormatTriviaType<'ast>, trailing_trivia: FormatTriviaType<'ast>) -> Self {
+                $body(&self, leading_trivia, trailing_trivia)
+            }
+        }
+    };
+}
+
+macro_rules! define_update_leading_trivia {
+    ($node:ident, |$self:ident, $leading_trivia:ident| $body:expr) => {
+        define_update_leading_trivia! {$node, |$self:&$node<'ast>, $leading_trivia: FormatTriviaType<'ast>| $body}
+    };
+    ($node:ident, $body:expr) => {
+        impl<'ast> UpdateLeadingTrivia<'ast> for $node<'ast> {
+            fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self {
+                $body(&self, leading_trivia)
+            }
+        }
+    };
+}
+
+macro_rules! define_update_trailing_trivia {
+    ($node:ident, |$self:ident, $trailing_trivia:ident| $body:expr) => {
+        define_update_trailing_trivia! {$node, |$self:&$node<'ast>, $trailing_trivia: FormatTriviaType<'ast>| $body}
+    };
+    ($node:ident, $body:expr) => {
+        impl<'ast> UpdateTrailingTrivia<'ast> for $node<'ast> {
+            fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self {
+                $body(&self, trailing_trivia)
+            }
+        }
+    };
+}
+
 macro_rules! binop_trivia {
     ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($operator:ident,)+ }) => {
         match $value {
             $(
-                $enum::$operator(token) => $enum::$operator(token_reference_add_trivia(token, $leading_trivia, $trailing_trivia)),
+                $enum::$operator(token) => $enum::$operator(token.update_trivia($leading_trivia, $trailing_trivia)),
             )+
             other => panic!("unknown node {:?}", other),
         }
     };
 }
 
-fn binop_add_trivia<'ast>(
-    binop: BinOp<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> BinOp<'ast> {
-    binop_trivia!(BinOp, binop, leading_trivia, trailing_trivia, {
+define_update_trivia!(BinOp, |this, leading, trailing| {
+    binop_trivia!(BinOp, this, leading, trailing, {
         And,
         Caret,
         GreaterThan,
@@ -220,91 +310,61 @@ fn binop_add_trivia<'ast>(
         TwoDots,
         TwoEqual,
     })
-}
+});
 
-/// Adds trailing trivia at the end of a ContainedSpan node
-pub fn contained_span_add_trivia<'ast>(
-    contained_span: ContainedSpan<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> ContainedSpan<'ast> {
-    let (start_token, end_token) = contained_span.tokens();
+define_update_trivia!(ContainedSpan, |this, leading, trailing| {
+    let (start_token, end_token) = this.tokens();
     ContainedSpan::new(
-        token_reference_add_trivia(
-            start_token.to_owned(),
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        ),
-        token_reference_add_trivia(
-            end_token.to_owned(),
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        ),
+        start_token.update_leading_trivia(leading),
+        end_token.update_trailing_trivia(trailing),
     )
-}
+});
 
-/// Adds trailing trivia at the end of a Call node
-pub fn call_add_trailing_trivia<'ast>(
-    call: Call<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Call<'ast> {
-    match call {
-        Call::AnonymousCall(function_args) => Call::AnonymousCall(
-            function_args_add_trailing_trivia(function_args, trailing_trivia),
-        ),
-        Call::MethodCall(method_call) => Call::MethodCall(method_call_add_trailing_trivia(
-            method_call,
-            trailing_trivia,
-        )),
+define_update_trailing_trivia!(Call, |this, trailing| {
+    match this {
+        Call::AnonymousCall(function_args) => {
+            Call::AnonymousCall(function_args.update_trailing_trivia(trailing))
+        }
+        Call::MethodCall(method_call) => {
+            Call::MethodCall(method_call.update_trailing_trivia(trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds leading trivia to the start of an Expression node
-pub fn expression_add_leading_trivia<'ast>(
-    expression: Expression<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> Expression<'ast> {
-    match expression {
+define_update_leading_trivia!(Expression, |this, leading| {
+    match this {
         Expression::Parentheses {
             contained,
             expression,
         } => Expression::Parentheses {
-            contained: contained_span_add_trivia(
-                contained,
-                leading_trivia,
-                FormatTriviaType::NoChange,
-            ),
-            expression,
+            contained: contained.update_leading_trivia(leading),
+            expression: expression.to_owned(),
         },
         Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
-            unop: unop_add_leading_trivia(unop, leading_trivia),
-            expression,
+            unop: unop.update_leading_trivia(leading),
+            expression: expression.to_owned(),
         },
         Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
-            lhs: Box::new(expression_add_leading_trivia(*lhs, leading_trivia)),
-            binop,
-            rhs,
+            lhs: Box::new(lhs.update_leading_trivia(leading)),
+            binop: binop.to_owned(),
+            rhs: rhs.to_owned(),
         },
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
             type_assertion,
         } => Expression::Value {
-            value: Box::new(value_add_leading_trivia(*value, leading_trivia)),
+            value: Box::new(value.update_leading_trivia(leading)),
             #[cfg(feature = "luau")]
-            type_assertion,
+            type_assertion: type_assertion.to_owned(),
         },
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds traviling trivia at the end of an Expression node
-pub fn expression_add_trailing_trivia<'ast>(
-    expression: Expression<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Expression<'ast> {
-    match expression {
+define_update_trailing_trivia!(Expression, |this, trailing| {
+    match this {
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
@@ -313,18 +373,15 @@ pub fn expression_add_trailing_trivia<'ast>(
             #[cfg(feature = "luau")]
             if let Some(as_assertion) = type_assertion {
                 return Expression::Value {
-                    value,
-                    type_assertion: Some(type_assertion_add_trailing_trivia(
-                        as_assertion,
-                        trailing_trivia,
-                    )),
+                    value: value.to_owned(),
+                    type_assertion: Some(as_assertion.update_trailing_trivia(trailing)),
                 };
             }
 
             Expression::Value {
-                value: Box::new(value_add_trailing_trivia(*value, trailing_trivia)),
+                value: Box::new(value.update_trailing_trivia(trailing)),
                 #[cfg(feature = "luau")]
-                type_assertion,
+                type_assertion: type_assertion.to_owned(),
             }
         }
 
@@ -333,602 +390,341 @@ pub fn expression_add_trailing_trivia<'ast>(
             contained,
             expression,
         } => Expression::Parentheses {
-            contained: contained_span_add_trivia(
-                contained,
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ),
-            expression,
+            contained: contained.update_trailing_trivia(trailing),
+            expression: expression.to_owned(),
         },
 
         // Keep recursing down until we find an Expression::Value
         Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
-            unop,
-            expression: Box::new(expression_add_trailing_trivia(*expression, trailing_trivia)),
+            unop: unop.to_owned(),
+            expression: Box::new(expression.update_trailing_trivia(trailing)),
         },
 
         Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
-            lhs,
-            binop,
-            rhs: Box::new(expression_add_trailing_trivia(*rhs, trailing_trivia)),
+            lhs: lhs.to_owned(),
+            binop: binop.to_owned(),
+            rhs: Box::new(rhs.update_trailing_trivia(trailing)),
         },
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a FunctinoArgs node
-pub fn function_args_add_trailing_trivia<'ast>(
-    function_args: FunctionArgs<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> FunctionArgs<'ast> {
-    match function_args {
+define_update_trailing_trivia!(FunctionArgs, |this, trailing| {
+    match this {
         FunctionArgs::Parentheses {
             parentheses,
             arguments,
         } => FunctionArgs::Parentheses {
-            parentheses: contained_span_add_trivia(
-                parentheses,
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ),
-            arguments,
+            parentheses: parentheses.update_trailing_trivia(trailing),
+            arguments: arguments.to_owned(),
         },
-
-        // Add for completeness
-        FunctionArgs::String(token_reference) => FunctionArgs::String(token_reference_add_trivia(
-            token_reference,
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
+        FunctionArgs::String(token_reference) => {
+            FunctionArgs::String(token_reference.update_trailing_trivia(trailing))
+        }
         FunctionArgs::TableConstructor(table_constructor) => {
-            FunctionArgs::TableConstructor(table_constructor_add_trivia(
-                table_constructor,
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ))
+            FunctionArgs::TableConstructor(table_constructor.update_trailing_trivia(trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a FunctionBody node
-pub fn function_body_add_trailing_trivia<'ast>(
-    function_body: FunctionBody<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> FunctionBody<'ast> {
-    let function_body_token = function_body.end_token().to_owned();
-    function_body.with_end_token(token_reference_add_trivia(
-        function_body_token,
-        FormatTriviaType::NoChange,
-        trailing_trivia,
-    ))
-}
+define_update_trailing_trivia!(FunctionBody, |this, trailing| {
+    this.with_end_token(this.end_token().update_trailing_trivia(trailing))
+});
 
-/// Adds leading trivia to the start of a FunctionCall node
-pub fn function_call_add_leading_trivia<'ast>(
-    function_call: FunctionCall<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> FunctionCall<'ast> {
-    let prefix = prefix_add_leading_trivia(function_call.prefix().to_owned(), leading_trivia);
-    function_call.with_prefix(prefix)
-}
+define_update_trivia!(FunctionCall, |this, leading, trailing| {
+    let prefix = match leading {
+        FormatTriviaType::NoChange => this.prefix().to_owned(),
+        _ => this.prefix().update_leading_trivia(leading),
+    };
 
-/// Adds trailing trivia at the end of a FunctionCall node
-pub fn function_call_add_trailing_trivia<'ast>(
-    function_call: FunctionCall<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> FunctionCall<'ast> {
-    let mut new_suffixes: Vec<Suffix<'ast>> =
-        function_call.suffixes().map(|x| x.to_owned()).collect();
-    if let Some(last_suffix) = new_suffixes.pop() {
-        new_suffixes.push(suffix_add_trailing_trivia(
-            last_suffix.to_owned(),
-            trailing_trivia,
-        ))
-    }
+    let mut suffixes: Vec<Suffix<'ast>> = this.suffixes().map(|x| x.to_owned()).collect();
+    match trailing {
+        FormatTriviaType::NoChange => (),
+        _ => {
+            if let Some(suffix) = suffixes.pop() {
+                suffixes.push(suffix.update_trailing_trivia(trailing))
+            }
+        }
+    };
 
-    function_call.with_suffixes(new_suffixes)
-}
+    this.with_prefix(prefix).with_suffixes(suffixes)
+});
 
-/// Adds trailing trivia at the end of an Index node
-pub fn index_add_trailing_trivia<'ast>(
-    index: Index<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Index<'ast> {
-    match index {
+define_update_trailing_trivia!(Index, |this, trailing| {
+    match this {
         Index::Brackets {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: contained_span_add_trivia(
-                brackets,
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ),
-            expression,
+            brackets: brackets.update_trailing_trivia(trailing),
+            expression: expression.to_owned(),
         },
         Index::Dot { dot, name } => Index::Dot {
-            dot,
-            name: token_reference_add_trivia(name, FormatTriviaType::NoChange, trailing_trivia),
+            dot: dot.to_owned(),
+            name: name.update_trailing_trivia(trailing),
         },
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a MethodCall node
-pub fn method_call_add_trailing_trivia<'ast>(
-    method_call: MethodCall<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> MethodCall<'ast> {
-    let method_call_args = method_call.args().to_owned();
-    method_call.with_args(function_args_add_trailing_trivia(
-        method_call_args,
-        trailing_trivia,
-    ))
-}
+define_update_trailing_trivia!(MethodCall, |this, trailing| {
+    this.with_args(this.args().update_trailing_trivia(trailing))
+});
 
-/// Adds trivia to a Parameter node
-pub fn parameter_add_trivia<'ast>(
-    parameter: Parameter<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Parameter<'ast> {
-    match parameter {
-        Parameter::Ellipse(token) => Parameter::Ellipse(token_reference_add_trivia(
-            token,
-            leading_trivia,
-            trailing_trivia,
-        )),
-        Parameter::Name(token) => Parameter::Name(token_reference_add_trivia(
-            token,
-            leading_trivia,
-            trailing_trivia,
-        )),
+define_update_trivia!(Parameter, |this, leading, trailing| {
+    match this {
+        Parameter::Ellipse(token) => Parameter::Ellipse(token.update_trivia(leading, trailing)),
+        Parameter::Name(token) => Parameter::Name(token.update_trivia(leading, trailing)),
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds leading trivia to the start of a Prefix node
-pub fn prefix_add_leading_trivia<'ast>(
-    prefix: Prefix<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> Prefix<'ast> {
-    match prefix {
-        Prefix::Name(token_reference) => Prefix::Name(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
+define_update_leading_trivia!(Prefix, |this, leading| {
+    match this {
+        Prefix::Name(token_reference) => {
+            Prefix::Name(token_reference.update_leading_trivia(leading))
+        }
         Prefix::Expression(expression) => {
-            Prefix::Expression(expression_add_leading_trivia(expression, leading_trivia))
+            Prefix::Expression(expression.update_leading_trivia(leading))
         }
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a Suffix node
-pub fn suffix_add_trailing_trivia<'ast>(
-    suffix: Suffix<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Suffix<'ast> {
-    match suffix {
-        Suffix::Call(call) => Suffix::Call(call_add_trailing_trivia(call, trailing_trivia)),
-        Suffix::Index(index) => Suffix::Index(index_add_trailing_trivia(index, trailing_trivia)),
+define_update_trailing_trivia!(Suffix, |this, trailing| {
+    match this {
+        Suffix::Call(call) => Suffix::Call(call.update_trailing_trivia(trailing)),
+        Suffix::Index(index) => Suffix::Index(index.update_trailing_trivia(trailing)),
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trivia to a TableConstructor node
-pub fn table_constructor_add_trivia<'ast>(
-    table_constructor: TableConstructor<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TableConstructor<'ast> {
-    let table_constructor_braces = contained_span_add_trivia(
-        table_constructor.braces().to_owned(),
-        leading_trivia,
-        trailing_trivia,
-    );
-    table_constructor.with_braces(table_constructor_braces)
-}
+define_update_trivia!(TableConstructor, |this, leading, trailing| {
+    this.with_braces(this.braces().update_trivia(leading, trailing))
+});
 
-/// Adds trivia to a TokenReferenece
-pub fn token_reference_add_trivia<'ast>(
-    token_reference: TokenReference<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TokenReference<'ast> {
-    let added_leading_trivia = match leading_trivia {
-        FormatTriviaType::Append(trivia) => {
-            let mut current: Vec<Token<'ast>> = token_reference
-                .leading_trivia()
-                .map(|x| x.to_owned())
-                .collect();
-            current.extend(trivia);
-            current
-        }
-        FormatTriviaType::Replace(trivia) => trivia,
-        FormatTriviaType::NoChange => token_reference
-            .leading_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-    };
-
-    let added_trailing_trivia = match trailing_trivia {
-        FormatTriviaType::Append(trivia) => {
-            let mut current: Vec<Token<'ast>> = token_reference
-                .trailing_trivia()
-                .map(|x| x.to_owned())
-                .collect();
-            current.extend(trivia);
-            current
-        }
-        FormatTriviaType::Replace(trivia) => trivia,
-        FormatTriviaType::NoChange => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-    };
-
-    TokenReference::new(
-        added_leading_trivia,
-        token_reference.token().to_owned(),
-        added_trailing_trivia,
-    )
-}
-
-/// Adds leading trivia to the start of an UnOp node
-pub fn unop_add_leading_trivia<'ast>(
-    unop: UnOp<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> UnOp<'ast> {
-    match unop {
-        UnOp::Hash(token_reference) => UnOp::Hash(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
-        UnOp::Minus(token_reference) => UnOp::Minus(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
-        UnOp::Not(token_reference) => UnOp::Not(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
+define_update_leading_trivia!(UnOp, |this, leading| {
+    match this {
+        UnOp::Hash(token_reference) => UnOp::Hash(token_reference.update_leading_trivia(leading)),
+        UnOp::Minus(token_reference) => UnOp::Minus(token_reference.update_leading_trivia(leading)),
+        UnOp::Not(token_reference) => UnOp::Not(token_reference.update_leading_trivia(leading)),
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-pub fn value_add_leading_trivia<'ast>(
-    value: Value<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> Value<'ast> {
-    match value {
+define_update_leading_trivia!(Value, |this, leading| {
+    match this {
         Value::Function((token, function_body)) => Value::Function((
-            token_reference_add_trivia(token, leading_trivia, FormatTriviaType::NoChange),
-            function_body,
+            token.update_leading_trivia(leading),
+            function_body.to_owned(),
         )),
-        Value::FunctionCall(function_call) => Value::FunctionCall(
-            function_call_add_leading_trivia(function_call, leading_trivia),
-        ),
-        Value::Number(token_reference) => Value::Number(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
+        Value::FunctionCall(function_call) => {
+            Value::FunctionCall(function_call.update_leading_trivia(leading))
+        }
+        Value::Number(token_reference) => {
+            Value::Number(token_reference.update_leading_trivia(leading))
+        }
         Value::ParenthesesExpression(expression) => {
-            Value::ParenthesesExpression(expression_add_leading_trivia(expression, leading_trivia))
+            Value::ParenthesesExpression(expression.update_leading_trivia(leading))
         }
-        Value::String(token_reference) => Value::String(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
-        Value::Symbol(token_reference) => Value::Symbol(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
+        Value::String(token_reference) => {
+            Value::String(token_reference.update_leading_trivia(leading))
+        }
+        Value::Symbol(token_reference) => {
+            Value::Symbol(token_reference.update_leading_trivia(leading))
+        }
         Value::TableConstructor(table_constructor) => {
-            Value::TableConstructor(table_constructor_add_trivia(
-                table_constructor,
-                leading_trivia,
-                FormatTriviaType::NoChange,
-            ))
+            Value::TableConstructor(table_constructor.update_leading_trivia(leading))
         }
-        Value::Var(var) => Value::Var(var_add_leading_trivia(var, leading_trivia)),
+        Value::Var(var) => Value::Var(var.update_leading_trivia(leading)),
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a Value node
-pub fn value_add_trailing_trivia<'ast>(
-    value: Value<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Value<'ast> {
-    match value {
+define_update_trailing_trivia!(Value, |this, trailing| {
+    match this {
         Value::Function((token, function_body)) => Value::Function((
-            token,
-            function_body_add_trailing_trivia(function_body, trailing_trivia),
+            token.to_owned(),
+            function_body.update_trailing_trivia(trailing),
         )),
-        Value::FunctionCall(function_call) => Value::FunctionCall(
-            function_call_add_trailing_trivia(function_call, trailing_trivia),
-        ),
-        Value::Number(token_reference) => Value::Number(token_reference_add_trivia(
-            token_reference,
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
-        Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
-            expression_add_trailing_trivia(expression, trailing_trivia),
-        ),
-        Value::String(token_reference) => Value::String(token_reference_add_trivia(
-            token_reference,
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
-        Value::Symbol(token_reference) => Value::Symbol(token_reference_add_trivia(
-            token_reference,
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
-        Value::TableConstructor(table_constructor) => {
-            Value::TableConstructor(table_constructor_add_trivia(
-                table_constructor,
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ))
+        Value::FunctionCall(function_call) => {
+            Value::FunctionCall(function_call.update_trailing_trivia(trailing))
         }
-        Value::Var(var) => Value::Var(var_add_trailing_trivia(var, trailing_trivia)),
+        Value::Number(token_reference) => {
+            Value::Number(token_reference.update_trailing_trivia(trailing))
+        }
+        Value::ParenthesesExpression(expression) => {
+            Value::ParenthesesExpression(expression.update_trailing_trivia(trailing))
+        }
+        Value::String(token_reference) => {
+            Value::String(token_reference.update_trailing_trivia(trailing))
+        }
+        Value::Symbol(token_reference) => {
+            Value::Symbol(token_reference.update_trailing_trivia(trailing))
+        }
+        Value::TableConstructor(table_constructor) => {
+            Value::TableConstructor(table_constructor.update_trailing_trivia(trailing))
+        }
+        Value::Var(var) => Value::Var(var.update_trailing_trivia(trailing)),
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds leading trivia to the start of a Var node
-pub fn var_add_leading_trivia<'ast>(
-    var: Var<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> Var<'ast> {
-    match var {
-        Var::Name(token_reference) => Var::Name(token_reference_add_trivia(
-            token_reference,
-            leading_trivia,
-            FormatTriviaType::NoChange,
-        )),
-        Var::Expression(var_expresion) => Var::Expression(var_expression_add_leading_trivia(
-            var_expresion,
-            leading_trivia,
-        )),
+define_update_leading_trivia!(Var, |this, leading| {
+    match this {
+        Var::Name(token_reference) => Var::Name(token_reference.update_leading_trivia(leading)),
+        Var::Expression(var_expresion) => {
+            Var::Expression(var_expresion.update_leading_trivia(leading))
+        }
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds trailing trivia at the end of a Var node
-pub fn var_add_trailing_trivia<'ast>(
-    var: Var<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> Var<'ast> {
-    match var {
-        Var::Name(token_reference) => Var::Name(token_reference_add_trivia(
-            token_reference,
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
-        Var::Expression(var_expression) => Var::Expression(var_expression_add_trailing_trivia(
-            var_expression,
-            trailing_trivia,
-        )),
+define_update_trailing_trivia!(Var, |this, trailing| {
+    match this {
+        Var::Name(token_reference) => Var::Name(token_reference.update_trailing_trivia(trailing)),
+        Var::Expression(var_expression) => {
+            Var::Expression(var_expression.update_trailing_trivia(trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
-/// Adds leading trivia to the start of a VarExpression node
-pub fn var_expression_add_leading_trivia<'ast>(
-    var_expresion: VarExpression<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
-) -> VarExpression<'ast> {
-    let prefix = prefix_add_leading_trivia(var_expresion.prefix().to_owned(), leading_trivia);
-    var_expresion.with_prefix(prefix)
-}
+define_update_trivia!(VarExpression, |this, leading, trailing| {
+    let prefix = match leading {
+        FormatTriviaType::NoChange => this.prefix().to_owned(),
+        _ => this.prefix().update_leading_trivia(leading),
+    };
 
-/// Adds trailing trivia at the end of a VarExpression node
-pub fn var_expression_add_trailing_trivia<'ast>(
-    var_expression: VarExpression<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> VarExpression<'ast> {
-    // TODO: This is copied from FunctionCall, can we combine them?
-    let mut new_suffixes: Vec<Suffix<'ast>> =
-        var_expression.suffixes().map(|x| x.to_owned()).collect();
-    if let Some(last_suffix) = new_suffixes.pop() {
-        new_suffixes.push(suffix_add_trailing_trivia(
-            last_suffix.to_owned(),
-            trailing_trivia,
-        ))
-    }
+    let mut suffixes: Vec<Suffix<'ast>> = this.suffixes().map(|x| x.to_owned()).collect();
+    match trailing {
+        FormatTriviaType::NoChange => (),
+        _ => {
+            if let Some(suffix) = suffixes.pop() {
+                suffixes.push(suffix.update_trailing_trivia(trailing))
+            }
+        }
+    };
 
-    var_expression.with_suffixes(new_suffixes)
-}
+    this.with_prefix(prefix).with_suffixes(suffixes)
+});
 
 #[cfg(feature = "luau")]
-pub fn type_info_add_trailing_trivia<'ast>(
-    type_info: TypeInfo<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TypeInfo<'ast> {
-    match type_info {
-        TypeInfo::Array { braces, type_info } => {
-            let braces = contained_span_add_trivia(
-                braces.to_owned(),
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            );
-            TypeInfo::Array { braces, type_info }
+define_update_trailing_trivia!(TypeInfo, |this, trailing| {
+    match this {
+        TypeInfo::Array { braces, type_info } => TypeInfo::Array {
+            braces: braces.update_trailing_trivia(trailing),
+            type_info: type_info.to_owned(),
+        },
+        TypeInfo::Basic(token_reference) => {
+            TypeInfo::Basic(token_reference.update_trailing_trivia(trailing))
         }
-        TypeInfo::Basic(token_reference) => TypeInfo::Basic(token_reference_add_trivia(
-            token_reference.to_owned(),
-            FormatTriviaType::NoChange,
-            trailing_trivia,
-        )),
         TypeInfo::Callback {
             parentheses,
             arguments,
             arrow,
             return_type,
-        } => {
-            let return_type =
-                Box::new(type_info_add_trailing_trivia(*return_type, trailing_trivia));
-
-            TypeInfo::Callback {
-                parentheses,
-                arguments,
-                arrow,
-                return_type,
-            }
-        }
+        } => TypeInfo::Callback {
+            parentheses: parentheses.to_owned(),
+            arguments: arguments.to_owned(),
+            arrow: arrow.to_owned(),
+            return_type: Box::new(return_type.update_trailing_trivia(trailing)),
+        },
         TypeInfo::Generic {
             base,
             arrows,
             generics,
-        } => {
-            let arrows =
-                contained_span_add_trivia(arrows, FormatTriviaType::NoChange, trailing_trivia);
-
-            TypeInfo::Generic {
-                base,
-                arrows,
-                generics,
-            }
-        }
+        } => TypeInfo::Generic {
+            base: base.to_owned(),
+            arrows: arrows.update_trailing_trivia(trailing),
+            generics: generics.to_owned(),
+        },
 
         TypeInfo::Intersection {
             left,
             ampersand,
             right,
-        } => {
-            let right = Box::new(type_info_add_trailing_trivia(*right, trailing_trivia));
-            TypeInfo::Intersection {
-                left,
-                ampersand,
-                right,
-            }
-        }
+        } => TypeInfo::Intersection {
+            left: left.to_owned(),
+            ampersand: ampersand.to_owned(),
+            right: Box::new(right.update_trailing_trivia(trailing)),
+        },
 
         TypeInfo::Module {
             module,
             punctuation,
             type_info,
-        } => {
-            let type_info = Box::new(indexed_type_info_add_trailing_trivia(
-                *type_info,
-                trailing_trivia,
-            ));
-            TypeInfo::Module {
-                module,
-                punctuation,
-                type_info,
-            }
-        }
+        } => TypeInfo::Module {
+            module: module.to_owned(),
+            punctuation: punctuation.to_owned(),
+            type_info: Box::new(type_info.update_trailing_trivia(trailing)),
+        },
 
         TypeInfo::Optional {
             base,
             question_mark,
-        } => {
-            let question_mark = token_reference_add_trivia(
-                question_mark.to_owned(),
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            );
-            TypeInfo::Optional {
-                base,
-                question_mark,
-            }
-        }
+        } => TypeInfo::Optional {
+            base: base.to_owned(),
+            question_mark: question_mark.update_trailing_trivia(trailing),
+        },
 
-        TypeInfo::Table { braces, fields } => {
-            let braces =
-                contained_span_add_trivia(braces, FormatTriviaType::NoChange, trailing_trivia);
-            TypeInfo::Table { braces, fields }
-        }
+        TypeInfo::Table { braces, fields } => TypeInfo::Table {
+            braces: braces.update_trailing_trivia(trailing),
+            fields: fields.to_owned(),
+        },
 
         TypeInfo::Typeof {
             typeof_token,
             parentheses,
             inner,
-        } => {
-            let parentheses =
-                contained_span_add_trivia(parentheses, FormatTriviaType::NoChange, trailing_trivia);
-            TypeInfo::Typeof {
-                typeof_token,
-                parentheses,
-                inner,
-            }
-        }
+        } => TypeInfo::Typeof {
+            typeof_token: typeof_token.to_owned(),
+            parentheses: parentheses.update_trailing_trivia(trailing),
+            inner: inner.to_owned(),
+        },
 
-        TypeInfo::Tuple { parentheses, types } => {
-            let parentheses =
-                contained_span_add_trivia(parentheses, FormatTriviaType::NoChange, trailing_trivia);
-            TypeInfo::Tuple { parentheses, types }
-        }
+        TypeInfo::Tuple { parentheses, types } => TypeInfo::Tuple {
+            parentheses: parentheses.update_trailing_trivia(trailing),
+            types: types.to_owned(),
+        },
 
-        TypeInfo::Union { left, pipe, right } => {
-            let right = Box::new(type_info_add_trailing_trivia(*right, trailing_trivia));
-            TypeInfo::Union { left, pipe, right }
-        }
+        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
+            left: left.to_owned(),
+            pipe: pipe.to_owned(),
+            right: Box::new(right.update_trailing_trivia(trailing)),
+        },
 
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
 #[cfg(feature = "luau")]
-pub fn indexed_type_info_add_trailing_trivia<'ast>(
-    indexed_type_info: IndexedTypeInfo<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> IndexedTypeInfo<'ast> {
-    match indexed_type_info {
+define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
+    match this {
         IndexedTypeInfo::Basic(token_reference) => {
-            IndexedTypeInfo::Basic(token_reference_add_trivia(
-                token_reference.to_owned(),
-                FormatTriviaType::NoChange,
-                trailing_trivia,
-            ))
+            IndexedTypeInfo::Basic(token_reference.update_trailing_trivia(trailing))
         }
         IndexedTypeInfo::Generic {
             base,
             arrows,
             generics,
-        } => {
-            let arrows =
-                contained_span_add_trivia(arrows, FormatTriviaType::NoChange, trailing_trivia);
-
-            IndexedTypeInfo::Generic {
-                base,
-                arrows,
-                generics,
-            }
-        }
+        } => IndexedTypeInfo::Generic {
+            base: base.to_owned(),
+            arrows: arrows.update_trailing_trivia(trailing),
+            generics: generics.to_owned(),
+        },
 
         other => panic!("unknown node {:?}", other),
     }
-}
+});
 
 #[cfg(feature = "luau")]
-pub fn type_assertion_add_trailing_trivia<'ast>(
-    type_assertion: TypeAssertion<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TypeAssertion<'ast> {
-    let cast_to =
-        type_info_add_trailing_trivia(type_assertion.cast_to().to_owned(), trailing_trivia);
-    type_assertion.with_cast_to(cast_to)
-}
+define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
+    this.with_cast_to(this.cast_to().update_trailing_trivia(trailing))
+});
 
 #[cfg(feature = "luau")]
-pub fn type_specifier_add_trailing_trivia<'ast>(
-    type_specifier: TypeSpecifier<'ast>,
-    trailing_trivia: FormatTriviaType<'ast>,
-) -> TypeSpecifier<'ast> {
-    let type_info =
-        type_info_add_trailing_trivia(type_specifier.type_info().to_owned(), trailing_trivia);
-    type_specifier.with_type_info(type_info)
-}
+define_update_trailing_trivia!(TypeSpecifier, |this, trailing| {
+    this.with_type_info(this.type_info().update_trailing_trivia(trailing))
+});
