@@ -1,5 +1,5 @@
 use crate::formatters::{
-    trivia_formatter::{self, FormatTriviaType},
+    trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
     trivia_util, CodeFormatter,
 };
 use full_moon::ast::{
@@ -36,33 +36,27 @@ impl CodeFormatter {
             } => {
                 trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
                 Field::ExpressionKey {
-                    brackets: trivia_formatter::contained_span_add_trivia(
-                        self.format_contained_span(brackets),
-                        leading_trivia,
-                        FormatTriviaType::NoChange,
-                    ),
+                    brackets: self
+                        .format_contained_span(brackets)
+                        .update_leading_trivia(leading_trivia),
                     key: self.format_expression(key),
                     equal: crate::fmt_symbol!(self, equal, " = "),
                     // We will remove all the trivia from this value, and place it after the comma
-                    value: trivia_formatter::expression_add_trailing_trivia(
-                        self.format_expression(value),
-                        FormatTriviaType::Replace(vec![]),
-                    ),
+                    value: self
+                        .format_expression(value)
+                        .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
                 }
             }
             Field::NameKey { key, equal, value } => {
                 trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
                 Field::NameKey {
-                    key: trivia_formatter::token_reference_add_trivia(
-                        self.format_token_reference(key),
-                        leading_trivia,
-                        FormatTriviaType::NoChange,
-                    ),
+                    key: self
+                        .format_token_reference(key)
+                        .update_leading_trivia(leading_trivia),
                     equal: crate::fmt_symbol!(self, equal, " = "),
-                    value: trivia_formatter::expression_add_trailing_trivia(
-                        self.format_expression(value),
-                        FormatTriviaType::Replace(vec![]),
-                    ),
+                    value: self
+                        .format_expression(value)
+                        .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
                 }
             }
             Field::NoKey(expression) => {
@@ -71,13 +65,11 @@ impl CodeFormatter {
                 if let FormatTriviaType::NoChange = leading_trivia {
                     Field::NoKey(formatted_expression)
                 } else {
-                    Field::NoKey(trivia_formatter::expression_add_trailing_trivia(
-                        trivia_formatter::expression_add_leading_trivia(
-                            formatted_expression,
-                            leading_trivia,
-                        ),
-                        FormatTriviaType::Replace(vec![]),
-                    ))
+                    Field::NoKey(
+                        formatted_expression
+                            .update_leading_trivia(leading_trivia)
+                            .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+                    )
                 }
             }
 
@@ -101,17 +93,14 @@ impl CodeFormatter {
                     vec![self.create_indent_trivia(additional_indent_level)];
 
                 // Add new_line trivia to start_brace
-                let start_brace_token = trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, start_brace, "{"),
-                    FormatTriviaType::NoChange,
-                    FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                );
+                let start_brace_token = crate::fmt_symbol!(self, start_brace, "{")
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![
+                        self.create_newline_trivia()
+                    ]));
 
-                let end_brace_token = trivia_formatter::token_reference_add_trivia(
-                    self.format_end_token(end_brace),
-                    FormatTriviaType::Append(end_brace_leading_trivia),
-                    FormatTriviaType::NoChange,
-                );
+                let end_brace_token = self
+                    .format_end_token(end_brace)
+                    .update_leading_trivia(FormatTriviaType::Append(end_brace_leading_trivia));
 
                 ContainedSpan::new(start_brace_token, end_brace_token)
             }
@@ -138,16 +127,11 @@ impl CodeFormatter {
                     .collect();
 
                 ContainedSpan::new(
-                    trivia_formatter::token_reference_add_trivia(
-                        start_brace,
-                        FormatTriviaType::NoChange,
-                        FormatTriviaType::Replace(start_brace_trailing_trivia),
-                    ),
-                    trivia_formatter::token_reference_add_trivia(
-                        end_brace,
-                        FormatTriviaType::Replace(end_brace_leading_trivia),
-                        FormatTriviaType::NoChange,
-                    ),
+                    start_brace.update_trailing_trivia(FormatTriviaType::Replace(
+                        start_brace_trailing_trivia,
+                    )),
+                    end_brace
+                        .update_leading_trivia(FormatTriviaType::Replace(end_brace_leading_trivia)),
                 )
             }
         }
@@ -253,17 +237,13 @@ impl CodeFormatter {
             match table_type {
                 TableType::MultiLine => {
                     // Continue adding a comma and a new line for multiline tables
-                    let mut symbol = TokenReference::symbol(",").unwrap();
-                    if let Some(punctuation) = punctuation {
-                        symbol = self.format_symbol(&punctuation, &symbol);
-                    }
-                    // Add newline trivia to the end of the symbol, and preserve any comments
+                    // Add newline trivia to the end of the symbol
                     trailing_trivia.push(self.create_newline_trivia());
-                    let symbol = trivia_formatter::token_reference_add_trivia(
-                        symbol,
-                        FormatTriviaType::NoChange,
-                        FormatTriviaType::Append(trailing_trivia),
-                    );
+                    let symbol = match punctuation {
+                        Some(punctuation) => crate::fmt_symbol!(self, &punctuation, ","),
+                        None => TokenReference::symbol(",").unwrap(),
+                    }
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
                     formatted_punctuation = Some(symbol)
                 }
                 _ => {

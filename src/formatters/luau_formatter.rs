@@ -1,6 +1,6 @@
 use crate::formatters::{
     table_formatter::TableType,
-    trivia_formatter::{self, FormatTriviaType},
+    trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
     CodeFormatter,
 };
 use full_moon::ast::types::{
@@ -39,15 +39,13 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let lhs = trivia_formatter::var_add_leading_trivia(
-            self.format_var(compound_assignment.lhs()),
-            FormatTriviaType::Append(leading_trivia),
-        );
+        let lhs = self
+            .format_var(compound_assignment.lhs())
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
         let compound_operator = self.format_compound_op(compound_assignment.compound_operator());
-        let rhs = trivia_formatter::expression_add_trailing_trivia(
-            self.format_expression(compound_assignment.rhs()),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+        let rhs = self
+            .format_expression(compound_assignment.rhs())
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
         CompoundAssignment::new(lhs, compound_operator, rhs)
     }
@@ -203,14 +201,12 @@ impl CodeFormatter {
                     match is_multiline {
                         true => {
                             // Continue adding a comma and a new line for multiline tables
-                            let mut symbol = TokenReference::symbol(",").unwrap();
-                            if let Some(punctuation) = punctuation {
-                                symbol = self.format_symbol(&punctuation, &symbol);
-                            }
                             // Add newline trivia to the end of the symbol
-                            let symbol = trivia_formatter::token_reference_add_trivia(
-                                symbol,
-                                FormatTriviaType::NoChange,
+                            let symbol = match punctuation {
+                                Some(punctuation) => crate::fmt_symbol!(self, &punctuation, ","),
+                                None => TokenReference::symbol(",").unwrap(),
+                            }
+                            .update_trailing_trivia(
                                 FormatTriviaType::Append(vec![self.create_newline_trivia()]),
                             );
                             formatted_punctuation = Some(symbol)
@@ -334,23 +330,16 @@ impl CodeFormatter {
         leading_trivia: FormatTriviaType<'ast>,
     ) -> TypeFieldKey<'ast> {
         match type_field_key {
-            TypeFieldKey::Name(token) => {
-                TypeFieldKey::Name(trivia_formatter::token_reference_add_trivia(
-                    self.format_token_reference(token),
-                    leading_trivia,
-                    FormatTriviaType::NoChange,
-                ))
-            }
-            TypeFieldKey::IndexSignature { brackets, inner } => {
-                let brackets = trivia_formatter::contained_span_add_trivia(
-                    self.format_contained_span(brackets),
-                    leading_trivia,
-                    FormatTriviaType::NoChange,
-                );
-                let inner = self.format_type_info(inner);
-
-                TypeFieldKey::IndexSignature { brackets, inner }
-            }
+            TypeFieldKey::Name(token) => TypeFieldKey::Name(
+                self.format_token_reference(token)
+                    .update_leading_trivia(leading_trivia),
+            ),
+            TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
+                brackets: self
+                    .format_contained_span(brackets)
+                    .update_leading_trivia(leading_trivia),
+                inner: self.format_type_info(inner),
+            },
             other => panic!("unknown node {:?}", other),
         }
     }
@@ -389,11 +378,7 @@ impl CodeFormatter {
 
         if add_leading_trivia {
             let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
-            type_token = trivia_formatter::token_reference_add_trivia(
-                type_token,
-                FormatTriviaType::Append(leading_trivia),
-                FormatTriviaType::NoChange,
-            )
+            type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
         }
 
         let type_name = self.format_token_reference(type_declaration.type_name());
@@ -402,10 +387,9 @@ impl CodeFormatter {
             None => None,
         };
         let equal_token = crate::fmt_symbol!(self, type_declaration.equal_token(), " = ");
-        let type_definition = trivia_formatter::type_info_add_trailing_trivia(
-            self.format_type_info(type_declaration.type_definition()),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+        let type_definition = self
+            .format_type_info(type_declaration.type_definition())
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
         type_declaration
             .to_owned()
@@ -466,8 +450,8 @@ impl CodeFormatter {
         );
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
 
-        let export_token = trivia_formatter::token_reference_add_trivia(
-            self.format_symbol(
+        let export_token = self
+            .format_symbol(
                 exported_type_declaration.export_token(),
                 &TokenReference::new(
                     vec![],
@@ -476,10 +460,8 @@ impl CodeFormatter {
                     }),
                     vec![Token::new(TokenType::spaces(1))],
                 ),
-            ),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::NoChange,
-        );
+            )
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
         let type_declaration =
             self.format_type_declaration(exported_type_declaration.type_declaration(), false);
 

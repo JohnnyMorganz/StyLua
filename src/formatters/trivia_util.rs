@@ -1,13 +1,14 @@
-use crate::formatters::trivia_formatter::{self, FormatTriviaType};
+use crate::formatters::trivia_formatter::{FormatTriviaType, UpdateTrailingTrivia};
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
-    IndexedTypeInfo, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo,
-};
+use full_moon::ast::span::ContainedSpan;
+#[cfg(feature = "luau")]
+use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix,
-        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
+        BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix, Stmt, Suffix,
+        TableConstructor, UnOp, Value, Var,
     },
+    node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
@@ -327,12 +328,12 @@ pub fn get_expression_trailing_comments<'ast>(
         .flatten()
         .collect();
 
-    let new_expression = trivia_formatter::expression_add_trailing_trivia(
-        expression.to_owned(),
-        FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-    );
-
-    (new_expression, trailing_comments)
+    (
+        expression.update_trailing_trivia(
+            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
+        ),
+        trailing_comments,
+    )
 }
 
 /// Macro for retrieving trailing trivia out of a stmt which ends with an `end` token
@@ -340,11 +341,7 @@ macro_rules! end_stmt_trailing_trivia {
     ($enum:ident, $value:ident) => {{
         let end_token = $value.end_token();
         let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-        let new_end_token = trivia_formatter::token_reference_add_trivia(
-            end_token.to_owned(),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Replace(vec![]),
-        );
+        let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
         (
             Stmt::$enum($value.with_end_token(new_end_token)),
@@ -360,11 +357,7 @@ fn get_indexed_type_info_trailing_trivia(
     match type_info {
         IndexedTypeInfo::Basic(token) => {
             let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = trivia_formatter::token_reference_add_trivia(
-                token,
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (IndexedTypeInfo::Basic(token), trailing_trivia)
         }
         IndexedTypeInfo::Generic {
@@ -374,12 +367,10 @@ fn get_indexed_type_info_trailing_trivia(
         } => {
             let (start_brace, end_brace) = arrows.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (
                 IndexedTypeInfo::Generic {
@@ -400,22 +391,16 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         TypeInfo::Array { braces, type_info } => {
             let (start_brace, end_brace) = braces.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (TypeInfo::Array { braces, type_info }, trailing_trivia)
         }
         TypeInfo::Basic(token) => {
             let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = trivia_formatter::token_reference_add_trivia(
-                token,
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (TypeInfo::Basic(token), trailing_trivia)
         }
         TypeInfo::Callback {
@@ -442,12 +427,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         } => {
             let (start_brace, end_brace) = arrows.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (
                 TypeInfo::Generic {
@@ -496,11 +479,8 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 .trailing_trivia()
                 .map(|x| x.to_owned())
                 .collect();
-            let question_mark = trivia_formatter::token_reference_add_trivia(
-                question_mark,
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let question_mark =
+                question_mark.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 TypeInfo::Optional {
                     base,
@@ -512,12 +492,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         TypeInfo::Table { braces, fields } => {
             let (start_brace, end_brace) = braces.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (TypeInfo::Table { braces, fields }, trailing_trivia)
         }
@@ -528,12 +506,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         } => {
             let (start_brace, end_brace) = parentheses.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (
                 TypeInfo::Typeof {
@@ -547,12 +523,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         TypeInfo::Tuple { parentheses, types } => {
             let (start_brace, end_brace) = parentheses.tokens();
             let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let end_brace = trivia_formatter::token_reference_add_trivia(
-                end_brace.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
+            let braces = ContainedSpan::new(
+                start_brace.to_owned(),
+                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
             );
-            let braces = ContainedSpan::new(start_brace.to_owned(), end_brace);
 
             (
                 TypeInfo::Tuple {
@@ -597,10 +571,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             if let Some(last_pair) = formatted_expression_list.pop() {
                 let pair = last_pair.map(|value| {
                     trailing_trivia = get_expression_trailing_trivia(&value);
-                    trivia_formatter::expression_add_trailing_trivia(
-                        value,
-                        FormatTriviaType::Replace(vec![]),
-                    )
+                    value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 });
                 formatted_expression_list.push(pair);
             }
@@ -620,11 +591,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 if let Some(last_pair) = formatted_name_list.pop() {
                     let pair = last_pair.map(|value| {
                         trailing_trivia = value.trailing_trivia().map(|x| x.to_owned()).collect();
-                        trivia_formatter::token_reference_add_trivia(
-                            value,
-                            FormatTriviaType::NoChange,
-                            FormatTriviaType::Replace(vec![]),
-                        )
+                        value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                     });
                     formatted_name_list.push(pair);
                 }
@@ -638,10 +605,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 if let Some(last_pair) = formatted_expression_list.pop() {
                     let pair = last_pair.map(|value| {
                         trailing_trivia = get_expression_trailing_trivia(&value);
-                        trivia_formatter::expression_add_trailing_trivia(
-                            value,
-                            FormatTriviaType::Replace(vec![]),
-                        )
+                        value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                     });
                     formatted_expression_list.push(pair);
                 }
@@ -660,19 +624,17 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             };
 
             (
-                Stmt::FunctionCall(trivia_formatter::function_call_add_trailing_trivia(
-                    function_call,
-                    FormatTriviaType::Replace(vec![]),
-                )),
+                Stmt::FunctionCall(
+                    function_call.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+                ),
                 trailing_trivia,
             )
         }
         Stmt::Repeat(repeat_block) => {
             let trailing_trivia = get_expression_trailing_trivia(repeat_block.until());
-            let until_expr = trivia_formatter::expression_add_trailing_trivia(
-                repeat_block.until().to_owned(),
-                FormatTriviaType::Replace(vec![]),
-            );
+            let until_expr = repeat_block
+                .until()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             (
                 Stmt::Repeat(repeat_block.with_until(until_expr)),
@@ -692,11 +654,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::FunctionDeclaration(stmt) => {
             let end_token = stmt.body().end_token();
             let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = trivia_formatter::token_reference_add_trivia(
-                end_token.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             let body = stmt.body().to_owned().with_end_token(new_end_token);
             (
@@ -707,11 +665,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::LocalFunction(stmt) => {
             let end_token = stmt.body().end_token();
             let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = trivia_formatter::token_reference_add_trivia(
-                end_token.to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             let body = stmt.body().to_owned().with_end_token(new_end_token);
             (
@@ -729,10 +683,9 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(stmt) => {
             let trailing_trivia = get_expression_trailing_trivia(stmt.rhs());
-            let expr = trivia_formatter::expression_add_trailing_trivia(
-                stmt.rhs().to_owned(),
-                FormatTriviaType::Replace(vec![]),
-            );
+            let expr = stmt
+                .rhs()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 Stmt::CompoundAssignment(stmt.with_rhs(expr)),
                 trailing_trivia,
@@ -759,11 +712,9 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .trailing_trivia()
                 .map(|x| x.to_owned())
                 .collect();
-            let label_name = trivia_formatter::token_reference_add_trivia(
-                stmt.label_name().to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let label_name = stmt
+                .label_name()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 Stmt::Goto(stmt.with_label_name(label_name)),
                 trailing_trivia,
@@ -776,11 +727,9 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .trailing_trivia()
                 .map(|x| x.to_owned())
                 .collect();
-            let right_colons = trivia_formatter::token_reference_add_trivia(
-                stmt.right_colons().to_owned(),
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let right_colons = stmt
+                .right_colons()
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
                 Stmt::Label(stmt.with_right_colons(right_colons)),
                 trailing_trivia,
@@ -804,10 +753,7 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
             if let Some(last_pair) = formatted_expression_list.pop() {
                 let pair = last_pair.map(|value| {
                     trailing_trivia = get_expression_trailing_trivia(&value);
-                    trivia_formatter::expression_add_trailing_trivia(
-                        value,
-                        FormatTriviaType::Replace(vec![]),
-                    )
+                    value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 });
                 formatted_expression_list.push(pair);
             } else {
@@ -815,11 +761,8 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
                     .trailing_trivia()
                     .map(|x| x.to_owned())
                     .collect();
-                return_token = trivia_formatter::token_reference_add_trivia(
-                    return_token,
-                    FormatTriviaType::NoChange,
-                    FormatTriviaType::Replace(vec![]),
-                );
+                return_token =
+                    return_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             }
 
             (
@@ -832,22 +775,14 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
         }
         LastStmt::Break(token) => {
             let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = trivia_formatter::token_reference_add_trivia(
-                token,
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             (LastStmt::Break(token), trailing_trivia)
         }
         #[cfg(feature = "luau")]
         LastStmt::Continue(token) => {
             let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = trivia_formatter::token_reference_add_trivia(
-                token,
-                FormatTriviaType::NoChange,
-                FormatTriviaType::Replace(vec![]),
-            );
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             (LastStmt::Continue(token), trailing_trivia)
         }
@@ -873,387 +808,34 @@ pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
+pub fn contains_comments<'ast>(node: impl Node<'ast>) -> bool {
+    node.tokens().into_iter().any(token_contains_comments)
+}
+
+/// Checks whether any [`Field`] within a [`TableConstructor`] contains comments, without checking the braces
 pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> bool {
     table_constructor.fields().pairs().any(|field| {
-        let mut contains_comments = match field.value() {
+        let comments = match field.value() {
             Field::ExpressionKey {
                 brackets,
                 key,
                 equal,
                 value,
             } => {
-                let (start, end) = brackets.tokens();
-                token_contains_comments(start)
-                    || token_contains_comments(end)
-                    || token_contains_comments(equal)
-                    || expression_contains_comments(value)
-                    || expression_contains_comments(key)
+                contains_comments(brackets)
+                    || contains_comments(key)
+                    || contains_comments(equal)
+                    || contains_comments(value)
             }
             Field::NameKey { key, equal, value } => {
-                token_contains_comments(equal)
-                    || token_contains_comments(key)
-                    || expression_contains_comments(value)
+                contains_comments(key) || contains_comments(equal) || contains_comments(value)
             }
-            Field::NoKey(expression) => expression_contains_comments(expression),
+            Field::NoKey(expression) => contains_comments(expression),
             other => panic!("unknown node {:?}", other),
         };
 
-        if let Some(punctuation) = field.punctuation() {
-            if token_contains_comments(punctuation) {
-                contains_comments = true;
-            }
-        }
-
-        contains_comments
+        comments || field.punctuation().map_or(false, contains_comments)
     })
-}
-
-fn table_constructor_contains_comments(table_constructor: &TableConstructor) -> bool {
-    let (start, end) = table_constructor.braces().tokens();
-    token_contains_comments(start)
-        || token_contains_comments(end)
-        || table_fields_contains_comments(table_constructor)
-}
-
-fn function_args_contains_comments(function_args: &FunctionArgs) -> bool {
-    match function_args {
-        FunctionArgs::Parentheses {
-            parentheses,
-            arguments,
-        } => {
-            let (start, end) = parentheses.tokens();
-            if token_contains_comments(start) || token_contains_comments(end) {
-                true
-            } else {
-                let mut contains_comments = false;
-                for argument in arguments.pairs() {
-                    contains_comments = expression_contains_comments(argument.value());
-                    if let Some(punctuation) = argument.punctuation() {
-                        if token_contains_comments(punctuation) {
-                            contains_comments = true;
-                        }
-                    }
-                    if contains_comments {
-                        break;
-                    }
-                }
-                contains_comments
-            }
-        }
-        FunctionArgs::String(token) => token_contains_comments(token),
-        FunctionArgs::TableConstructor(table_constructor) => {
-            table_constructor_contains_comments(table_constructor)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn suffix_contains_comments(suffix: &Suffix) -> bool {
-    match suffix {
-        Suffix::Call(call) => match call {
-            Call::AnonymousCall(function_args) => function_args_contains_comments(function_args),
-            Call::MethodCall(method_call) => {
-                token_contains_comments(method_call.name())
-                    || token_contains_comments(method_call.colon_token())
-                    || function_args_contains_comments(method_call.args())
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        Suffix::Index(index) => match index {
-            Index::Brackets {
-                brackets,
-                expression,
-            } => {
-                let (start, end) = brackets.tokens();
-                token_contains_comments(start)
-                    || token_contains_comments(end)
-                    || expression_contains_comments(expression)
-            }
-            Index::Dot { dot, name } => {
-                token_contains_comments(dot) || token_contains_comments(name)
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn contained_span_contains_comments(contained_span: &ContainedSpan) -> bool {
-    let (start, end) = contained_span.tokens();
-    token_contains_comments(start) || token_contains_comments(end)
-}
-
-#[cfg(feature = "luau")]
-fn type_info_contains_comments(type_info: &TypeInfo) -> bool {
-    match type_info {
-        TypeInfo::Array { braces, type_info } => {
-            contained_span_contains_comments(braces) || type_info_contains_comments(type_info)
-        }
-        TypeInfo::Basic(token) => token_contains_comments(token),
-        TypeInfo::Callback {
-            parentheses,
-            arguments,
-            arrow,
-            return_type,
-        } => {
-            contained_span_contains_comments(parentheses)
-                || token_contains_comments(arrow)
-                || type_info_contains_comments(return_type)
-                || arguments.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            token_contains_comments(base)
-                || contained_span_contains_comments(arrows)
-                || generics.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => {
-            type_info_contains_comments(left)
-                || token_contains_comments(ampersand)
-                || type_info_contains_comments(right)
-        }
-        TypeInfo::Module {
-            module,
-            punctuation,
-            type_info,
-        } => {
-            token_contains_comments(module)
-                || token_contains_comments(punctuation)
-                || indexed_type_info_contains_comments(type_info)
-        }
-        TypeInfo::Optional {
-            base,
-            question_mark,
-        } => type_info_contains_comments(base) || token_contains_comments(question_mark),
-        TypeInfo::Table { braces, fields } => {
-            contained_span_contains_comments(braces)
-                || fields.pairs().any(|pair| {
-                    type_field_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Typeof {
-            typeof_token,
-            parentheses,
-            inner,
-        } => {
-            token_contains_comments(typeof_token)
-                || contained_span_contains_comments(parentheses)
-                || expression_contains_comments(inner)
-        }
-        TypeInfo::Tuple { parentheses, types } => {
-            contained_span_contains_comments(parentheses)
-                || types.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        TypeInfo::Union { left, pipe, right } => {
-            type_info_contains_comments(left)
-                || token_contains_comments(pipe)
-                || type_info_contains_comments(right)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn indexed_type_info_contains_comments(type_info: &IndexedTypeInfo) -> bool {
-    match type_info {
-        IndexedTypeInfo::Basic(token) => token_contains_comments(token),
-        IndexedTypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            token_contains_comments(base)
-                || contained_span_contains_comments(arrows)
-                || generics.pairs().any(|pair| {
-                    type_info_contains_comments(pair.value())
-                        || pair
-                            .punctuation()
-                            .map_or(false, |punc| token_contains_comments(punc))
-                })
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn type_field_contains_comments(type_field: &TypeField) -> bool {
-    type_field_key_contains_comments(type_field.key())
-        || token_contains_comments(type_field.colon_token())
-        || type_info_contains_comments(type_field.value())
-}
-
-#[cfg(feature = "luau")]
-fn type_field_key_contains_comments(type_field_key: &TypeFieldKey) -> bool {
-    match type_field_key {
-        TypeFieldKey::Name(token) => token_contains_comments(token),
-        TypeFieldKey::IndexSignature { brackets, inner } => {
-            contained_span_contains_comments(brackets) || type_info_contains_comments(inner)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn type_assertion_contains_comments(type_assertion: &TypeAssertion) -> bool {
-    token_contains_comments(type_assertion.assertion_op())
-        || type_info_contains_comments(type_assertion.cast_to())
-}
-
-fn value_contains_comments(value: &Value) -> bool {
-    match value {
-        Value::Function((token, body)) => {
-            if token_contains_comments(token) {
-                true
-            } else {
-                contained_span_contains_comments(body.parameters_parentheses())
-                // TODO: Do we need to do any more?
-            }
-        }
-        Value::FunctionCall(function_call) => {
-            let contained = match function_call.prefix() {
-                Prefix::Name(token) => token_contains_comments(token),
-                Prefix::Expression(expression) => expression_contains_comments(expression),
-                other => panic!("unknown node {:?}", other),
-            };
-
-            if contained {
-                true
-            } else {
-                let mut contained_comments = false;
-                for suffix in function_call.suffixes() {
-                    contained_comments = suffix_contains_comments(suffix);
-                    if contained_comments {
-                        break;
-                    }
-                }
-                contained_comments
-            }
-        }
-        Value::TableConstructor(table_constructor) => {
-            table_constructor_contains_comments(table_constructor)
-        }
-        Value::Number(token) => token_contains_comments(token),
-        Value::ParenthesesExpression(expression) => expression_contains_comments(expression),
-        Value::String(token) => token_contains_comments(token),
-        Value::Symbol(token) => token_contains_comments(token),
-        Value::Var(var) => match var {
-            Var::Name(token) => token_contains_comments(token),
-            Var::Expression(var_expr) => {
-                let contained = match var_expr.prefix() {
-                    Prefix::Name(token) => token_contains_comments(token),
-                    Prefix::Expression(expression) => expression_contains_comments(expression),
-                    other => panic!("unknown node {:?}", other),
-                };
-
-                if contained {
-                    true
-                } else {
-                    let mut contained_comments = false;
-                    for suffix in var_expr.suffixes() {
-                        contained_comments = suffix_contains_comments(suffix);
-                        if contained_comments {
-                            break;
-                        }
-                    }
-                    contained_comments
-                }
-            }
-            other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-fn binop_contains_comments(binop: &BinOp) -> bool {
-    match binop {
-        BinOp::And(t)
-        | BinOp::Caret(t)
-        | BinOp::GreaterThan(t)
-        | BinOp::GreaterThanEqual(t)
-        | BinOp::LessThan(t)
-        | BinOp::LessThanEqual(t)
-        | BinOp::Minus(t)
-        | BinOp::Or(t)
-        | BinOp::Percent(t)
-        | BinOp::Plus(t)
-        | BinOp::Slash(t)
-        | BinOp::Star(t)
-        | BinOp::TildeEqual(t)
-        | BinOp::TwoDots(t)
-        | BinOp::TwoEqual(t) => token_contains_comments(t),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-// Check whether any comments are present within an Expression
-pub fn expression_contains_comments(expression: &Expression) -> bool {
-    match expression {
-        Expression::Parentheses {
-            contained,
-            expression,
-        } => {
-            contained_span_contains_comments(contained) || expression_contains_comments(expression)
-        }
-        Expression::UnaryOperator { unop, expression } => {
-            match unop {
-                UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
-                    if token_contains_comments(token) {
-                        return true;
-                    }
-                }
-                other => panic!("unknown node {:?}", other),
-            }
-
-            expression_contains_comments(expression)
-        }
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            binop_contains_comments(binop)
-                || expression_contains_comments(lhs)
-                || expression_contains_comments(rhs)
-        }
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => {
-            #[cfg(feature = "luau")]
-            {
-                return value_contains_comments(value)
-                    || type_assertion
-                        .as_ref()
-                        .map_or(false, |x| type_assertion_contains_comments(x));
-            }
-
-            #[cfg(not(feature = "luau"))]
-            value_contains_comments(value)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
 }
 
 // Checks to see whether an expression contains comments inline inside of it
@@ -1262,7 +844,7 @@ pub fn expression_contains_comments(expression: &Expression) -> bool {
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            binop_contains_comments(binop) || expression_contains_comments(lhs)
+            contains_comments(binop) || contains_comments(lhs)
             // Check if the binop chain still continues
             // If so, we should keep checking the expresion
             // Otherwise, stop checking
@@ -1270,13 +852,13 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
                 Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
                 Expression::UnaryOperator { unop, expression } => {
                     let op_contains_comments = match unop {
-                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => token_contains_comments(token),
+                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => contains_comments(token),
                         other => panic!("unknown node {:?}", other)
                     };
                     op_contains_comments || expression_contains_inline_comments(expression)
                 }
                 Expression::Value{ .. } => false,
-                Expression::Parentheses { .. } => expression_contains_comments(rhs),
+                Expression::Parentheses { .. } => contains_comments(rhs),
                 other => panic!("unknown node {:?}", other),
             }
         }
