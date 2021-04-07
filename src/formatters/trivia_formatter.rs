@@ -429,7 +429,8 @@ define_update_trailing_trivia!(FunctionArgs, |this, trailing| {
 });
 
 define_update_trailing_trivia!(FunctionBody, |this, trailing| {
-    this.with_end_token(this.end_token().update_trailing_trivia(trailing))
+    this.to_owned()
+        .with_end_token(this.end_token().update_trailing_trivia(trailing))
 });
 
 define_update_trivia!(FunctionCall, |this, leading, trailing| {
@@ -448,7 +449,7 @@ define_update_trivia!(FunctionCall, |this, leading, trailing| {
         }
     };
 
-    this.with_prefix(prefix).with_suffixes(suffixes)
+    this.to_owned().with_prefix(prefix).with_suffixes(suffixes)
 });
 
 define_update_trailing_trivia!(Index, |this, trailing| {
@@ -469,7 +470,8 @@ define_update_trailing_trivia!(Index, |this, trailing| {
 });
 
 define_update_trailing_trivia!(MethodCall, |this, trailing| {
-    this.with_args(this.args().update_trailing_trivia(trailing))
+    this.to_owned()
+        .with_args(this.args().update_trailing_trivia(trailing))
 });
 
 define_update_trivia!(Parameter, |this, leading, trailing| {
@@ -501,7 +503,8 @@ define_update_trailing_trivia!(Suffix, |this, trailing| {
 });
 
 define_update_trivia!(TableConstructor, |this, leading, trailing| {
-    this.with_braces(this.braces().update_trivia(leading, trailing))
+    this.to_owned()
+        .with_braces(this.braces().update_trivia(leading, trailing))
 });
 
 define_update_leading_trivia!(UnOp, |this, leading| {
@@ -607,7 +610,7 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
         }
     };
 
-    this.with_prefix(prefix).with_suffixes(suffixes)
+    this.to_owned().with_prefix(prefix).with_suffixes(suffixes)
 });
 
 #[cfg(feature = "luau")]
@@ -721,10 +724,12 @@ define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
 
 #[cfg(feature = "luau")]
 define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
-    this.with_cast_to(this.cast_to().update_trailing_trivia(trailing))
+    this.to_owned()
+        .with_cast_to(this.cast_to().update_trailing_trivia(trailing))
 });
 
 #[cfg(feature = "luau")]
 define_update_trailing_trivia!(TypeSpecifier, |this, trailing| {
-    this.with_type_info(this.type_info().update_trailing_trivia(trailing))
+    this.to_owned()
+        .with_type_info(this.type_info().update_trailing_trivia(trailing))
 });
