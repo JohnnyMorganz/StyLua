@@ -1,5 +1,7 @@
 use crate::formatters::{
-    trivia_formatter::{self, FormatTriviaType},
+    trivia_formatter::{
+        strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
+    },
     trivia_util, CodeFormatter,
 };
 use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
@@ -28,16 +30,11 @@ impl CodeFormatter {
             FormatTriviaType::Append(vec![self.create_indent_trivia(additional_indent_level)]);
         let trailing_trivia = FormatTriviaType::Append(vec![self.create_newline_trivia()]);
 
-        let do_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, do_block.do_token(), "do"),
-            leading_trivia.to_owned(),
-            trailing_trivia.to_owned(),
-        );
-        let end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(do_block.end_token()),
-            leading_trivia,
-            trailing_trivia,
-        );
+        let do_token = crate::fmt_symbol!(self, do_block.do_token(), "do")
+            .update_trivia(leading_trivia.to_owned(), trailing_trivia.to_owned());
+        let end_token = self
+            .format_end_token(do_block.end_token())
+            .update_trivia(leading_trivia, trailing_trivia);
 
         do_block
             .to_owned()
@@ -53,11 +50,8 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let mut trailing_trivia = vec![self.create_newline_trivia()];
 
-        let for_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, generic_for.for_token(), "for "),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let for_token = crate::fmt_symbol!(self, generic_for.for_token(), "for ")
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
         let (formatted_names, mut names_comments_buf) = self.format_punctuated(
             generic_for.names(),
             &CodeFormatter::format_token_reference_mut,
@@ -81,17 +75,15 @@ impl CodeFormatter {
         // Append trailing trivia to the end
         names_comments_buf.append(&mut trailing_trivia);
 
-        let do_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, generic_for.do_token(), " do"),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Append(names_comments_buf),
-        );
+        let do_token = crate::fmt_symbol!(self, generic_for.do_token(), " do")
+            .update_trailing_trivia(FormatTriviaType::Append(names_comments_buf));
 
-        let end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(generic_for.end_token()),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(vec![self.create_newline_trivia()]), // trailing_trivia was emptied when it was appended to names_comment_buf
-        );
+        let end_token = self
+            .format_end_token(generic_for.end_token())
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(vec![self.create_newline_trivia()]), // trailing_trivia was emptied when it was appended to names_comment_buf
+            );
 
         let generic_for = generic_for
             .to_owned()
@@ -116,12 +108,14 @@ impl CodeFormatter {
         let trailing_trivia = vec![self.create_newline_trivia()];
 
         // Determine if we need to hang the condition
-        let last_line_str = trivia_formatter::no_comments(else_if_node.else_if_token())
-            + &else_if_node.condition().to_string()
-            + &trivia_formatter::no_comments(else_if_node.then_token());
+        let last_line_str_len = (strip_trivia(else_if_node.else_if_token()).to_string()
+            + &strip_trivia(else_if_node.condition()).to_string()
+            + &strip_trivia(else_if_node.then_token()).to_string())
+            .len()
+            + 2; // Include space before and after condition
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len())
+        let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
             || trivia_util::expression_contains_inline_comments(else_if_node.condition());
 
@@ -131,11 +125,9 @@ impl CodeFormatter {
             ("elseif ", " then")
         };
 
-        let formatted_else_if_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, else_if_node.else_if_token(), else_if_text),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let formatted_else_if_token =
+            crate::fmt_symbol!(self, else_if_node.else_if_token(), else_if_text)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -146,25 +138,23 @@ impl CodeFormatter {
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
             let condition = self.format_expression(else_if_node.condition());
-            trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(condition, additional_indent_level, None),
-                FormatTriviaType::Append(vec![
+            self.hang_expression(condition, additional_indent_level, None)
+                .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
-                ]),
-            )
+                ]))
         } else {
             self.format_expression(else_if_node.condition())
         };
 
-        let formatted_then_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, else_if_node.then_token(), then_text),
-            if require_multiline_expression {
-                FormatTriviaType::Append(leading_trivia)
-            } else {
-                FormatTriviaType::NoChange
-            },
-            FormatTriviaType::Append(trailing_trivia),
-        );
+        let formatted_then_token = crate::fmt_symbol!(self, else_if_node.then_token(), then_text)
+            .update_trivia(
+                if require_multiline_expression {
+                    FormatTriviaType::Append(leading_trivia)
+                } else {
+                    FormatTriviaType::NoChange
+                },
+                FormatTriviaType::Append(trailing_trivia),
+            );
 
         else_if_node
             .to_owned()
@@ -182,12 +172,14 @@ impl CodeFormatter {
         let trailing_trivia = vec![self.create_newline_trivia()];
 
         // Determine if we need to hang the condition
-        let last_line_str = trivia_formatter::no_comments(if_node.if_token())
-            + &if_node.condition().to_string()
-            + &trivia_formatter::no_comments(if_node.then_token());
+        let last_line_str_len = (strip_trivia(if_node.if_token()).to_string()
+            + &strip_trivia(if_node.condition()).to_string()
+            + &strip_trivia(if_node.then_token()).to_string())
+            .len()
+            + 2; // Include space before and after condition
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len())
+        let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
             || trivia_util::expression_contains_inline_comments(if_node.condition());
 
@@ -197,11 +189,8 @@ impl CodeFormatter {
             ("if ", " then")
         };
 
-        let formatted_if_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, if_node.if_token(), if_text),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let formatted_if_token = crate::fmt_symbol!(self, if_node.if_token(), if_text)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -212,27 +201,24 @@ impl CodeFormatter {
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
             let condition = self.format_expression(if_node.condition());
-            trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(condition, additional_indent_level, None),
-                FormatTriviaType::Append(vec![
+            self.hang_expression(condition, additional_indent_level, None)
+                .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
-                ]),
-            )
+                ]))
         } else {
             self.format_expression(if_node.condition())
         };
 
-        let formatted_then_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, if_node.then_token(), then_text),
-            if require_multiline_expression {
-                FormatTriviaType::Append(leading_trivia.to_owned())
-            } else {
-                FormatTriviaType::NoChange
-            },
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
-        let formatted_end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(if_node.end_token()),
+        let formatted_then_token = crate::fmt_symbol!(self, if_node.then_token(), then_text)
+            .update_trivia(
+                if require_multiline_expression {
+                    FormatTriviaType::Append(leading_trivia.to_owned())
+                } else {
+                    FormatTriviaType::NoChange
+                },
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            );
+        let formatted_end_token = self.format_end_token(if_node.end_token()).update_trivia(
             FormatTriviaType::Append(leading_trivia.to_owned()),
             FormatTriviaType::Append(trailing_trivia.to_owned()),
         );
@@ -249,8 +235,7 @@ impl CodeFormatter {
 
         let formatted_else_token = match if_node.else_token() {
             Some(token) => {
-                let formatted = trivia_formatter::token_reference_add_trivia(
-                    crate::fmt_symbol!(self, token, "else"),
+                let formatted = crate::fmt_symbol!(self, token, "else").update_trivia(
                     FormatTriviaType::Append(leading_trivia),
                     FormatTriviaType::Append(trailing_trivia),
                 );
@@ -277,11 +262,8 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let for_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, numeric_for.for_token(), "for "),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let for_token = crate::fmt_symbol!(self, numeric_for.for_token(), "for ")
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
         let formatted_index_variable = self.format_token_reference(numeric_for.index_variable());
 
         #[cfg(feature = "luau")]
@@ -307,16 +289,14 @@ impl CodeFormatter {
             None => (None, None),
         };
 
-        let do_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, numeric_for.do_token(), " do"),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
-        let end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(numeric_for.end_token()),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+        let do_token = crate::fmt_symbol!(self, numeric_for.do_token(), " do")
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
+        let end_token = self
+            .format_end_token(numeric_for.end_token())
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(trailing_trivia),
+            );
 
         let numeric_for = numeric_for
             .to_owned()
@@ -344,23 +324,23 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let repeat_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat"),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
-        let until_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, repeat_block.until_token(), "until "),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let repeat_token = crate::fmt_symbol!(self, repeat_block.repeat_token(), "repeat")
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia.to_owned()),
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            );
+        let until_token = crate::fmt_symbol!(self, repeat_block.until_token(), "until ")
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
-        // Determine if we need to hang the until expression
-        let last_line_str = trivia_formatter::no_comments(repeat_block.until_token())
-            + &repeat_block.until().to_string();
+        // Determine if we need to hang the condition
+        let last_line_str_len = (strip_trivia(repeat_block.until_token()).to_string()
+            + &strip_trivia(repeat_block.until()).to_string())
+            .len()
+            + 1; // Include space before until and condition
+
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len())
+        let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
             || trivia_util::expression_contains_inline_comments(repeat_block.until());
 
@@ -375,10 +355,9 @@ impl CodeFormatter {
                 self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
                 self.hang_expression(formatted_until, additional_indent_level, None)
             }
-            false => trivia_formatter::expression_add_trailing_trivia(
-                formatted_until,
-                FormatTriviaType::Append(trailing_trivia),
-            ),
+            false => {
+                formatted_until.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
+            }
         };
 
         repeat_block
@@ -397,12 +376,14 @@ impl CodeFormatter {
         let trailing_trivia = vec![self.create_newline_trivia()];
 
         // Determine if we need to hang the condition
-        let last_line_str = trivia_formatter::no_comments(while_block.while_token())
-            + &while_block.condition().to_string()
-            + &trivia_formatter::no_comments(while_block.do_token());
+        let last_line_str = strip_trivia(while_block.while_token()).to_string()
+            + &strip_trivia(while_block.condition()).to_string()
+            + &strip_trivia(while_block.do_token()).to_string();
+        let last_line_str_len = last_line_str.len() + 2; // Include space before and after condition
+
         let indent_spacing =
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
-        let require_multiline_expression = (indent_spacing + last_line_str.len())
+        let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
             || trivia_util::expression_contains_inline_comments(while_block.condition());
 
@@ -412,11 +393,8 @@ impl CodeFormatter {
             ("while ", " do")
         };
 
-        let while_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, while_block.while_token(), while_text),
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::NoChange,
-        );
+        let while_token = crate::fmt_symbol!(self, while_block.while_token(), while_text)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -427,27 +405,23 @@ impl CodeFormatter {
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
             let condition = self.format_expression(while_block.condition());
-            trivia_formatter::expression_add_leading_trivia(
-                self.hang_expression(condition, additional_indent_level, None),
-                FormatTriviaType::Append(vec![
+            self.hang_expression(condition, additional_indent_level, None)
+                .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
-                ]),
-            )
+                ]))
         } else {
             self.format_expression(while_block.condition())
         };
 
-        let do_token = trivia_formatter::token_reference_add_trivia(
-            crate::fmt_symbol!(self, while_block.do_token(), do_text),
-            FormatTriviaType::NoChange,
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
+        let do_token = crate::fmt_symbol!(self, while_block.do_token(), do_text)
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
 
-        let end_token = trivia_formatter::token_reference_add_trivia(
-            self.format_end_token(while_block.end_token()),
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+        let end_token = self
+            .format_end_token(while_block.end_token())
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(trailing_trivia),
+            );
 
         while_block
             .to_owned()
@@ -470,13 +444,8 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let formatted_function_call = self.format_function_call(function_call);
-
-        trivia_formatter::function_call_add_trailing_trivia(
-            trivia_formatter::function_call_add_leading_trivia(
-                formatted_function_call,
-                FormatTriviaType::Append(leading_trivia),
-            ),
+        self.format_function_call(function_call).update_trivia(
+            FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
         )
     }
