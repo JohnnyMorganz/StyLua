@@ -1,6 +1,6 @@
 use crate::formatters::{
     trivia_formatter::{
-        self, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
+        strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
     },
     trivia_util, CodeFormatter, Range,
 };
@@ -102,8 +102,10 @@ impl CodeFormatter {
             )
         } else {
             // Determine if we need to hang the condition
-            let first_line_str =
-                trivia_formatter::no_comments(return_node.token()) + &formatted_returns.to_string();
+            let first_line_str = strip_trivia(return_node.token()).to_string()
+                + " "
+                + &strip_trivia(&formatted_returns).to_string();
+
             let indent_spacing = (self.indent_level + additional_indent_level.unwrap_or(0))
                 * self.config.indent_width;
             let require_multiline_expression = (indent_spacing

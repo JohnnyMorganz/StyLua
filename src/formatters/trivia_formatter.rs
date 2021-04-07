@@ -22,9 +22,14 @@ pub enum FormatTriviaType<'ast> {
     NoChange,
 }
 
-/// Returns a string presentation of a TokenReference with all trivia removed
-pub fn no_comments(token: &TokenReference) -> String {
-    token.token().to_string()
+/// Strips all leading and trailing trivia from a specific node.
+/// This is useful if we need to use the node to calculate sizing, whilst we do not want trivia included
+pub fn strip_trivia<'ast, T>(item: &T) -> T
+where
+    T: UpdateLeadingTrivia<'ast> + UpdateTrailingTrivia<'ast>,
+{
+    item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
+        .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
 }
 
 impl CodeFormatter {
