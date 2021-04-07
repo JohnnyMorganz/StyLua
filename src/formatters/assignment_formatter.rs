@@ -67,7 +67,7 @@ fn strip_assignment_trivia<'ast>(assignment: &Assignment<'ast>) -> Assignment<'a
     let mut expr_list = assignment.expressions().to_owned();
     if let Some(last_pair) = expr_list.pop() {
         expr_list.push(
-            last_pair.map(|value| value.update_leading_trivia(FormatTriviaType::Replace(vec![]))),
+            last_pair.map(|value| value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))),
         );
     }
 
