@@ -1,6 +1,6 @@
 use crate::formatters::{
     trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-    trivia_util, CodeFormatter,
+    trivia_util, CodeFormatter, EndTokenType,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -99,7 +99,7 @@ impl CodeFormatter {
                     ]));
 
                 let end_brace_token = self
-                    .format_end_token(end_brace)
+                    .format_end_token(end_brace, EndTokenType::ClosingBrace)
                     .update_leading_trivia(FormatTriviaType::Append(end_brace_leading_trivia));
 
                 ContainedSpan::new(start_brace_token, end_brace_token)
@@ -150,8 +150,8 @@ impl CodeFormatter {
 
         let (start_brace, end_brace) = table_constructor.braces().tokens();
         let braces_range = (
-            start_brace.end_position().bytes(),
-            end_brace.start_position().bytes(),
+            start_brace.token().end_position().bytes(),
+            end_brace.token().start_position().bytes(),
         );
 
         // We subtract 20 as we don't have full information about what preceded this table constructor (e.g. the assignment).
@@ -192,16 +192,15 @@ impl CodeFormatter {
             },
         };
 
+        if let TableType::MultiLine = table_type {
+            // Need to take the inner portion of the braces, not including the braces themselves
+            self.add_indent_range(braces_range);
+        }
+
         let additional_indent_level =
             self.get_range_indent_increase(CodeFormatter::get_token_range(end_brace.token()));
         let braces =
             self.create_table_braces(start_brace, end_brace, table_type, additional_indent_level);
-
-        if let TableType::MultiLine = table_type {
-            // Need to take the inner portion of the braces, not including the braces themselves
-            let braces_range = (braces_range.0, braces_range.1);
-            self.add_indent_range(braces_range);
-        }
 
         while let Some(pair) = current_fields.next() {
             let (field, punctuation) = pair.into_tuple();

@@ -155,8 +155,8 @@ impl CodeFormatter {
             TypeInfo::Table { braces, fields } => {
                 let (start_brace, end_brace) = braces.tokens().to_owned();
                 let braces_range = (
-                    start_brace.end_position().bytes(),
-                    end_brace.start_position().bytes(),
+                    start_brace.token().end_position().bytes(),
+                    end_brace.token().start_position().bytes(),
                 );
 
                 let mut current_fields = fields.to_owned().into_pairs().peekable();
@@ -168,6 +168,11 @@ impl CodeFormatter {
                     },
                     None => TableType::Empty,
                 };
+
+                if is_multiline {
+                    self.add_indent_range(braces_range);
+                }
+
                 let additional_indent_level = self.get_range_indent_increase(braces_range);
                 let braces = self.create_table_braces(
                     start_brace,
@@ -175,9 +180,6 @@ impl CodeFormatter {
                     table_type,
                     additional_indent_level,
                 );
-                if is_multiline {
-                    self.add_indent_range(braces_range);
-                }
 
                 let mut fields = Punctuated::new();
 

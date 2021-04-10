@@ -9,7 +9,7 @@ use std::boxed::Box;
 
 use crate::formatters::{
     trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
-    trivia_util, CodeFormatter,
+    trivia_util, CodeFormatter, EndTokenType,
 };
 
 impl CodeFormatter {
@@ -565,13 +565,13 @@ impl CodeFormatter {
         }
 
         let end_token = if add_trivia {
-            self.format_end_token(function_body.end_token())
+            self.format_end_token(function_body.end_token(), EndTokenType::BlockEnd)
                 .update_trivia(
                     FormatTriviaType::Append(leading_trivia),
                     FormatTriviaType::Append(trailing_trivia),
                 )
         } else {
-            self.format_end_token(function_body.end_token())
+            self.format_end_token(function_body.end_token(), EndTokenType::BlockEnd)
         };
 
         let function_body = function_body
