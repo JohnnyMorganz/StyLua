@@ -425,13 +425,13 @@ define_update_trivia!(ContainedSpan, |this, leading, trailing| {
     )
 });
 
-define_update_trailing_trivia!(Call, |this, trailing| {
+define_update_trivia!(Call, |this, leading, trailing| {
     match this {
         Call::AnonymousCall(function_args) => {
-            Call::AnonymousCall(function_args.update_trailing_trivia(trailing))
+            Call::AnonymousCall(function_args.update_trivia(leading, trailing))
         }
         Call::MethodCall(method_call) => {
-            Call::MethodCall(method_call.update_trailing_trivia(trailing))
+            Call::MethodCall(method_call.update_trivia(leading, trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -514,20 +514,20 @@ define_update_trailing_trivia!(Expression, |this, trailing| {
     }
 });
 
-define_update_trailing_trivia!(FunctionArgs, |this, trailing| {
+define_update_trivia!(FunctionArgs, |this, leading, trailing| {
     match this {
         FunctionArgs::Parentheses {
             parentheses,
             arguments,
         } => FunctionArgs::Parentheses {
-            parentheses: parentheses.update_trailing_trivia(trailing),
+            parentheses: parentheses.update_trivia(leading, trailing),
             arguments: arguments.to_owned(),
         },
         FunctionArgs::String(token_reference) => {
-            FunctionArgs::String(token_reference.update_trailing_trivia(trailing))
+            FunctionArgs::String(token_reference.update_trivia(leading, trailing))
         }
         FunctionArgs::TableConstructor(table_constructor) => {
-            FunctionArgs::TableConstructor(table_constructor.update_trailing_trivia(trailing))
+            FunctionArgs::TableConstructor(table_constructor.update_trivia(leading, trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -557,25 +557,26 @@ define_update_trivia!(FunctionCall, |this, leading, trailing| {
     this.to_owned().with_prefix(prefix).with_suffixes(suffixes)
 });
 
-define_update_trailing_trivia!(Index, |this, trailing| {
+define_update_trivia!(Index, |this, leading, trailing| {
     match this {
         Index::Brackets {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: brackets.update_trailing_trivia(trailing),
+            brackets: brackets.update_trivia(leading, trailing),
             expression: expression.to_owned(),
         },
         Index::Dot { dot, name } => Index::Dot {
-            dot: dot.to_owned(),
+            dot: dot.update_leading_trivia(leading),
             name: name.update_trailing_trivia(trailing),
         },
         other => panic!("unknown node {:?}", other),
     }
 });
 
-define_update_trailing_trivia!(MethodCall, |this, trailing| {
+define_update_trivia!(MethodCall, |this, leading, trailing| {
     this.to_owned()
+        .with_colon_token(this.colon_token().update_leading_trivia(leading))
         .with_args(this.args().update_trailing_trivia(trailing))
 });
 
@@ -642,10 +643,10 @@ where
     }
 }
 
-define_update_trailing_trivia!(Suffix, |this, trailing| {
+define_update_trivia!(Suffix, |this, leading, trailing| {
     match this {
-        Suffix::Call(call) => Suffix::Call(call.update_trailing_trivia(trailing)),
-        Suffix::Index(index) => Suffix::Index(index.update_trailing_trivia(trailing)),
+        Suffix::Call(call) => Suffix::Call(call.update_trivia(leading, trailing)),
+        Suffix::Index(index) => Suffix::Index(index.update_trivia(leading, trailing)),
         other => panic!("unknown node {:?}", other),
     }
 });
