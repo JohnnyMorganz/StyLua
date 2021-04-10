@@ -2,13 +2,16 @@ use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
-    LocalFunction, MethodCall, Parameter, Value,
+    LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::boxed::Box;
 
 use crate::formatters::{
-    trivia_formatter::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
+    trivia_formatter::{
+        strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
+    },
     trivia_util, CodeFormatter, EndTokenType,
 };
 
@@ -594,10 +597,95 @@ impl CodeFormatter {
         function_call: &FunctionCall<'ast>,
     ) -> FunctionCall<'ast> {
         let formatted_prefix = self.format_prefix(function_call.prefix());
-        let formatted_suffixes = function_call
-            .suffixes()
-            .map(|x| self.format_suffix(x))
-            .collect();
+
+        let num_suffixes = function_call.suffixes().count();
+        let should_hang = {
+            // Hang if there is atleast more than one suffix
+            // Out of these suffixes, there needs to be atleast one method call
+            if function_call.suffixes().count() > 1
+                && function_call
+                    .suffixes()
+                    .any(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
+            {
+                // Check if either a), we are surpassing the column width
+                // Or b), one of the INTERNAL (not the last call) method call's arguments is multiline [function/table]
+
+                // Create a temporary formatted version of suffixes to use for this check
+                let formatted_suffixes = function_call
+                    .suffixes()
+                    .map(|x| self.format_suffix(x))
+                    .collect();
+                let preliminary_function_call = FunctionCall::new(formatted_prefix.to_owned())
+                    .with_suffixes(formatted_suffixes);
+
+                // TODO: we should format before this check
+                let outcome = if strip_trivia(&preliminary_function_call)
+                    .to_string()
+                    .lines()
+                    .next()
+                    .expect("no lines")
+                    .len()
+                    > self.config.column_width
+                {
+                    true
+                } else {
+                    let mut suffixes = preliminary_function_call.suffixes().peekable();
+                    let mut contains_newline = false;
+                    while let Some(suffix) = suffixes.next() {
+                        // There is still a suffix present after this
+                        if let Some(_) = suffixes.peek() {
+                            if matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+                                && strip_trivia(suffix).to_string().contains('\n')
+                            {
+                                contains_newline = true;
+                                break;
+                            }
+                        };
+                    }
+
+                    contains_newline
+                };
+
+                outcome
+            } else {
+                false
+            }
+        };
+
+        if should_hang {
+            let mut iter = function_call.suffixes();
+            let (first, last) = (
+                iter.next().expect("no suffix"),
+                iter.last().expect("only one suffix"),
+            );
+            let range = (
+                first
+                    .start_position()
+                    .expect("no suffix start position")
+                    .bytes(),
+                last.end_position().expect("no suffix end position").bytes(),
+            );
+
+            self.add_indent_range(range);
+        }
+
+        let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
+        for suffix in function_call.suffixes() {
+            let mut suffix = self.format_suffix(suffix);
+
+            if should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))) {
+                let additional_indent_level = self.get_range_indent_increase((
+                    suffix.start_position().expect("no suffix position").bytes(),
+                    suffix.end_position().expect("no suffix position").bytes(),
+                ));
+                suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
+                    self.create_newline_trivia(),
+                    self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1)),
+                ]));
+            }
+
+            formatted_suffixes.push(suffix);
+        }
 
         FunctionCall::new(formatted_prefix).with_suffixes(formatted_suffixes)
     }
