@@ -27,3 +27,10 @@ local baz = {
 local foobar = {
 	"string"
 } -- trailing comment
+
+
+local tbl = Roact.createElement({
+	-- comment
+	a = test
+	-- comment
+})

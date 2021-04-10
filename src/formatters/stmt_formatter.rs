@@ -2,7 +2,7 @@ use crate::formatters::{
     trivia_formatter::{
         strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
     },
-    trivia_util, CodeFormatter,
+    trivia_util, CodeFormatter, EndTokenType,
 };
 use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
 use full_moon::node::Node;
@@ -33,7 +33,7 @@ impl CodeFormatter {
         let do_token = crate::fmt_symbol!(self, do_block.do_token(), "do")
             .update_trivia(leading_trivia.to_owned(), trailing_trivia.to_owned());
         let end_token = self
-            .format_end_token(do_block.end_token())
+            .format_end_token(do_block.end_token(), EndTokenType::BlockEnd)
             .update_trivia(leading_trivia, trailing_trivia);
 
         do_block
@@ -79,7 +79,7 @@ impl CodeFormatter {
             .update_trailing_trivia(FormatTriviaType::Append(names_comments_buf));
 
         let end_token = self
-            .format_end_token(generic_for.end_token())
+            .format_end_token(generic_for.end_token(), EndTokenType::BlockEnd)
             .update_trivia(
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::Append(vec![self.create_newline_trivia()]), // trailing_trivia was emptied when it was appended to names_comment_buf
@@ -218,10 +218,12 @@ impl CodeFormatter {
                 },
                 FormatTriviaType::Append(trailing_trivia.to_owned()),
             );
-        let formatted_end_token = self.format_end_token(if_node.end_token()).update_trivia(
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
+        let formatted_end_token = self
+            .format_end_token(if_node.end_token(), EndTokenType::BlockEnd)
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia.to_owned()),
+                FormatTriviaType::Append(trailing_trivia.to_owned()),
+            );
 
         let formatted_else_if = match if_node.else_if() {
             Some(else_if) => Some(
@@ -292,7 +294,7 @@ impl CodeFormatter {
         let do_token = crate::fmt_symbol!(self, numeric_for.do_token(), " do")
             .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
         let end_token = self
-            .format_end_token(numeric_for.end_token())
+            .format_end_token(numeric_for.end_token(), EndTokenType::BlockEnd)
             .update_trivia(
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::Append(trailing_trivia),
@@ -417,7 +419,7 @@ impl CodeFormatter {
             .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
 
         let end_token = self
-            .format_end_token(while_block.end_token())
+            .format_end_token(while_block.end_token(), EndTokenType::BlockEnd)
             .update_trivia(
                 FormatTriviaType::Append(leading_trivia),
                 FormatTriviaType::Append(trailing_trivia),

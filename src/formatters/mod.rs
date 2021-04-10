@@ -46,6 +46,17 @@ enum FormatTokenType {
     TrailingTrivia,
 }
 
+/// The type of end token being used to format
+#[derive(Debug)]
+pub enum EndTokenType {
+    /// A token ending a block, i.e. the `end` symbol
+    /// This means that the indent block it was closing is at the current block indent level
+    BlockEnd,
+    /// A closing brace at the end of a table.
+    /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
+    ClosingBrace,
+}
+
 /// Returns the relevant line ending string from the [`LineEndings`] enum
 fn get_line_ending_character(line_endings: &LineEndings) -> String {
     match line_endings {
@@ -626,12 +637,19 @@ impl CodeFormatter {
     pub fn format_end_token<'ast>(
         &self,
         current_token: &TokenReference<'ast>,
+        token_type: EndTokenType,
     ) -> TokenReference<'ast> {
         // Indent any comments leading a token, as these comments are technically part of the function body block
         let formatted_leading_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_token.leading_trivia().collect(),
             crate::formatters::FormatTokenType::LeadingTrivia,
-            Some(1),
+            match token_type {
+                // The indent level we are currently at is one less (as we are at the end token, not the indented block).
+                // The comment is present inside the indented block
+                EndTokenType::BlockEnd => Some(1),
+                // We are closing an "indent range". The leading comments will still be inside this range, so we don't need an extra indent level
+                EndTokenType::ClosingBrace => None,
+            },
         );
         let formatted_trailing_trivia: Vec<Token<'ast>> = self.load_token_trivia(
             current_token.trailing_trivia().collect(),
