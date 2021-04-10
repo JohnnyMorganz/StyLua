@@ -705,15 +705,6 @@ impl CodeFormatter {
         }
     }
 
-    // Checks whether the input Parameter contains comments
-    fn parameter_contains_comments(parameter: &Parameter<'_>) -> bool {
-        match parameter {
-            Parameter::Ellipse(token) | Parameter::Name(token) => {
-                trivia_util::token_contains_comments(token)
-            }
-            other => panic!("unknown node {:?}", other),
-        }
-    }
     /// Utilises the FunctionBody iterator to format a list of Parameter nodes
     /// Returns the formatted Punctuated sequence of parameters, and a bool indicating whether the parameters were forced onto multiple lines
     fn format_parameters<'ast>(
@@ -721,10 +712,24 @@ impl CodeFormatter {
         function_body: &FunctionBody<'ast>,
     ) -> (Punctuated<'ast, Parameter<'ast>>, bool) {
         let mut formatted_parameters = Punctuated::new();
+        #[cfg(feature = "luau")]
+        let mut type_specifiers = function_body.type_specifiers();
+
         let force_multiline = function_body.parameters().pairs().any(|pair| {
-            pair.punctuation()
+            let contains_comments = pair
+                .punctuation()
                 .map_or(false, |punc| trivia_util::token_contains_comments(punc))
-                || CodeFormatter::parameter_contains_comments(pair.value())
+                || trivia_util::contains_comments(pair.value());
+            #[cfg(feature = "luau")]
+            let type_specifier_comments = type_specifiers
+                .next()
+                .flatten()
+                .map_or(false, |type_specifier| {
+                    trivia_util::contains_comments(type_specifier)
+                });
+            #[cfg(not(feature = "luau"))]
+            let type_specifier_comments = false;
+            contains_comments || type_specifier_comments
         });
 
         let parameters_iterator = function_body.parameters().pairs();
