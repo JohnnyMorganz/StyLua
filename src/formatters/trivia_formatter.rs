@@ -44,6 +44,128 @@ impl CodeFormatter {
         }
     }
 
+    /// Pushes a BinOp onto a newline, and indent its depending on indent_level. Moves trailing comments to before the BinOp.
+    /// Does not hang if the BinOp is a relational operator.
+    fn hang_binop<'ast>(&self, binop: BinOp<'ast>, indent_level: usize) -> BinOp<'ast> {
+        match binop {
+            // Don't add the trivia if the binop is binding
+            BinOp::GreaterThan(_)
+            | BinOp::GreaterThanEqual(_)
+            | BinOp::LessThan(_)
+            | BinOp::LessThanEqual(_)
+            | BinOp::TildeEqual(_)
+            | BinOp::TwoEqual(_) => {
+                // Return original binop
+                binop
+            }
+            _ => {
+                // If there are any comments trailing the BinOp, we need to move them to before the BinOp
+                let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
+                // Create a newline just before the BinOp, and preserve the indentation
+                trailing_comments.push(self.create_newline_trivia());
+                trailing_comments.push(self.create_plain_indent_trivia(indent_level));
+
+                binop.update_trivia(
+                    FormatTriviaType::Replace(trailing_comments),
+                    FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
+                )
+            }
+        }
+    }
+
+    /// Finds the length of the expression which matches the precedence level of the provided binop
+    fn binop_expression_length<'ast>(
+        &self,
+        expression: &Expression<'ast>,
+        top_binop: &BinOp<'ast>,
+    ) -> usize {
+        match expression {
+            Expression::BinaryOperator { lhs, binop, rhs } => {
+                if binop.precedence() == top_binop.precedence()
+                    && binop.is_right_associative() == top_binop.is_right_associative()
+                {
+                    if binop.is_right_associative() {
+                        self.binop_expression_length(rhs, top_binop)
+                            + binop.to_string().len()
+                            + lhs.to_string().len()
+                    } else {
+                        self.binop_expression_length(lhs, top_binop)
+                            + binop.to_string().len()
+                            + rhs.to_string().len()
+                    }
+                } else {
+                    0
+                }
+            }
+            _ => expression.to_string().len(),
+        }
+    }
+
+    fn hang_binop_expression<'ast>(
+        &self,
+        expression: Expression<'ast>,
+        top_binop: BinOp<'ast>,
+        indent_level: usize,
+    ) -> Expression<'ast> {
+        let full_expression = expression.to_owned();
+
+        match expression {
+            Expression::BinaryOperator { lhs, binop, rhs } => {
+                // Keep grouping together all operators with the same precedence level as the main BinOp
+                // They should also have the same associativity
+                let same_op_level = binop.precedence() == top_binop.precedence()
+                    && binop.is_right_associative() == top_binop.is_right_associative();
+                let is_right_associative = top_binop.is_right_associative();
+
+                let indent_level = if same_op_level {
+                    indent_level
+                } else {
+                    indent_level + 1
+                };
+
+                let side_to_use = if is_right_associative {
+                    rhs.to_owned()
+                } else {
+                    lhs.to_owned()
+                };
+
+                let over_column_width = indent_level * self.config.indent_width
+                    + self.binop_expression_length(&full_expression, &binop)
+                    > self.config.column_width;
+
+                let (binop, updated_side) = if same_op_level || over_column_width {
+                    let op = self.hang_binop(binop.to_owned(), indent_level);
+
+                    let side = self.hang_binop_expression(
+                        *side_to_use,
+                        if same_op_level { top_binop } else { binop },
+                        indent_level,
+                    );
+
+                    (op, side)
+                } else {
+                    (binop, *side_to_use)
+                };
+
+                if is_right_associative {
+                    Expression::BinaryOperator {
+                        lhs,
+                        binop,
+                        rhs: Box::new(updated_side),
+                    }
+                } else {
+                    Expression::BinaryOperator {
+                        lhs: Box::new(updated_side),
+                        binop,
+                        rhs,
+                    }
+                }
+            }
+            // Base case: no more binary operators - just return to normal splitting
+            _ => self.expression_split_binop(expression, indent_level),
+        }
+    }
+
     fn expression_split_binop<'ast>(
         &self,
         expression: Expression<'ast>,
@@ -97,36 +219,13 @@ impl CodeFormatter {
                 expression: Box::new(self.expression_split_binop(*expression, indent_increase)),
             },
             Expression::BinaryOperator { lhs, binop, rhs } => {
-                let binop = match binop {
-                    // Don't add the trivia if the binop is binding
-                    BinOp::GreaterThan(_)
-                    | BinOp::GreaterThanEqual(_)
-                    | BinOp::LessThan(_)
-                    | BinOp::LessThanEqual(_)
-                    | BinOp::TildeEqual(_)
-                    | BinOp::TwoEqual(_) => {
-                        // Return original binop
-                        binop
-                    }
-                    _ => {
-                        // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-                        let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
-                        // Create a newline just before the BinOp, and preserve the indentation
-                        trailing_comments.push(self.create_newline_trivia());
-                        trailing_comments.push(self.create_plain_indent_trivia(indent_increase));
+                let lhs =
+                    Box::new(self.hang_binop_expression(*lhs, binop.to_owned(), indent_increase));
+                let rhs =
+                    Box::new(self.hang_binop_expression(*rhs, binop.to_owned(), indent_increase));
+                let binop = self.hang_binop(binop, indent_increase);
 
-                        binop.update_trivia(
-                            FormatTriviaType::Replace(trailing_comments),
-                            FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
-                        )
-                    }
-                };
-
-                Expression::BinaryOperator {
-                    lhs: Box::new(self.expression_split_binop(*lhs, indent_increase)),
-                    binop,
-                    rhs: Box::new(self.expression_split_binop(*rhs, indent_increase)),
-                }
+                Expression::BinaryOperator { lhs, binop, rhs }
             }
 
             Expression::Value {
