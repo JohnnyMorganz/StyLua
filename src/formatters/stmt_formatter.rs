@@ -6,7 +6,7 @@ use crate::formatters::{
 };
 use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
 use full_moon::node::Node;
-use full_moon::tokenizer::TokenReference;
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
 macro_rules! fmt_stmt {
     ($fmter:expr, $value:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
@@ -119,15 +119,16 @@ impl CodeFormatter {
             > self.config.column_width
             || trivia_util::expression_contains_inline_comments(else_if_node.condition());
 
-        let (else_if_text, then_text) = if require_multiline_expression {
-            ("elseif\n", "then")
+        let (else_if_trailing_trivia, then_text) = if require_multiline_expression {
+            (vec![self.create_newline_trivia()], "then")
         } else {
-            ("elseif ", " then")
+            (vec![Token::new(TokenType::spaces(1))], " then")
         };
 
-        let formatted_else_if_token =
-            crate::fmt_symbol!(self, else_if_node.else_if_token(), else_if_text)
-                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+        let formatted_else_if_token = self
+            .format_end_token(else_if_node.else_if_token(), EndTokenType::BlockEnd)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()))
+            .update_trailing_trivia(FormatTriviaType::Append(else_if_trailing_trivia));
 
         let formatted_condition = if require_multiline_expression {
             // Add the expression list into the indent range, as it will be indented by one
@@ -237,10 +238,12 @@ impl CodeFormatter {
 
         let formatted_else_token = match if_node.else_token() {
             Some(token) => {
-                let formatted = crate::fmt_symbol!(self, token, "else").update_trivia(
-                    FormatTriviaType::Append(leading_trivia),
-                    FormatTriviaType::Append(trailing_trivia),
-                );
+                let formatted = self
+                    .format_end_token(token, EndTokenType::BlockEnd)
+                    .update_trivia(
+                        FormatTriviaType::Append(leading_trivia),
+                        FormatTriviaType::Append(trailing_trivia),
+                    );
                 Some(formatted)
             }
             None => None,

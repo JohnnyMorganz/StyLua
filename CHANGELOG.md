@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed trailing comments after semicolons at the end of last statements being lost when formatting
 - Fixed function parameters collapsing when there is a comments at the end of function parameters, where the last parameter has a type specifier
 - Fixed comments at the end of tables being indented one extra level
+- Fixed trailing comments within if-elseif-else blocks not being correctly indented.
 
 ## [0.6.0] - 2021-03-27
 ### Added
