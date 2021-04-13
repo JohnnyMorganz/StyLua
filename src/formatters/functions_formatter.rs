@@ -600,12 +600,12 @@ impl CodeFormatter {
 
         let num_suffixes = function_call.suffixes().count();
         let should_hang = {
-            // Hang if there is atleast more than one suffix
-            // Out of these suffixes, there needs to be atleast one method call
-            if function_call.suffixes().count() > 1
-                && function_call
-                    .suffixes()
-                    .any(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
+            // Hang if there is atleast more than one method call suffix
+            if function_call
+                .suffixes()
+                .filter(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
+                .count()
+                > 1
             {
                 // Check if either a), we are surpassing the column width
                 // Or b), one of the INTERNAL (not the last call) method call's arguments is multiline [function/table]
@@ -618,7 +618,6 @@ impl CodeFormatter {
                 let preliminary_function_call = FunctionCall::new(formatted_prefix.to_owned())
                     .with_suffixes(formatted_suffixes);
 
-                // TODO: we should format before this check
                 let outcome = if strip_trivia(&preliminary_function_call)
                     .to_string()
                     .lines()
@@ -629,18 +628,23 @@ impl CodeFormatter {
                 {
                     true
                 } else {
-                    let mut suffixes = preliminary_function_call.suffixes().peekable();
+                    let suffixes = preliminary_function_call.suffixes().enumerate();
                     let mut contains_newline = false;
-                    while let Some(suffix) = suffixes.next() {
-                        // There is still a suffix present after this
-                        if let Some(_) = suffixes.peek() {
+                    for (idx, suffix) in suffixes {
+                        // Check to see whether this suffix is an "internal" method call suffix
+                        // i.e. we are not at the last MethodCall suffix
+                        let mut remaining_suffixes =
+                            preliminary_function_call.suffixes().skip(idx + 1);
+                        if remaining_suffixes
+                            .any(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
+                        {
                             if matches!(suffix, Suffix::Call(Call::MethodCall(_)))
                                 && strip_trivia(suffix).to_string().contains('\n')
                             {
                                 contains_newline = true;
                                 break;
                             }
-                        };
+                        }
                     }
 
                     contains_newline
