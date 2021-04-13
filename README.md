@@ -15,7 +15,7 @@ or would like to format Lua 5.2 code, please see [installing from crates.io](#fr
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.6.0" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.7.0" }
 ```
 
 ### Using the VSCode Extension
