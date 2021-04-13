@@ -418,8 +418,14 @@ impl CodeFormatter {
             self.format_expression(while_block.condition())
         };
 
-        let do_token = crate::fmt_symbol!(self, while_block.do_token(), do_text)
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
+        let do_token = crate::fmt_symbol!(self, while_block.do_token(), do_text).update_trivia(
+            if require_multiline_expression {
+                FormatTriviaType::Append(leading_trivia.to_owned())
+            } else {
+                FormatTriviaType::NoChange
+            },
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
 
         let end_token = self
             .format_end_token(while_block.end_token(), EndTokenType::BlockEnd)
