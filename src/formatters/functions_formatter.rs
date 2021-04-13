@@ -488,9 +488,62 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
-        let (formatted_parameters, multiline_params) = self.format_parameters(function_body);
+        // Check if the parameters should be placed across multiple lines
+        let multiline_params = {
+            #[cfg(feature = "luau")]
+            let mut type_specifiers = function_body.type_specifiers();
 
-        let mut parameters_parentheses = match multiline_params {
+            // Check whether they contain comments
+            let contains_comments = function_body.parameters().pairs().any(|pair| {
+                let contains_comments = pair
+                    .punctuation()
+                    .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                    || trivia_util::contains_comments(pair.value());
+                #[cfg(feature = "luau")]
+                let type_specifier_comments = type_specifiers
+                    .next()
+                    .flatten()
+                    .map_or(false, |type_specifier| {
+                        trivia_util::contains_comments(type_specifier)
+                    });
+                #[cfg(not(feature = "luau"))]
+                let type_specifier_comments = false;
+                contains_comments || type_specifier_comments
+            });
+
+            contains_comments || {
+                // Check the length of the parameters. We need to format them first onto a single line to check if required
+                let types_length: usize;
+
+                #[cfg(feature = "luau")]
+                {
+                    types_length = function_body
+                        .type_specifiers()
+                        .chain(std::iter::once(function_body.return_type())) // Include optional return type
+                        .map(|x| {
+                            x.map_or(0, |specifier| {
+                                self.format_type_specifier(specifier).to_string().len()
+                            })
+                        })
+                        .sum::<usize>()
+                }
+                #[cfg(not(feature = "luau"))]
+                {
+                    types_length = 0
+                }
+
+                let line_str = self
+                    .format_singleline_parameters(function_body)
+                    .to_string()
+                    .len()
+                + 2 // Account for the parentheses around the parameters
+                + types_length; // Account for type specifiers and return type
+
+                line_str > self.config.column_width
+            }
+        };
+
+        let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
             true => {
                 // TODO: This is similar to multiline in FunctionArgs, can we resolve?
                 // Format start and end brace properly with correct trivia
@@ -520,16 +573,22 @@ impl CodeFormatter {
                     vec![],
                 );
 
-                ContainedSpan::new(
-                    start_parens_token,
-                    self.format_symbol(end_parens, &end_parens_token),
+                (
+                    self.format_multiline_parameters(function_body),
+                    ContainedSpan::new(
+                        start_parens_token,
+                        self.format_symbol(end_parens, &end_parens_token),
+                    ),
                 )
             }
-            false => self.format_contained_span(function_body.parameters_parentheses()),
+            false => (
+                self.format_singleline_parameters(function_body),
+                self.format_contained_span(function_body.parameters_parentheses()),
+            ),
         };
 
         #[cfg(feature = "luau")]
-        let mut type_specifiers;
+        let type_specifiers;
         #[cfg(feature = "luau")]
         let return_type;
         #[allow(unused_mut)]
@@ -537,14 +596,10 @@ impl CodeFormatter {
 
         #[cfg(feature = "luau")]
         {
-            type_specifiers = Vec::new();
-            for specifier in function_body.type_specifiers() {
-                let formatted_specifier = match specifier {
-                    Some(specifier) => Some(self.format_type_specifier(specifier)),
-                    None => None,
-                };
-                type_specifiers.push(formatted_specifier);
-            }
+            type_specifiers = function_body
+                .type_specifiers()
+                .map(|x| x.map(|specifier| self.format_type_specifier(specifier)))
+                .collect();
 
             return_type = match function_body.return_type() {
                 Some(return_type) => Some({
@@ -792,60 +847,50 @@ impl CodeFormatter {
         }
     }
 
-    /// Utilises the FunctionBody iterator to format a list of Parameter nodes
-    /// Returns the formatted Punctuated sequence of parameters, and a bool indicating whether the parameters were forced onto multiple lines
-    fn format_parameters<'ast>(
+    /// Formats the [`Parameters`] in the provided [`FunctionBody`] onto a single line.
+    fn format_singleline_parameters<'ast>(
         &mut self,
         function_body: &FunctionBody<'ast>,
-    ) -> (Punctuated<'ast, Parameter<'ast>>, bool) {
+    ) -> Punctuated<'ast, Parameter<'ast>> {
         let mut formatted_parameters = Punctuated::new();
-        #[cfg(feature = "luau")]
-        let mut type_specifiers = function_body.type_specifiers();
 
-        let force_multiline = function_body.parameters().pairs().any(|pair| {
-            let contains_comments = pair
-                .punctuation()
-                .map_or(false, |punc| trivia_util::token_contains_comments(punc))
-                || trivia_util::contains_comments(pair.value());
-            #[cfg(feature = "luau")]
-            let type_specifier_comments = type_specifiers
-                .next()
-                .flatten()
-                .map_or(false, |type_specifier| {
-                    trivia_util::contains_comments(type_specifier)
-                });
-            #[cfg(not(feature = "luau"))]
-            let type_specifier_comments = false;
-            contains_comments || type_specifier_comments
-        });
-
-        let parameters_iterator = function_body.parameters().pairs();
-        for pair in parameters_iterator {
-            let formatted_parameter = {
-                let param = self.format_parameter(pair.value());
-                if force_multiline {
-                    param.update_leading_trivia(FormatTriviaType::Append(vec![
-                        self.create_indent_trivia(Some(1))
-                    ]))
-                } else {
-                    param
-                }
-            };
-
-            let formatted_punctuation = match pair.punctuation() {
-                Some(punctuation) => Some(match force_multiline {
-                    // Create a comma with no trailing space, and instead we will add a newline character
-                    true => crate::fmt_symbol!(self, punctuation, ",").update_trailing_trivia(
-                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
-                    ),
-                    // Create a comma, with a trailing space at the end
-                    false => crate::fmt_symbol!(self, punctuation, ", "),
-                }),
+        for pair in function_body.parameters().pairs() {
+            let parameter = self.format_parameter(pair.value());
+            let punctuation = match pair.punctuation() {
+                Some(punctuation) => Some(crate::fmt_symbol!(self, punctuation, ", ")),
                 None => None,
             };
 
-            formatted_parameters.push(Pair::new(formatted_parameter, formatted_punctuation));
+            formatted_parameters.push(Pair::new(parameter, punctuation));
         }
-        (formatted_parameters, force_multiline)
+
+        formatted_parameters
+    }
+
+    /// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
+    fn format_multiline_parameters<'ast>(
+        &mut self,
+        function_body: &FunctionBody<'ast>,
+    ) -> Punctuated<'ast, Parameter<'ast>> {
+        let mut formatted_parameters = Punctuated::new();
+
+        for pair in function_body.parameters().pairs() {
+            let parameter = self.format_parameter(pair.value()).update_leading_trivia(
+                FormatTriviaType::Append(vec![self.create_indent_trivia(Some(1))]),
+            );
+
+            let punctuation = match pair.punctuation() {
+                Some(punctuation) => Some(
+                    crate::fmt_symbol!(self, punctuation, ",").update_trailing_trivia(
+                        FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                    ),
+                ),
+                None => None,
+            };
+
+            formatted_parameters.push(Pair::new(parameter, punctuation))
+        }
+
+        formatted_parameters
     }
 }

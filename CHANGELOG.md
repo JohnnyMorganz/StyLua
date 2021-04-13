@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added hanging for chained function calls. See [#109](https://github.com/JohnnyMorganz/StyLua/issues/109)
+- Long function definitions (normally with parameters containing types and a return type) will now be split across multiple lines if they surpass the column limit
 
 ### Changed
 - Further improvements to the way binary expressions are hung on new lines
