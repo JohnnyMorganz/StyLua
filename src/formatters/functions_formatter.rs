@@ -652,35 +652,30 @@ impl CodeFormatter {
             }
         };
 
-        if should_hang {
-            let mut iter = function_call.suffixes();
-            let (first, last) = (
-                iter.next().expect("no suffix"),
-                iter.last().expect("only one suffix"),
-            );
-            let range = (
-                first
-                    .start_position()
-                    .expect("no suffix start position")
-                    .bytes(),
-                last.end_position().expect("no suffix end position").bytes(),
-            );
-
-            self.add_indent_range(range);
-        }
-
         let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
         for suffix in function_call.suffixes() {
+            // Calculate the range before formatting, otherwise it will reset to (0,0)
+            let range = (
+                suffix.start_position().expect("no suffix position").bytes(),
+                suffix.end_position().expect("no suffix position").bytes(),
+            );
+
+            let indent_level = if should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+            {
+                // Calculate the indentation level for the suffix, before we add the range into the indent ranges
+                let indent_level = self.get_range_indent_increase(range).unwrap_or(0);
+                self.add_indent_range(range);
+                Some(indent_level + 1)
+            } else {
+                None
+            };
+
             let mut suffix = self.format_suffix(suffix);
 
-            if should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))) {
-                let additional_indent_level = self.get_range_indent_increase((
-                    suffix.start_position().expect("no suffix position").bytes(),
-                    suffix.end_position().expect("no suffix position").bytes(),
-                ));
+            if indent_level.is_some() {
                 suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_newline_trivia(),
-                    self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1)),
+                    self.create_indent_trivia(indent_level),
                 ]));
             }
 

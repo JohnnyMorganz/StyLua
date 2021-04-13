@@ -34,3 +34,21 @@ this
 	:andThen()
 	:andThen()
 
+function foo()
+	Promise.new()
+		:andThen(callThis)
+		:andThen(function()
+			print("test")
+		end)
+		:andThen()
+end
+
+local x = {
+	promise = Promise.new()
+		:andThen(callThis)
+		:andThen(function()
+			print("test")
+		end)
+		:andThen(),
+}
+

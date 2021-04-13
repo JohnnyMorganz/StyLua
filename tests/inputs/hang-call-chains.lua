@@ -16,9 +16,9 @@ this:andThen(callThis):andThen({
 }).X.Y.Z:andThen():andThen()
 
 function foo()
-	Promise.new():andThen(callThis):andThen(function() end):andThen()
+	Promise.new():andThen(callThis):andThen(function() print("test") end):andThen()
 end
 
 local x = {
-	promise = Promise.new():andThen(callThis):andThen(function() end):andThen()
+	promise = Promise.new():andThen(callThis):andThen(function() print("test") end):andThen()
 }
