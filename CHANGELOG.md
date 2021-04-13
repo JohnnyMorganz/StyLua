@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added hanging for chained function calls. See [#109](https://github.com/JohnnyMorganz/StyLua/issues/109)
+
 ### Changed
 - Further improvements to the way binary expressions are hung on new lines
 
