@@ -511,36 +511,39 @@ impl CodeFormatter {
                 contains_comments || type_specifier_comments
             });
 
-            contains_comments || {
-                // Check the length of the parameters. We need to format them first onto a single line to check if required
-                let types_length: usize;
+            contains_comments
+                || {
+                    // Check the length of the parameters. We need to format them first onto a single line to check if required
+                    let types_length: usize;
 
-                #[cfg(feature = "luau")]
-                {
-                    types_length = function_body
-                        .type_specifiers()
-                        .chain(std::iter::once(function_body.return_type())) // Include optional return type
-                        .map(|x| {
-                            x.map_or(0, |specifier| {
-                                self.format_type_specifier(specifier).to_string().len()
+                    #[cfg(feature = "luau")]
+                    {
+                        types_length = function_body
+                            .type_specifiers()
+                            .chain(std::iter::once(function_body.return_type())) // Include optional return type
+                            .map(|x| {
+                                x.map_or(0, |specifier| {
+                                    self.format_type_specifier(specifier).to_string().len()
+                                })
                             })
-                        })
-                        .sum::<usize>()
-                }
-                #[cfg(not(feature = "luau"))]
-                {
-                    types_length = 0
-                }
+                            .sum::<usize>()
+                    }
+                    #[cfg(not(feature = "luau"))]
+                    {
+                        types_length = 0
+                    }
 
-                let line_str = self
+                    let line_length = self
                     .format_singleline_parameters(function_body)
                     .to_string()
                     .len()
-                + 2 // Account for the parentheses around the parameters
-                + types_length; // Account for type specifiers and return type
+                        + 2 // Account for the parentheses around the parameters
+                        + types_length // Account for type specifiers and return type
+                        + self.indent_level * self.config.indent_width
+                        + self.get_range_indent_increase(CodeFormatter::get_token_range(function_body.parameters_parentheses().tokens().0)).unwrap_or(0) * self.config.indent_width;
 
-                line_str > self.config.column_width
-            }
+                    line_length > self.config.column_width
+                }
         };
 
         let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
