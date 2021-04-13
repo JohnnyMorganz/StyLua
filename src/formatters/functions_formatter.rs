@@ -875,8 +875,18 @@ impl CodeFormatter {
         let mut formatted_parameters = Punctuated::new();
 
         for pair in function_body.parameters().pairs() {
+            // Calculate indent increase
+            let additional_indent_level = self.get_range_indent_increase(match pair.value() {
+                Parameter::Name(token) | Parameter::Ellipse(token) => {
+                    CodeFormatter::get_token_range(token)
+                }
+                other => panic!("unknown node {:?}", other),
+            });
+
             let parameter = self.format_parameter(pair.value()).update_leading_trivia(
-                FormatTriviaType::Append(vec![self.create_indent_trivia(Some(1))]),
+                FormatTriviaType::Append(vec![
+                    self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
+                ]),
             );
 
             let punctuation = match pair.punctuation() {

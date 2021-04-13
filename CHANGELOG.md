@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed comments at the end of tables being indented one extra level
 - Fixed trailing comments within if-elseif-else blocks not being correctly indented.
 - Fixed `do` in a `while ... do` statement not correctly indented when the condition spans multiple lines
+- Fixed multiline parameters for a function definition inside of an indent block (e.g. a table) not being correctly indented
 
 ## [0.6.0] - 2021-03-27
 ### Added
