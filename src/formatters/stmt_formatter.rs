@@ -4,7 +4,9 @@ use crate::formatters::{
     },
     trivia_util, CodeFormatter, EndTokenType,
 };
-use full_moon::ast::{Do, ElseIf, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, While};
+use full_moon::ast::{
+    Do, ElseIf, Expression, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, Value, While,
+};
 use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
@@ -18,6 +20,19 @@ macro_rules! fmt_stmt {
             other => panic!("unknown node {:?}", other),
         }
     };
+}
+
+/// Removes parentheses around a condition, if present.
+/// Called only for condition expression (if ... then, while ... do, etc.)
+fn remove_condition_parentheses(expression: Expression) -> Expression {
+    match expression.to_owned() {
+        Expression::Parentheses { expression, .. } => *expression,
+        Expression::Value { value, .. } => match *value {
+            Value::ParenthesesExpression(expression) => remove_condition_parentheses(expression),
+            _ => expression,
+        },
+        _ => expression,
+    }
 }
 
 impl CodeFormatter {
@@ -107,9 +122,12 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
+        // Remove parentheses around the condition
+        let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
+
         // Determine if we need to hang the condition
         let last_line_str_len = (strip_trivia(else_if_node.else_if_token()).to_string()
-            + &strip_trivia(else_if_node.condition()).to_string()
+            + &strip_trivia(&condition).to_string()
             + &strip_trivia(else_if_node.then_token()).to_string())
             .len()
             + 2; // Include space before and after condition
@@ -117,7 +135,7 @@ impl CodeFormatter {
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
         let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
-            || trivia_util::expression_contains_inline_comments(else_if_node.condition());
+            || trivia_util::expression_contains_inline_comments(&condition);
 
         let (else_if_trailing_trivia, then_text) = if require_multiline_expression {
             (vec![self.create_newline_trivia()], "then")
@@ -138,13 +156,13 @@ impl CodeFormatter {
                 .expect("no range for else if condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            let condition = self.format_expression(else_if_node.condition());
+            let condition = self.format_expression(&condition);
             self.hang_expression(condition, additional_indent_level, None)
                 .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]))
         } else {
-            self.format_expression(else_if_node.condition())
+            self.format_expression(&condition)
         };
 
         let formatted_then_token = crate::fmt_symbol!(self, else_if_node.then_token(), then_text)
@@ -172,9 +190,12 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
+        // Remove parentheses around the condition
+        let condition = remove_condition_parentheses(if_node.condition().to_owned());
+
         // Determine if we need to hang the condition
         let last_line_str_len = (strip_trivia(if_node.if_token()).to_string()
-            + &strip_trivia(if_node.condition()).to_string()
+            + &strip_trivia(&condition).to_string()
             + &strip_trivia(if_node.then_token()).to_string())
             .len()
             + 2; // Include space before and after condition
@@ -182,7 +203,7 @@ impl CodeFormatter {
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
         let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
-            || trivia_util::expression_contains_inline_comments(if_node.condition());
+            || trivia_util::expression_contains_inline_comments(&condition);
 
         let (if_text, then_text) = if require_multiline_expression {
             ("if\n", "then")
@@ -201,13 +222,13 @@ impl CodeFormatter {
                 .expect("no range for if condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            let condition = self.format_expression(if_node.condition());
+            let condition = self.format_expression(&condition);
             self.hang_expression(condition, additional_indent_level, None)
                 .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]))
         } else {
-            self.format_expression(if_node.condition())
+            self.format_expression(&condition)
         };
 
         let formatted_then_token = crate::fmt_symbol!(self, if_node.then_token(), then_text)
@@ -337,9 +358,12 @@ impl CodeFormatter {
         let until_token = crate::fmt_symbol!(self, repeat_block.until_token(), "until ")
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
+        // Remove parentheses around the condition
+        let condition = remove_condition_parentheses(repeat_block.until().to_owned());
+
         // Determine if we need to hang the condition
         let last_line_str_len = (strip_trivia(repeat_block.until_token()).to_string()
-            + &strip_trivia(repeat_block.until()).to_string())
+            + &strip_trivia(&condition).to_string())
             .len()
             + 1; // Include space before until and condition
 
@@ -347,9 +371,9 @@ impl CodeFormatter {
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
         let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
-            || trivia_util::expression_contains_inline_comments(repeat_block.until());
+            || trivia_util::expression_contains_inline_comments(&condition);
 
-        let formatted_until = self.format_expression(repeat_block.until());
+        let formatted_until = self.format_expression(&condition);
         let formatted_until_trivia = match require_multiline_expression {
             true => {
                 // Add the expression list into the indent range, as it will be indented by one
@@ -380,9 +404,12 @@ impl CodeFormatter {
         let leading_trivia = vec![self.create_indent_trivia(additional_indent_level)];
         let trailing_trivia = vec![self.create_newline_trivia()];
 
+        // Remove parentheses around the condition
+        let condition = remove_condition_parentheses(while_block.condition().to_owned());
+
         // Determine if we need to hang the condition
         let last_line_str = strip_trivia(while_block.while_token()).to_string()
-            + &strip_trivia(while_block.condition()).to_string()
+            + &strip_trivia(&condition).to_string()
             + &strip_trivia(while_block.do_token()).to_string();
         let last_line_str_len = last_line_str.len() + 2; // Include space before and after condition
 
@@ -390,7 +417,7 @@ impl CodeFormatter {
             (self.indent_level + additional_indent_level.unwrap_or(0)) * self.config.indent_width;
         let require_multiline_expression = (indent_spacing + last_line_str_len)
             > self.config.column_width
-            || trivia_util::expression_contains_inline_comments(while_block.condition());
+            || trivia_util::expression_contains_inline_comments(&condition);
 
         let (while_text, do_text) = if require_multiline_expression {
             ("while\n", "do")
@@ -409,13 +436,13 @@ impl CodeFormatter {
                 .expect("no range for while condition");
             self.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-            let condition = self.format_expression(while_block.condition());
+            let condition = self.format_expression(&condition);
             self.hang_expression(condition, additional_indent_level, None)
                 .update_leading_trivia(FormatTriviaType::Append(vec![
                     self.create_indent_trivia(Some(additional_indent_level.unwrap_or(0) + 1))
                 ]))
         } else {
-            self.format_expression(while_block.condition())
+            self.format_expression(&condition)
         };
 
         let do_token = crate::fmt_symbol!(self, while_block.do_token(), do_text).update_trivia(
