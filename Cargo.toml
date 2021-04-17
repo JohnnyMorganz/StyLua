@@ -9,6 +9,7 @@ readme = "README.md"
 categories = ["command-line-utilities", "development-tools"]
 keywords = ["cli", "utility", "lua", "lua51", "formatter"]
 edition = "2018"
+exclude = ["stylua-vscode/**", "tests/**", "benches/**"]
 
 [lib]
 name = "stylua_lib"
