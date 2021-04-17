@@ -59,18 +59,9 @@ impl CodeFormatter {
             Expression::BinaryOperator { .. } => false,
             Expression::Value { value, .. } => {
                 match &**value {
-                    // Internal expression is a function definition
-                    // This may be something like (function() ... end)(); removing the parentheses will break the code
-                    Value::Function(_) => false,
                     // Internal expression is a function call
                     // We could potentially be culling values, so we should not remove parentheses
                     Value::FunctionCall(_) => false,
-                    // Table wrapped around in parentheses
-                    // This could potentially be for a method call on the table, e.g. ({}):foo()
-                    Value::TableConstructor(_) => false,
-                    // String literal inside of parentheses
-                    // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
-                    Value::String(_) => false,
                     Value::Symbol(token_ref) => {
                         match token_ref.token_type() {
                             // If we have an ellipse inside of parentheses, we may also be culling values
