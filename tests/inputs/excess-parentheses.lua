@@ -23,3 +23,10 @@ print(((x())))
 path = (function()
   return true
 end)()
+
+-- The following should have parentheses removed, but if they were a Prefix, they wouldn't be removed
+local x = ({})
+local y = ("hello")
+local z = (function()
+	return true
+end)
