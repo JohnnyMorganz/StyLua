@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Changed
+
+- Improved internals to use VSCode file system
+
 ## [1.1.1] - 2021-02-25
 
 ### Fixed
@@ -26,6 +30,7 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 ## [1.0.3] - 2021-01-27
 
 ### Fixes
+
 - Extension now handles bigger files better, previously it could cut them off
 - StyLua binary can now be placed in a folder with spaces in it
 

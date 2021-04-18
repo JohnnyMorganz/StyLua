@@ -3,7 +3,6 @@
 import * as vscode from "vscode";
 import * as os from "os";
 import * as fs from "fs";
-import * as path from "path";
 import * as unzip from "unzipper";
 import fetch from "node-fetch";
 import { executeStylua } from "./stylua";
@@ -53,14 +52,15 @@ const getAssetFilenamePattern = () => {
   }
 };
 
-export const fileExists = (path: string): Promise<boolean> => {
-  return fs.promises
-    .stat(path)
-    .then(() => true)
-    .catch((error) => error.code !== "ENOENT");
+export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
+  const uri = path instanceof vscode.Uri ? path : vscode.Uri.file(path);
+  return vscode.workspace.fs.stat(uri).then(
+    () => true,
+    () => false
+  );
 };
 
-const downloadStylua = async (outputDirectory: string) => {
+const downloadStylua = async (outputDirectory: vscode.Uri) => {
   const latestRelease = await getLatestRelease();
   const assetFilename = getAssetFilenamePattern();
   const outputFilename = getDownloadOutputFilename();
@@ -68,7 +68,7 @@ const downloadStylua = async (outputDirectory: string) => {
   for (const asset of latestRelease.assets) {
     if (assetFilename.test(asset.name)) {
       const file = fs.createWriteStream(
-        path.join(outputDirectory, outputFilename),
+        vscode.Uri.joinPath(outputDirectory, outputFilename).fsPath,
         {
           mode: 0o755,
         }
@@ -103,7 +103,7 @@ export const downloadStyLuaVisual = (outputDirectory: vscode.Uri) => {
       location: vscode.ProgressLocation.Notification,
       title: "Downloading StyLua",
     },
-    () => downloadStylua(outputDirectory.fsPath)
+    () => downloadStylua(outputDirectory)
   );
 };
 
@@ -117,12 +117,12 @@ export const getStyluaPath = async (
     return settingPath;
   }
 
-  const downloadPath = path.join(
-    storageDirectory.fsPath,
+  const downloadPath = vscode.Uri.joinPath(
+    storageDirectory,
     getDownloadOutputFilename()
   );
   if (await fileExists(downloadPath)) {
-    return downloadPath;
+    return downloadPath.fsPath;
   }
 };
 
@@ -132,7 +132,7 @@ export const ensureStyluaExists = async (
   const path = await getStyluaPath(storageDirectory);
 
   if (path === undefined) {
-    await fs.promises.mkdir(storageDirectory.fsPath, { recursive: true });
+    await vscode.workspace.fs.createDirectory(storageDirectory);
     await downloadStyLuaVisual(storageDirectory);
     return await getStyluaPath(storageDirectory);
   } else {
@@ -141,8 +141,15 @@ export const ensureStyluaExists = async (
     }
 
     const version = (await executeStylua(path, ["--version"]))?.trim();
-    const release = await getLatestRelease(); 
-    if (version !== `stylua ${release.tag_name.startsWith('v') ? release.tag_name.substr(1) : release.tag_name}`) {
+    const release = await getLatestRelease();
+    if (
+      version !==
+      `stylua ${
+        release.tag_name.startsWith("v")
+          ? release.tag_name.substr(1)
+          : release.tag_name
+      }`
+    ) {
       openUpdatePrompt(storageDirectory, release);
     }
 

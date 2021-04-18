@@ -1,21 +1,28 @@
+import * as vscode from "vscode";
 import { spawn, exec } from "child_process";
 import ignore from "ignore";
-import * as path from "path";
-import * as fs from "fs";
 import { fileExists } from "./util";
 
 export async function checkIgnored(
-  fileName?: string,
-  cwd?: string
+  filePath?: vscode.Uri,
+  currentWorkspace?: vscode.Uri
 ): Promise<boolean> {
-  if (!fileName || !cwd) {
+  if (!filePath || !currentWorkspace) {
     return false;
   }
 
-  const ignoreFilePath = path.join(cwd, ".styluaignore");
+  const ignoreFilePath = vscode.Uri.joinPath(currentWorkspace, ".styluaignore");
   if (await fileExists(ignoreFilePath)) {
-    const ig = ignore().add(fs.readFileSync(ignoreFilePath).toString());
-    return ig.ignores(path.relative(cwd, fileName));
+    try {
+      const contents = await vscode.workspace.fs.readFile(ignoreFilePath);
+      const ig = ignore().add(contents.toString());
+      return ig.ignores(vscode.workspace.asRelativePath(filePath));
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Could not read StyLua ignore file at ${ignoreFilePath}:\n${err}`
+      );
+      return false;
+    }
   }
 
   return false;
@@ -26,16 +33,16 @@ export function formatCode(
   code: string,
   cwd?: string,
   startPos?: number,
-  endPos?: number,
+  endPos?: number
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const args = [];
     if (startPos) {
-      args.push('--range-start');
+      args.push("--range-start");
       args.push(startPos.toString());
     }
     if (endPos) {
-      args.push('--range-end');
+      args.push("--range-end");
       args.push(endPos.toString());
     }
     args.push("-");
@@ -43,7 +50,7 @@ export function formatCode(
     const child = spawn(`${path}`, args, {
       cwd,
     });
-    let output = '';
+    let output = "";
     child.stdout.on("data", (data) => {
       output += data.toString();
     });
