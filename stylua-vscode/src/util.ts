@@ -19,12 +19,7 @@ type GithubRelease = {
 };
 
 const getLatestRelease = async (): Promise<GithubRelease> => {
-  return await fetch(RELEASES_URL)
-    .then((r) => r.json())
-    .catch((err) => {
-      vscode.window.showErrorMessage(`Error fetching StyLua releases\n${err}`);
-      throw new Error(err);
-    });
+  return await fetch(RELEASES_URL).then((r) => r.json());
 };
 
 const getDownloadOutputFilename = () => {
@@ -140,17 +135,23 @@ export const ensureStyluaExists = async (
       throw new Error("Path given for StyLua does not exist");
     }
 
-    const version = (await executeStylua(path, ["--version"]))?.trim();
-    const release = await getLatestRelease();
-    if (
-      version !==
-      `stylua ${
-        release.tag_name.startsWith("v")
-          ? release.tag_name.substr(1)
-          : release.tag_name
-      }`
-    ) {
-      openUpdatePrompt(storageDirectory, release);
+    try {
+      const version = (await executeStylua(path, ["--version"]))?.trim();
+      const release = await getLatestRelease();
+      if (
+        version !==
+        `stylua ${
+          release.tag_name.startsWith("v")
+            ? release.tag_name.substr(1)
+            : release.tag_name
+        }`
+      ) {
+        openUpdatePrompt(storageDirectory, release);
+      }
+    } catch (err) {
+      vscode.window.showWarningMessage(
+        `Error checking latest StyLua version, falling back to installed version:\n${err}`
+      );
     }
 
     return path;

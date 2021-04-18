@@ -15,6 +15,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 - Improved internals to use VSCode file system
 
+### Fixed
+
+- Fixed issue where running the extension with bad/no internet caused it to fail whilst retrieving releases. We will now warn instead, and fall back to the installed version.
+
 ## [1.1.1] - 2021-02-25
 
 ### Fixed
