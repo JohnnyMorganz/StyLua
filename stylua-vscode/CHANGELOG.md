@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.2.0] - 2021-04-19
+
 ### Changed
 
 - Improved internals to use VSCode file system
