@@ -495,17 +495,13 @@ where
     F: Fn(&mut Context, &T) -> T,
 {
     let mut format_multiline = false;
-    let mut pairs = old.pairs();
 
-    while let Some(pair) = pairs.next() {
-        match pair {
-            Pair::Punctuated(_, punctuation) => {
-                if trivia_util::contains_comments(punctuation) {
-                    format_multiline = true;
-                    break;
-                }
+    for pair in old.pairs() {
+        if let Pair::Punctuated(_, punctuation) = pair {
+            if trivia_util::contains_comments(punctuation) {
+                format_multiline = true;
+                break;
             }
-            _ => (),
         }
     }
 
