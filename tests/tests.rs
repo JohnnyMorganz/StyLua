@@ -21,3 +21,12 @@ fn test_luau() {
         insta::assert_snapshot!(format(&contents));
     })
 }
+
+#[test]
+#[cfg(feature = "lua52")]
+fn test_lua52() {
+    insta::glob!("inputs-lua52/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format(&contents));
+    })
+}
