@@ -1,13 +1,18 @@
 use crate::{
     check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
-    formatters::util::token_range,
+    formatters::{
+        trivia::{FormatTriviaType, UpdateTrailingTrivia},
+        trivia_util,
+        util::token_range,
+    },
     QuoteStyle,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 use std::borrow::Cow;
 
@@ -397,6 +402,118 @@ where
     }
 
     (formatted, comments_buffer)
+}
+
+/// Formats a Punctuated sequence with correct punctuated values.
+/// This function assumes that there are no comments present which would lead to a syntax error if the list was collapsed.
+/// If not sure about comments, [`try_format_punctuated`] should be used instead.
+pub fn format_punctuated_<'a, T, F>(
+    ctx: &mut Context,
+    old: &Punctuated<'a, T>,
+    value_formatter: F,
+) -> Punctuated<'a, T>
+where
+    F: Fn(&mut Context, &T) -> T,
+{
+    let mut list: Punctuated<T> = Punctuated::new();
+
+    for pair in old.pairs() {
+        match pair {
+            Pair::Punctuated(value, punctuation) => {
+                let value = value_formatter(ctx, value);
+                let punctuation = fmt_symbol!(ctx, punctuation, ", ");
+
+                list.push(Pair::new(value, Some(punctuation)));
+            }
+            Pair::End(value) => {
+                let value = value_formatter(ctx, value);
+                list.push(Pair::new(value, None));
+            }
+        }
+    }
+
+    list
+}
+
+// Formats a Punctuated sequence across multiple lines. Also indents each item by hang_level
+pub fn format_punctuated_multiline<'a, T, F>(
+    ctx: &mut Context,
+    old: &Punctuated<'a, T>,
+    value_formatter: F,
+    hang_level: Option<usize>,
+) -> Punctuated<'a, T>
+where
+    T: Node<'a>,
+    F: Fn(&mut Context, &T) -> T,
+{
+    let mut formatted: Punctuated<T> = Punctuated::new();
+    let mut is_first = true; // Don't want to add an indent range for the first item, as it will be inline
+
+    for pair in old.pairs() {
+        // Indent the pair (unless its the first item)
+        if is_first {
+            is_first = false;
+        } else {
+            ctx.add_indent_range((
+                pair.start_position()
+                    .expect("no pair start position")
+                    .bytes(),
+                pair.end_position().expect("no pair end position").bytes(),
+            ))
+        }
+
+        match pair {
+            Pair::Punctuated(value, punctuation) => {
+                let value = value_formatter(ctx, value);
+                let punctuation = fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
+                    FormatTriviaType::Append(vec![
+                        create_newline_trivia(ctx),
+                        create_indent_trivia(ctx, hang_level),
+                    ]),
+                );
+                formatted.push(Pair::new(value, Some(punctuation)));
+            }
+            Pair::End(value) => {
+                let formatted_value = value_formatter(ctx, value);
+                formatted.push(Pair::new(formatted_value, None));
+            }
+        }
+    }
+
+    formatted
+}
+
+/// Formats a Punctuated sequence, depending on its layout. If the sequence contains comments, we will format
+/// across multiple lines
+pub fn try_format_punctuated<'a, T, F>(
+    ctx: &mut Context,
+    old: &Punctuated<'a, T>,
+    value_formatter: F,
+) -> Punctuated<'a, T>
+where
+    T: Node<'a>,
+    F: Fn(&mut Context, &T) -> T,
+{
+    let mut format_multiline = false;
+    let mut pairs = old.pairs();
+
+    while let Some(pair) = pairs.next() {
+        match pair {
+            Pair::Punctuated(_, punctuation) => {
+                if trivia_util::contains_comments(punctuation) {
+                    format_multiline = true;
+                    break;
+                }
+            }
+            _ => (),
+        }
+    }
+
+    if format_multiline {
+        format_punctuated_multiline(ctx, old, value_formatter, Some(1))
+    } else {
+        format_punctuated_(ctx, old, value_formatter)
+    }
 }
 
 pub fn format_contained_span<'ast>(
