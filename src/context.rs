@@ -46,6 +46,12 @@ impl Context {
         (self.indent_level() - 1) * self.config().indent_width
     }
 
+    /// Returns the size of the current indent level in characters, including any additional indent level
+    pub fn indent_width_additional(&self, additional_indent_level: Option<usize>) -> usize {
+        (self.indent_level() - 1 + additional_indent_level.unwrap_or(0))
+            * self.config().indent_width
+    }
+
     /// Increase the level of indention at the current position of the formatter
     pub fn increment_indent_level(&mut self) {
         self.indent_level += 1;
