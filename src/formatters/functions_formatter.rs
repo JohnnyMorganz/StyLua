@@ -695,13 +695,11 @@ impl CodeFormatter {
                             preliminary_function_call.suffixes().skip(idx + 1);
                         if remaining_suffixes
                             .any(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
+                            && matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+                            && strip_trivia(suffix).to_string().contains('\n')
                         {
-                            if matches!(suffix, Suffix::Call(Call::MethodCall(_)))
-                                && strip_trivia(suffix).to_string().contains('\n')
-                            {
-                                contains_newline = true;
-                                break;
-                            }
+                            contains_newline = true;
+                            break;
                         }
                     }
 
