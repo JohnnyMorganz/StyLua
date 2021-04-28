@@ -154,7 +154,10 @@ fn line_ending_character(line_endings: LineEndings) -> String {
 }
 
 /// Creates a new Token containing whitespace for indents, used for trivia
-pub fn create_indent_trivia(ctx: &Context, additional_indent_level: Option<usize>) -> Token {
+pub fn create_indent_trivia<'ast>(
+    ctx: &Context,
+    additional_indent_level: Option<usize>,
+) -> Token<'ast> {
     // ctx.indent_level starts at 1
     let indent_level = match additional_indent_level {
         Some(level) => ctx.indent_level() - 1 + level,
@@ -170,7 +173,7 @@ pub fn create_indent_trivia(ctx: &Context, additional_indent_level: Option<usize
 }
 
 /// Creates a new Token containing new line whitespace, used for trivia
-pub fn create_newline_trivia(ctx: &Context) -> Token {
+pub fn create_newline_trivia<'ast>(ctx: &Context) -> Token<'ast> {
     Token::new(TokenType::Whitespace {
         characters: Cow::Owned(line_ending_character(ctx.config().line_endings)),
     })
