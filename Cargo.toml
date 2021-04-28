@@ -1,6 +1,6 @@
 [package]
 name = "stylua"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
@@ -9,7 +9,7 @@ readme = "README.md"
 categories = ["command-line-utilities", "development-tools"]
 keywords = ["cli", "utility", "lua", "lua51", "formatter"]
 edition = "2018"
-exclude = ["stylua-vscode/**", "tests/**", "benches/**"]
+exclude = ["stylua-vscode/**", "tests/**"]
 
 [lib]
 name = "stylua_lib"
