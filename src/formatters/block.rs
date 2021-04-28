@@ -4,7 +4,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, hang_expression_no_trailing_newline},
-        general::{format_punctuated, format_symbol},
+        general::{format_symbol, try_format_punctuated},
         stmt::format_stmt,
         trivia::{
             strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
@@ -35,17 +35,22 @@ pub fn format_return<'ast>(ctx: &mut Context, return_node: &Return<'ast>) -> Ret
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(return_node.token()));
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
-    let mut trailing_trivia = vec![create_newline_trivia(ctx)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let (mut formatted_returns, mut comments_buf) =
-        format_punctuated(ctx, return_node.returns(), format_expression);
-
-    let formatted_token = if formatted_returns.is_empty() {
-        fmt_symbol!(ctx, return_node.token(), "return").update_trivia(
+    if return_node.returns().is_empty() {
+        let token = fmt_symbol!(ctx, return_node.token(), "return").update_trivia(
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
-        )
+        );
+
+        Return::new().with_token(token)
     } else {
+        let token = fmt_symbol!(ctx, return_node.token(), "return ")
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+
+        let mut formatted_returns =
+            try_format_punctuated(ctx, return_node.returns(), format_expression);
+
         // Determine if we need to hang the condition
         let first_line_str = strip_trivia(return_node.token()).to_string()
             + " "
@@ -80,21 +85,16 @@ pub fn format_return<'ast>(ctx: &mut Context, return_node: &Return<'ast>) -> Ret
             formatted_returns = new_list
         }
 
-        // Append any trailing trivia (incl. comments buffer) to the end of the last return
-        comments_buf.append(&mut trailing_trivia);
         if let Some(pair) = formatted_returns.pop() {
             let pair = pair
-                .map(|expr| expr.update_trailing_trivia(FormatTriviaType::Append(comments_buf)));
+                .map(|expr| expr.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)));
             formatted_returns.push(pair);
         }
 
-        fmt_symbol!(ctx, return_node.token(), "return ")
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia))
-    };
-
-    Return::new()
-        .with_token(formatted_token)
-        .with_returns(formatted_returns)
+        Return::new()
+            .with_token(token)
+            .with_returns(formatted_returns)
+    }
 }
 
 pub fn format_last_stmt<'ast>(ctx: &mut Context, last_stmt: &LastStmt<'ast>) -> LastStmt<'ast> {

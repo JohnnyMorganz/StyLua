@@ -4,8 +4,8 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_punctuated, format_symbol, format_token_reference,
-            format_token_reference_mut,
+            format_contained_span, format_symbol, format_token_reference,
+            format_token_reference_mut, try_format_punctuated,
         },
         table::{create_table_braces, TableType},
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
@@ -80,7 +80,7 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             return_type,
         } => {
             let parentheses = format_contained_span(ctx, parentheses);
-            let arguments = format_punctuated(ctx, arguments, format_type_info).0;
+            let arguments = try_format_punctuated(ctx, arguments, format_type_info);
             let arrow = fmt_symbol!(ctx, arrow, " -> ");
             let return_type = Box::new(format_type_info(ctx, return_type));
             TypeInfo::Callback {
@@ -98,7 +98,7 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
         } => {
             let base = format_token_reference(ctx, base);
             let arrows = format_contained_span(ctx, arrows);
-            let generics = format_punctuated(ctx, generics, format_type_info).0;
+            let generics = try_format_punctuated(ctx, generics, format_type_info);
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -257,7 +257,7 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
 
         TypeInfo::Tuple { parentheses, types } => {
             let parentheses = format_contained_span(ctx, parentheses);
-            let types = format_punctuated(ctx, types, format_type_info).0;
+            let types = try_format_punctuated(ctx, types, format_type_info);
 
             TypeInfo::Tuple { parentheses, types }
         }
@@ -290,7 +290,7 @@ pub fn format_indexed_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base);
             let arrows = format_contained_span(ctx, arrows);
-            let generics = format_punctuated(ctx, generics, format_type_info).0;
+            let generics = try_format_punctuated(ctx, generics, format_type_info);
             IndexedTypeInfo::Generic {
                 base,
                 arrows,
@@ -404,12 +404,11 @@ pub fn format_generic_declaration<'ast>(
     generic_declaration: &GenericDeclaration<'ast>,
 ) -> GenericDeclaration<'ast> {
     let arrows = format_contained_span(ctx, generic_declaration.arrows());
-    let generics = format_punctuated(
+    let generics = try_format_punctuated(
         ctx,
         generic_declaration.generics(),
         format_token_reference_mut,
-    )
-    .0;
+    );
 
     generic_declaration
         .to_owned()

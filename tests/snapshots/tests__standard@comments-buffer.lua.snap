@@ -33,5 +33,6 @@ then
 	print(code)
 end
 
-return foo, bar -- a comment
+return foo, -- a comment
+	bar
 

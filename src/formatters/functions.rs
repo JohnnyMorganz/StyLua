@@ -383,39 +383,15 @@ pub fn format_function_args<'ast>(
                     arguments: formatted_arguments,
                 }
             } else {
+                // We don't need to worry about comments here, as if there were comments present, we would have
+                // multiline function args
+
                 let parentheses = format_contained_span(ctx, &parentheses);
-
-                // If theres comments connected to the opening parentheses, we need to move them
-                let (start_parens, end_parens) = parentheses.tokens();
-                let mut parens_comments: Vec<Token<'ast>> = start_parens
-                    .trailing_trivia()
-                    .filter(|token| {
-                        token.token_kind() == TokenKind::SingleLineComment
-                            || token.token_kind() == TokenKind::MultiLineComment
-                    })
-                    .map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .flatten()
-                    .collect();
-
-                // Format the arguments, and move any comments within them
-                let (formatted_arguments, mut comments_buffer) =
-                    format_punctuated(ctx, arguments, format_expression);
-
-                parens_comments.append(&mut comments_buffer);
-
-                // Recreate parentheses with the comments removed from the opening parens
-                // and all the comments placed at the end of the closing parens
-                let parentheses = ContainedSpan::new(
-                    start_parens.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-                    end_parens.update_trailing_trivia(FormatTriviaType::Append(parens_comments)),
-                );
+                let arguments = format_punctuated(ctx, arguments, format_expression);
 
                 FunctionArgs::Parentheses {
                     parentheses,
-                    arguments: formatted_arguments,
+                    arguments,
                 }
             }
         }

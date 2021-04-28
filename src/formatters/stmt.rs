@@ -14,7 +14,7 @@ use crate::{
         expression::{format_expression, hang_expression},
         functions::{format_function_call, format_function_declaration, format_local_function},
         general::{
-            format_end_token, format_punctuated, format_token_reference,
+            format_end_token, format_punctuated_buffer, format_token_reference,
             format_token_reference_mut, EndTokenType,
         },
         trivia::{
@@ -88,7 +88,7 @@ pub fn format_generic_for<'ast>(
     let for_token = fmt_symbol!(ctx, generic_for.for_token(), "for ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
     let (formatted_names, mut names_comments_buf) =
-        format_punctuated(ctx, generic_for.names(), format_token_reference_mut);
+        format_punctuated_buffer(ctx, generic_for.names(), format_token_reference_mut);
 
     #[cfg(feature = "luau")]
     let type_specifiers = generic_for
@@ -101,7 +101,7 @@ pub fn format_generic_for<'ast>(
 
     let in_token = fmt_symbol!(ctx, generic_for.in_token(), " in ");
     let (formatted_expr_list, mut expr_comments_buf) =
-        format_punctuated(ctx, generic_for.expressions(), format_expression);
+        format_punctuated_buffer(ctx, generic_for.expressions(), format_expression);
 
     // Create comments buffer and append to end of do token
     names_comments_buf.append(&mut expr_comments_buf);
