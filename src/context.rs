@@ -164,6 +164,12 @@ pub fn create_indent_trivia<'ast>(
         None => ctx.indent_level() - 1,
     };
 
+    create_plain_indent_trivia(ctx, indent_level)
+}
+
+/// Creates indent trivia without including `ctx.indent_level()`.
+/// You should pass the exact amount of indent you require to this function
+pub fn create_plain_indent_trivia<'ast>(ctx: &Context, indent_level: usize) -> Token<'ast> {
     match ctx.config().indent_type {
         IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
         IndentType::Spaces => {
