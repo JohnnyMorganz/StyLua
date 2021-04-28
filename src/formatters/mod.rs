@@ -10,18 +10,18 @@ use full_moon::visitors::VisitorMut;
 use std::borrow::Cow;
 use std::collections::HashSet;
 
-pub mod assignment_formatter;
-pub mod block_formatter;
+pub mod assignment;
+pub mod block;
 #[macro_use]
-pub mod expression_formatter;
-pub mod functions_formatter;
+pub mod expression;
+pub mod functions;
 #[cfg(feature = "lua52")]
-pub mod lua52_formatter;
+pub mod lua52;
 #[cfg(feature = "luau")]
-pub mod luau_formatter;
-pub mod stmt_formatter;
-pub mod table_formatter;
-pub mod trivia_formatter;
+pub mod luau;
+pub mod stmt;
+pub mod table;
+pub mod trivia;
 pub mod trivia_util;
 
 /// A Range, from a Start Position to an End Position
