@@ -14,7 +14,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, format_var, hang_expression_no_trailing_newline},
-        general::{format_punctuated, format_token_reference_mut},
+        general::{format_punctuated_, format_token_reference_mut, try_format_punctuated},
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
         util::token_range,
@@ -133,10 +133,9 @@ pub fn format_assignment<'ast>(
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let (var_list, var_comments_buf) = format_punctuated(ctx, assignment.variables(), format_var);
-
-    let (mut expr_list, expr_comments_buf) =
-        format_punctuated(ctx, assignment.expressions(), format_expression);
+    let var_list = try_format_punctuated(ctx, assignment.variables(), format_var);
+    // Don't need to worry about comments in expr_list, as it will automatically force multiline
+    let mut expr_list = format_punctuated_(ctx, assignment.expressions(), format_expression);
 
     let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ");
 
@@ -174,14 +173,7 @@ pub fn format_assignment<'ast>(
     }
 
     // Add any trailing trivia to the end of the expression list
-    let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(
-        var_comments_buf
-            .iter()
-            .chain(expr_comments_buf.iter())
-            .chain(trailing_trivia.iter())
-            .map(|x| x.to_owned())
-            .collect(),
-    ));
+    let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     // Add on leading trivia
     let formatted_var_list =
@@ -208,8 +200,7 @@ pub fn format_local_assignment<'ast>(
     let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
-    let (mut name_list, name_list_comments_buf) =
-        format_punctuated(ctx, assignment.names(), format_token_reference_mut);
+    let mut name_list = try_format_punctuated(ctx, assignment.names(), format_token_reference_mut);
 
     #[cfg(feature = "luau")]
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
@@ -233,16 +224,10 @@ pub fn format_local_assignment<'ast>(
             new_line_added = true;
         }
 
-        // Add any trailing trivia to the end of the expression list
-        name_list =
-            name_list.update_trailing_trivia(FormatTriviaType::Append(match new_line_added {
-                true => name_list_comments_buf,
-                false => name_list_comments_buf
-                    .iter()
-                    .chain(trailing_trivia.iter())
-                    .map(|x| x.to_owned())
-                    .collect(),
-            }));
+        // Add any trailing trivia to the end of the expression list, if we haven't already added a newline
+        if !new_line_added {
+            name_list = name_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
+        }
 
         let local_assignment = LocalAssignment::new(name_list)
             .with_local_token(local_token)
@@ -254,9 +239,8 @@ pub fn format_local_assignment<'ast>(
         local_assignment
     } else {
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ");
-        // Format the expression normally
-        let (mut expr_list, expr_comments_buf) =
-            format_punctuated(ctx, assignment.expressions(), format_expression);
+        // Format the expression normally - if there are any comments, it will automatically force multiline
+        let mut expr_list = format_punctuated_(ctx, assignment.expressions(), format_expression);
         // Create our preliminary new assignment
         let local_assignment = LocalAssignment::new(name_list)
             .with_local_token(local_token)
@@ -281,8 +265,7 @@ pub fn format_local_assignment<'ast>(
                 pair.punctuation()
                     .map_or(false, |punc| trivia_util::token_contains_comments(punc))
                     || trivia_util::expression_contains_inline_comments(pair.value())
-            })
-            || !name_list_comments_buf.is_empty();
+            });
 
         // Format the expression depending on whether we are multline or not
         if require_multiline_expression {
@@ -298,14 +281,7 @@ pub fn format_local_assignment<'ast>(
         }
 
         // Add any trailing trivia to the end of the expression list
-        let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(
-            name_list_comments_buf
-                .iter()
-                .chain(expr_comments_buf.iter())
-                .chain(trailing_trivia.iter())
-                .map(|x| x.to_owned())
-                .collect(),
-        ));
+        let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
         // Update our local assignment
         local_assignment
