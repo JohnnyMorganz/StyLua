@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Parentheses around conditions are now removed, as they are not required in Lua. `if (foo and (not bar or baz)) then ... end` turns to `if foo and (not bar or baz) then ... end`
+
+### Changed
+- Changed the heursitics for when parentheses are removed around expressions. Parentheses will now never be removed around a function call prefix (e.g. `("hello"):len()`)
 
 ## [0.7.1] - 2021-04-19
 ### Fixed
