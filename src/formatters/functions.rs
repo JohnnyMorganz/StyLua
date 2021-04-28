@@ -18,7 +18,7 @@ use crate::{
             format_expression, format_prefix, format_suffix, hang_expression_no_trailing_newline,
         },
         general::{
-            format_contained_span, format_end_token, format_punctuated_, format_symbol,
+            format_contained_span, format_end_token, format_punctuated, format_symbol,
             format_token_reference, EndTokenType,
         },
         trivia::{
@@ -387,7 +387,7 @@ pub fn format_function_args<'ast>(
                 // multiline function args
 
                 let parentheses = format_contained_span(ctx, &parentheses);
-                let arguments = format_punctuated_(ctx, arguments, format_expression);
+                let arguments = format_punctuated(ctx, arguments, format_expression);
 
                 FunctionArgs::Parentheses {
                     parentheses,

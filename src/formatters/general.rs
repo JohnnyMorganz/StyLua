@@ -372,7 +372,7 @@ pub fn format_punctuation<'ast>(
 
 // Formats a Punctuated sequence with correct punctuated values
 // If there are any comments in between tied to the punctuation, they will be removed and stored in a returned comments buffer
-pub fn format_punctuated<'a, T, F>(
+pub fn format_punctuated_buffer<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
     value_formatter: F,
@@ -407,7 +407,7 @@ where
 /// Formats a Punctuated sequence with correct punctuated values.
 /// This function assumes that there are no comments present which would lead to a syntax error if the list was collapsed.
 /// If not sure about comments, [`try_format_punctuated`] should be used instead.
-pub fn format_punctuated_<'a, T, F>(
+pub fn format_punctuated<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
     value_formatter: F,
@@ -512,7 +512,7 @@ where
     if format_multiline {
         format_punctuated_multiline(ctx, old, value_formatter, Some(1))
     } else {
-        format_punctuated_(ctx, old, value_formatter)
+        format_punctuated(ctx, old, value_formatter)
     }
 }
 

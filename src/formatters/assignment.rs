@@ -14,7 +14,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, format_var, hang_expression_no_trailing_newline},
-        general::{format_punctuated_, format_token_reference_mut, try_format_punctuated},
+        general::{format_punctuated, format_token_reference_mut, try_format_punctuated},
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
         util::token_range,
@@ -135,7 +135,7 @@ pub fn format_assignment<'ast>(
 
     let var_list = try_format_punctuated(ctx, assignment.variables(), format_var);
     // Don't need to worry about comments in expr_list, as it will automatically force multiline
-    let mut expr_list = format_punctuated_(ctx, assignment.expressions(), format_expression);
+    let mut expr_list = format_punctuated(ctx, assignment.expressions(), format_expression);
 
     let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ");
 
@@ -240,7 +240,7 @@ pub fn format_local_assignment<'ast>(
     } else {
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ");
         // Format the expression normally - if there are any comments, it will automatically force multiline
-        let mut expr_list = format_punctuated_(ctx, assignment.expressions(), format_expression);
+        let mut expr_list = format_punctuated(ctx, assignment.expressions(), format_expression);
         // Create our preliminary new assignment
         let local_assignment = LocalAssignment::new(name_list)
             .with_local_token(local_token)
