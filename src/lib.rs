@@ -2,6 +2,8 @@ use anyhow::{format_err, Result};
 use full_moon::visitors::VisitorMut;
 use serde::Deserialize;
 
+#[macro_use]
+mod context;
 mod formatters;
 
 /// The type of indents to use when indenting
