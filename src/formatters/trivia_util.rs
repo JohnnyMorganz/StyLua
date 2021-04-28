@@ -1,4 +1,4 @@
-use crate::formatters::trivia_formatter::{FormatTriviaType, UpdateTrailingTrivia};
+use crate::formatters::trivia::{FormatTriviaType, UpdateTrailingTrivia};
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
