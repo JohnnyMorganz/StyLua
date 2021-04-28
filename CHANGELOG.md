@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed the heursitics for when parentheses are removed around expressions. Parentheses will now never be removed around a function call prefix (e.g. `("hello"):len()`)
+- Changed formatting for comma-separated lists. Previously, we would buffer the comments to the end of the list, but now we keep the comments next to where they original were.
 
 ## [0.7.1] - 2021-04-19
 ### Fixed
