@@ -8,6 +8,8 @@ use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::boxed::Box;
 
+#[cfg(feature = "luau")]
+use crate::formatters::luau::format_type_specifier;
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,

@@ -11,8 +11,7 @@ type Dictionary<T> = { [string]: T }
 local RunService = game:GetService("RunService")
 
 local INVALID_DUMP_VERSION = "API dump is an invalid version `%i` (expected version 1)"
-local MODULE_NOT_READY_MESSAGE =
-	"API has not been fetched yet; try using API.isReady() before calling API functions"
+local MODULE_NOT_READY_MESSAGE = "API has not been fetched yet; try using API.isReady() before calling API functions"
 local CLASS_NOT_REAL_MESSAGE = "Class `%s` is not a valid Roblox class"
 local API_REQUEST_FAILED_MESSAGE = "Could not get API dump: `%s`. Retrying in %i seconds."
 

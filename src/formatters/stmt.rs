@@ -1,3 +1,10 @@
+#[cfg(feature = "lua52")]
+use crate::formatters::lua52::{format_goto, format_label};
+#[cfg(feature = "luau")]
+use crate::formatters::luau::{
+    format_compound_assignment, format_exported_type_declaration, format_type_declaration_stmt,
+    format_type_specifier,
+};
 use crate::{
     check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
@@ -87,7 +94,7 @@ pub fn format_generic_for<'ast>(
     let type_specifiers = generic_for
         .type_specifiers()
         .map(|x| match x {
-            Some(type_specifier) => Some(self.format_type_specifier(type_specifier)),
+            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
             None => None,
         })
         .collect();
@@ -303,7 +310,7 @@ pub fn format_numeric_for<'ast>(
 
     #[cfg(feature = "luau")]
     let type_specifier = match numeric_for.type_specifier() {
-        Some(type_specifier) => Some(self.format_type_specifier(type_specifier)),
+        Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
         None => None,
     };
 

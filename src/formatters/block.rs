@@ -112,7 +112,8 @@ pub fn format_last_stmt<'ast>(ctx: &mut Context, last_stmt: &LastStmt<'ast>) -> 
         LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node)),
         #[cfg(feature = "luau")]
         LastStmt::Continue(token) => LastStmt::Continue(
-            self.format_symbol(
+            format_symbol(
+                ctx,
                 token,
                 &TokenReference::new(
                     vec![],
@@ -123,10 +124,11 @@ pub fn format_last_stmt<'ast>(ctx: &mut Context, last_stmt: &LastStmt<'ast>) -> 
                 ),
             )
             .update_trivia(
-                FormatTriviaType::Append(vec![self.create_indent_trivia(
-                    self.get_range_indent_increase(CodeFormatter::get_token_range(token)),
+                FormatTriviaType::Append(vec![create_indent_trivia(
+                    ctx,
+                    ctx.get_range_indent_increase(token_range(token)),
                 )]),
-                FormatTriviaType::Append(vec![self.create_newline_trivia()]),
+                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
             ),
         ),
 
@@ -312,8 +314,7 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
         }
         #[cfg(feature = "luau")]
         LastStmt::Continue(token) => {
-            let leading_trivia =
-                CodeFormatter::trivia_remove_leading_newlines(token.leading_trivia().collect());
+            let leading_trivia = trivia_remove_leading_newlines(token.leading_trivia().collect());
             LastStmt::Continue(
                 token.update_leading_trivia(FormatTriviaType::Replace(leading_trivia)),
             )
