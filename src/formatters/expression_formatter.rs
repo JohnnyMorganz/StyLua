@@ -16,6 +16,14 @@ macro_rules! fmt_op {
     };
 }
 
+enum ExpressionContext {
+    /// Standard expression, with no special context
+    Standard,
+    /// The expression originates from a [`Prefix`] node. The special context here is that the expression will
+    /// always be wrapped in parentheses.
+    Prefix,
+}
+
 impl CodeFormatter {
     pub fn format_binop<'ast>(&self, binop: &BinOp<'ast>) -> BinOp<'ast> {
         fmt_op!(self, BinOp, binop, {
@@ -51,18 +59,9 @@ impl CodeFormatter {
             Expression::BinaryOperator { .. } => false,
             Expression::Value { value, .. } => {
                 match &**value {
-                    // Internal expression is a function definition
-                    // This may be something like (function() ... end)(); removing the parentheses will break the code
-                    Value::Function(_) => false,
                     // Internal expression is a function call
                     // We could potentially be culling values, so we should not remove parentheses
                     Value::FunctionCall(_) => false,
-                    // Table wrapped around in parentheses
-                    // This could potentially be for a method call on the table, e.g. ({}):foo()
-                    Value::TableConstructor(_) => false,
-                    // String literal inside of parentheses
-                    // This could be a part of a function call e.g. ("hello"):sub(), so we must leave the parentheses
-                    Value::String(_) => false,
                     Value::Symbol(token_ref) => {
                         match token_ref.token_type() {
                             // If we have an ellipse inside of parentheses, we may also be culling values
@@ -80,6 +79,15 @@ impl CodeFormatter {
 
     /// Formats an Expression node
     pub fn format_expression<'ast>(&mut self, expression: &Expression<'ast>) -> Expression<'ast> {
+        self.format_expression_(expression, ExpressionContext::Standard)
+    }
+
+    /// Internal expression formatter, with access to expression context
+    fn format_expression_<'ast>(
+        &mut self,
+        expression: &Expression<'ast>,
+        context: ExpressionContext,
+    ) -> Expression<'ast> {
         match expression {
             Expression::Value {
                 value,
@@ -98,12 +106,11 @@ impl CodeFormatter {
                 expression,
             } => {
                 // Examine whether the internal expression requires parentheses
-                // If it doesn't, `use_internal_expression` will return a Some(), containing the external expression
-                // We should then return that external expression
-                // Otherwise, it will return None, and therefore we should use the original expression
+                // If not, just format and return the internal expression. Otherwise, format the parentheses
                 let use_internal_expression = CodeFormatter::check_excess_parentheses(expression);
 
-                if use_internal_expression {
+                // If the context is for a prefix, we should always keep the parentheses, as they are always required
+                if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
                     self.format_expression(expression)
                 } else {
                     Expression::Parentheses {
@@ -148,7 +155,7 @@ impl CodeFormatter {
     pub fn format_prefix<'ast>(&mut self, prefix: &Prefix<'ast>) -> Prefix<'ast> {
         match prefix {
             Prefix::Expression(expression) => {
-                Prefix::Expression(self.format_expression(expression))
+                Prefix::Expression(self.format_expression_(expression, ExpressionContext::Prefix))
             }
             Prefix::Name(token_reference) => {
                 Prefix::Name(self.format_token_reference(token_reference))
