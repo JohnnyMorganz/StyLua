@@ -178,11 +178,18 @@ pub fn format_assignment<'ast>(
                 // Format the expressions normally. If still over budget, hang at the equals token
                 expr_list =
                     format_punctuated(ctx, assignment.expressions(), shape, format_expression);
-                let shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
+                let formatting_shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
 
-                if shape.over_budget() {
-                    equal_token = hang_equal_token(ctx, equal_token, additional_indent_level)
-                    // TODO: reformat expr_list with indent
+                if formatting_shape.over_budget() {
+                    equal_token = hang_equal_token(ctx, equal_token, additional_indent_level);
+                    // Add the expression list into the indent range, as it will be indented by one
+                    let expr_range = assignment
+                        .expressions()
+                        .range()
+                        .expect("no range for assignment punctuated list");
+                    ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+                    expr_list =
+                        format_punctuated(ctx, assignment.expressions(), shape, format_expression);
                 }
             }
         }
@@ -370,11 +377,23 @@ pub fn format_local_assignment<'ast>(
                     // Format the expressions normally. If still over budget, hang at the equals token
                     expr_list =
                         format_punctuated(ctx, assignment.expressions(), shape, format_expression);
-                    let shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
+                    let formatting_shape =
+                        shape.take_first_line(&strip_trailing_trivia(&expr_list));
 
-                    if shape.over_budget() {
-                        equal_token = hang_equal_token(ctx, equal_token, additional_indent_level)
-                        // TODO: reformat expr_list with indent
+                    if formatting_shape.over_budget() {
+                        equal_token = hang_equal_token(ctx, equal_token, additional_indent_level);
+                        // Add the expression list into the indent range, as it will be indented by one
+                        let expr_range = assignment
+                            .expressions()
+                            .range()
+                            .expect("no range for assignment punctuated list");
+                        ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+                        expr_list = format_punctuated(
+                            ctx,
+                            assignment.expressions(),
+                            shape,
+                            format_expression,
+                        );
                     }
                 }
             }
