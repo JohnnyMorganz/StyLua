@@ -779,8 +779,7 @@ pub fn format_function_declaration<'ast>(
     let formatted_function_name = format_function_name(ctx, function_declaration.name());
 
     let shape = shape.with_additional_indent(additional_indent_level)
-        + (strip_trivia(&function_token).to_string().len()
-            + strip_trivia(&formatted_function_name).to_string().len());
+        + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
     let formatted_function_body =
         format_function_body(ctx, function_declaration.body(), true, shape);
 
