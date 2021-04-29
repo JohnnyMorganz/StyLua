@@ -177,8 +177,7 @@ fn format_else_if<'ast>(
 
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
-        let condition = format_expression(ctx, &condition, shape);
-        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+        hang_expression_trailing_newline(ctx, &condition, shape, additional_indent_level, None)
             .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
                 ctx,
                 indent_level,
@@ -239,8 +238,7 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
 
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
-        let condition = format_expression(ctx, &condition, shape);
-        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+        hang_expression_trailing_newline(ctx, &condition, shape, additional_indent_level, None)
             .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
                 ctx,
                 indent_level,
@@ -389,8 +387,7 @@ pub fn format_repeat_block<'ast>(
         || trivia_util::expression_contains_inline_comments(&condition);
 
     let shape = shape + 6; // 6 = "until "
-    let formatted_until = format_expression(ctx, &condition, shape);
-    let formatted_until_trivia = match require_multiline_expression {
+    let formatted_until = match require_multiline_expression {
         true => {
             // Add the expression list into the indent range, as it will be indented by one
             let expr_range = repeat_block
@@ -398,22 +395,17 @@ pub fn format_repeat_block<'ast>(
                 .range()
                 .expect("no range for repeat until");
             ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-            hang_expression_trailing_newline(
-                ctx,
-                formatted_until,
-                additional_indent_level,
-                shape,
-                None,
-            )
+            hang_expression_trailing_newline(ctx, &condition, shape, additional_indent_level, None)
         }
-        false => formatted_until.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
+        false => format_expression(ctx, &condition, shape)
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
     };
 
     repeat_block
         .to_owned()
         .with_repeat_token(repeat_token)
         .with_until_token(until_token)
-        .with_until(formatted_until_trivia)
+        .with_until(formatted_until)
 }
 
 /// Format a While node
@@ -456,8 +448,7 @@ pub fn format_while_block<'ast>(
 
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
-        let condition = format_expression(ctx, &condition, shape);
-        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+        hang_expression_trailing_newline(ctx, &condition, shape, additional_indent_level, None)
             .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
                 ctx,
                 indent_level,

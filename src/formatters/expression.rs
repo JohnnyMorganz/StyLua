@@ -14,8 +14,8 @@ use crate::{
         general::{format_contained_span, format_token_reference},
         table::format_table_constructor,
         trivia::{
-            strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
-            UpdateTrivia,
+            strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
+            UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
@@ -326,7 +326,7 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
 }
 
 fn hang_binop_expression<'ast>(
-    ctx: &Context,
+    ctx: &mut Context,
     expression: Expression<'ast>,
     top_binop: BinOp<'ast>,
     shape: Shape,
@@ -358,26 +358,30 @@ fn hang_binop_expression<'ast>(
                 .add_width(binop_expression_length(&full_expression, &binop))
                 .over_budget();
 
+            let binop = format_binop(ctx, &binop);
             let (binop, updated_side) = if same_op_level || over_column_width {
+                let shape = Shape::with_indent_level(ctx, indent_level)
+                    + strip_trivia(&binop).to_string().len()
+                    + 1;
+
                 let op = hang_binop(ctx, binop.to_owned(), indent_level);
 
                 let side = hang_binop_expression(
                     ctx,
                     *side_to_use,
                     if same_op_level { top_binop } else { binop },
-                    Shape::with_indent_level(ctx, indent_level)
-                        + strip_leading_trivia(&op).to_string().len(),
+                    shape,
                     indent_level,
                 );
 
                 (op, side)
             } else {
-                (binop, *side_to_use)
+                (binop, format_expression(ctx, &*side_to_use, shape))
             };
 
             if is_right_associative {
                 Expression::BinaryOperator {
-                    lhs,
+                    lhs: Box::new(format_expression(ctx, &*lhs, shape)),
                     binop,
                     rhs: Box::new(updated_side),
                 }
@@ -385,130 +389,148 @@ fn hang_binop_expression<'ast>(
                 Expression::BinaryOperator {
                     lhs: Box::new(updated_side),
                     binop,
-                    rhs,
+                    rhs: Box::new(format_expression(ctx, &*rhs, shape)),
                 }
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => expression_split_binop(ctx, expression, shape, indent_level),
+        _ => format_hanging_expression_(ctx, &expression, shape, indent_level),
     }
 }
 
-fn expression_split_binop<'ast>(
-    ctx: &Context,
-    expression: Expression<'ast>,
+/// Internal expression formatter, where the binop is also hung
+fn format_hanging_expression_<'ast>(
+    ctx: &mut Context,
+    expression: &Expression<'ast>,
     shape: Shape,
-    indent_increase: usize,
+    indent_level: usize,
 ) -> Expression<'ast> {
     match expression {
-        Expression::Parentheses {
-            contained,
-            expression,
-        } => {
-            // Examine the expression itself to see if needs to be split onto multiple lines
-            let expression_str = expression.to_string();
-            if !shape.add_width(2 + expression_str.len()).over_budget() {
-                // The expression inside the parentheses is small, we do not need to break it down further
-                return Expression::Parentheses {
-                    contained,
-                    expression,
-                };
-            }
-
-            // Modify the parentheses to hang the expression
-            let (start_token, end_token) = contained.tokens();
-            // Create a newline after the start brace and before the end brace
-            // Also, indent enough for the first expression in the start brace
-            let contained = ContainedSpan::new(
-                start_token.update_trailing_trivia(FormatTriviaType::Append(vec![
-                    create_newline_trivia(ctx),
-                    create_plain_indent_trivia(ctx, indent_increase + 1),
-                ])),
-                end_token.update_leading_trivia(FormatTriviaType::Append(vec![
-                    create_newline_trivia(ctx),
-                    create_plain_indent_trivia(ctx, indent_increase),
-                ])),
-            );
-
-            Expression::Parentheses {
-                contained,
-                expression: Box::new(expression_split_binop(
-                    ctx,
-                    *expression,
-                    Shape::with_indent_level(ctx, indent_increase + 1),
-                    indent_increase + 1, // Apply indent increase
-                )),
-            }
-        }
-        Expression::UnaryOperator { unop, expression } => {
-            let expression = Box::new(expression_split_binop(
-                ctx,
-                *expression,
-                shape + strip_leading_trivia(&unop).to_string().len(),
-                indent_increase,
-            ));
-            Expression::UnaryOperator { unop, expression }
-        }
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = Box::new(hang_binop_expression(
-                ctx,
-                *lhs,
-                binop.to_owned(),
-                shape,
-                indent_increase,
-            ));
-            let rhs = Box::new(hang_binop_expression(
-                ctx,
-                *rhs,
-                binop.to_owned(),
-                shape,
-                indent_increase,
-            ));
-            let binop = hang_binop(ctx, binop, indent_increase);
-
-            Expression::BinaryOperator { lhs, binop, rhs }
-        }
-
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
             type_assertion,
-        } => Expression::Value {
-            value: match *value {
-                Value::ParenthesesExpression(expression) => Box::new(Value::ParenthesesExpression(
-                    expression_split_binop(ctx, expression, shape, indent_increase),
-                )),
-                _ => value,
-            },
-            #[cfg(feature = "luau")]
-            type_assertion,
-        },
+        } => {
+            let value = Box::new(match &**value {
+                Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+                    format_hanging_expression_(ctx, expression, shape, indent_level),
+                ),
+                _ => format_value(ctx, value, shape),
+            });
+            Expression::Value {
+                value,
+                #[cfg(feature = "luau")]
+                type_assertion: match type_assertion {
+                    Some(assertion) => Some(format_type_assertion(ctx, assertion)),
+                    None => None,
+                },
+            }
+        }
+        Expression::Parentheses {
+            contained,
+            expression,
+        } => {
+            // Examine whether the internal expression requires parentheses
+            // If not, just format and return the internal expression. Otherwise, format the parentheses
+            let use_internal_expression = check_excess_parentheses(expression);
 
-        // Can't hang anything else, so just return the original expression
-        _ => expression,
+            // If the context is for a prefix, we should always keep the parentheses, as they are always required
+            if use_internal_expression {
+                format_hanging_expression_(ctx, expression, shape, indent_level)
+            } else {
+                let contained = format_contained_span(ctx, &contained);
+                let expression = format_expression(ctx, expression, shape + 1); // 1 = opening parentheses
+
+                // Examine the expression itself to see if needs to be split onto multiple lines
+                let expression_str = expression.to_string();
+                if !shape.add_width(2 + expression_str.len()).over_budget() {
+                    // The expression inside the parentheses is small, we do not need to break it down further
+                    return Expression::Parentheses {
+                        contained,
+                        expression: Box::new(expression),
+                    };
+                }
+
+                // Modify the parentheses to hang the expression
+                let (start_token, end_token) = contained.tokens();
+                // Create a newline after the start brace and before the end brace
+                // Also, indent enough for the first expression in the start brace
+                let contained = ContainedSpan::new(
+                    start_token.update_trailing_trivia(FormatTriviaType::Append(vec![
+                        create_newline_trivia(ctx),
+                        create_plain_indent_trivia(ctx, indent_level + 1),
+                    ])),
+                    end_token.update_leading_trivia(FormatTriviaType::Append(vec![
+                        create_newline_trivia(ctx),
+                        create_plain_indent_trivia(ctx, indent_level),
+                    ])),
+                );
+
+                Expression::Parentheses {
+                    contained,
+                    expression: Box::new(format_hanging_expression_(
+                        ctx,
+                        &expression,
+                        Shape::with_indent_level(ctx, indent_level + 1),
+                        indent_level + 1, // Apply indent increase
+                    )),
+                }
+            }
+        }
+        Expression::UnaryOperator { unop, expression } => {
+            let unop = format_unop(ctx, unop);
+            let shape = shape + strip_leading_trivia(&unop).to_string().len();
+            let expression = format_expression(ctx, expression, shape);
+            let expression = format_hanging_expression_(ctx, &expression, shape, indent_level);
+
+            Expression::UnaryOperator {
+                unop,
+                expression: Box::new(expression),
+            }
+        }
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
+            let lhs =
+                hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, indent_level);
+            let binop = format_binop(ctx, binop);
+            let shape = Shape::with_indent_level(ctx, indent_level)
+                + strip_trivia(&binop).to_string().len()
+                + 1;
+
+            let binop = hang_binop(ctx, binop, indent_level);
+            let rhs =
+                hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape, indent_level);
+
+            Expression::BinaryOperator {
+                lhs: Box::new(lhs),
+                binop,
+                rhs: Box::new(rhs),
+            }
+        }
+        other => panic!("unknown node {:?}", other),
     }
 }
 
 pub fn hang_expression<'ast>(
-    ctx: &Context,
-    expression: Expression<'ast>,
-    additional_indent_level: Option<usize>,
+    ctx: &mut Context,
+    expression: &Expression<'ast>,
     shape: Shape,
+    additional_indent_level: Option<usize>,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
     let additional_indent_level = additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
     let hang_level = ctx.indent_level() + additional_indent_level;
 
-    expression_split_binop(ctx, expression, shape, hang_level)
+    format_hanging_expression_(ctx, expression, shape, hang_level)
 }
 
 pub fn hang_expression_trailing_newline<'ast>(
-    ctx: &Context,
-    expression: Expression<'ast>,
-    additional_indent_level: Option<usize>,
+    ctx: &mut Context,
+    expression: &Expression<'ast>,
     shape: Shape,
+    additional_indent_level: Option<usize>,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
-    hang_expression(ctx, expression, additional_indent_level, shape, hang_level)
+    hang_expression(ctx, expression, shape, additional_indent_level, hang_level)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
 }

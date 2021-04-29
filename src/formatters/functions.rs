@@ -349,9 +349,9 @@ pub fn format_function_args<'ast>(
                     if require_multiline_expression {
                         formatted_argument = hang_expression(
                             ctx,
-                            formatted_argument,
-                            additional_indent_level,
+                            argument.value(),
                             shape,
+                            additional_indent_level,
                             None,
                         );
                     }
