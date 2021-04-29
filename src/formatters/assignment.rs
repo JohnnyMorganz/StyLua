@@ -79,7 +79,8 @@ pub fn hang_punctuated_list<'ast>(
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
         let expr = format_expression(ctx, pair.value(), shape);
-        let value = hang_expression_no_trailing_newline(ctx, expr, additional_indent_level, None);
+        let value =
+            hang_expression_no_trailing_newline(ctx, expr, additional_indent_level, shape, None);
         shape = shape.take_last_line(&strip_trivia(&value));
 
         output.push(Pair::new(

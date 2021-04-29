@@ -361,6 +361,7 @@ pub fn format_function_args<'ast>(
                             ctx,
                             formatted_argument,
                             additional_indent_level,
+                            shape,
                             None,
                         );
                     }

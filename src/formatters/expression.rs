@@ -329,6 +329,7 @@ fn hang_binop_expression<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     top_binop: BinOp<'ast>,
+    shape: Shape,
     indent_level: usize,
 ) -> Expression<'ast> {
     let full_expression = expression.to_owned();
@@ -353,9 +354,9 @@ fn hang_binop_expression<'ast>(
                 lhs.to_owned()
             };
 
-            let over_column_width = ctx.indent_width()
-                + binop_expression_length(&full_expression, &binop)
-                > ctx.config().column_width;
+            let over_column_width = shape
+                .add_width(binop_expression_length(&full_expression, &binop))
+                .over_budget();
 
             let (binop, updated_side) = if same_op_level || over_column_width {
                 let op = hang_binop(ctx, binop.to_owned(), indent_level);
@@ -364,6 +365,8 @@ fn hang_binop_expression<'ast>(
                     ctx,
                     *side_to_use,
                     if same_op_level { top_binop } else { binop },
+                    Shape::with_indent_level(ctx, indent_level)
+                        + strip_leading_trivia(&op).to_string().len(),
                     indent_level,
                 );
 
@@ -387,13 +390,14 @@ fn hang_binop_expression<'ast>(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => expression_split_binop(ctx, expression, indent_level),
+        _ => expression_split_binop(ctx, expression, shape, indent_level),
     }
 }
 
 fn expression_split_binop<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
+    shape: Shape,
     indent_increase: usize,
 ) -> Expression<'ast> {
     match expression {
@@ -403,12 +407,7 @@ fn expression_split_binop<'ast>(
         } => {
             // Examine the expression itself to see if needs to be split onto multiple lines
             let expression_str = expression.to_string();
-            if expression_str.len()
-                    + 2 // Account for the two parentheses
-                    + ctx.indent_width() // Account for the current indent level
-                    + (indent_increase * ctx.config().indent_width) // Account for any further indent increase
-                    < ctx.config().column_width
-            {
+            if !shape.add_width(2 + expression_str.len()).over_budget() {
                 // The expression inside the parentheses is small, we do not need to break it down further
                 return Expression::Parentheses {
                     contained,
@@ -436,25 +435,33 @@ fn expression_split_binop<'ast>(
                 expression: Box::new(expression_split_binop(
                     ctx,
                     *expression,
+                    Shape::with_indent_level(ctx, indent_increase + 1),
                     indent_increase + 1, // Apply indent increase
                 )),
             }
         }
-        Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
-            unop,
-            expression: Box::new(expression_split_binop(ctx, *expression, indent_increase)),
-        },
+        Expression::UnaryOperator { unop, expression } => {
+            let expression = Box::new(expression_split_binop(
+                ctx,
+                *expression,
+                shape + strip_leading_trivia(&unop).to_string().len(),
+                indent_increase,
+            ));
+            Expression::UnaryOperator { unop, expression }
+        }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             let lhs = Box::new(hang_binop_expression(
                 ctx,
                 *lhs,
                 binop.to_owned(),
+                shape,
                 indent_increase,
             ));
             let rhs = Box::new(hang_binop_expression(
                 ctx,
                 *rhs,
                 binop.to_owned(),
+                shape,
                 indent_increase,
             ));
             let binop = hang_binop(ctx, binop, indent_increase);
@@ -469,7 +476,7 @@ fn expression_split_binop<'ast>(
         } => Expression::Value {
             value: match *value {
                 Value::ParenthesesExpression(expression) => Box::new(Value::ParenthesesExpression(
-                    expression_split_binop(ctx, expression, indent_increase),
+                    expression_split_binop(ctx, expression, shape, indent_increase),
                 )),
                 _ => value,
             },
@@ -486,20 +493,22 @@ pub fn hang_expression_no_trailing_newline<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     additional_indent_level: Option<usize>,
+    shape: Shape,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
     let additional_indent_level = additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
     let hang_level = ctx.indent_level() + additional_indent_level;
 
-    expression_split_binop(ctx, expression, hang_level)
+    expression_split_binop(ctx, expression, shape, hang_level)
 }
 
 pub fn hang_expression<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     additional_indent_level: Option<usize>,
+    shape: Shape,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
-    hang_expression_no_trailing_newline(ctx, expression, additional_indent_level, hang_level)
+    hang_expression_no_trailing_newline(ctx, expression, additional_indent_level, shape, hang_level)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
 }

@@ -27,6 +27,17 @@ impl Shape {
         }
     }
 
+    /// Create a shape with a given block indent level
+    pub fn with_indent_level(ctx: &Context, indent_level: usize) -> Self {
+        Self {
+            indent_level,
+            indent_width: ctx.config().indent_width,
+            additional_indent_level: 0,
+            offset: 0,
+            column_width: ctx.config().column_width,
+        }
+    }
+
     /// Create a new shape containing any additional indent level
     pub fn with_additional_indent(&self, additional_indent_level: Option<usize>) -> Shape {
         match additional_indent_level {
