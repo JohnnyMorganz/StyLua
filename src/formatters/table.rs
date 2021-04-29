@@ -161,13 +161,8 @@ pub fn format_table_constructor<'ast>(
         end_brace.token().start_position().bytes(),
     );
 
-    // Use input shape to determine if we are over budget
-    // TODO: should we format the table onto a single line first?
-    let singleline_shape = shape + (braces_range.1 - braces_range.0);
-    let mut is_multiline = singleline_shape.over_budget();
-
-    // Determine if there are any comments within the table. If so, we should go multiline
-    if !is_multiline {
+    // Determine if there are any comments within the table. If so, we should force, multiline
+    let contains_comments = {
         let braces_contain_comments = start_brace.trailing_trivia().any(|trivia| {
             trivia.token_kind() == TokenKind::SingleLineComment
                 || trivia.token_kind() == TokenKind::MultiLineComment
@@ -176,12 +171,18 @@ pub fn format_table_constructor<'ast>(
                 || trivia.token_kind() == TokenKind::MultiLineComment
         });
 
-        is_multiline = braces_contain_comments
-            || trivia_util::table_fields_contains_comments(table_constructor)
+        braces_contain_comments || trivia_util::table_fields_contains_comments(table_constructor)
     };
 
-    let table_type = match current_fields.peek() {
-        Some(_) => match is_multiline {
+    // Use input shape to determine if we are over budget
+    // TODO: should we format the table onto a single line first?
+    let singleline_shape = shape + (braces_range.1 - braces_range.0);
+
+    let table_type = match (contains_comments, current_fields.peek()) {
+        // We have comments, so force multiline
+        (true, _) => TableType::MultiLine,
+
+        (false, Some(_)) => match singleline_shape.over_budget() {
             true => TableType::MultiLine,
             false => {
                 // Determine if there was a new line at the end of the start brace
@@ -196,7 +197,7 @@ pub fn format_table_constructor<'ast>(
                 }
             }
         },
-        None => TableType::Empty,
+        (false, None) => TableType::Empty,
     };
 
     if let TableType::MultiLine = table_type {
