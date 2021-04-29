@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Parentheses around conditions are now removed, as they are not required in Lua. `if (foo and (not bar or baz)) then ... end` turns to `if foo and (not bar or baz) then ... end`
+- Long multi-variable assignments which surpass the column width, even when hanging on the equals token, will now hang on multiple lines.
 
 ### Changed
 - Changed the heursitics for when parentheses are removed around expressions. Parentheses will now never be removed around a function call prefix (e.g. `("hello"):len()`)
 - Changed formatting for comma-separated lists. Previously, we would buffer the comments to the end of the list, but now we keep the comments next to where they original were.
+- Improved contextual formatting informattion when formatting deep in the AST. We can now better determine how much space is left on the current line, before we need to change formatting
+- Improved formatting of function declarations. It will now properly take into account the amount of space left on the column width.
+- Improve formatting for assignments with expressions such as function calls. The whole assignment is now taken into account, so we can better determine whether to split the expression.
 
 ## [0.7.1] - 2021-04-19
 ### Fixed
