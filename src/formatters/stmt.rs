@@ -57,7 +57,7 @@ fn remove_condition_parentheses(expression: Expression) -> Expression {
 }
 
 /// Format a Do node
-pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, shape: Shape) -> Do<'ast> {
+pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, _shape: Shape) -> Do<'ast> {
     // Create trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(do_block.do_token()));
     let leading_trivia =
@@ -79,7 +79,7 @@ pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, shape: Shape) -
 pub fn format_generic_for<'ast>(
     ctx: &mut Context,
     generic_for: &GenericFor<'ast>,
-    shape: Shape,
+    _shape: Shape,
 ) -> GenericFor<'ast> {
     // Create trivia
     let additional_indent_level =
@@ -299,7 +299,7 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
 pub fn format_numeric_for<'ast>(
     ctx: &mut Context,
     numeric_for: &NumericFor<'ast>,
-    shape: Shape,
+    _shape: Shape,
 ) -> NumericFor<'ast> {
     // Create trivia
     let additional_indent_level =
