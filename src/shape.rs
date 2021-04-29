@@ -58,11 +58,6 @@ impl Shape {
         self.indent_width() + self.offset
     }
 
-    /// The available width left for this line
-    pub fn available_width(&self) -> usize {
-        self.column_width.saturating_sub(self.used_width())
-    }
-
     /// Check to see whether our current width is above the budget available
     pub fn over_budget(&self) -> bool {
         self.used_width() >= self.column_width
