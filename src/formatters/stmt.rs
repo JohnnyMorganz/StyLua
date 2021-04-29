@@ -11,7 +11,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         assignment::{format_assignment, format_local_assignment},
-        expression::{format_expression, hang_expression},
+        expression::{format_expression, hang_expression_trailing_newline},
         functions::{format_function_call, format_function_declaration, format_local_function},
         general::{
             format_end_token, format_punctuated_buffer, format_token_reference,
@@ -178,9 +178,11 @@ fn format_else_if<'ast>(
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
         let condition = format_expression(ctx, &condition, shape);
-        hang_expression(ctx, condition, additional_indent_level, shape, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
-        )
+        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+            .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx,
+                indent_level,
+            )]))
     } else {
         format_expression(ctx, &condition, shape + 7) // 7 = "elseif "
     };
@@ -238,9 +240,11 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
         let condition = format_expression(ctx, &condition, shape);
-        hang_expression(ctx, condition, additional_indent_level, shape, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
-        )
+        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+            .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx,
+                indent_level,
+            )]))
     } else {
         format_expression(ctx, &condition, shape + 3) // 3 = "if "
     };
@@ -394,7 +398,13 @@ pub fn format_repeat_block<'ast>(
                 .range()
                 .expect("no range for repeat until");
             ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-            hang_expression(ctx, formatted_until, additional_indent_level, shape, None)
+            hang_expression_trailing_newline(
+                ctx,
+                formatted_until,
+                additional_indent_level,
+                shape,
+                None,
+            )
         }
         false => formatted_until.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
     };
@@ -447,9 +457,11 @@ pub fn format_while_block<'ast>(
         let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
         let shape = shape.reset().with_additional_indent(indent_level);
         let condition = format_expression(ctx, &condition, shape);
-        hang_expression(ctx, condition, additional_indent_level, shape, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
-        )
+        hang_expression_trailing_newline(ctx, condition, additional_indent_level, shape, None)
+            .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx,
+                indent_level,
+            )]))
     } else {
         format_expression(ctx, &condition, shape + 6) // 6 = "while "
     };

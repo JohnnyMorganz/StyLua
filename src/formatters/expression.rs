@@ -489,7 +489,7 @@ fn expression_split_binop<'ast>(
     }
 }
 
-pub fn hang_expression_no_trailing_newline<'ast>(
+pub fn hang_expression<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     additional_indent_level: Option<usize>,
@@ -502,13 +502,13 @@ pub fn hang_expression_no_trailing_newline<'ast>(
     expression_split_binop(ctx, expression, shape, hang_level)
 }
 
-pub fn hang_expression<'ast>(
+pub fn hang_expression_trailing_newline<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     additional_indent_level: Option<usize>,
     shape: Shape,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
-    hang_expression_no_trailing_newline(ctx, expression, additional_indent_level, shape, hang_level)
+    hang_expression(ctx, expression, additional_indent_level, shape, hang_level)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
 }

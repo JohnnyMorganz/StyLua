@@ -14,9 +14,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{
-            format_expression, format_prefix, format_suffix, hang_expression_no_trailing_newline,
-        },
+        expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_span, format_end_token, format_punctuated, format_symbol,
             format_token_reference, EndTokenType,
@@ -349,7 +347,7 @@ pub fn format_function_args<'ast>(
 
                     // Hang the expression if necessary
                     if require_multiline_expression {
-                        formatted_argument = hang_expression_no_trailing_newline(
+                        formatted_argument = hang_expression(
                             ctx,
                             formatted_argument,
                             additional_indent_level,
