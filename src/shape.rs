@@ -49,6 +49,19 @@ impl Shape {
         }
     }
 
+    /// Sets the column width to the provided width. Normally only used to set an infinite width when testing layouts
+    pub fn with_column_width(&self, column_width: usize) -> Self {
+        Self {
+            column_width,
+            ..*self
+        }
+    }
+
+    /// Recreates the shape with an infinite width. Useful when testing layouts and want to force code onto a single line
+    pub fn with_infinite_width(&self) -> Self {
+        self.with_column_width(usize::MAX)
+    }
+
     pub fn indent_width(&self) -> usize {
         (self.indent_level + self.additional_indent_level) * self.indent_width
     }
@@ -60,7 +73,7 @@ impl Shape {
 
     /// Check to see whether our current width is above the budget available
     pub fn over_budget(&self) -> bool {
-        self.used_width() >= self.column_width
+        self.used_width() > self.column_width
     }
 
     /// Adds a width offset to the current width total

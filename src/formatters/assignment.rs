@@ -5,7 +5,7 @@ use full_moon::ast::{
     Assignment, Expression, LocalAssignment,
 };
 use full_moon::node::Node;
-use full_moon::tokenizer::{TokenKind, TokenReference};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference};
 
 #[cfg(feature = "luau")]
 use crate::formatters::luau::format_type_specifier;
@@ -14,51 +14,19 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, format_var, hang_expression},
-        general::{format_punctuated, format_token_reference_mut, try_format_punctuated},
-        trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+        general::{
+            format_punctuated, format_punctuated_multiline, format_token_reference_mut,
+            try_format_punctuated,
+        },
+        trivia::{
+            strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
+            UpdateLeadingTrivia, UpdateTrailingTrivia,
+        },
         trivia_util,
         util::token_range,
     },
     shape::Shape,
 };
-
-/// Returns an Assignment with leading and trailing trivia removed
-fn strip_assignment_trivia<'ast>(assignment: &Assignment<'ast>) -> Assignment<'ast> {
-    let var_list = assignment
-        .variables()
-        .update_leading_trivia(FormatTriviaType::Replace(vec![]));
-    let expr_list = assignment
-        .expressions()
-        .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-    Assignment::new(var_list, expr_list).with_equal_token(assignment.equal_token().to_owned())
-}
-
-/// Returns a LocalAssignment with leading and trailing trivia removed
-fn strip_local_assignment_trivia<'ast>(
-    local_assignment: &LocalAssignment<'ast>,
-) -> LocalAssignment<'ast> {
-    let local_token = local_assignment
-        .local_token()
-        .update_leading_trivia(FormatTriviaType::Replace(vec![]));
-
-    if local_assignment.expressions().is_empty() {
-        let name_list = local_assignment
-            .names()
-            .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-        LocalAssignment::new(name_list).with_local_token(local_token)
-    } else {
-        let expr_list = local_assignment
-            .expressions()
-            .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-        LocalAssignment::new(local_assignment.names().to_owned())
-            .with_local_token(local_token)
-            .with_equal_token(local_assignment.equal_token().map(|x| x.to_owned()))
-            .with_expressions(expr_list)
-    }
-}
 
 pub fn hang_punctuated_list<'ast>(
     ctx: &mut Context,
@@ -78,8 +46,7 @@ pub fn hang_punctuated_list<'ast>(
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
-        let expr = format_expression(ctx, pair.value(), shape);
-        let value = hang_expression(ctx, expr, additional_indent_level, shape, None);
+        let value = hang_expression(ctx, pair.value(), shape, additional_indent_level, None);
         shape = shape.take_last_line(&strip_trivia(&value));
 
         output.push(Pair::new(
@@ -92,40 +59,28 @@ pub fn hang_punctuated_list<'ast>(
     output
 }
 
-/// Checks the list of assigned expressions to see if any were hangable.
-/// If not, then we still have a long list of assigned expressions - we split it onto a newline at the equal token.
+/// Hangs at the equal token, and indents the first item.
 /// Returns the new equal token [`TokenReference`]
-fn check_long_expression<'ast>(
+fn hang_equal_token<'ast>(
     ctx: &mut Context,
-    expressions: &Punctuated<'ast, Expression<'ast>>,
     equal_token: TokenReference<'ast>,
     additional_indent_level: Option<usize>,
 ) -> TokenReference<'ast> {
-    // See if any of our expressions were hangable.
-    // If not, then its still a big long line - we should newline at the end of the equals token,
-    // then indent the first item
-    if !expressions
-        .iter()
-        .any(|x| trivia_util::can_hang_expression(x))
-    {
-        let equal_token_trailing_trivia = vec![
-            create_newline_trivia(ctx),
-            create_indent_trivia(ctx, additional_indent_level.or(Some(0)).map(|x| x + 1)),
-        ]
-        .iter()
-        .chain(
-            // Remove the space that was present after the equal token
-            equal_token
-                .trailing_trivia()
-                .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
-        )
-        .map(|x| x.to_owned())
-        .collect();
-
-        equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
-    } else {
+    let equal_token_trailing_trivia = vec![
+        create_newline_trivia(ctx),
+        create_indent_trivia(ctx, additional_indent_level.or(Some(0)).map(|x| x + 1)),
+    ]
+    .iter()
+    .chain(
+        // Remove the space that was present after the equal token
         equal_token
-    }
+            .trailing_trivia()
+            .skip_while(|x| x.token_kind() == TokenKind::Whitespace),
+    )
+    .map(|x| x.to_owned())
+    .collect();
+
+    equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
 }
 
 pub fn format_assignment<'ast>(
@@ -142,56 +97,151 @@ pub fn format_assignment<'ast>(
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
+    // Check if the assignment expressions contain comments. If they do, we bail out of determining any tactics
+    // and format multiline
+    let contains_comments = assignment.expressions().pairs().any(|pair| {
+        pair.punctuation()
+            .map_or(false, |x| trivia_util::token_contains_comments(x))
+            || trivia_util::expression_contains_inline_comments(pair.value())
+    });
+
+    // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
+    let mut var_list = try_format_punctuated(
+        ctx,
+        assignment.variables(),
+        shape.with_infinite_width(),
+        format_var,
+    );
     let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ");
-    let shape = shape + (strip_trivia(&var_list).to_string().len() + 3); // 3 = " = "
+    let mut expr_list = format_punctuated(
+        ctx,
+        assignment.expressions(),
+        shape.with_infinite_width(),
+        format_expression,
+    );
 
-    let mut expr_list = format_punctuated(ctx, assignment.expressions(), shape, format_expression); // Don't need to worry about comments in expr_list, as it will automatically force multiline
+    // Test the assignment to see if its over width
+    let singleline_shape = shape
+        + (strip_leading_trivia(&var_list).to_string().len()
+            + 3
+            + strip_trailing_trivia(&expr_list).to_string().len());
+    if contains_comments || singleline_shape.over_budget() {
+        // We won't attempt anything else with the var_list. Format it normally
+        var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
+        let shape = shape + (strip_leading_trivia(&var_list).to_string().len() + 3);
+        // The next tactic will be to see if we can hang the expression
+        // We can either hang the expression list, or hang at the equals token
+        if assignment
+            .expressions()
+            .iter()
+            .any(|x| trivia_util::can_hang_expression(x))
+        {
+            expr_list = hang_punctuated_list(
+                ctx,
+                assignment.expressions(),
+                shape,
+                additional_indent_level,
+            );
+        } else {
+            // The next tactic is to see whether there is more than one item in the punctuated list
+            // If there is, we should put it on multiple lines
+            if expr_list.len() > 1 {
+                // First try hanging at the equal token, using an infinite width, to see if its enough
+                let hanging_equal_token =
+                    hang_equal_token(ctx, equal_token.to_owned(), additional_indent_level);
+                let hanging_shape = shape
+                    .reset()
+                    .with_additional_indent(Some(additional_indent_level.unwrap_or(0) + 1));
+                expr_list = format_punctuated(
+                    ctx,
+                    assignment.expressions(),
+                    hanging_shape.with_infinite_width(),
+                    format_expression,
+                );
 
-    // Create preliminary assignment
-    let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
-        .with_equal_token(equal_token.to_owned());
+                if hanging_shape
+                    .take_first_line(&strip_trivia(&expr_list))
+                    .over_budget()
+                {
+                    // Hang the expressions on multiple lines
+                    expr_list = format_punctuated_multiline(
+                        ctx,
+                        assignment.expressions(),
+                        shape,
+                        format_expression,
+                        Some(1),
+                    );
+                } else {
+                    equal_token = hanging_equal_token;
+                }
+            } else {
+                // Format the expressions normally. If still over budget, hang at the equals token
+                expr_list =
+                    format_punctuated(ctx, assignment.expressions(), shape, format_expression);
+                let shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
 
-    // Test whether we need to hang the expression, using the updated assignment
-    // We have to format normally before this, since we may be expanding the expression onto multiple lines
-    // (e.g. if it was a table). We only want to use the first line to determine if we need to hang the expression
-    let require_multiline_expression = shape
-        .reset()
-        .take_first_line(&strip_assignment_trivia(&formatted_assignment))
-        .over_budget()
-        || assignment.expressions().pairs().any(|pair| {
-            pair.punctuation()
-                .map_or(false, |punc| trivia_util::token_contains_comments(punc))
-                || trivia_util::expression_contains_inline_comments(pair.value())
-        });
-
-    if require_multiline_expression {
-        expr_list = hang_punctuated_list(
-            ctx,
-            assignment.expressions(),
-            shape,
-            additional_indent_level,
-        );
-
-        equal_token = check_long_expression(
-            ctx,
-            assignment.expressions(),
-            equal_token,
-            additional_indent_level,
-        );
+                if shape.over_budget() {
+                    equal_token = hang_equal_token(ctx, equal_token, additional_indent_level)
+                    // TODO: reformat expr_list with indent
+                }
+            }
+        }
     }
 
-    // Add any trailing trivia to the end of the expression list
+    // Add necessary trivia
+    let var_list = var_list.update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-    // Add on leading trivia
-    let formatted_var_list =
-        var_list.update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    Assignment::new(var_list, expr_list).with_equal_token(equal_token)
+}
 
-    formatted_assignment
-        .with_variables(formatted_var_list)
-        .with_equal_token(equal_token)
-        .with_expressions(expr_list)
+fn format_local_no_assignment<'ast>(
+    ctx: &mut Context,
+    assignment: &LocalAssignment<'ast>,
+    shape: Shape,
+    leading_trivia: Vec<Token<'ast>>,
+    trailing_trivia: Vec<Token<'ast>>,
+) -> LocalAssignment<'ast> {
+    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let shape = shape + 6; // 6 = "local "
+    let mut name_list =
+        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
+
+    #[cfg(feature = "luau")]
+    let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
+        .type_specifiers()
+        .map(|x| match x {
+            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+            None => None,
+        })
+        .collect();
+
+    // See if the last variable assigned has a type specifier, and add a new line to that
+    #[allow(unused_mut)]
+    let mut new_line_added = false;
+
+    #[cfg(feature = "luau")]
+    if let Some(Some(specifier)) = type_specifiers.pop() {
+        type_specifiers.push(Some(specifier.update_trailing_trivia(
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        )));
+        new_line_added = true;
+    }
+
+    // Add any trailing trivia to the end of the expression list, if we haven't already added a newline
+    if !new_line_added {
+        name_list = name_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
+    }
+
+    let local_assignment = LocalAssignment::new(name_list)
+        .with_local_token(local_token)
+        .with_equal_token(None)
+        .with_expressions(Punctuated::new());
+
+    #[cfg(feature = "luau")]
+    let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
+    local_assignment
 }
 
 pub fn format_local_assignment<'ast>(
@@ -208,98 +258,137 @@ pub fn format_local_assignment<'ast>(
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let shape = shape + 6; // 6 = "local "
-    let mut name_list =
-        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
-
-    #[cfg(feature = "luau")]
-    let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
-        .type_specifiers()
-        .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
-            None => None,
-        })
-        .collect();
-
     if assignment.expressions().is_empty() {
-        // See if the last variable assigned has a type specifier, and add a new line to that
-        #[allow(unused_mut)]
-        let mut new_line_added = false;
-
-        #[cfg(feature = "luau")]
-        if let Some(Some(specifier)) = type_specifiers.pop() {
-            type_specifiers.push(Some(specifier.update_trailing_trivia(
-                FormatTriviaType::Append(trailing_trivia.to_owned()),
-            )));
-            new_line_added = true;
-        }
-
-        // Add any trailing trivia to the end of the expression list, if we haven't already added a newline
-        if !new_line_added {
-            name_list = name_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
-        }
-
-        let local_assignment = LocalAssignment::new(name_list)
-            .with_local_token(local_token)
-            .with_equal_token(None)
-            .with_expressions(Punctuated::new());
-
-        #[cfg(feature = "luau")]
-        let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
-        local_assignment
+        format_local_no_assignment(ctx, assignment, shape, leading_trivia, trailing_trivia)
     } else {
+        // Check if the assignment expressions contain comments. If they do, we bail out of determining any tactics
+        // and format multiline
+        let contains_comments = assignment.expressions().pairs().any(|pair| {
+            pair.punctuation()
+                .map_or(false, |x| trivia_util::token_contains_comments(x))
+                || trivia_util::expression_contains_inline_comments(pair.value())
+        });
+
+        // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
+        let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+
+        let mut name_list = try_format_punctuated(
+            ctx,
+            assignment.names(),
+            shape.with_infinite_width(),
+            format_token_reference_mut,
+        );
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ");
-        let shape = shape + (strip_trivia(&name_list).to_string().len() + 3); // 3 = " = "
-        let mut expr_list =
-            // Format the expression normally - if there are any comments, it will automatically force multiline
-            format_punctuated(ctx, assignment.expressions(), shape, format_expression);
+        let mut expr_list = format_punctuated(
+            ctx,
+            assignment.expressions(),
+            shape.with_infinite_width(),
+            format_expression,
+        );
 
-        // Create our preliminary new assignment
-        let local_assignment = LocalAssignment::new(name_list)
-            .with_local_token(local_token)
-            .with_equal_token(Some(equal_token.to_owned()))
-            .with_expressions(expr_list.to_owned());
         #[cfg(feature = "luau")]
-        let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
-
-        // Test whether we need to hang the expression, using the updated assignment
-        // We have to format normally before this, since we may be expanding the expression onto multiple lines
-        // (e.g. if it was a table). We only want to use the first line to determine if we need to hang the expression
-        let require_multiline_expression = shape
-            .reset()
-            .take_first_line(&strip_local_assignment_trivia(&local_assignment))
-            .over_budget()
-            || assignment.expressions().pairs().any(|pair| {
-                pair.punctuation()
-                    .map_or(false, |punc| trivia_util::token_contains_comments(punc))
-                    || trivia_util::expression_contains_inline_comments(pair.value())
+        let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
+            .type_specifiers()
+            .map(|x| match x {
+                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+                None => None,
+            })
+            .collect();
+        let type_specifier_len;
+        #[cfg(feature = "luau")]
+        {
+            type_specifier_len = type_specifiers.iter().fold(0, |acc, x| {
+                acc + x.as_ref().map_or(0, |y| y.to_string().len())
             });
-
-        // Format the expression depending on whether we are multline or not
-        if require_multiline_expression {
-            expr_list = hang_punctuated_list(
-                ctx,
-                assignment.expressions(),
-                shape,
-                additional_indent_level,
-            );
-
-            equal_token = check_long_expression(
-                ctx,
-                assignment.expressions(),
-                equal_token,
-                additional_indent_level,
-            );
+        }
+        #[cfg(not(feature = "luau"))]
+        {
+            type_specifier_len = 0;
         }
 
-        // Add any trailing trivia to the end of the expression list
+        // Test the assignment to see if its over width
+        let singleline_shape = shape
+            + (strip_leading_trivia(&name_list).to_string().len()
+                + 6 // 6 = "local "
+                + 3 // 3 = " = "
+                + type_specifier_len
+                + strip_trailing_trivia(&expr_list).to_string().len());
+
+        if contains_comments || singleline_shape.over_budget() {
+            // We won't attempt anything else with the name_list. Format it normally
+            name_list =
+                try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
+            let shape = shape
+                + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
+            // The next tactic will be to see if we can hang the expression
+            // We can either hang the expression list, or hang at the equals token
+            if assignment
+                .expressions()
+                .iter()
+                .any(|x| trivia_util::can_hang_expression(x))
+            {
+                expr_list = hang_punctuated_list(
+                    ctx,
+                    assignment.expressions(),
+                    shape,
+                    additional_indent_level,
+                );
+            } else {
+                // The next tactic is to see whether there is more than one item in the punctuated list
+                // If there is, we should put it on multiple lines
+                if expr_list.len() > 1 {
+                    // First try hanging at the equal token, using an infinite width, to see if its enough
+                    let hanging_equal_token =
+                        hang_equal_token(ctx, equal_token.to_owned(), additional_indent_level);
+                    let hanging_shape = shape
+                        .reset()
+                        .with_additional_indent(Some(additional_indent_level.unwrap_or(0) + 1));
+                    expr_list = format_punctuated(
+                        ctx,
+                        assignment.expressions(),
+                        hanging_shape.with_infinite_width(),
+                        format_expression,
+                    );
+
+                    if hanging_shape
+                        .take_first_line(&strip_trivia(&expr_list))
+                        .over_budget()
+                    {
+                        // Hang the expressions on multiple lines
+                        expr_list = format_punctuated_multiline(
+                            ctx,
+                            assignment.expressions(),
+                            shape,
+                            format_expression,
+                            Some(1),
+                        );
+                    } else {
+                        equal_token = hanging_equal_token;
+                    }
+                } else {
+                    // Format the expressions normally. If still over budget, hang at the equals token
+                    expr_list =
+                        format_punctuated(ctx, assignment.expressions(), shape, format_expression);
+                    let shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
+
+                    if shape.over_budget() {
+                        equal_token = hang_equal_token(ctx, equal_token, additional_indent_level)
+                        // TODO: reformat expr_list with indent
+                    }
+                }
+            }
+        }
+
+        // Add necessary trivia
         let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-        // Update our local assignment
-        local_assignment
+        let local_assignment = LocalAssignment::new(name_list)
+            .with_local_token(local_token)
             .with_equal_token(Some(equal_token))
-            .with_expressions(expr_list)
+            .with_expressions(expr_list);
+        #[cfg(feature = "luau")]
+        let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
+        local_assignment
     }
 }
