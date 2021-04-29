@@ -133,10 +133,17 @@ pub fn format_generic_for<'ast>(
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
-fn format_else_if<'ast>(ctx: &mut Context, else_if_node: &ElseIf<'ast>) -> ElseIf<'ast> {
+fn format_else_if<'ast>(
+    ctx: &mut Context,
+    else_if_node: &ElseIf<'ast>,
+    shape: Shape,
+) -> ElseIf<'ast> {
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(else_if_node.else_if_token()));
+    let shape = shape
+        .reset()
+        .with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -144,14 +151,8 @@ fn format_else_if<'ast>(ctx: &mut Context, else_if_node: &ElseIf<'ast>) -> ElseI
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
     // Determine if we need to hang the condition
-    let last_line_str_len = (strip_trivia(else_if_node.else_if_token()).to_string()
-        + &strip_trivia(&condition).to_string()
-        + &strip_trivia(else_if_node.then_token()).to_string())
-        .len()
-        + 2; // Include space before and after condition
-    let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-    let require_multiline_expression = (indent_spacing + last_line_str_len)
-        > ctx.config().column_width
+    let singleline_shape = shape + (7 + 5 + strip_trivia(&condition).to_string().len()); // 7 = "elseif ", 5 = " then"
+    let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::expression_contains_inline_comments(&condition);
 
     let (else_if_trailing_trivia, then_text) = if require_multiline_expression {
@@ -205,6 +206,7 @@ fn format_else_if<'ast>(ctx: &mut Context, else_if_node: &ElseIf<'ast>) -> ElseI
 pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> If<'ast> {
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(if_node.if_token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -212,14 +214,8 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
 
     // Determine if we need to hang the condition
-    let last_line_str_len = (strip_trivia(if_node.if_token()).to_string()
-        + &strip_trivia(&condition).to_string()
-        + &strip_trivia(if_node.then_token()).to_string())
-        .len()
-        + 2; // Include space before and after condition
-    let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-    let require_multiline_expression = (indent_spacing + last_line_str_len)
-        > ctx.config().column_width
+    let singleline_shape = shape + (3 + 5 + strip_trivia(&condition).to_string().len()); // 3 = "if ", 5 = " then"
+    let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::expression_contains_inline_comments(&condition);
 
     let (if_text, then_text) = if require_multiline_expression {
@@ -268,7 +264,7 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
         Some(else_if) => Some(
             else_if
                 .iter()
-                .map(|else_if| format_else_if(ctx, else_if))
+                .map(|else_if| format_else_if(ctx, else_if, shape))
                 .collect(),
         ),
         None => None,
@@ -369,6 +365,7 @@ pub fn format_repeat_block<'ast>(
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(repeat_block.repeat_token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -383,14 +380,8 @@ pub fn format_repeat_block<'ast>(
     let condition = remove_condition_parentheses(repeat_block.until().to_owned());
 
     // Determine if we need to hang the condition
-    let last_line_str_len = (strip_trivia(repeat_block.until_token()).to_string()
-        + &strip_trivia(&condition).to_string())
-        .len()
-        + 1; // Include space before until and condition
-
-    let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-    let require_multiline_expression = (indent_spacing + last_line_str_len)
-        > ctx.config().column_width
+    let singleline_shape = shape + (6 + strip_trivia(&condition).to_string().len()); // 6 = "until "
+    let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::expression_contains_inline_comments(&condition);
 
     let formatted_until = format_expression(ctx, &condition);
@@ -423,6 +414,7 @@ pub fn format_while_block<'ast>(
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(while_block.while_token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -430,14 +422,8 @@ pub fn format_while_block<'ast>(
     let condition = remove_condition_parentheses(while_block.condition().to_owned());
 
     // Determine if we need to hang the condition
-    let last_line_str = strip_trivia(while_block.while_token()).to_string()
-        + &strip_trivia(&condition).to_string()
-        + &strip_trivia(while_block.do_token()).to_string();
-    let last_line_str_len = last_line_str.len() + 2; // Include space before and after condition
-
-    let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-    let require_multiline_expression = (indent_spacing + last_line_str_len)
-        > ctx.config().column_width
+    let singleline_shape = shape + (6 + 3 + strip_trivia(&condition).to_string().len()); // 6 = "while ", 3 = " do"
+    let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::expression_contains_inline_comments(&condition);
 
     let (while_text, do_text) = if require_multiline_expression {
