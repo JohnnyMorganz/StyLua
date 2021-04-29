@@ -5,6 +5,7 @@ use serde::Deserialize;
 #[macro_use]
 mod context;
 mod formatters;
+mod shape;
 
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, Deserialize)]
