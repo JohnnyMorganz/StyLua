@@ -35,6 +35,13 @@ where
     item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
 }
 
+pub fn strip_trailing_trivia<'ast, T>(item: &T) -> T
+where
+    T: UpdateTrailingTrivia<'ast>,
+{
+    item.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+}
+
 pub trait UpdateLeadingTrivia<'ast> {
     fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self;
 }
