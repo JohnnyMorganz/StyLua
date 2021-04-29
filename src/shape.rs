@@ -4,7 +4,7 @@ use std::ops::Add;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Shape {
-    /// The current indentation level. Note: this is not the indentation width
+    /// The current block indentation level. The base indentation level is 0. Note: this is not the indentation width
     indent_level: usize,
     /// How many characters a single indent level represents. This is inferred from the configuration
     indent_width: usize,
@@ -19,7 +19,7 @@ pub struct Shape {
 impl Shape {
     pub fn from_context(ctx: &Context) -> Self {
         Self {
-            indent_level: ctx.indent_level(),
+            indent_level: ctx.indent_level().saturating_sub(1),
             indent_width: ctx.config().indent_width,
             additional_indent_level: 0,
             offset: 0,
@@ -50,7 +50,7 @@ impl Shape {
     }
 
     pub fn indent_width(&self) -> usize {
-        (self.indent_level - 1 + self.additional_indent_level) * self.indent_width
+        (self.indent_level + self.additional_indent_level) * self.indent_width
     }
 
     /// The width currently taken up for this line
