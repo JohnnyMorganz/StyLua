@@ -180,10 +180,10 @@ pub fn format_table_constructor<'ast>(
             || trivia_util::table_fields_contains_comments(table_constructor)
     };
 
-    let table_type = match is_multiline {
-        true => TableType::MultiLine,
-        false => match current_fields.peek() {
-            Some(_) => {
+    let table_type = match current_fields.peek() {
+        Some(_) => match is_multiline {
+            true => TableType::MultiLine,
+            false => {
                 // Determine if there was a new line at the end of the start brace
                 // If so, then we should always be multiline
                 if start_brace
@@ -195,8 +195,8 @@ pub fn format_table_constructor<'ast>(
                     TableType::SingleLine
                 }
             }
-            None => TableType::Empty,
         },
+        None => TableType::Empty,
     };
 
     if let TableType::MultiLine = table_type {
