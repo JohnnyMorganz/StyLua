@@ -3,14 +3,16 @@ source: tests/tests.rs
 expression: format(&contents)
 
 ---
-function foo(
+function foo(foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo, barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr)
+end
+
+function foobar(
 	fooooo,
 	barrrrrrrrrr,
 	bazzzzzzzzzzzzzzz,
 	fooooooooooo,
 	bazzzzzzzzzzzzzzzzzzz,
-	barrrrrrrrrrrrrrrrrrrrrrrr,
-	fooooooobarbaz
+	barrrrrrrrrrrrrrrrrrrrrrrr
 )
 	print("test")
 end
@@ -21,6 +23,14 @@ do
 		barr -- test
 	)
 		print("test")
+	end
+end
+
+do
+	function bar(
+		foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo,
+		barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+	)
 	end
 end
 

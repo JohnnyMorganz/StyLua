@@ -27,6 +27,7 @@ use crate::{
         trivia_util,
         util::{expression_range, token_range},
     },
+    shape::Shape,
 };
 
 /// Formats an Anonymous Function
@@ -464,6 +465,7 @@ pub fn format_function_body<'ast>(
     ctx: &mut Context,
     function_body: &FunctionBody<'ast>,
     add_trivia: bool,
+    shape: Shape,
 ) -> FunctionBody<'ast> {
     // Calculate trivia
     let additional_indent_level =
@@ -494,36 +496,35 @@ pub fn format_function_body<'ast>(
             contains_comments || type_specifier_comments
         });
 
-        contains_comments
-            || {
-                // Check the length of the parameters. We need to format them first onto a single line to check if required
-                let types_length: usize;
-                #[cfg(feature = "luau")]
-                {
-                    types_length = function_body
-                        .type_specifiers()
-                        .chain(std::iter::once(function_body.return_type())) // Include optional return type
-                        .map(|x| {
-                            x.map_or(0, |specifier| {
-                                format_type_specifier(ctx, specifier).to_string().len()
-                            })
+        contains_comments || {
+            // Check the length of the parameters. We need to format them first onto a single line to check if required
+            let types_length: usize;
+            #[cfg(feature = "luau")]
+            {
+                types_length = function_body
+                    .type_specifiers()
+                    .chain(std::iter::once(function_body.return_type())) // Include optional return type
+                    .map(|x| {
+                        x.map_or(0, |specifier| {
+                            format_type_specifier(ctx, specifier).to_string().len()
                         })
-                        .sum::<usize>()
-                }
-                #[cfg(not(feature = "luau"))]
-                {
-                    types_length = 0
-                }
+                    })
+                    .sum::<usize>()
+            }
+            #[cfg(not(feature = "luau"))]
+            {
+                types_length = 0
+            }
 
-                let line_length = format_singleline_parameters(ctx, function_body)
+            let line_length = format_singleline_parameters(ctx, function_body)
                     .to_string()
                     .len()
                         + 2 // Account for the parentheses around the parameters
-                        + types_length // Account for type specifiers and return type
-                        + ctx.indent_width_additional(ctx.get_range_indent_increase(token_range(function_body.parameters_parentheses().tokens().0)));
+                        + types_length; // Account for type specifiers and return type
 
-                line_length > ctx.config().column_width
-            }
+            let singleline_shape = shape + line_length;
+            singleline_shape.over_budget()
+        }
     };
 
     let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
@@ -757,6 +758,7 @@ pub fn format_function_name<'ast>(
 pub fn format_function_declaration<'ast>(
     ctx: &mut Context,
     function_declaration: &FunctionDeclaration<'ast>,
+    shape: Shape,
 ) -> FunctionDeclaration<'ast> {
     // Calculate trivia
     let additional_indent_level =
@@ -766,7 +768,12 @@ pub fn format_function_declaration<'ast>(
     let function_token = fmt_symbol!(ctx, function_declaration.function_token(), "function ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let formatted_function_name = format_function_name(ctx, function_declaration.name());
-    let formatted_function_body = format_function_body(ctx, function_declaration.body(), true);
+
+    let shape = shape.with_additional_indent(additional_indent_level)
+        + (strip_trivia(&function_token).to_string().len()
+            + strip_trivia(&formatted_function_name).to_string().len());
+    let formatted_function_body =
+        format_function_body(ctx, function_declaration.body(), true, shape);
 
     FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
@@ -777,6 +784,7 @@ pub fn format_function_declaration<'ast>(
 pub fn format_local_function<'ast>(
     ctx: &mut Context,
     local_function: &LocalFunction<'ast>,
+    shape: Shape,
 ) -> LocalFunction<'ast> {
     // Calculate trivia
     let additional_indent_level =
@@ -785,10 +793,12 @@ pub fn format_local_function<'ast>(
 
     let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-
     let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ");
     let formatted_name = format_token_reference(ctx, local_function.name());
-    let formatted_function_body = format_function_body(ctx, local_function.body(), true);
+
+    let shape = shape.with_additional_indent(additional_indent_level)
+        + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
+    let formatted_function_body = format_function_body(ctx, local_function.body(), true, shape);
 
     LocalFunction::new(formatted_name)
         .with_local_token(local_token)

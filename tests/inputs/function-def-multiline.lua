@@ -1,4 +1,7 @@
-function foo(fooooo, barrrrrrrrrr, bazzzzzzzzzzzzzzz, fooooooooooo, bazzzzzzzzzzzzzzzzzzz, barrrrrrrrrrrrrrrrrrrrrrrr, fooooooobarbaz)
+function foo(foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo, barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr)
+end
+
+function foobar(fooooo, barrrrrrrrrr, bazzzzzzzzzzzzzzz, fooooooooooo, bazzzzzzzzzzzzzzzzzzz, barrrrrrrrrrrrrrrrrrrrrrrr)
 	print("test")
 end
 
@@ -6,6 +9,11 @@ do
 	function foo(fooooo, barr -- test
 	)
 		print("test")
+	end
+end
+
+do
+	function bar(foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo, barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr)
 	end
 end
 

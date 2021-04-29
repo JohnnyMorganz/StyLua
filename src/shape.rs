@@ -53,7 +53,7 @@ impl Shape {
 
     /// Check to see whether our current width is above the budget available
     pub fn over_budget(&self) -> bool {
-        self.used_width() > self.column_width
+        self.used_width() >= self.column_width
     }
 
     /// Adds a width offset to the current width total

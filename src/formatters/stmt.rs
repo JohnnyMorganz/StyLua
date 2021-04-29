@@ -23,6 +23,7 @@ use crate::{
         trivia_util,
         util::{prefix_range, token_range},
     },
+    shape::Shape,
 };
 use full_moon::ast::{
     Do, ElseIf, Expression, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, Value, While,
@@ -31,11 +32,11 @@ use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
 macro_rules! fmt_stmt {
-    ($ctx:expr, $value:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
+    ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
         match $value {
             $(
                 $(#[$inner])*
-                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt)),
+                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt, $shape)),
             )+
             other => panic!("unknown node {:?}", other),
         }
@@ -56,7 +57,7 @@ fn remove_condition_parentheses(expression: Expression) -> Expression {
 }
 
 /// Format a Do node
-pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>) -> Do<'ast> {
+pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, shape: Shape) -> Do<'ast> {
     // Create trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(do_block.do_token()));
     let leading_trivia =
@@ -78,6 +79,7 @@ pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>) -> Do<'ast> {
 pub fn format_generic_for<'ast>(
     ctx: &mut Context,
     generic_for: &GenericFor<'ast>,
+    shape: Shape,
 ) -> GenericFor<'ast> {
     // Create trivia
     let additional_indent_level =
@@ -200,7 +202,7 @@ fn format_else_if<'ast>(ctx: &mut Context, else_if_node: &ElseIf<'ast>) -> ElseI
 }
 
 /// Format an If node
-pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>) -> If<'ast> {
+pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> If<'ast> {
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(if_node.if_token()));
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
@@ -297,6 +299,7 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>) -> If<'ast> {
 pub fn format_numeric_for<'ast>(
     ctx: &mut Context,
     numeric_for: &NumericFor<'ast>,
+    shape: Shape,
 ) -> NumericFor<'ast> {
     // Create trivia
     let additional_indent_level =
@@ -358,7 +361,11 @@ pub fn format_numeric_for<'ast>(
 }
 
 /// Format a Repeat node
-pub fn format_repeat_block<'ast>(ctx: &mut Context, repeat_block: &Repeat<'ast>) -> Repeat<'ast> {
+pub fn format_repeat_block<'ast>(
+    ctx: &mut Context,
+    repeat_block: &Repeat<'ast>,
+    shape: Shape,
+) -> Repeat<'ast> {
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(repeat_block.repeat_token()));
@@ -408,7 +415,11 @@ pub fn format_repeat_block<'ast>(ctx: &mut Context, repeat_block: &Repeat<'ast>)
 }
 
 /// Format a While node
-pub fn format_while_block<'ast>(ctx: &mut Context, while_block: &While<'ast>) -> While<'ast> {
+pub fn format_while_block<'ast>(
+    ctx: &mut Context,
+    while_block: &While<'ast>,
+    shape: Shape,
+) -> While<'ast> {
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(while_block.while_token()));
@@ -486,6 +497,7 @@ pub fn format_while_block<'ast>(ctx: &mut Context, while_block: &While<'ast>) ->
 pub fn format_function_call_stmt<'ast>(
     ctx: &mut Context,
     function_call: &FunctionCall<'ast>,
+    shape: Shape,
 ) -> FunctionCall<'ast> {
     // Calculate trivia
     let additional_indent_level =
@@ -499,10 +511,10 @@ pub fn format_function_call_stmt<'ast>(
     )
 }
 
-pub fn format_stmt<'ast>(ctx: &mut Context, stmt: &Stmt<'ast>) -> Stmt<'ast> {
+pub fn format_stmt<'ast>(ctx: &mut Context, stmt: &Stmt<'ast>, shape: Shape) -> Stmt<'ast> {
     check_should_format!(ctx, stmt);
 
-    fmt_stmt!(ctx, stmt, {
+    fmt_stmt!(ctx, stmt, shape, {
         Assignment = format_assignment,
         Do = format_do_block,
         FunctionCall = format_function_call_stmt,

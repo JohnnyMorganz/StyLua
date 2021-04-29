@@ -12,6 +12,7 @@ use crate::{
         trivia_util,
         util::token_range,
     },
+    shape::Shape,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -328,7 +329,8 @@ pub fn format_block<'ast>(ctx: &mut Context, block: Block<'ast>) -> Block<'ast> 
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
     while let Some((stmt, semi)) = stmt_iterator.next() {
-        let mut stmt = format_stmt(ctx, stmt);
+        let shape = Shape::from_context(ctx);
+        let mut stmt = format_stmt(ctx, stmt, shape);
 
         // If this is the first stmt, then remove any leading newlines
         if !found_first_stmt {
