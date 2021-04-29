@@ -7,10 +7,11 @@ use crate::{
             format_contained_span, format_end_token, format_symbol, format_token_reference,
             EndTokenType,
         },
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+        trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
         util::{expression_range, token_range},
     },
+    shape::Shape,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -34,6 +35,7 @@ pub fn format_field<'ast>(
     ctx: &mut Context,
     field: &Field<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
+    shape: Shape,
 ) -> (Field<'ast>, Vec<Token<'ast>>) {
     let trailing_trivia;
     let field = match field {
@@ -44,28 +46,33 @@ pub fn format_field<'ast>(
             value,
         } => {
             trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
+            let brackets =
+                format_contained_span(ctx, brackets).update_leading_trivia(leading_trivia);
+            let key = format_expression(ctx, key, shape + 1); // 1 = opening bracket
+            let equal = fmt_symbol!(ctx, equal, " = ");
+            let shape = shape.take_last_line(&key) + (2 + 3); // 2 = brackets, 3 = " = "
+            let value = format_expression(ctx, value, shape)
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![])); // We will remove all the trivia from this value, and place it after the comma
             Field::ExpressionKey {
-                brackets: format_contained_span(ctx, brackets)
-                    .update_leading_trivia(leading_trivia),
-                key: format_expression(ctx, key),
-                equal: fmt_symbol!(ctx, equal, " = "),
-                // We will remove all the trivia from this value, and place it after the comma
-                value: format_expression(ctx, value)
-                    .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+                brackets,
+                key,
+                equal,
+                value,
             }
         }
         Field::NameKey { key, equal, value } => {
             trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
-            Field::NameKey {
-                key: format_token_reference(ctx, key).update_leading_trivia(leading_trivia),
-                equal: fmt_symbol!(ctx, equal, " = "),
-                value: format_expression(ctx, value)
-                    .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            }
+            let key = format_token_reference(ctx, key).update_leading_trivia(leading_trivia);
+            let equal = fmt_symbol!(ctx, equal, " = ");
+            let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
+            let value = format_expression(ctx, value, shape)
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
+            Field::NameKey { key, equal, value }
         }
         Field::NoKey(expression) => {
             trailing_trivia = trivia_util::get_expression_trailing_trivia(expression);
-            let formatted_expression = format_expression(ctx, expression);
+            let formatted_expression = format_expression(ctx, expression, shape);
             if let FormatTriviaType::NoChange = leading_trivia {
                 Field::NoKey(formatted_expression)
             } else {
@@ -139,6 +146,7 @@ pub fn create_table_braces<'ast>(
 pub fn format_table_constructor<'ast>(
     ctx: &mut Context,
     table_constructor: &TableConstructor<'ast>,
+    shape: Shape,
 ) -> TableConstructor<'ast> {
     let mut fields = Punctuated::new();
     let mut current_fields = table_constructor
@@ -153,10 +161,10 @@ pub fn format_table_constructor<'ast>(
         end_brace.token().start_position().bytes(),
     );
 
-    // We subtract 20 as we don't have full information about what preceded this table constructor (e.g. the assignment).
-    // This is used as a general estimate. TODO: see if we can improve this calculation
-    let mut is_multiline =
-        (braces_range.1 - braces_range.0) + ctx.indent_width() > ctx.config().column_width - 20;
+    // Use input shape to determine if we are over budget
+    // TODO: should we format the table onto a single line first?
+    let singleline_shape = shape + (braces_range.1 - braces_range.0);
+    let mut is_multiline = singleline_shape.over_budget();
 
     // Determine if there are any comments within the table. If so, we should go multiline
     if !is_multiline {
@@ -205,6 +213,12 @@ pub fn format_table_constructor<'ast>(
         additional_indent_level,
     );
 
+    let mut shape = match table_type {
+        TableType::SingleLine => shape + 2, // 1 = opening brace, 1 = space
+        TableType::MultiLine => shape.reset(), // Will take new line
+        TableType::Empty => shape,
+    };
+
     while let Some(pair) = current_fields.next() {
         let (field, punctuation) = pair.into_tuple();
 
@@ -219,12 +233,16 @@ pub fn format_table_constructor<'ast>(
                     other => panic!("unknown node {:?}", other),
                 };
                 let additional_indent_level = ctx.get_range_indent_increase(range);
+                shape = shape
+                    .reset()
+                    .with_additional_indent(additional_indent_level);
                 FormatTriviaType::Append(vec![create_indent_trivia(ctx, additional_indent_level)])
             }
             _ => FormatTriviaType::NoChange,
         };
 
-        let (formatted_field, mut trailing_trivia) = format_field(ctx, &field, leading_trivia);
+        let (formatted_field, mut trailing_trivia) =
+            format_field(ctx, &field, leading_trivia, shape);
         // Filter trailing_trivia for any newlines
         trailing_trivia = trailing_trivia
             .iter()
@@ -249,6 +267,7 @@ pub fn format_table_constructor<'ast>(
             _ => {
                 if current_fields.peek().is_some() {
                     // Have more elements still to go
+                    shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
                     formatted_punctuation = match punctuation {
                         Some(punctuation) => Some(format_symbol(
                             ctx,

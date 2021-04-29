@@ -6,6 +6,7 @@ use crate::{
         trivia_util,
         util::token_range,
     },
+    shape::Shape,
     QuoteStyle,
 };
 use full_moon::ast::{
@@ -338,6 +339,7 @@ pub fn format_token_reference<'a>(
 pub fn format_token_reference_mut<'ast>(
     ctx: &mut Context,
     token_reference: &TokenReference<'ast>,
+    _: Shape,
 ) -> TokenReference<'ast> {
     format_token_reference(ctx, token_reference)
 }
@@ -375,13 +377,16 @@ pub fn format_punctuation<'ast>(
 pub fn format_punctuated_buffer<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
+    shape: Shape,
     value_formatter: F,
 ) -> (Punctuated<'a, T>, Vec<Token<'a>>)
 where
-    F: Fn(&mut Context, &T) -> T,
+    T: std::fmt::Display,
+    F: Fn(&mut Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
     let mut comments_buffer = Vec::new();
+    let mut shape = shape;
 
     for pair in old.pairs() {
         match pair {
@@ -390,12 +395,13 @@ where
                 let (formatted_punctuation, mut comments) = format_punctuation(punctuation);
                 comments_buffer.append(&mut comments);
 
-                let formatted_value = value_formatter(ctx, value);
+                let formatted_value = value_formatter(ctx, value, shape);
+                shape = shape + (formatted_value.to_string().len() + 2); // 2 = ", "
 
                 formatted.push(Pair::new(formatted_value, Some(formatted_punctuation)));
             }
             Pair::End(value) => {
-                let formatted_value = value_formatter(ctx, value);
+                let formatted_value = value_formatter(ctx, value, shape);
                 formatted.push(Pair::new(formatted_value, None));
             }
         }
@@ -410,23 +416,27 @@ where
 pub fn format_punctuated<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
+    shape: Shape,
     value_formatter: F,
 ) -> Punctuated<'a, T>
 where
-    F: Fn(&mut Context, &T) -> T,
+    T: std::fmt::Display,
+    F: Fn(&mut Context, &T, Shape) -> T,
 {
     let mut list: Punctuated<T> = Punctuated::new();
+    let mut shape = shape;
 
     for pair in old.pairs() {
         match pair {
             Pair::Punctuated(value, punctuation) => {
-                let value = value_formatter(ctx, value);
+                let value = value_formatter(ctx, value, shape);
                 let punctuation = fmt_symbol!(ctx, punctuation, ", ");
+                shape = shape + (value.to_string().len() + 2); // 2 = ", "
 
                 list.push(Pair::new(value, Some(punctuation)));
             }
             Pair::End(value) => {
-                let value = value_formatter(ctx, value);
+                let value = value_formatter(ctx, value, shape);
                 list.push(Pair::new(value, None));
             }
         }
@@ -439,32 +449,39 @@ where
 pub fn format_punctuated_multiline<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
+    shape: Shape,
     value_formatter: F,
     hang_level: Option<usize>,
 ) -> Punctuated<'a, T>
 where
     T: Node<'a>,
-    F: Fn(&mut Context, &T) -> T,
+    F: Fn(&mut Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
     let mut is_first = true; // Don't want to add an indent range for the first item, as it will be inline
+    let mut shape = shape;
 
     for pair in old.pairs() {
         // Indent the pair (unless its the first item)
         if is_first {
             is_first = false;
         } else {
-            ctx.add_indent_range((
+            let range = (
                 pair.start_position()
                     .expect("no pair start position")
                     .bytes(),
                 pair.end_position().expect("no pair end position").bytes(),
-            ))
+            );
+            let additional_indent_level = ctx.get_range_indent_increase(range);
+            ctx.add_indent_range(range); // TODO: should this be before we get the range indent increaese?
+            shape = shape
+                .reset()
+                .with_additional_indent(additional_indent_level);
         }
 
         match pair {
             Pair::Punctuated(value, punctuation) => {
-                let value = value_formatter(ctx, value);
+                let value = value_formatter(ctx, value, shape);
                 let punctuation = fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
                     FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
@@ -474,7 +491,7 @@ where
                 formatted.push(Pair::new(value, Some(punctuation)));
             }
             Pair::End(value) => {
-                let formatted_value = value_formatter(ctx, value);
+                let formatted_value = value_formatter(ctx, value, shape);
                 formatted.push(Pair::new(formatted_value, None));
             }
         }
@@ -488,11 +505,12 @@ where
 pub fn try_format_punctuated<'a, T, F>(
     ctx: &mut Context,
     old: &Punctuated<'a, T>,
+    shape: Shape,
     value_formatter: F,
 ) -> Punctuated<'a, T>
 where
-    T: Node<'a>,
-    F: Fn(&mut Context, &T) -> T,
+    T: Node<'a> + std::fmt::Display,
+    F: Fn(&mut Context, &T, Shape) -> T,
 {
     let mut format_multiline = false;
 
@@ -506,9 +524,9 @@ where
     }
 
     if format_multiline {
-        format_punctuated_multiline(ctx, old, value_formatter, Some(1))
+        format_punctuated_multiline(ctx, old, shape, value_formatter, Some(1))
     } else {
-        format_punctuated(ctx, old, value_formatter)
+        format_punctuated(ctx, old, shape, value_formatter)
     }
 }
 

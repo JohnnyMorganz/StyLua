@@ -13,9 +13,13 @@ use crate::{
         functions::{format_anonymous_function, format_call, format_function_call},
         general::{format_contained_span, format_token_reference},
         table::format_table_constructor,
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
+        trivia::{
+            strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
+            UpdateTrivia,
+        },
         trivia_util,
     },
+    shape::Shape,
 };
 
 #[macro_export]
@@ -92,8 +96,9 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
 pub fn format_expression<'ast>(
     ctx: &mut Context,
     expression: &Expression<'ast>,
+    shape: Shape,
 ) -> Expression<'ast> {
-    format_expression_internal(ctx, expression, ExpressionContext::Standard)
+    format_expression_internal(ctx, expression, ExpressionContext::Standard, shape)
 }
 
 /// Internal expression formatter, with access to expression context
@@ -101,6 +106,7 @@ fn format_expression_internal<'ast>(
     ctx: &mut Context,
     expression: &Expression<'ast>,
     context: ExpressionContext,
+    shape: Shape,
 ) -> Expression<'ast> {
     match expression {
         Expression::Value {
@@ -108,7 +114,7 @@ fn format_expression_internal<'ast>(
             #[cfg(feature = "luau")]
             type_assertion,
         } => Expression::Value {
-            value: Box::new(format_value(ctx, value)),
+            value: Box::new(format_value(ctx, value, shape)),
             #[cfg(feature = "luau")]
             type_assertion: match type_assertion {
                 Some(assertion) => Some(format_type_assertion(ctx, assertion)),
@@ -125,36 +131,45 @@ fn format_expression_internal<'ast>(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
-                format_expression(ctx, expression)
+                format_expression(ctx, expression, shape)
             } else {
                 Expression::Parentheses {
                     contained: format_contained_span(ctx, &contained),
-                    expression: Box::new(format_expression(ctx, expression)),
+                    expression: Box::new(format_expression(ctx, expression, shape + 1)), // 1 = opening parentheses
                 }
             }
         }
-        Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
-            unop: format_unop(ctx, unop),
-            expression: Box::new(format_expression(ctx, expression)),
-        },
-        Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
-            lhs: Box::new(format_expression(ctx, lhs)),
-            binop: format_binop(ctx, binop),
-            rhs: Box::new(format_expression(ctx, rhs)),
-        },
+        Expression::UnaryOperator { unop, expression } => {
+            let unop = format_unop(ctx, unop);
+            let shape = shape + strip_leading_trivia(&unop).to_string().len();
+            Expression::UnaryOperator {
+                unop,
+                expression: Box::new(format_expression(ctx, expression, shape)),
+            }
+        }
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            let lhs = format_expression(ctx, lhs, shape);
+            let binop = format_binop(ctx, binop);
+            let shape = shape.take_last_line(&lhs) + binop.to_string().len();
+            Expression::BinaryOperator {
+                lhs: Box::new(lhs),
+                binop,
+                rhs: Box::new(format_expression(ctx, rhs, shape)),
+            }
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
 
 /// Formats an Index Node
-pub fn format_index<'ast>(ctx: &mut Context, index: &Index<'ast>) -> Index<'ast> {
+pub fn format_index<'ast>(ctx: &mut Context, index: &Index<'ast>, shape: Shape) -> Index<'ast> {
     match index {
         Index::Brackets {
             brackets,
             expression,
         } => Index::Brackets {
             brackets: format_contained_span(ctx, &brackets),
-            expression: format_expression(ctx, expression),
+            expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
         },
 
         Index::Dot { dot, name } => Index::Dot {
@@ -166,12 +181,13 @@ pub fn format_index<'ast>(ctx: &mut Context, index: &Index<'ast>) -> Index<'ast>
 }
 
 /// Formats a Prefix Node
-pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>) -> Prefix<'ast> {
+pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>, shape: Shape) -> Prefix<'ast> {
     match prefix {
         Prefix::Expression(expression) => Prefix::Expression(format_expression_internal(
             ctx,
             expression,
             ExpressionContext::Prefix,
+            shape,
         )),
         Prefix::Name(token_reference) => Prefix::Name(format_token_reference(ctx, token_reference)),
         other => panic!("unknown node {:?}", other),
@@ -179,28 +195,28 @@ pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>) -> Prefix<'
 }
 
 /// Formats a Suffix Node
-pub fn format_suffix<'ast>(ctx: &mut Context, suffix: &Suffix<'ast>) -> Suffix<'ast> {
+pub fn format_suffix<'ast>(ctx: &mut Context, suffix: &Suffix<'ast>, shape: Shape) -> Suffix<'ast> {
     match suffix {
-        Suffix::Call(call) => Suffix::Call(format_call(ctx, call)),
-        Suffix::Index(index) => Suffix::Index(format_index(ctx, index)),
+        Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape)),
+        Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
         other => panic!("unknown node {:?}", other),
     }
 }
 
 /// Formats a Value Node
-pub fn format_value<'ast>(ctx: &mut Context, value: &Value<'ast>) -> Value<'ast> {
+pub fn format_value<'ast>(ctx: &mut Context, value: &Value<'ast>, shape: Shape) -> Value<'ast> {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function(
             format_anonymous_function(ctx, token_reference, function_body),
         ),
         Value::FunctionCall(function_call) => {
-            Value::FunctionCall(format_function_call(ctx, function_call))
+            Value::FunctionCall(format_function_call(ctx, function_call, shape))
         }
         Value::Number(token_reference) => {
             Value::Number(format_token_reference(ctx, token_reference))
         }
         Value::ParenthesesExpression(expression) => {
-            Value::ParenthesesExpression(format_expression(ctx, expression))
+            Value::ParenthesesExpression(format_expression(ctx, expression, shape))
         }
         Value::String(token_reference) => {
             Value::String(format_token_reference(ctx, token_reference))
@@ -209,19 +225,19 @@ pub fn format_value<'ast>(ctx: &mut Context, value: &Value<'ast>) -> Value<'ast>
             Value::Symbol(format_token_reference(ctx, token_reference))
         }
         Value::TableConstructor(table_constructor) => {
-            Value::TableConstructor(format_table_constructor(ctx, table_constructor))
+            Value::TableConstructor(format_table_constructor(ctx, table_constructor, shape))
         }
-        Value::Var(var) => Value::Var(format_var(ctx, var)),
+        Value::Var(var) => Value::Var(format_var(ctx, var, shape)),
         other => panic!("unknown node {:?}", other),
     }
 }
 
 /// Formats a Var Node
-pub fn format_var<'ast>(ctx: &mut Context, var: &Var<'ast>) -> Var<'ast> {
+pub fn format_var<'ast>(ctx: &mut Context, var: &Var<'ast>, shape: Shape) -> Var<'ast> {
     match var {
         Var::Name(token_reference) => Var::Name(format_token_reference(ctx, token_reference)),
         Var::Expression(var_expression) => {
-            Var::Expression(format_var_expression(ctx, var_expression))
+            Var::Expression(format_var_expression(ctx, var_expression, shape))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -230,11 +246,18 @@ pub fn format_var<'ast>(ctx: &mut Context, var: &Var<'ast>) -> Var<'ast> {
 pub fn format_var_expression<'ast>(
     ctx: &mut Context,
     var_expression: &VarExpression<'ast>,
+    shape: Shape,
 ) -> VarExpression<'ast> {
-    let formatted_prefix = format_prefix(ctx, var_expression.prefix());
+    let formatted_prefix = format_prefix(ctx, var_expression.prefix(), shape);
+    let mut shape = shape + strip_leading_trivia(&formatted_prefix).to_string().len();
+
     let formatted_suffixes = var_expression
         .suffixes()
-        .map(|x| format_suffix(ctx, x))
+        .map(|x| {
+            let suffix = format_suffix(ctx, x, shape);
+            shape = shape + suffix.to_string().len();
+            suffix
+        })
         .collect();
 
     VarExpression::new(formatted_prefix).with_suffixes(formatted_suffixes)

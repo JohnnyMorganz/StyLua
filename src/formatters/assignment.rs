@@ -15,10 +15,11 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var, hang_expression_no_trailing_newline},
         general::{format_punctuated, format_token_reference_mut, try_format_punctuated},
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+        trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
         util::token_range,
     },
+    shape::Shape,
 };
 
 /// Returns an Assignment with leading and trailing trivia removed
@@ -59,9 +60,10 @@ fn strip_local_assignment_trivia<'ast>(
     }
 }
 
-fn hang_punctuated_list<'ast>(
+pub fn hang_punctuated_list<'ast>(
     ctx: &mut Context,
     punctuated: &Punctuated<'ast, Expression<'ast>>,
+    shape: Shape,
     additional_indent_level: Option<usize>,
 ) -> Punctuated<'ast, Expression<'ast>> {
     // Add the expression list into the indent range, as it will be indented by one
@@ -69,17 +71,22 @@ fn hang_punctuated_list<'ast>(
         .range()
         .expect("no range for assignment punctuated list");
     ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
+
     let mut output = Punctuated::new();
+    let mut shape = shape;
 
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
-        let expr = format_expression(ctx, pair.value());
+        let expr = format_expression(ctx, pair.value(), shape);
         let value = hang_expression_no_trailing_newline(ctx, expr, additional_indent_level, None);
+        shape = shape.take_last_line(&strip_trivia(&value));
+
         output.push(Pair::new(
             value,
             pair.punctuation().map(|x| fmt_symbol!(ctx, x, ", ")),
-        ))
+        ));
+        shape = shape + 2; // 2 = ", "
     }
 
     output
@@ -124,20 +131,22 @@ fn check_long_expression<'ast>(
 pub fn format_assignment<'ast>(
     ctx: &mut Context,
     assignment: &Assignment<'ast>,
+    shape: Shape,
 ) -> Assignment<'ast> {
     // Calculate trivia - pick an arbitrary range within the whole assignment expression to see if
     // indentation is required
     // Leading trivia added to before the var_list, trailing trivia added to the end of the expr_list
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(assignment.equal_token().token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let var_list = try_format_punctuated(ctx, assignment.variables(), format_var);
-    // Don't need to worry about comments in expr_list, as it will automatically force multiline
-    let mut expr_list = format_punctuated(ctx, assignment.expressions(), format_expression);
-
+    let var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
     let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ");
+    let shape = shape + (strip_trivia(&var_list).to_string().len() + 3); // 3 = " = "
+
+    let mut expr_list = format_punctuated(ctx, assignment.expressions(), shape, format_expression); // Don't need to worry about comments in expr_list, as it will automatically force multiline
 
     // Create preliminary assignment
     let formatted_assignment = Assignment::new(var_list.to_owned(), expr_list.to_owned())
@@ -146,15 +155,10 @@ pub fn format_assignment<'ast>(
     // Test whether we need to hang the expression, using the updated assignment
     // We have to format normally before this, since we may be expanding the expression onto multiple lines
     // (e.g. if it was a table). We only want to use the first line to determine if we need to hang the expression
-    let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-    let require_multiline_expression = indent_spacing
-        + strip_assignment_trivia(&formatted_assignment)
-            .to_string()
-            .lines()
-            .next()
-            .expect("no lines")
-            .len()
-        > ctx.config().column_width
+    let require_multiline_expression = shape
+        .reset()
+        .take_first_line(&strip_assignment_trivia(&formatted_assignment))
+        .over_budget()
         || assignment.expressions().pairs().any(|pair| {
             pair.punctuation()
                 .map_or(false, |punc| trivia_util::token_contains_comments(punc))
@@ -162,7 +166,12 @@ pub fn format_assignment<'ast>(
         });
 
     if require_multiline_expression {
-        expr_list = hang_punctuated_list(ctx, assignment.expressions(), additional_indent_level);
+        expr_list = hang_punctuated_list(
+            ctx,
+            assignment.expressions(),
+            shape,
+            additional_indent_level,
+        );
 
         equal_token = check_long_expression(
             ctx,
@@ -188,19 +197,22 @@ pub fn format_assignment<'ast>(
 pub fn format_local_assignment<'ast>(
     ctx: &mut Context,
     assignment: &LocalAssignment<'ast>,
+    shape: Shape,
 ) -> LocalAssignment<'ast> {
     // Calculate trivia - pick an arbitrary range within the whole local assignment expression to see if
     // indentation is required
     // Leading trivia added to before the local token, and trailing trivia added to the end of the expr_list, or name_list if no expr_list provided
     let additional_indent_level =
         ctx.get_range_indent_increase(token_range(assignment.local_token().token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-
-    let mut name_list = try_format_punctuated(ctx, assignment.names(), format_token_reference_mut);
+    let shape = shape + 6; // 6 = "local "
+    let mut name_list =
+        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
 
     #[cfg(feature = "luau")]
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
@@ -239,8 +251,11 @@ pub fn format_local_assignment<'ast>(
         local_assignment
     } else {
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ");
-        // Format the expression normally - if there are any comments, it will automatically force multiline
-        let mut expr_list = format_punctuated(ctx, assignment.expressions(), format_expression);
+        let shape = shape + (strip_trivia(&name_list).to_string().len() + 3); // 3 = " = "
+        let mut expr_list =
+            // Format the expression normally - if there are any comments, it will automatically force multiline
+            format_punctuated(ctx, assignment.expressions(), shape, format_expression);
+
         // Create our preliminary new assignment
         let local_assignment = LocalAssignment::new(name_list)
             .with_local_token(local_token)
@@ -252,15 +267,10 @@ pub fn format_local_assignment<'ast>(
         // Test whether we need to hang the expression, using the updated assignment
         // We have to format normally before this, since we may be expanding the expression onto multiple lines
         // (e.g. if it was a table). We only want to use the first line to determine if we need to hang the expression
-        let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-        let require_multiline_expression = indent_spacing
-            + strip_local_assignment_trivia(&local_assignment)
-                .to_string()
-                .lines()
-                .next()
-                .expect("no lines")
-                .len()
-            > ctx.config().column_width
+        let require_multiline_expression = shape
+            .reset()
+            .take_first_line(&strip_local_assignment_trivia(&local_assignment))
+            .over_budget()
             || assignment.expressions().pairs().any(|pair| {
                 pair.punctuation()
                     .map_or(false, |punc| trivia_util::token_contains_comments(punc))
@@ -269,8 +279,12 @@ pub fn format_local_assignment<'ast>(
 
         // Format the expression depending on whether we are multline or not
         if require_multiline_expression {
-            expr_list =
-                hang_punctuated_list(ctx, assignment.expressions(), additional_indent_level);
+            expr_list = hang_punctuated_list(
+                ctx,
+                assignment.expressions(),
+                shape,
+                additional_indent_level,
+            );
 
             equal_token = check_long_expression(
                 ctx,

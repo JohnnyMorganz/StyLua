@@ -79,7 +79,7 @@ pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, _shape: Shape) 
 pub fn format_generic_for<'ast>(
     ctx: &mut Context,
     generic_for: &GenericFor<'ast>,
-    _shape: Shape,
+    shape: Shape,
 ) -> GenericFor<'ast> {
     // Create trivia
     let additional_indent_level =
@@ -87,10 +87,11 @@ pub fn format_generic_for<'ast>(
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let mut trailing_trivia = vec![create_newline_trivia(ctx)];
 
+    // TODO: Should we actually update the shape here?
     let for_token = fmt_symbol!(ctx, generic_for.for_token(), "for ")
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
     let (formatted_names, mut names_comments_buf) =
-        format_punctuated_buffer(ctx, generic_for.names(), format_token_reference_mut);
+        format_punctuated_buffer(ctx, generic_for.names(), shape, format_token_reference_mut);
 
     #[cfg(feature = "luau")]
     let type_specifiers = generic_for
@@ -103,7 +104,7 @@ pub fn format_generic_for<'ast>(
 
     let in_token = fmt_symbol!(ctx, generic_for.in_token(), " in ");
     let (formatted_expr_list, mut expr_comments_buf) =
-        format_punctuated_buffer(ctx, generic_for.expressions(), format_expression);
+        format_punctuated_buffer(ctx, generic_for.expressions(), shape, format_expression);
 
     // Create comments buffer and append to end of do token
     names_comments_buf.append(&mut expr_comments_buf);
@@ -174,15 +175,17 @@ fn format_else_if<'ast>(
             .expect("no range for else if condition");
         ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-        let condition = format_expression(ctx, &condition);
+        let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
+        let condition = format_expression(
+            ctx,
+            &condition,
+            shape.reset().with_additional_indent(indent_level),
+        );
         hang_expression(ctx, condition, additional_indent_level, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(
-                ctx,
-                Some(additional_indent_level.unwrap_or(0) + 1),
-            )]),
+            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
         )
     } else {
-        format_expression(ctx, &condition)
+        format_expression(ctx, &condition, shape + 7) // 7 = "elseif "
     };
 
     let formatted_then_token = fmt_symbol!(ctx, else_if_node.then_token(), then_text)
@@ -235,15 +238,17 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
             .expect("no range for if condition");
         ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-        let condition = format_expression(ctx, &condition);
+        let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
+        let condition = format_expression(
+            ctx,
+            &condition,
+            shape.reset().with_additional_indent(indent_level),
+        );
         hang_expression(ctx, condition, additional_indent_level, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(
-                ctx,
-                Some(additional_indent_level.unwrap_or(0) + 1),
-            )]),
+            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
         )
     } else {
-        format_expression(ctx, &condition)
+        format_expression(ctx, &condition, shape + 3) // 3 = "if "
     };
 
     let formatted_then_token = fmt_symbol!(ctx, if_node.then_token(), then_text).update_trivia(
@@ -295,7 +300,7 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
 pub fn format_numeric_for<'ast>(
     ctx: &mut Context,
     numeric_for: &NumericFor<'ast>,
-    _shape: Shape,
+    shape: Shape,
 ) -> NumericFor<'ast> {
     // Create trivia
     let additional_indent_level =
@@ -313,10 +318,11 @@ pub fn format_numeric_for<'ast>(
         None => None,
     };
 
+    // TODO: Should we actually update the shape here?
     let equal_token = fmt_symbol!(ctx, numeric_for.equal_token(), " = ");
-    let formatted_start_expression = format_expression(ctx, numeric_for.start());
+    let formatted_start_expression = format_expression(ctx, numeric_for.start(), shape);
     let start_end_comma = fmt_symbol!(ctx, numeric_for.start_end_comma(), ", ");
-    let formatted_end_expression = format_expression(ctx, numeric_for.end());
+    let formatted_end_expression = format_expression(ctx, numeric_for.end(), shape);
 
     let (end_step_comma, formatted_step_expression) = match numeric_for.step() {
         Some(step) => (
@@ -325,7 +331,7 @@ pub fn format_numeric_for<'ast>(
                 numeric_for.end_step_comma().unwrap(),
                 ", "
             )),
-            Some(format_expression(ctx, step)),
+            Some(format_expression(ctx, step, shape)),
         ),
         None => (None, None),
     };
@@ -384,7 +390,7 @@ pub fn format_repeat_block<'ast>(
     let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::expression_contains_inline_comments(&condition);
 
-    let formatted_until = format_expression(ctx, &condition);
+    let formatted_until = format_expression(ctx, &condition, shape + 6); // 6 = "until "
     let formatted_until_trivia = match require_multiline_expression {
         true => {
             // Add the expression list into the indent range, as it will be indented by one
@@ -443,15 +449,17 @@ pub fn format_while_block<'ast>(
             .expect("no range for while condition");
         ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
 
-        let condition = format_expression(ctx, &condition);
+        let indent_level = Some(additional_indent_level.unwrap_or(0) + 1);
+        let condition = format_expression(
+            ctx,
+            &condition,
+            shape.reset().with_additional_indent(indent_level),
+        );
         hang_expression(ctx, condition, additional_indent_level, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(
-                ctx,
-                Some(additional_indent_level.unwrap_or(0) + 1),
-            )]),
+            FormatTriviaType::Append(vec![create_indent_trivia(ctx, indent_level)]),
         )
     } else {
-        format_expression(ctx, &condition)
+        format_expression(ctx, &condition, shape + 6) // 6 = "while "
     };
 
     let do_token = fmt_symbol!(ctx, while_block.do_token(), do_text).update_trivia(
@@ -488,10 +496,11 @@ pub fn format_function_call_stmt<'ast>(
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(prefix_range(function_call.prefix()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    format_function_call(ctx, function_call).update_trivia(
+    format_function_call(ctx, function_call, shape).update_trivia(
         FormatTriviaType::Append(leading_trivia),
         FormatTriviaType::Append(trailing_trivia),
     )
