@@ -13,7 +13,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{format_expression, format_var, hang_expression_no_trailing_newline},
+        expression::{format_expression, format_var, hang_expression},
         general::{format_punctuated, format_token_reference_mut, try_format_punctuated},
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
@@ -79,8 +79,7 @@ pub fn hang_punctuated_list<'ast>(
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
         let expr = format_expression(ctx, pair.value(), shape);
-        let value =
-            hang_expression_no_trailing_newline(ctx, expr, additional_indent_level, shape, None);
+        let value = hang_expression(ctx, expr, additional_indent_level, shape, None);
         shape = shape.take_last_line(&strip_trivia(&value));
 
         output.push(Pair::new(
