@@ -330,30 +330,22 @@ pub fn format_function_args<'ast>(
                 );
 
                 let mut formatted_arguments = Punctuated::new();
-                // Iterate through the original formatted_arguments, so we can see how the formatted version would look like
-                let mut formatted_versions = first_iter_formatted_arguments.iter();
-
                 ctx.add_indent_range(function_call_range);
 
                 for argument in arguments.pairs() {
-                    // See what the formatted version of the argument would look like
-                    let formatted_version = formatted_versions
-                        .next()
-                        .expect("less arguments than expected");
-
                     let argument_range = expression_range(argument.value());
                     let additional_indent_level = ctx.get_range_indent_increase(argument_range);
                     let shape = shape
                         .reset()
                         .with_additional_indent(additional_indent_level); // Argument is on a new line, so reset the shape
 
+                    let mut formatted_argument = format_expression(ctx, argument.value(), shape);
+
                     let require_multiline_expression =
                         trivia_util::can_hang_expression(argument.value())
-                            && shape.take_first_line(formatted_version).over_budget();
-
-                    // Unfortunately, we need to format again, taking into account in indent increase
-                    // TODO: Can we fix this? We don't want to have to format twice
-                    let mut formatted_argument = format_expression(ctx, argument.value(), shape);
+                            && shape
+                                .take_first_line(&strip_trivia(&formatted_argument))
+                                .over_budget();
 
                     // Hang the expression if necessary
                     if require_multiline_expression {
