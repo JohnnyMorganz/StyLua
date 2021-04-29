@@ -4,10 +4,8 @@ use crate::{
     fmt_symbol,
     formatters::{
         assignment::hang_punctuated_list,
-        expression::{format_expression, hang_expression_no_trailing_newline},
-        general::{
-            format_punctuated, format_punctuated_multiline, format_symbol, try_format_punctuated,
-        },
+        expression::format_expression,
+        general::{format_symbol, try_format_punctuated},
         stmt::format_stmt,
         trivia::{
             strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
@@ -18,10 +16,8 @@ use crate::{
     shape::Shape,
 };
 use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
+    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
 };
-use full_moon::node::Node;
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
 #[cfg(feature = "luau")]
@@ -34,55 +30,6 @@ macro_rules! update_first_token {
         Stmt::$enum($var.$update_method(new_token))
     }};
 }
-
-// /// Attempts to fit a punctuated list inside the column width.
-// /// Input takes in a shape, which is already primed with the current indent level.
-// fn fit_punctuated_list<'ast>(
-//     ctx: &mut Context,
-//     shape: Shape,
-//     list: &Punctuated<'ast, Expression<'ast>>,
-// ) -> Punctuated<'ast, Expression<'ast>> {
-//     // Firstly try fitting on a single line [TODO: Make sure to take into account if its multiline [table/function]]
-//     // If it fails, see if there is more than one item in the list
-//     //  1) Only one item -> attempt to hang the expression. Cannot do any further
-//     //  2) More than one item -> hang based on the punctuation
-//     //      Go through each item, and check individually for failure. If it fails, hang that item
-
-//     // Firstly try fitting the list on a single line [TODO: take into account multiline (table/function)]
-//     let mut output = format_punctuated(ctx, list, format_expression).0; // TODO: trailing comments buffer -> we don't want it
-//     let single_line_list_shape = shape + strip_trivia(&output).to_string().len();
-//     if single_line_list_shape.over_budget() {
-//         // The list is over budget, so try changing the formatting
-//         if list.len() > 1 {
-//             // More than one item -> first try hanging based on punctuation
-//             output = format_punctuated_multiline(ctx, list, format_expression, None);
-//             // Check each item in the shape
-//         }
-
-//         // Only one item. Attempt to hang the expression. We can't do anything else
-//         // Add the expression list into the indent range, as it will be indented by one
-//         let expr_range = list.range().expect("no range for punctuated");
-//         ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-
-//         let mut new_list = Punctuated::new();
-//         for pair in output.pairs() {
-//             new_list.push(pair.map(|value| {
-//                 if trivia_util::can_hang_expression(value) {
-//                     hang_expression_no_trailing_newline(
-//                         ctx,
-//                         value.to_owned(),
-//                         additional_indent_level,
-//                         None,
-//                     );
-//                 }
-//             }))
-//         }
-
-//         output = new_list;
-//     }
-
-//     output
-// }
 
 pub fn format_return<'ast>(
     ctx: &mut Context,
