@@ -439,15 +439,17 @@ fn format_hanging_expression_<'ast>(
                 format_hanging_expression_(ctx, expression, shape, indent_level)
             } else {
                 let contained = format_contained_span(ctx, &contained);
-                let expression = format_expression(ctx, expression, shape + 1); // 1 = opening parentheses
 
+                // Provide a sample formatting to see how large it is
                 // Examine the expression itself to see if needs to be split onto multiple lines
-                let expression_str = expression.to_string();
+                let formatted_expression = format_expression(ctx, expression, shape + 1); // 1 = opening parentheses
+
+                let expression_str = formatted_expression.to_string();
                 if !shape.add_width(2 + expression_str.len()).over_budget() {
                     // The expression inside the parentheses is small, we do not need to break it down further
                     return Expression::Parentheses {
                         contained,
-                        expression: Box::new(expression),
+                        expression: Box::new(formatted_expression),
                     };
                 }
 
@@ -480,7 +482,6 @@ fn format_hanging_expression_<'ast>(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let expression = format_expression(ctx, expression, shape);
             let expression = format_hanging_expression_(ctx, &expression, shape, indent_level);
 
             Expression::UnaryOperator {
