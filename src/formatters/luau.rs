@@ -8,9 +8,12 @@ use crate::{
             format_token_reference_mut, try_format_punctuated,
         },
         table::{create_table_braces, TableType},
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+        trivia::{
+            strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
+        },
         util::{expression_range, token_range},
     },
+    shape::Shape,
 };
 use full_moon::ast::types::{
     CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
@@ -39,20 +42,33 @@ pub fn format_compound_op<'ast>(ctx: &Context, compound_op: &CompoundOp<'ast>) -
 pub fn format_compound_assignment<'ast>(
     ctx: &mut Context,
     compound_assignment: &CompoundAssignment<'ast>,
+    shape: Shape,
 ) -> CompoundAssignment<'ast> {
     // Calculate trivia
     let additional_indent_level =
         ctx.get_range_indent_increase(expression_range(compound_assignment.rhs()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    let lhs = format_var(ctx, compound_assignment.lhs())
+    let lhs = format_var(ctx, compound_assignment.lhs(), shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let compound_operator = format_compound_op(ctx, compound_assignment.compound_operator());
-    let rhs = format_expression(ctx, compound_assignment.rhs())
+    let shape = shape
+        + (strip_leading_trivia(&lhs).to_string().len() + compound_operator.to_string().len());
+
+    let rhs = format_expression(ctx, compound_assignment.rhs(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     CompoundAssignment::new(lhs, compound_operator, rhs)
+}
+
+fn format_type_info_shape<'ast>(
+    ctx: &mut Context,
+    type_info: &TypeInfo<'ast>,
+    _shape: Shape,
+) -> TypeInfo<'ast> {
+    format_type_info(ctx, type_info)
 }
 
 pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> TypeInfo<'ast> {
@@ -80,7 +96,12 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             return_type,
         } => {
             let parentheses = format_contained_span(ctx, parentheses);
-            let arguments = try_format_punctuated(ctx, arguments, format_type_info);
+            let arguments = try_format_punctuated(
+                ctx,
+                arguments,
+                Shape::from_context(ctx),
+                format_type_info_shape,
+            );
             let arrow = fmt_symbol!(ctx, arrow, " -> ");
             let return_type = Box::new(format_type_info(ctx, return_type));
             TypeInfo::Callback {
@@ -98,7 +119,12 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
         } => {
             let base = format_token_reference(ctx, base);
             let arrows = format_contained_span(ctx, arrows);
-            let generics = try_format_punctuated(ctx, generics, format_type_info);
+            let generics = try_format_punctuated(
+                ctx,
+                generics,
+                Shape::from_context(ctx),
+                format_type_info_shape,
+            );
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -247,7 +273,7 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                 ),
             );
             let parentheses = format_contained_span(ctx, parentheses);
-            let inner = Box::new(format_expression(ctx, inner));
+            let inner = Box::new(format_expression(ctx, inner, Shape::from_context(ctx)));
             TypeInfo::Typeof {
                 typeof_token,
                 parentheses,
@@ -257,7 +283,8 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
 
         TypeInfo::Tuple { parentheses, types } => {
             let parentheses = format_contained_span(ctx, parentheses);
-            let types = try_format_punctuated(ctx, types, format_type_info);
+            let types =
+                try_format_punctuated(ctx, types, Shape::from_context(ctx), format_type_info_shape);
 
             TypeInfo::Tuple { parentheses, types }
         }
@@ -290,7 +317,12 @@ pub fn format_indexed_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base);
             let arrows = format_contained_span(ctx, arrows);
-            let generics = try_format_punctuated(ctx, generics, format_type_info);
+            let generics = try_format_punctuated(
+                ctx,
+                generics,
+                Shape::from_context(ctx),
+                format_type_info_shape,
+            );
             IndexedTypeInfo::Generic {
                 base,
                 arrows,
@@ -395,6 +427,7 @@ fn format_type_declaration<'ast>(
 pub fn format_type_declaration_stmt<'ast>(
     ctx: &mut Context,
     type_declaration: &TypeDeclaration<'ast>,
+    _shape: Shape,
 ) -> TypeDeclaration<'ast> {
     format_type_declaration(ctx, type_declaration, true)
 }
@@ -407,6 +440,7 @@ pub fn format_generic_declaration<'ast>(
     let generics = try_format_punctuated(
         ctx,
         generic_declaration.generics(),
+        Shape::from_context(ctx),
         format_token_reference_mut,
     );
 
@@ -432,6 +466,7 @@ pub fn format_type_specifier<'ast>(
 pub fn format_exported_type_declaration<'ast>(
     ctx: &mut Context,
     exported_type_declaration: &ExportedTypeDeclaration<'ast>,
+    _shape: Shape,
 ) -> ExportedTypeDeclaration<'ast> {
     // Calculate trivia
     let additional_indent_level =

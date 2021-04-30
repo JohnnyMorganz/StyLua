@@ -6,11 +6,12 @@ use crate::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         util::token_range,
     },
+    shape::Shape,
 };
 use full_moon::ast::lua52::{Goto, Label};
 use full_moon::tokenizer::TokenReference;
 
-pub fn format_goto<'ast>(ctx: &Context, goto: &Goto<'ast>) -> Goto<'ast> {
+pub fn format_goto<'ast>(ctx: &Context, goto: &Goto<'ast>, _shape: Shape) -> Goto<'ast> {
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(goto.goto_token()));
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
@@ -25,7 +26,7 @@ pub fn format_goto<'ast>(ctx: &Context, goto: &Goto<'ast>) -> Goto<'ast> {
     Goto::new(label_name).with_goto_token(goto_token)
 }
 
-pub fn format_label<'ast>(ctx: &Context, label: &Label<'ast>) -> Label<'ast> {
+pub fn format_label<'ast>(ctx: &Context, label: &Label<'ast>, _shape: Shape) -> Label<'ast> {
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(label.left_colons()));
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];

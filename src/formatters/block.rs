@@ -3,7 +3,8 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{format_expression, hang_expression_no_trailing_newline},
+        assignment::hang_punctuated_list,
+        expression::format_expression,
         general::{format_symbol, try_format_punctuated},
         stmt::format_stmt,
         trivia::{
@@ -12,12 +13,11 @@ use crate::{
         trivia_util,
         util::token_range,
     },
+    shape::Shape,
 };
 use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
+    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
 };
-use full_moon::node::Node;
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
 #[cfg(feature = "luau")]
@@ -31,9 +31,14 @@ macro_rules! update_first_token {
     }};
 }
 
-pub fn format_return<'ast>(ctx: &mut Context, return_node: &Return<'ast>) -> Return<'ast> {
+pub fn format_return<'ast>(
+    ctx: &mut Context,
+    return_node: &Return<'ast>,
+    shape: Shape,
+) -> Return<'ast> {
     // Calculate trivia
     let additional_indent_level = ctx.get_range_indent_increase(token_range(return_node.token()));
+    let shape = shape.with_additional_indent(additional_indent_level);
     let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -48,41 +53,18 @@ pub fn format_return<'ast>(ctx: &mut Context, return_node: &Return<'ast>) -> Ret
         let token = fmt_symbol!(ctx, return_node.token(), "return ")
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
+        let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
         let mut formatted_returns =
-            try_format_punctuated(ctx, return_node.returns(), format_expression);
+            try_format_punctuated(ctx, return_node.returns(), shape, format_expression);
 
         // Determine if we need to hang the condition
-        let first_line_str = strip_trivia(return_node.token()).to_string()
-            + " "
-            + &strip_trivia(&formatted_returns).to_string();
-
-        let indent_spacing = ctx.indent_width_additional(additional_indent_level);
-        let require_multiline_expression = (indent_spacing
-            + first_line_str
-                .trim()
-                .lines()
-                .next()
-                .expect("no lines")
-                .len())
-            > ctx.config().column_width;
+        let require_multiline_expression = shape
+            .take_first_line(&strip_trivia(&formatted_returns))
+            .over_budget();
 
         if require_multiline_expression {
-            // Add the expression list into the indent range, as it will be indented by one
-            let expr_range = return_node.returns().range().expect("no range for returns");
-            ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-
-            // Hang each expression
-            let mut new_list = Punctuated::new();
-            for pair in return_node.returns().pairs() {
-                let expr = format_expression(ctx, pair.value());
-                let value =
-                    hang_expression_no_trailing_newline(ctx, expr, additional_indent_level, None);
-                new_list.push(Pair::new(
-                    value,
-                    pair.punctuation().map(|x| fmt_symbol!(ctx, x, ", ")),
-                ));
-            }
-            formatted_returns = new_list
+            formatted_returns =
+                hang_punctuated_list(ctx, return_node.returns(), shape, additional_indent_level);
         }
 
         if let Some(pair) = formatted_returns.pop() {
@@ -97,7 +79,11 @@ pub fn format_return<'ast>(ctx: &mut Context, return_node: &Return<'ast>) -> Ret
     }
 }
 
-pub fn format_last_stmt<'ast>(ctx: &mut Context, last_stmt: &LastStmt<'ast>) -> LastStmt<'ast> {
+pub fn format_last_stmt<'ast>(
+    ctx: &mut Context,
+    last_stmt: &LastStmt<'ast>,
+    shape: Shape,
+) -> LastStmt<'ast> {
     check_should_format!(ctx, last_stmt);
 
     match last_stmt {
@@ -109,7 +95,7 @@ pub fn format_last_stmt<'ast>(ctx: &mut Context, last_stmt: &LastStmt<'ast>) -> 
             FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
         )),
 
-        LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node)),
+        LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node, shape)),
         #[cfg(feature = "luau")]
         LastStmt::Continue(token) => LastStmt::Continue(
             format_symbol(
@@ -328,7 +314,8 @@ pub fn format_block<'ast>(ctx: &mut Context, block: Block<'ast>) -> Block<'ast> 
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
     while let Some((stmt, semi)) = stmt_iterator.next() {
-        let mut stmt = format_stmt(ctx, stmt);
+        let shape = Shape::from_context(ctx);
+        let mut stmt = format_stmt(ctx, stmt, shape);
 
         // If this is the first stmt, then remove any leading newlines
         if !found_first_stmt {
@@ -400,7 +387,8 @@ pub fn format_block<'ast>(ctx: &mut Context, block: Block<'ast>) -> Block<'ast> 
 
     let formatted_last_stmt = match block.last_stmt_with_semicolon() {
         Some((last_stmt, semi)) => {
-            let mut last_stmt = format_last_stmt(ctx, last_stmt);
+            let shape = Shape::from_context(ctx);
+            let mut last_stmt = format_last_stmt(ctx, last_stmt, shape);
             // If this is the first stmt, then remove any leading newlines
             if !found_first_stmt && ctx.should_format_node(&last_stmt) {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);

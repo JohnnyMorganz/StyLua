@@ -2,8 +2,8 @@
 use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
-    FunctionBody, FunctionCall, Index, MethodCall, Parameter, Prefix, Suffix, TableConstructor,
-    UnOp, Value, Var, VarExpression,
+    FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
+    TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 
@@ -26,6 +26,20 @@ where
 {
     item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
         .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+}
+
+pub fn strip_leading_trivia<'ast, T>(item: &T) -> T
+where
+    T: UpdateLeadingTrivia<'ast>,
+{
+    item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
+}
+
+pub fn strip_trailing_trivia<'ast, T>(item: &T) -> T
+where
+    T: UpdateTrailingTrivia<'ast>,
+{
+    item.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
 }
 
 pub trait UpdateLeadingTrivia<'ast> {
@@ -309,6 +323,22 @@ define_update_trivia!(FunctionCall, |this, leading, trailing| {
     };
 
     this.to_owned().with_prefix(prefix).with_suffixes(suffixes)
+});
+
+define_update_trivia!(FunctionName, |this, leading, trailing| {
+    if let Some(method_name) = this.method_name() {
+        let names = this.names().update_leading_trivia(leading);
+        let method_name = method_name.update_trailing_trivia(trailing);
+        this.to_owned()
+            .with_names(names)
+            .with_method(Some((this.method_colon().unwrap().to_owned(), method_name)))
+    } else {
+        let names = this
+            .names()
+            .update_leading_trivia(leading)
+            .update_trailing_trivia(trailing);
+        this.to_owned().with_names(names)
+    }
 });
 
 define_update_trivia!(Index, |this, leading, trailing| {
