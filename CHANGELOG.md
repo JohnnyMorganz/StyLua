@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.8.0] - 2021-04-30
 ### Added
 - Parentheses around conditions are now removed, as they are not required in Lua. `if (foo and (not bar or baz)) then ... end` turns to `if foo and (not bar or baz) then ... end`
 - Long multi-variable assignments which surpass the column width, even when hanging on the equals token, will now hang on multiple lines.
