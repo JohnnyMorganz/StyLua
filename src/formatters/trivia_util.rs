@@ -12,6 +12,10 @@ use full_moon::{
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
+pub fn trivia_is_whitespace(trivia: &Token) -> bool {
+    matches!(trivia.token_type(), TokenType::Whitespace { .. })
+}
+
 pub fn trivia_is_newline(trivia: &Token) -> bool {
     if let TokenType::Whitespace { characters } = trivia.token_type() {
         if characters.find('\n').is_some() {

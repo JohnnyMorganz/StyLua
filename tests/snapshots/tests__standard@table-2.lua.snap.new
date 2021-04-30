@@ -1,0 +1,22 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local foo = {
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+	"aaaa",
+}
+

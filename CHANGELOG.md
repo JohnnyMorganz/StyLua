@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.1] - 2021-04-19
 ### Fixed
 - Fixed parentheses around a table being incorrectly removed leading to a syntax error, such as in `({}):foo()`
+- Fixed trailing whitespace remaining on the last item of a multiline table (which was expanded from a singleline one)
 
 ## [0.7.0] - 2021-04-13
 ### Added

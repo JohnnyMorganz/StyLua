@@ -244,12 +244,21 @@ pub fn format_table_constructor<'ast>(
 
         let (formatted_field, mut trailing_trivia) =
             format_field(ctx, &field, leading_trivia, shape);
-        // Filter trailing_trivia for any newlines
-        trailing_trivia = trailing_trivia
+
+        // If trivia is just whitespace, ignore it completely
+        if trailing_trivia
             .iter()
-            .filter(|x| !trivia_util::trivia_is_newline(x))
-            .map(|x| x.to_owned())
-            .collect();
+            .all(trivia_util::trivia_is_whitespace)
+        {
+            trailing_trivia = Vec::new();
+        } else {
+            // Filter trailing trivia for any newlines
+            trailing_trivia = trailing_trivia
+                .iter()
+                .filter(|x| !trivia_util::trivia_is_newline(x))
+                .map(|x| x.to_owned())
+                .collect();
+        }
 
         let mut formatted_punctuation = None;
 
