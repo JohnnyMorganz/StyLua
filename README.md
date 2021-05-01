@@ -46,6 +46,18 @@ Similarly, for Lua 5.2 syntax, pass the `--features lua52` argument.
 cargo install stylua --features lua52
 ```
 
+### From Arch User Repository (AUR)
+for archlinux derivatives users, you can install StyLua using aurhelper like yay, pamac, paru, etc.
+example use paru as aurhelper
+```
+$ paru -S stylua-git
+````
+or 
+```
+$ paru -S stylua-bin
+````
+
+
 ## Usage
 Once installed, using StyLua is quick and simple, just pass the files to format to the CLI.
 ```
