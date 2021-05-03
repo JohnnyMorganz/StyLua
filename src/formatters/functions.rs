@@ -687,7 +687,7 @@ pub fn format_function_call<'ast>(
         }
     };
 
-    let mut shape = shape + strip_leading_trivia(&formatted_prefix).to_string().len(); // TODO: can the prefix be multiline?
+    let mut shape = shape.take_last_line(&strip_leading_trivia(&formatted_prefix));
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
     for suffix in function_call.suffixes() {
         // Calculate the range before formatting, otherwise it will reset to (0,0)

@@ -39,7 +39,18 @@ pub fn can_hang_expression(expression: &Expression) -> bool {
         Expression::Parentheses { expression, .. } => can_hang_expression(expression),
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
-        Expression::Value { .. } => false,
+        Expression::Value { value, .. } => match &**value {
+            Value::ParenthesesExpression(expression) => can_hang_expression(expression),
+            Value::FunctionCall(function_call) => match function_call.prefix() {
+                Prefix::Expression(expression) => can_hang_expression(expression),
+                _ => false,
+            },
+            Value::Var(Var::Expression(expression)) => match expression.prefix() {
+                Prefix::Expression(expression) => can_hang_expression(expression),
+                _ => false,
+            },
+            _ => false,
+        },
         other => panic!("unknown node {:?}", other),
     }
 }

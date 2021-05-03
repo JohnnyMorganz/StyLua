@@ -18,6 +18,7 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
+        util::expression_range,
     },
     shape::Shape,
 };
@@ -183,12 +184,28 @@ pub fn format_index<'ast>(ctx: &mut Context, index: &Index<'ast>, shape: Shape) 
 /// Formats a Prefix Node
 pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>, shape: Shape) -> Prefix<'ast> {
     match prefix {
-        Prefix::Expression(expression) => Prefix::Expression(format_expression_internal(
-            ctx,
-            expression,
-            ExpressionContext::Prefix,
-            shape,
-        )),
+        Prefix::Expression(expression) => {
+            let singleline_format =
+                format_expression_internal(ctx, expression, ExpressionContext::Prefix, shape);
+            let singeline_shape = shape.take_first_line(&strip_trivia(&singleline_format));
+
+            if singeline_shape.over_budget() {
+                let additional_indent_level = ctx
+                    .get_range_indent_increase(expression_range(expression))
+                    .unwrap_or(0);
+                let hang_level = ctx.indent_level() - 1 + additional_indent_level;
+
+                Prefix::Expression(format_hanging_expression_(
+                    ctx,
+                    expression,
+                    shape,
+                    hang_level,
+                    ExpressionContext::Standard,
+                ))
+            } else {
+                Prefix::Expression(singleline_format)
+            }
+        }
         Prefix::Name(token_reference) => Prefix::Name(format_token_reference(ctx, token_reference)),
         other => panic!("unknown node {:?}", other),
     }
@@ -394,7 +411,13 @@ fn hang_binop_expression<'ast>(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => format_hanging_expression_(ctx, &expression, shape, indent_level),
+        _ => format_hanging_expression_(
+            ctx,
+            &expression,
+            shape,
+            indent_level,
+            ExpressionContext::Standard,
+        ),
     }
 }
 
@@ -404,6 +427,7 @@ fn format_hanging_expression_<'ast>(
     expression: &Expression<'ast>,
     shape: Shape,
     indent_level: usize,
+    expression_context: ExpressionContext,
 ) -> Expression<'ast> {
     match expression {
         Expression::Value {
@@ -412,9 +436,15 @@ fn format_hanging_expression_<'ast>(
             type_assertion,
         } => {
             let value = Box::new(match &**value {
-                Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
-                    format_hanging_expression_(ctx, expression, shape, indent_level),
-                ),
+                Value::ParenthesesExpression(expression) => {
+                    Value::ParenthesesExpression(format_hanging_expression_(
+                        ctx,
+                        expression,
+                        shape,
+                        indent_level,
+                        expression_context,
+                    ))
+                }
                 _ => format_value(ctx, value, shape),
             });
             Expression::Value {
@@ -435,8 +465,8 @@ fn format_hanging_expression_<'ast>(
             let use_internal_expression = check_excess_parentheses(expression);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
-            if use_internal_expression {
-                format_hanging_expression_(ctx, expression, shape, indent_level)
+            if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
+                format_hanging_expression_(ctx, expression, shape, indent_level, expression_context)
             } else {
                 let contained = format_contained_span(ctx, &contained);
 
@@ -475,6 +505,7 @@ fn format_hanging_expression_<'ast>(
                         &expression,
                         Shape::with_indent_level(ctx, indent_level + 1),
                         indent_level + 1, // Apply indent increase
+                        ExpressionContext::Standard,
                     )),
                 }
             }
@@ -482,7 +513,13 @@ fn format_hanging_expression_<'ast>(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let expression = format_hanging_expression_(ctx, &expression, shape, indent_level);
+            let expression = format_hanging_expression_(
+                ctx,
+                &expression,
+                shape,
+                indent_level,
+                expression_context,
+            );
 
             Expression::UnaryOperator {
                 unop,
@@ -522,7 +559,13 @@ pub fn hang_expression<'ast>(
     let additional_indent_level = additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
     let hang_level = ctx.indent_level() + additional_indent_level;
 
-    format_hanging_expression_(ctx, expression, shape, hang_level)
+    format_hanging_expression_(
+        ctx,
+        expression,
+        shape,
+        hang_level,
+        ExpressionContext::Standard,
+    )
 }
 
 pub fn hang_expression_trailing_newline<'ast>(
