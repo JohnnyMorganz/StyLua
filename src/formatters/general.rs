@@ -250,21 +250,35 @@ fn load_token_trivia<'ast>(
     let mut trivia_iter = current_trivia.iter().peekable();
 
     while let Some(trivia) = trivia_iter.next() {
-        // Handle cases where the user has left a newline gap in between e.g. two statements
-        // If we are formatting trailing trivia, this can be ignored, as all trailing newlines will have already
-        // been handled by the formatter.
-        // If we are formatting leading trivia, we will allow a single newline to be kept in succession, if we
-        // find one.
         match trivia.token_type() {
             TokenType::Whitespace { characters } => {
-                if let FormatTokenType::LeadingTrivia = format_token_type {
-                    if characters.contains('\n') {
-                        newline_count_in_succession += 1;
-                        if newline_count_in_succession == 1 {
-                            // We have a case where we will allow a single newline to be kept
-                            token_trivia.push(create_newline_trivia(ctx));
+                // Handle cases where the user has left a newline gap in between e.g. two statements
+                // If we are formatting trailing trivia, this can be ignored, as all trailing newlines will have already
+                // been handled by the formatter.
+                // If we are formatting leading trivia, we will allow a single newline to be kept in succession, if we
+                // find one.
+                match format_token_type {
+                    FormatTokenType::LeadingTrivia => {
+                        if characters.contains('\n') {
+                            newline_count_in_succession += 1;
+                            if newline_count_in_succession == 1 {
+                                // We have a case where we will allow a single newline to be kept
+                                token_trivia.push(create_newline_trivia(ctx));
+                            }
                         }
                     }
+                    FormatTokenType::TrailingTrivia => {
+                        // If the next trivia is a MultiLineComment, and this whitespace is just spacing, then we
+                        // will preserve a single space
+                        if let Some(next_trivia) = trivia_iter.peek() {
+                            if let TokenType::MultiLineComment { .. } = next_trivia.token_type() {
+                                if !characters.contains('\n') {
+                                    token_trivia.push(Token::new(TokenType::spaces(1)))
+                                }
+                            }
+                        }
+                    }
+                    _ => (),
                 }
 
                 // Move to next trivia

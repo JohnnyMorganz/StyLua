@@ -1,0 +1,17 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+checkVisitorFnArgs(
+	expect,
+	ast,
+	{ ... },
+	true --[[ isEdited ]]
+)
+
+local test --[[foo]] = true
+
+--[[test]]
+local x = true
+
