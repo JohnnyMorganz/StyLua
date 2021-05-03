@@ -6,3 +6,6 @@ checkVisitorFnArgs(
 )
 
 local test   --[[foo]] = true
+
+   --[[test]]
+local x = true
