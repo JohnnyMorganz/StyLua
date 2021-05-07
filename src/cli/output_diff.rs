@@ -1,5 +1,6 @@
 // Based off https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
 // Licensed under https://github.com/mitsuhiko/similar/blob/main/LICENSE
+use crate::opt;
 use console::{style, Style, Term};
 use similar::{ChangeTag, TextDiff};
 use std::fmt;
@@ -20,7 +21,7 @@ pub fn output_diff(
     new: &str,
     context_size: usize,
     title: String,
-    color: crate::Color,
+    color: opt::Color,
 ) -> bool {
     let diff = TextDiff::from_lines(old, new);
     let diff_opts = diff.grouped_ops(context_size);
@@ -32,9 +33,9 @@ pub fn output_diff(
     }
 
     let should_use_color = match color {
-        crate::Color::Always => true,
-        crate::Color::Never => false,
-        crate::Color::Auto => {
+        opt::Color::Always => true,
+        opt::Color::Never => false,
+        opt::Color::Auto => {
             let terminal = Term::stdout();
             let features = terminal.features();
             features.is_attended() && features.colors_supported()

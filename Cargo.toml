@@ -25,7 +25,7 @@ luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
 
 [dependencies]
-anyhow = "1.0.35"
+anyhow = "1.0.40"
 console = "0.14.0"
 full_moon = { version = "0.10.0" }
 globset = "0.4.6"
