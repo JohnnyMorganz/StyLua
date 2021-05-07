@@ -106,8 +106,20 @@ local matrix = {
 ## Configuration
 
 StyLua is **opinionated**, so there are as little configuration options as possible.
-The CLI will search for a `stylua.toml` file in the current working directory to read the configuration.
-Alternatively, you can pass your own path using the `--config-path` argument.
+
+### Finding the configuration
+By default, the CLI will search for a `stylua.toml` or `.stylua.toml` file in the current working directory.
+If its not found, the default configuration will be used.
+You can pass your own path using the `--config-path` argument, and the CLI will read the configuration present.
+If the path provided is not found or the file is malformed, the CLI will exit with an error.
+
+By default, when searching, we do not search any further than the current directory.
+If you want the CLI to recursively search the parent directories for the config, the `--search-parent-directories`
+flag can be used. This will keep searching, until it reaches the root path. If not found, it will look in `$XDG_CONFIG_HOME` or `$XDG_CONFIG_HOME/stylua`.
+**Note: this is a separate flag for a reason, it is not recommended to use this unless necessary.**
+If you have configuration, we recommend keeping the file in your project root so that other developers can use the same configuration, otherwise formatting styles
+will be different. Likewise, if you work on a project using StyLua, and it uses the base configuration (i.e. no config file present), you may unwantingly use
+a parent/global configuration if this flag is enabled, and formatting will be different.
 
 StyLua only offers the following options:
 

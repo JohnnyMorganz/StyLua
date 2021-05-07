@@ -2,65 +2,21 @@ use anyhow::{format_err, Result};
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
-use std::path::{Path, PathBuf};
-use structopt::{clap::arg_enum, StructOpt};
+use std::path::Path;
+use structopt::StructOpt;
+
 use stylua_lib::{format_code, Config, Range};
 
+mod config;
+mod opt;
 mod output_diff;
-
-#[derive(StructOpt, Debug)]
-#[structopt(name = "stylua", about = "A utility to format Lua code")]
-struct Opt {
-    /// Specify path to stylua.toml configuration file
-    #[structopt(long = "config-path", parse(from_os_str))]
-    config_path: Option<PathBuf>,
-
-    /// Runs in 'check' mode.
-    /// Exits with 0 if all formatting is OK,
-    /// Exits with 1 if the formatting is incorrect.
-    /// Any files input will not be overwritten.
-    #[structopt(short, long)]
-    check: bool,
-
-    // Whether the output should include terminal colour or not
-    #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
-    color: Color,
-
-    /// Any glob patterns to test against which files to check.
-    /// To ignore a specific glob pattern, begin the glob pattern with `!`
-    #[structopt(short, long)]
-    glob: Option<Vec<String>>,
-
-    /// A starting range to format files, given as a byte offset from the beginning of the file.
-    /// Any content before this value will be ignored.
-    #[structopt(long)]
-    range_start: Option<usize>,
-
-    /// An ending range to format files, given as a byte offset from the beginning of the file.
-    /// Any content after this value will be ignored.
-    #[structopt(long)]
-    range_end: Option<usize>,
-
-    /// A list of files to format
-    #[structopt(parse(from_os_str))]
-    files: Vec<PathBuf>,
-}
-
-structopt::clap::arg_enum! {
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum Color {
-        Always,
-        Auto,
-        Never,
-    }
-}
 
 fn format_file(
     path: &Path,
     config: Config,
     range: Option<Range>,
     check_only: bool,
-    color: Color,
+    color: opt::Color,
 ) -> Result<i32> {
     match fs::read(path) {
         Ok(contents) => {
@@ -123,41 +79,13 @@ fn format_string(input: String, config: Config, range: Option<Range>) -> Result<
     }
 }
 
-fn format(opt: Opt) -> Result<i32> {
+fn format(opt: opt::Opt) -> Result<i32> {
     if opt.files.is_empty() {
         return Err(format_err!("error: no files provided"));
     }
 
-    let config: Config = match opt.config_path {
-        Some(config_path) => match fs::read_to_string(config_path) {
-            Ok(contents) => match toml::from_str(&contents) {
-                Ok(config) => config,
-                Err(error) => {
-                    return Err(format_err!(
-                        "error: config file not in correct format: {}",
-                        error
-                    ));
-                }
-            },
-            Err(error) => {
-                return Err(format_err!("error: couldn't read config file: {}", error));
-            }
-        },
-
-        None => match fs::read_to_string("stylua.toml") {
-            Ok(contents) => match toml::from_str(&contents) {
-                Ok(config) => config,
-                Err(error) => {
-                    return Err(format_err!(
-                        "error: config file not in correct format: {}",
-                        error
-                    ));
-                }
-            },
-
-            Err(_) => Config::default(),
-        },
-    };
+    // Load the configuration
+    let config = config::load_config(&opt)?;
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -258,7 +186,7 @@ fn format(opt: Opt) -> Result<i32> {
 
     if !errors.is_empty() {
         for error in errors.iter() {
-            eprintln!("{}", error.to_string());
+            eprintln!("{:#}", error);
         }
         return Ok(1);
     }
@@ -267,12 +195,12 @@ fn format(opt: Opt) -> Result<i32> {
 }
 
 fn main() {
-    let opt = Opt::from_args();
+    let opt = opt::Opt::from_args();
 
     let exit_code = match format(opt) {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("{}", e.to_string());
+            eprintln!("{:#}", e);
             1
         }
     };
