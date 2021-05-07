@@ -1,4 +1,4 @@
-use anyhow::{format_err, Result};
+use anyhow::{bail, format_err, Context, Result};
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
@@ -18,49 +18,24 @@ fn format_file(
     check_only: bool,
     color: opt::Color,
 ) -> Result<i32> {
-    match fs::read(path) {
-        Ok(contents) => {
-            let contents = String::from_utf8_lossy(&contents);
-            let formatted_contents = match format_code(&contents, config, range) {
-                Ok(formatted) => formatted,
-                Err(error) => {
-                    return Err(format_err!(
-                        "error: could not format file {}: {}",
-                        path.display(),
-                        error
-                    ))
-                }
-            };
+    let contents =
+        fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
+    let formatted_contents = format_code(&contents, config, range)
+        .with_context(|| format!("Could not format file {}", path.display()))?;
 
-            if check_only {
-                let is_diff = output_diff::output_diff(
-                    &contents,
-                    &formatted_contents,
-                    3,
-                    format!("Diff in {}:", path.display()),
-                    color,
-                );
-                if is_diff {
-                    Ok(1)
-                } else {
-                    Ok(0)
-                }
-            } else {
-                match fs::write(path, formatted_contents) {
-                    Ok(_) => Ok(0),
-                    Err(error) => Err(format_err!(
-                        "error: could not write to file {}: {}",
-                        path.display(),
-                        error
-                    )),
-                }
-            }
-        }
-        Err(error) => Err(format_err!(
-            "error: could not open file {}: {}",
-            path.display(),
-            error
-        )),
+    if check_only {
+        let is_diff = output_diff::output_diff(
+            &contents,
+            &formatted_contents,
+            3,
+            format!("Diff in {}:", path.display()),
+            color,
+        );
+        Ok(if is_diff { 1 } else { 0 })
+    } else {
+        fs::write(path, formatted_contents)
+            .with_context(|| format!("Could not write to {}", path.display()))?;
+        Ok(0)
     }
 }
 
@@ -68,20 +43,16 @@ fn format_file(
 /// Used when input has been provided to stdin
 fn format_string(input: String, config: Config, range: Option<Range>) -> Result<()> {
     let out = &mut stdout();
-    let formatted_contents = match format_code(&input, config, range) {
-        Ok(formatted) => formatted,
-        Err(error) => return Err(format_err!("error: could not format from stdin: {}", error)),
-    };
-
-    match out.write_all(&formatted_contents.into_bytes()) {
-        Ok(()) => Ok(()),
-        Err(error) => Err(format_err!("error: could not output to stdout: {}", error)),
-    }
+    let formatted_contents =
+        format_code(&input, config, range).context("Failed to format from stdin")?;
+    out.write_all(&formatted_contents.into_bytes())
+        .context("Could not output to stdout")?;
+    Ok(())
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
     if opt.files.is_empty() {
-        return Err(format_err!("error: no files provided"));
+        bail!("error: no files provided");
     }
 
     // Load the configuration
