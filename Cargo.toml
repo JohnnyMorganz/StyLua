@@ -27,6 +27,7 @@ lua52 = ["full_moon/lua52"]
 [dependencies]
 anyhow = "1.0.40"
 console = "0.14.0"
+directories = "3.0.2"
 full_moon = { version = "0.10.0" }
 globset = "0.4.6"
 ignore = "0.4.17"

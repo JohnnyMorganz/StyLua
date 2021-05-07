@@ -10,7 +10,8 @@ pub struct Opt {
 
     /// Search parent directories for stylua.toml, if not found in current directory.
     /// Ignored if config_path is provided.
-    /// Keeps searching recursively up the parent directory tree, until the home directory is reached.
+    /// Keeps searching recursively up the parent directory tree, until the root directory is reached.
+    /// If not found, looks in $XDG_CONFIG_HOME or $XDG_CONFIG_HOME/stylua.
     #[structopt(short, long)]
     pub search_parent_directories: bool,
 
