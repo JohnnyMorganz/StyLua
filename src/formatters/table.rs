@@ -2,7 +2,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::format_expression,
+        expression::{format_expression, hang_expression},
         general::{
             format_contained_span, format_end_token, format_symbol, format_token_reference,
             EndTokenType,
@@ -31,12 +31,20 @@ pub enum TableType {
     Empty,
 }
 
-pub fn format_field<'ast>(
+fn format_field<'ast>(
     ctx: &mut Context,
     field: &Field<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
+    table_type: TableType,
+    additional_indent_level: Option<usize>,
     shape: Shape,
 ) -> (Field<'ast>, Vec<Token<'ast>>) {
+    let leading_trivia = match table_type {
+        TableType::MultiLine => {
+            FormatTriviaType::Append(vec![create_indent_trivia(ctx, additional_indent_level)])
+        }
+        _ => FormatTriviaType::NoChange,
+    };
+
     let trailing_trivia;
     let field = match field {
         Field::ExpressionKey {
@@ -51,8 +59,19 @@ pub fn format_field<'ast>(
             let key = format_expression(ctx, key, shape + 1); // 1 = opening bracket
             let equal = fmt_symbol!(ctx, equal, " = ");
             let shape = shape.take_last_line(&key) + (2 + 3); // 2 = brackets, 3 = " = "
-            let value = format_expression(ctx, value, shape)
+
+            let singleline_value = format_expression(ctx, value, shape)
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![])); // We will remove all the trivia from this value, and place it after the comma
+
+            let value = if trivia_util::can_hang_expression(value)
+                && shape.take_first_line(&singleline_value).over_budget()
+            {
+                hang_expression(ctx, value, shape, additional_indent_level, None)
+                    .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+            } else {
+                singleline_value
+            };
+
             Field::ExpressionKey {
                 brackets,
                 key,
@@ -65,22 +84,42 @@ pub fn format_field<'ast>(
             let key = format_token_reference(ctx, key).update_leading_trivia(leading_trivia);
             let equal = fmt_symbol!(ctx, equal, " = ");
             let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
-            let value = format_expression(ctx, value, shape)
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
+            let singleline_value = format_expression(ctx, value, shape)
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![])); // We will remove all the trivia from this value, and place it after the comma
+
+            let value = if trivia_util::can_hang_expression(value)
+                && shape.take_first_line(&singleline_value).over_budget()
+            {
+                hang_expression(ctx, value, shape, additional_indent_level, None)
+                    .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+            } else {
+                singleline_value
+            };
 
             Field::NameKey { key, equal, value }
         }
         Field::NoKey(expression) => {
             trailing_trivia = trivia_util::get_expression_trailing_trivia(expression);
             let formatted_expression = format_expression(ctx, expression, shape);
-            if let FormatTriviaType::NoChange = leading_trivia {
-                Field::NoKey(formatted_expression)
-            } else {
+
+            if let TableType::MultiLine = table_type {
+                // If still over budget, hang the expression
+                let formatted_expression = if trivia_util::can_hang_expression(expression)
+                    && shape.take_first_line(&formatted_expression).over_budget()
+                {
+                    hang_expression(ctx, expression, shape, additional_indent_level, None)
+                } else {
+                    formatted_expression
+                };
+
                 Field::NoKey(
                     formatted_expression
                         .update_leading_trivia(leading_trivia)
                         .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
                 )
+            } else {
+                Field::NoKey(formatted_expression)
             }
         }
 
@@ -223,7 +262,7 @@ pub fn format_table_constructor<'ast>(
     while let Some(pair) = current_fields.next() {
         let (field, punctuation) = pair.into_tuple();
 
-        let leading_trivia = match table_type {
+        let additional_indent_level = match table_type {
             TableType::MultiLine => {
                 let range = match field.to_owned() {
                     Field::ExpressionKey { brackets, .. } => {
@@ -234,16 +273,17 @@ pub fn format_table_constructor<'ast>(
                     other => panic!("unknown node {:?}", other),
                 };
                 let additional_indent_level = ctx.get_range_indent_increase(range);
+                // Also update the shape to a new version, with the indent level
                 shape = shape
                     .reset()
                     .with_additional_indent(additional_indent_level);
-                FormatTriviaType::Append(vec![create_indent_trivia(ctx, additional_indent_level)])
+                additional_indent_level
             }
-            _ => FormatTriviaType::NoChange,
+            _ => None,
         };
 
         let (formatted_field, mut trailing_trivia) =
-            format_field(ctx, &field, leading_trivia, shape);
+            format_field(ctx, &field, table_type, additional_indent_level, shape);
 
         // If trivia is just whitespace, ignore it completely
         if trailing_trivia
