@@ -122,9 +122,11 @@ pub fn format_assignment<'ast>(
 
     // Test the assignment to see if its over width
     let singleline_shape = shape
-        + (strip_leading_trivia(&var_list).to_string().len()
-            + 3
-            + strip_trailing_trivia(&expr_list).to_string().len());
+        .add_width(
+            strip_leading_trivia(&var_list).to_string().len() + 3, // 3 = " = "
+        )
+        .take_first_line(&strip_trailing_trivia(&expr_list));
+
     if contains_comments || singleline_shape.over_budget() {
         // We won't attempt anything else with the var_list. Format it normally
         var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
@@ -316,11 +318,13 @@ pub fn format_local_assignment<'ast>(
 
         // Test the assignment to see if its over width
         let singleline_shape = shape
-            + (strip_leading_trivia(&name_list).to_string().len()
+            .add_width(
+                strip_leading_trivia(&name_list).to_string().len()
                 + 6 // 6 = "local "
                 + 3 // 3 = " = "
-                + type_specifier_len
-                + strip_trailing_trivia(&expr_list).to_string().len());
+                + type_specifier_len,
+            )
+            .take_first_line(&strip_trailing_trivia(&expr_list));
 
         if contains_comments || singleline_shape.over_budget() {
             // We won't attempt anything else with the name_list. Format it normally

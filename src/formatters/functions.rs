@@ -697,10 +697,10 @@ pub fn format_function_call<'ast>(
         );
 
         let indent_level = if should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))) {
-            // Calculate the indentation level for the suffix, before we add the range into the indent ranges
-            let indent_level = ctx.get_range_indent_increase(range).unwrap_or(0);
             ctx.add_indent_range(range);
-            Some(indent_level + 1)
+            // Adding the range will cause the range_indent_increase to increment by one, as wanted since the
+            // function call hangs by one
+            ctx.get_range_indent_increase(range)
         } else {
             None
         };
