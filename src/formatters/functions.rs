@@ -19,6 +19,7 @@ use crate::{
             format_contained_span, format_end_token, format_punctuated, format_symbol,
             format_token_reference, EndTokenType,
         },
+        table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
@@ -113,6 +114,30 @@ pub fn format_function_args<'ast>(
             parentheses,
             arguments,
         } => {
+            // Handle config where parentheses are omitted, and there is only one argument
+            if ctx.config().no_call_parentheses && arguments.len() == 1 {
+                let argument = arguments.iter().next().unwrap();
+                if let Expression::Value { value, .. } = argument {
+                    match &**value {
+                        Value::String(token_reference) => {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::String(token_reference.to_owned()),
+                                shape,
+                            );
+                        }
+                        Value::TableConstructor(table_constructor) => {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::TableConstructor(table_constructor.to_owned()),
+                                shape,
+                            );
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
             let (start_parens, end_parens) = parentheses.tokens();
             // Find the range of the function arguments
             let function_call_range = (
@@ -400,6 +425,15 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::String(token_reference) => {
+            if ctx.config().no_call_parentheses {
+                let token_reference = format_token_reference(ctx, token_reference)
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])); // Single space before the token reference
+
+                return FunctionArgs::String(token_reference);
+            }
+
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
@@ -431,6 +465,15 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::TableConstructor(table_constructor) => {
+            if ctx.config().no_call_parentheses {
+                let table_constructor = format_table_constructor(ctx, table_constructor, shape)
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])); // Single space before the table constructor
+
+                return FunctionArgs::TableConstructor(table_constructor);
+            }
+
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
