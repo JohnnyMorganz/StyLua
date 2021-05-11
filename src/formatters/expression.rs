@@ -200,7 +200,7 @@ pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>, shape: Shap
                     expression,
                     shape,
                     hang_level,
-                    ExpressionContext::Standard,
+                    ExpressionContext::Prefix,
                 ))
             } else {
                 Prefix::Expression(singleline_format)
