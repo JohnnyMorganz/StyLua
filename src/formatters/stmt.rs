@@ -261,15 +261,12 @@ pub fn format_if<'ast>(ctx: &mut Context, if_node: &If<'ast>, shape: Shape) -> I
             FormatTriviaType::Append(trailing_trivia.to_owned()),
         );
 
-    let formatted_else_if = match if_node.else_if() {
-        Some(else_if) => Some(
-            else_if
-                .iter()
-                .map(|else_if| format_else_if(ctx, else_if, shape))
-                .collect(),
-        ),
-        None => None,
-    };
+    let formatted_else_if = if_node.else_if().map(|else_if| {
+        else_if
+            .iter()
+            .map(|else_if| format_else_if(ctx, else_if, shape))
+            .collect()
+    });
 
     let formatted_else_token = match if_node.else_token() {
         Some(token) => {

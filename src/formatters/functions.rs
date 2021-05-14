@@ -849,10 +849,9 @@ fn format_singleline_parameters<'ast>(
 
     for pair in function_body.parameters().pairs() {
         let parameter = format_parameter(ctx, pair.value());
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ", ")),
-            None => None,
-        };
+        let punctuation = pair
+            .punctuation()
+            .map(|punctuation| fmt_symbol!(ctx, punctuation, ", "));
 
         formatted_parameters.push(Pair::new(parameter, punctuation));
     }
@@ -881,12 +880,10 @@ fn format_multiline_parameters<'ast>(
             )]),
         );
 
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
-                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-            )),
-            None => None,
-        };
+        let punctuation = pair.punctuation().map(|punctuation| {
+            fmt_symbol!(ctx, punctuation, ",")
+                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+        });
 
         formatted_parameters.push(Pair::new(parameter, punctuation))
     }
