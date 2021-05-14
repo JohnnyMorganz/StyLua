@@ -292,30 +292,16 @@ pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>) -> UnOp<'ast> {
 /// Pushes a BinOp onto a newline, and indent its depending on indent_level. Moves trailing comments to before the BinOp.
 /// Does not hang if the BinOp is a relational operator.
 fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, indent_level: usize) -> BinOp<'ast> {
-    match binop {
-        // Don't add the trivia if the binop is binding
-        BinOp::GreaterThan(_)
-        | BinOp::GreaterThanEqual(_)
-        | BinOp::LessThan(_)
-        | BinOp::LessThanEqual(_)
-        | BinOp::TildeEqual(_)
-        | BinOp::TwoEqual(_) => {
-            // Return original binop
-            binop
-        }
-        _ => {
-            // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-            let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
-            // Create a newline just before the BinOp, and preserve the indentation
-            trailing_comments.push(create_newline_trivia(ctx));
-            trailing_comments.push(create_plain_indent_trivia(ctx, indent_level));
+    // If there are any comments trailing the BinOp, we need to move them to before the BinOp
+    let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
+    // Create a newline just before the BinOp, and preserve the indentation
+    trailing_comments.push(create_newline_trivia(ctx));
+    trailing_comments.push(create_plain_indent_trivia(ctx, indent_level));
 
-            binop.update_trivia(
-                FormatTriviaType::Replace(trailing_comments),
-                FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
-            )
-        }
-    }
+    binop.update_trivia(
+        FormatTriviaType::Replace(trailing_comments),
+        FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
+    )
 }
 
 /// Finds the length of the expression which matches the precedence level of the provided binop
@@ -339,6 +325,14 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
             }
         }
         _ => expression.to_string().len(),
+    }
+}
+
+/// If present, finds the precedence level of the provided binop in the BinOp expression. Otherwise, returns 0
+fn binop_precedence_level<'ast>(expression: &Expression<'ast>) -> u8 {
+    match expression {
+        Expression::BinaryOperator { binop, .. } => binop.precedence(),
+        _ => 0,
     }
 }
 
@@ -527,22 +521,42 @@ fn format_hanging_expression_<'ast>(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
+            let plain_shape = Shape::with_indent_level(ctx, indent_level);
+
             // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
             let lhs =
                 hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, indent_level);
-            let binop = format_binop(ctx, binop);
-            let shape = Shape::with_indent_level(ctx, indent_level)
-                + strip_trivia(&binop).to_string().len()
-                + 1;
+            let mut new_binop = format_binop(ctx, binop);
+            let singleline_shape =
+                plain_shape.take_last_line(&lhs) + strip_trivia(binop).to_string().len() + 1;
 
-            let binop = hang_binop(ctx, binop, indent_level);
-            let rhs =
-                hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape, indent_level);
+            let mut new_rhs = hang_binop_expression(
+                ctx,
+                *rhs.to_owned(),
+                binop.to_owned(),
+                singleline_shape,
+                indent_level,
+            );
+
+            // Examine the last line to see if we need to hang this binop, or if the precedence levels match
+            if binop_precedence_level(&lhs) >= binop.precedence()
+                || (shape.take_last_line(&lhs) + format!("{}{}", binop, rhs).len()).over_budget()
+            {
+                let hanging_shape = plain_shape + strip_trivia(binop).to_string().len() + 1;
+                new_binop = hang_binop(ctx, binop.to_owned(), indent_level);
+                new_rhs = hang_binop_expression(
+                    ctx,
+                    *rhs.to_owned(),
+                    binop.to_owned(),
+                    hanging_shape,
+                    indent_level,
+                );
+            }
 
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
-                binop,
-                rhs: Box::new(rhs),
+                binop: new_binop,
+                rhs: Box::new(new_rhs),
             }
         }
         other => panic!("unknown node {:?}", other),
