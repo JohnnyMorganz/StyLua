@@ -84,6 +84,14 @@ impl Shape {
         }
     }
 
+    /// Subtracts a width offset from the current width total
+    pub fn sub_width(&self, width: usize) -> Shape {
+        Self {
+            offset: self.offset.saturating_sub(width),
+            ..*self
+        }
+    }
+
     /// Resets the offset for the shape
     pub fn reset(&self) -> Shape {
         Self { offset: 0, ..*self }
