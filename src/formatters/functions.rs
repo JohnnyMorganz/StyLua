@@ -274,7 +274,7 @@ pub fn format_function_args<'ast>(
                                     seen_other_arg_after_multiline = true;
                                 }
 
-                                singleline_shape = singleline_shape + argument.to_string().len();
+                                singleline_shape = singleline_shape.take_last_line(argument);
                                 if singleline_shape.over_budget() {
                                     // We have passed 80 characters without a table or anonymous function
                                     // There is nothing else stopping us from expanding - so we will

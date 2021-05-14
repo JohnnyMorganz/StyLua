@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Long prefix expressions which are hangable and go over the line limit (e.g. `("foooo" .. "barrrrrrr" .. "bazzzzzz"):format(...)`) will now hang multiline ([#139](https://github.com/JohnnyMorganz/StyLua/issues/139))
-- Function calls with single arguments are now possible to be expanded. This will allow the call to be expanded if the line goes over budget.
+- Function calls with single arguments are now possible to be expanded. This will allow the call to be expanded if the line goes over budget. ([[#156](https://github.com/JohnnyMorganz/StyLua/issues/156)])
 
 ### Fixed
 - Fixed 1 or 2 digit numerical escapes being incorrectly removed
