@@ -811,7 +811,7 @@ pub fn format_local_function<'ast>(
     LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_func_body(formatted_function_body)
+        .with_body(formatted_function_body)
 }
 
 /// Formats a MethodCall node

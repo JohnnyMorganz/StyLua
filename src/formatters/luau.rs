@@ -297,6 +297,13 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             TypeInfo::Union { left, pipe, right }
         }
 
+        TypeInfo::Variadic { ellipse, type_info } => {
+            let ellipse = fmt_symbol!(ctx, ellipse, "...");
+            let type_info = Box::new(format_type_info(ctx, type_info));
+
+            TypeInfo::Variadic { ellipse, type_info }
+        }
+
         other => panic!("unknown node {:?}", other),
     }
 }
