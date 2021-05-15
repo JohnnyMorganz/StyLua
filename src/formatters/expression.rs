@@ -17,7 +17,7 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util,
+        trivia_util::{self, contains_comments, get_expression_trailing_trivia},
         util::expression_range,
     },
     shape::Shape,
@@ -540,6 +540,10 @@ fn format_hanging_expression_<'ast>(
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
             if binop_precedence_level(&lhs) >= binop.precedence()
+                || contains_comments(binop)
+                || get_expression_trailing_trivia(&lhs)
+                    .iter()
+                    .any(trivia_util::trivia_is_comment)
                 || (shape.take_last_line(&lhs) + format!("{}{}", binop, rhs).len()).over_budget()
             {
                 let hanging_shape = plain_shape + strip_trivia(binop).to_string().len() + 1;

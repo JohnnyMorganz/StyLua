@@ -13,7 +13,14 @@ use full_moon::{
 };
 
 pub fn trivia_is_whitespace(trivia: &Token) -> bool {
-    matches!(trivia.token_type(), TokenType::Whitespace { .. })
+    matches!(trivia.token_kind(), TokenKind::Whitespace)
+}
+
+pub fn trivia_is_comment(trivia: &Token) -> bool {
+    matches!(
+        trivia.token_kind(),
+        TokenKind::SingleLineComment | TokenKind::MultiLineComment
+    )
 }
 
 pub fn trivia_is_newline(trivia: &Token) -> bool {
@@ -312,10 +319,7 @@ pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
         | BinOp::TwoEqual(token) => {
             token
                 .trailing_trivia()
-                .filter(|token| {
-                    token.token_kind() == TokenKind::SingleLineComment
-                        || token.token_kind() == TokenKind::MultiLineComment
-                })
+                .filter(|token| trivia_is_comment(token))
                 .map(|x| {
                     // Prepend a single space beforehand
                     vec![Token::new(TokenType::spaces(1)), x.to_owned()]
@@ -332,10 +336,7 @@ pub fn get_expression_trailing_comments<'ast>(
 ) -> (Expression<'ast>, Vec<Token<'ast>>) {
     let trailing_comments = get_expression_trailing_trivia(expression)
         .iter()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
+        .filter(|token| trivia_is_comment(token))
         .map(|x| {
             // Prepend a single space beforehand
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
@@ -809,9 +810,7 @@ pub fn token_trivia_contains_comments<'ast>(
     trivia: impl Iterator<Item = &'ast Token<'ast>>,
 ) -> bool {
     for trivia in trivia {
-        if trivia.token_kind() == TokenKind::SingleLineComment
-            || trivia.token_kind() == TokenKind::MultiLineComment
-        {
+        if trivia_is_comment(trivia) {
             return true;
         }
     }

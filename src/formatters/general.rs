@@ -365,10 +365,7 @@ pub fn format_punctuation<'ast>(
 ) -> (TokenReference<'ast>, Vec<Token<'ast>>) {
     let trailing_comments = punctuation
         .trailing_trivia()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
+        .filter(|x| trivia_util::trivia_is_comment(x))
         .map(|x| {
             // Prepend a single space beforehand
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
