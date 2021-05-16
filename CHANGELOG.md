@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed 1 or 2 digit numerical escapes being incorrectly removed
 - Fixed whitespace being lost before a multiline comment. We will now preserve a single space (e.g. `local test  --[[foo]] = true` -> `local test --[[foo]] = true`) ([#136](https://github.com/JohnnyMorganz/StyLua/issues/136))
 - Fixed the double formatting of a hanging call chain when it was being assigned to a variable causing it to be incorrectly formatted ([#151](https://github.com/JohnnyMorganz/StyLua/issues/151))
+- Fixed leading comments to a binop in a hanging expression being lost ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154#issuecomment-841703038))
 
 ## [0.8.1] - 2021-04-30
 ### Fixed

@@ -292,14 +292,30 @@ pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>) -> UnOp<'ast> {
 /// Pushes a BinOp onto a newline, and indent its depending on indent_level. Moves trailing comments to before the BinOp.
 /// Does not hang if the BinOp is a relational operator.
 fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, indent_level: usize) -> BinOp<'ast> {
+    // Get the leading comments of a binop, as we need to preserve them
+    // Intersperse a newline and indent trivia between them
+    // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
+    let mut leading_comments = trivia_util::binop_leading_comments(&binop)
+        .iter()
+        .flat_map(|x| {
+            vec![
+                create_newline_trivia(ctx),
+                create_plain_indent_trivia(ctx, indent_level),
+                x.to_owned(),
+            ]
+        })
+        .collect::<Vec<_>>();
+
     // If there are any comments trailing the BinOp, we need to move them to before the BinOp
     let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
+    leading_comments.append(&mut trailing_comments);
+
     // Create a newline just before the BinOp, and preserve the indentation
-    trailing_comments.push(create_newline_trivia(ctx));
-    trailing_comments.push(create_plain_indent_trivia(ctx, indent_level));
+    leading_comments.push(create_newline_trivia(ctx));
+    leading_comments.push(create_plain_indent_trivia(ctx, indent_level));
 
     binop.update_trivia(
-        FormatTriviaType::Replace(trailing_comments),
+        FormatTriviaType::Replace(leading_comments),
         FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
     )
 }

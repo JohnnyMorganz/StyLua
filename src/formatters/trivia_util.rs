@@ -300,6 +300,31 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
     }
 }
 
+pub fn binop_leading_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+    match binop {
+        BinOp::And(token)
+        | BinOp::Caret(token)
+        | BinOp::GreaterThan(token)
+        | BinOp::GreaterThanEqual(token)
+        | BinOp::LessThan(token)
+        | BinOp::LessThanEqual(token)
+        | BinOp::Minus(token)
+        | BinOp::Or(token)
+        | BinOp::Percent(token)
+        | BinOp::Plus(token)
+        | BinOp::Slash(token)
+        | BinOp::Star(token)
+        | BinOp::TildeEqual(token)
+        | BinOp::TwoDots(token)
+        | BinOp::TwoEqual(token) => token
+            .leading_trivia()
+            .filter(|token| trivia_is_comment(token))
+            .map(|x| x.to_owned())
+            .collect(),
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
     match binop {
         BinOp::And(token)
@@ -320,11 +345,10 @@ pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
             token
                 .trailing_trivia()
                 .filter(|token| trivia_is_comment(token))
-                .map(|x| {
+                .flat_map(|x| {
                     // Prepend a single space beforehand
                     vec![Token::new(TokenType::spaces(1)), x.to_owned()]
                 })
-                .flatten()
                 .collect()
         }
         other => panic!("unknown node {:?}", other),
