@@ -576,7 +576,7 @@ pub fn format_symbol<'ast>(
 pub fn format_end_token<'ast>(
     ctx: &Context,
     current_token: &TokenReference<'ast>,
-    token_type: EndTokenType,
+    _token_type: EndTokenType,
     shape: Shape,
 ) -> TokenReference<'ast> {
     // Indent any comments leading a token, as these comments are technically part of the function body block
@@ -584,13 +584,9 @@ pub fn format_end_token<'ast>(
         ctx,
         current_token.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
-        match token_type {
-            // The indent level we are currently at is one less (as we are at the end token, not the indented block).
-            // The comment is present inside the indented block
-            EndTokenType::BlockEnd => shape.increment_additional_indent(),
-            // We are closing an "indent range". The leading comments will still be inside this range, so we don't need an extra indent level
-            EndTokenType::ClosingBrace => shape,
-        },
+        // The indent level we are currently at is one less (as we are at the block closing token, not the indented block).
+        // The comment is present inside the indented block
+        shape.increment_additional_indent(),
     );
     let formatted_trailing_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
