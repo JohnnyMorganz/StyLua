@@ -117,7 +117,7 @@ fn format_expression_internal<'ast>(
             value: Box::new(format_value(ctx, value, shape)),
             #[cfg(feature = "luau")]
             type_assertion: match type_assertion {
-                Some(assertion) => Some(format_type_assertion(ctx, assertion)),
+                Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
                 None => None,
             },
         },
@@ -430,7 +430,7 @@ fn format_hanging_expression_<'ast>(
                 value,
                 #[cfg(feature = "luau")]
                 type_assertion: match type_assertion {
-                    Some(assertion) => Some(format_type_assertion(ctx, assertion)),
+                    Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
                     None => None,
                 },
             }

@@ -210,7 +210,7 @@ fn format_local_no_assignment<'ast>(
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
         .type_specifiers()
         .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
             None => None,
         })
         .collect();
@@ -285,7 +285,7 @@ pub fn format_local_assignment<'ast>(
         let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
             .map(|x| match x {
-                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
                 None => None,
             })
             .collect();

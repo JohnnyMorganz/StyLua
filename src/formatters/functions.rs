@@ -496,7 +496,7 @@ pub fn format_function_body<'ast>(
                     .chain(std::iter::once(function_body.return_type())) // Include optional return type
                     .map(|x| {
                         x.map_or(0, |specifier| {
-                            format_type_specifier(ctx, specifier).to_string().len()
+                            format_type_specifier(ctx, specifier, shape).to_string().len()
                         })
                     })
                     .sum::<usize>()
@@ -564,12 +564,12 @@ pub fn format_function_body<'ast>(
     {
         type_specifiers = function_body
             .type_specifiers()
-            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier)))
+            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
             .collect();
 
         return_type = match function_body.return_type() {
             Some(return_type) => Some({
-                let formatted = format_type_specifier(ctx, return_type);
+                let formatted = format_type_specifier(ctx, return_type, shape);
                 if add_trivia {
                     added_trailing_trivia = true;
                     formatted.update_trailing_trivia(FormatTriviaType::Append(

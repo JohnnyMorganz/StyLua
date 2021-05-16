@@ -94,7 +94,7 @@ pub fn format_generic_for<'ast>(
     let type_specifiers = generic_for
         .type_specifiers()
         .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
             None => None,
         })
         .collect();
@@ -297,7 +297,7 @@ pub fn format_numeric_for<'ast>(
 
     #[cfg(feature = "luau")]
     let type_specifier = match numeric_for.type_specifier() {
-        Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+        Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
         None => None,
     };
 

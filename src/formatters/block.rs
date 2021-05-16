@@ -103,12 +103,10 @@ pub fn format_last_stmt<'ast>(
                     }),
                     vec![],
                 ),
+                shape,
             )
             .update_trivia(
-                FormatTriviaType::Append(vec![create_indent_trivia(
-                    ctx,
-                    ctx.get_range_indent_increase(token_range(token)),
-                )]),
+                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
                 FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
             ),
         ),
