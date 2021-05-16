@@ -120,13 +120,12 @@ pub fn format_function_args<'ast>(
                 Token::start_position(&end_parens).bytes(),
             );
 
-            // Format all the arguments, so that we can prepare them and check to see whether they need expanding
-            // We will ignore punctuation for now
+            // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
+            // need expanding. We will ignore punctuation for now
             let mut first_iter_formatted_arguments = Vec::new();
-            let mut first_iter_shape = shape;
+            let infinite_shape = shape.with_infinite_width();
             for argument in arguments.iter() {
-                let argument = format_expression(ctx, argument, first_iter_shape);
-                first_iter_shape = shape.take_last_line(&argument);
+                let argument = format_expression(ctx, argument, infinite_shape);
                 first_iter_formatted_arguments.push(argument);
             }
 
@@ -176,13 +175,8 @@ pub fn format_function_args<'ast>(
             let mut singleline_shape = shape + 1; // 1 = opening parentheses
 
             if !force_mutliline {
-                // If we only have one argument then we will not make it multi line (expanding it would have little value)
-                // Unless, the argument is a hangable expression
-                if first_iter_formatted_arguments.len() == 1
-                    && !trivia_util::can_hang_expression(
-                        first_iter_formatted_arguments.first().unwrap(),
-                    )
-                {
+                // If we have no arguments, then we can skip hanging multiline
+                if first_iter_formatted_arguments.is_empty() {
                     is_multiline = false;
                 } else {
                     // Find how far we are currently indented, we can use this to determine when to expand
@@ -260,11 +254,18 @@ pub fn format_function_args<'ast>(
                                         if seen_multiline_arg {
                                             seen_other_arg_after_multiline = true;
                                         }
+
+                                        // Take the first line to see if we are over budget
+                                        if singleline_shape.take_first_line(argument).over_budget()
+                                        {
+                                            is_multiline = true;
+                                            break;
+                                        }
+
+                                        // Set the shape to the last line, then examine if over budget
                                         singleline_shape =
-                                            singleline_shape + argument.to_string().len();
+                                            singleline_shape.take_last_line(argument);
                                         if singleline_shape.over_budget() {
-                                            // We have passed 80 characters without a table or anonymous function
-                                            // There is nothing else stopping us from expanding - so we will
                                             is_multiline = true;
                                             break;
                                         }
@@ -280,10 +281,15 @@ pub fn format_function_args<'ast>(
                                     seen_other_arg_after_multiline = true;
                                 }
 
-                                singleline_shape = singleline_shape + argument.to_string().len();
+                                // Take the first line to see if we are over budget
+                                if singleline_shape.take_first_line(argument).over_budget() {
+                                    is_multiline = true;
+                                    break;
+                                }
+
+                                // Set the shape to the last line, then examine if over budget
+                                singleline_shape = singleline_shape.take_last_line(argument);
                                 if singleline_shape.over_budget() {
-                                    // We have passed 80 characters without a table or anonymous function
-                                    // There is nothing else stopping us from expanding - so we will
                                     is_multiline = true;
                                     break;
                                 }
@@ -292,6 +298,12 @@ pub fn format_function_args<'ast>(
 
                         // Add width which would be taken up by comment and space
                         singleline_shape = singleline_shape + 2;
+                    }
+
+                    // Check the final shape to see if its over budget
+                    // -1 because we added +2 for ", " in the last iteration, but we don't want a trailing space and the comma is replaced with a parentheses
+                    if singleline_shape.sub_width(1).over_budget() {
+                        is_multiline = true;
                     }
                 }
             }
