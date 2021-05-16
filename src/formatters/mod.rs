@@ -1,7 +1,5 @@
 use crate::{context::Context, shape::Shape, Config};
-use full_moon::ast::{Ast, Block};
-use full_moon::tokenizer::TokenReference;
-use full_moon::visitors::VisitorMut;
+use full_moon::ast::Ast;
 
 pub mod assignment;
 pub mod block;
