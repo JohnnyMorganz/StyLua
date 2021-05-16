@@ -32,6 +32,9 @@ pub enum EndTokenType {
     /// A closing brace at the end of a table.
     /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
     ClosingBrace,
+    /// A closing parentheses at the end of e.g. a function call
+    /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
+    ClosingParens,
 }
 
 #[macro_export]

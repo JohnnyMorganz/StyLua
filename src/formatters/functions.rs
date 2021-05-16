@@ -299,9 +299,7 @@ pub fn format_function_args<'ast>(
             }
 
             if is_multiline {
-                // TODO: This is similar to multiline in TableConstructor, can we resolve?
                 // Format start and end brace properly with correct trivia
-
                 // Calculate to see if the end parentheses requires any additional indentation
                 let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
@@ -311,18 +309,11 @@ pub fn format_function_args<'ast>(
                         ctx,
                     )]));
 
-                let end_parens_token = TokenReference::new(
-                    end_parens_leading_trivia,
-                    Token::new(TokenType::Symbol {
-                        symbol: Symbol::RightParen,
-                    }),
-                    vec![],
-                );
+                let end_parens_token =
+                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
+                        .update_leading_trivia(FormatTriviaType::Append(end_parens_leading_trivia));
 
-                let parentheses = ContainedSpan::new(
-                    start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token, shape),
-                );
+                let parentheses = ContainedSpan::new(start_parens_token, end_parens_token);
 
                 let mut formatted_arguments = Punctuated::new();
                 let shape = shape.increment_additional_indent();
@@ -496,7 +487,9 @@ pub fn format_function_body<'ast>(
                     .chain(std::iter::once(function_body.return_type())) // Include optional return type
                     .map(|x| {
                         x.map_or(0, |specifier| {
-                            format_type_specifier(ctx, specifier, shape).to_string().len()
+                            format_type_specifier(ctx, specifier, shape)
+                                .to_string()
+                                .len()
                         })
                     })
                     .sum::<usize>()
