@@ -254,11 +254,18 @@ pub fn format_function_args<'ast>(
                                         if seen_multiline_arg {
                                             seen_other_arg_after_multiline = true;
                                         }
+
+                                        // Take the first line to see if we are over budget
+                                        if singleline_shape.take_first_line(argument).over_budget()
+                                        {
+                                            is_multiline = true;
+                                            break;
+                                        }
+
+                                        // Set the shape to the last line, then examine if over budget
                                         singleline_shape =
                                             singleline_shape.take_last_line(argument);
                                         if singleline_shape.over_budget() {
-                                            // We have passed 80 characters without a table or anonymous function
-                                            // There is nothing else stopping us from expanding - so we will
                                             is_multiline = true;
                                             break;
                                         }
@@ -274,10 +281,15 @@ pub fn format_function_args<'ast>(
                                     seen_other_arg_after_multiline = true;
                                 }
 
+                                // Take the first line to see if we are over budget
+                                if singleline_shape.take_first_line(argument).over_budget() {
+                                    is_multiline = true;
+                                    break;
+                                }
+
+                                // Set the shape to the last line, then examine if over budget
                                 singleline_shape = singleline_shape.take_last_line(argument);
                                 if singleline_shape.over_budget() {
-                                    // We have passed 80 characters without a table or anonymous function
-                                    // There is nothing else stopping us from expanding - so we will
                                     is_multiline = true;
                                     break;
                                 }
