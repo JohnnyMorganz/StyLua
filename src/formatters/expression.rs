@@ -189,8 +189,6 @@ pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -
             let singeline_shape = shape.take_first_line(&strip_trivia(&singleline_format));
 
             if singeline_shape.over_budget() {
-                let shape = shape.increment_additional_indent();
-
                 Prefix::Expression(format_hanging_expression_(
                     ctx,
                     expression,
