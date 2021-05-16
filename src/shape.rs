@@ -57,7 +57,7 @@ impl Indent {
     /// Increments the additional indentation level by one
     pub fn increment_additional_indent(&self) -> Self {
         Self {
-            additional_indent: self.block_indent.saturating_add(1),
+            additional_indent: self.additional_indent.saturating_add(1),
             ..*self
         }
     }
@@ -65,7 +65,7 @@ impl Indent {
     /// Decrements the additional indentation level by one
     pub fn decrement_additional_indent(&self) -> Self {
         Self {
-            additional_indent: self.block_indent.saturating_sub(1),
+            additional_indent: self.additional_indent.saturating_sub(1),
             ..*self
         }
     }
@@ -73,7 +73,7 @@ impl Indent {
     /// Increases the additional indentation level by amount specified
     pub fn add_indent_level(&self, amount: usize) -> Self {
         Self {
-            additional_indent: self.block_indent.saturating_add(amount),
+            additional_indent: self.additional_indent.saturating_add(amount),
             ..*self
         }
     }
