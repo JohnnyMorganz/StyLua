@@ -233,13 +233,12 @@ pub fn format_table_constructor<'ast>(
         (false, None) => TableType::Empty,
     };
 
+    let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
     let mut shape = match table_type {
         TableType::SingleLine => shape + 2, // 1 = opening brace, 1 = space
         TableType::MultiLine => shape.reset().increment_additional_indent(), // Will take new line, and additional indentation
         TableType::Empty => shape,
     };
-
-    let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
 
     while let Some(pair) = current_fields.next() {
         let (field, punctuation) = pair.into_tuple();
