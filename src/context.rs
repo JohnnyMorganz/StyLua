@@ -9,6 +9,7 @@ use std::collections::HashSet;
 /// A Range, from a Start Position to an End Position
 pub type Range = (usize, usize);
 
+#[derive(Debug, Clone)]
 pub struct Context {
     /// The configuration passed to the formatter
     config: Config,
