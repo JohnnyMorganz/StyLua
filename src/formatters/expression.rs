@@ -464,23 +464,24 @@ fn format_hanging_expression_<'ast>(
                     };
                 }
 
+                // Update the expression shape to be used inside the parentheses, applying the indent increase
+                let expression_shape = shape.reset().increment_additional_indent();
+
                 // Modify the parentheses to hang the expression
                 let (start_token, end_token) = contained.tokens();
+
                 // Create a newline after the start brace and before the end brace
                 // Also, indent enough for the first expression in the start brace
                 let contained = ContainedSpan::new(
                     start_token.update_trailing_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
+                        create_indent_trivia(ctx, expression_shape),
                     ])),
                     end_token.update_leading_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
                         create_indent_trivia(ctx, shape),
                     ])),
                 );
-
-                // Update the expression shape to be used inside the parentheses, applying the indent increase
-                let expression_shape = shape.reset().increment_additional_indent();
 
                 Expression::Parentheses {
                     contained,
