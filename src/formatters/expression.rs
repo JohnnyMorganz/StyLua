@@ -7,7 +7,7 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::luau::format_type_assertion;
 use crate::{
-    context::{create_newline_trivia, create_plain_indent_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
         functions::{format_anonymous_function, format_call, format_function_call},
@@ -18,17 +18,16 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
-        util::expression_range,
     },
     shape::Shape,
 };
 
 #[macro_export]
 macro_rules! fmt_op {
-    ($ctx:expr, $enum:ident, $value:ident, { $($operator:ident = $output:expr,)+ }) => {
+    ($ctx:expr, $enum:ident, $value:ident, $shape:expr, { $($operator:ident = $output:expr,)+ }) => {
         match $value {
             $(
-                $enum::$operator(token) => $enum::$operator(fmt_symbol!($ctx, token, $output)),
+                $enum::$operator(token) => $enum::$operator(fmt_symbol!($ctx, token, $output, $shape)),
             )+
             other => panic!("unknown node {:?}", other),
         }
@@ -43,8 +42,8 @@ enum ExpressionContext {
     Prefix,
 }
 
-pub fn format_binop<'ast>(ctx: &Context, binop: &BinOp<'ast>) -> BinOp<'ast> {
-    fmt_op!(ctx, BinOp, binop, {
+pub fn format_binop<'ast>(ctx: &Context, binop: &BinOp<'ast>, shape: Shape) -> BinOp<'ast> {
+    fmt_op!(ctx, BinOp, binop, shape, {
         And = " and ",
         Caret = " ^ ",
         GreaterThan = " > ",
@@ -95,7 +94,7 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
 
 /// Formats an Expression node
 pub fn format_expression<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: &Expression<'ast>,
     shape: Shape,
 ) -> Expression<'ast> {
@@ -104,7 +103,7 @@ pub fn format_expression<'ast>(
 
 /// Internal expression formatter, with access to expression context
 fn format_expression_internal<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: &Expression<'ast>,
     context: ExpressionContext,
     shape: Shape,
@@ -135,13 +134,13 @@ fn format_expression_internal<'ast>(
                 format_expression(ctx, expression, shape)
             } else {
                 Expression::Parentheses {
-                    contained: format_contained_span(ctx, &contained),
+                    contained: format_contained_span(ctx, &contained, shape),
                     expression: Box::new(format_expression(ctx, expression, shape + 1)), // 1 = opening parentheses
                 }
             }
         }
         Expression::UnaryOperator { unop, expression } => {
-            let unop = format_unop(ctx, unop);
+            let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
             Expression::UnaryOperator {
                 unop,
@@ -150,7 +149,7 @@ fn format_expression_internal<'ast>(
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             let lhs = format_expression(ctx, lhs, shape);
-            let binop = format_binop(ctx, binop);
+            let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
@@ -163,26 +162,26 @@ fn format_expression_internal<'ast>(
 }
 
 /// Formats an Index Node
-pub fn format_index<'ast>(ctx: &mut Context, index: &Index<'ast>, shape: Shape) -> Index<'ast> {
+pub fn format_index<'ast>(ctx: &Context, index: &Index<'ast>, shape: Shape) -> Index<'ast> {
     match index {
         Index::Brackets {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: format_contained_span(ctx, &brackets),
+            brackets: format_contained_span(ctx, &brackets, shape),
             expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
         },
 
         Index::Dot { dot, name } => Index::Dot {
-            dot: format_token_reference(ctx, dot),
-            name: format_token_reference(ctx, name),
+            dot: format_token_reference(ctx, dot, shape),
+            name: format_token_reference(ctx, name, shape),
         },
         other => panic!("unknown node {:?}", other),
     }
 }
 
 /// Formats a Prefix Node
-pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>, shape: Shape) -> Prefix<'ast> {
+pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -> Prefix<'ast> {
     match prefix {
         Prefix::Expression(expression) => {
             let singleline_format =
@@ -190,29 +189,27 @@ pub fn format_prefix<'ast>(ctx: &mut Context, prefix: &Prefix<'ast>, shape: Shap
             let singeline_shape = shape.take_first_line(&strip_trivia(&singleline_format));
 
             if singeline_shape.over_budget() {
-                let additional_indent_level = ctx
-                    .get_range_indent_increase(expression_range(expression))
-                    .unwrap_or(0);
-                let hang_level = ctx.indent_level() - 1 + additional_indent_level;
+                let shape = shape.increment_additional_indent();
 
                 Prefix::Expression(format_hanging_expression_(
                     ctx,
                     expression,
                     shape,
-                    hang_level,
                     ExpressionContext::Prefix,
                 ))
             } else {
                 Prefix::Expression(singleline_format)
             }
         }
-        Prefix::Name(token_reference) => Prefix::Name(format_token_reference(ctx, token_reference)),
+        Prefix::Name(token_reference) => {
+            Prefix::Name(format_token_reference(ctx, token_reference, shape))
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
 
 /// Formats a Suffix Node
-pub fn format_suffix<'ast>(ctx: &mut Context, suffix: &Suffix<'ast>, shape: Shape) -> Suffix<'ast> {
+pub fn format_suffix<'ast>(ctx: &Context, suffix: &Suffix<'ast>, shape: Shape) -> Suffix<'ast> {
     match suffix {
         Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape)),
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
@@ -221,25 +218,25 @@ pub fn format_suffix<'ast>(ctx: &mut Context, suffix: &Suffix<'ast>, shape: Shap
 }
 
 /// Formats a Value Node
-pub fn format_value<'ast>(ctx: &mut Context, value: &Value<'ast>, shape: Shape) -> Value<'ast> {
+pub fn format_value<'ast>(ctx: &Context, value: &Value<'ast>, shape: Shape) -> Value<'ast> {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function(
-            format_anonymous_function(ctx, token_reference, function_body),
+            format_anonymous_function(ctx, token_reference, function_body, shape),
         ),
         Value::FunctionCall(function_call) => {
             Value::FunctionCall(format_function_call(ctx, function_call, shape))
         }
         Value::Number(token_reference) => {
-            Value::Number(format_token_reference(ctx, token_reference))
+            Value::Number(format_token_reference(ctx, token_reference, shape))
         }
         Value::ParenthesesExpression(expression) => {
             Value::ParenthesesExpression(format_expression(ctx, expression, shape))
         }
         Value::String(token_reference) => {
-            Value::String(format_token_reference(ctx, token_reference))
+            Value::String(format_token_reference(ctx, token_reference, shape))
         }
         Value::Symbol(token_reference) => {
-            Value::Symbol(format_token_reference(ctx, token_reference))
+            Value::Symbol(format_token_reference(ctx, token_reference, shape))
         }
         Value::TableConstructor(table_constructor) => {
             Value::TableConstructor(format_table_constructor(ctx, table_constructor, shape))
@@ -250,9 +247,11 @@ pub fn format_value<'ast>(ctx: &mut Context, value: &Value<'ast>, shape: Shape) 
 }
 
 /// Formats a Var Node
-pub fn format_var<'ast>(ctx: &mut Context, var: &Var<'ast>, shape: Shape) -> Var<'ast> {
+pub fn format_var<'ast>(ctx: &Context, var: &Var<'ast>, shape: Shape) -> Var<'ast> {
     match var {
-        Var::Name(token_reference) => Var::Name(format_token_reference(ctx, token_reference)),
+        Var::Name(token_reference) => {
+            Var::Name(format_token_reference(ctx, token_reference, shape))
+        }
         Var::Expression(var_expression) => {
             Var::Expression(format_var_expression(ctx, var_expression, shape))
         }
@@ -261,7 +260,7 @@ pub fn format_var<'ast>(ctx: &mut Context, var: &Var<'ast>, shape: Shape) -> Var
 }
 
 pub fn format_var_expression<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     var_expression: &VarExpression<'ast>,
     shape: Shape,
 ) -> VarExpression<'ast> {
@@ -281,8 +280,8 @@ pub fn format_var_expression<'ast>(
 }
 
 /// Formats an UnOp Node
-pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>) -> UnOp<'ast> {
-    fmt_op!(ctx, UnOp, unop, {
+pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>, shape: Shape) -> UnOp<'ast> {
+    fmt_op!(ctx, UnOp, unop, shape, {
         Minus = "-",
         Not = "not ",
         Hash = "#",
@@ -291,7 +290,7 @@ pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>) -> UnOp<'ast> {
 
 /// Pushes a BinOp onto a newline, and indent its depending on indent_level. Moves trailing comments to before the BinOp.
 /// Does not hang if the BinOp is a relational operator.
-fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, indent_level: usize) -> BinOp<'ast> {
+fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, shape: Shape) -> BinOp<'ast> {
     match binop {
         // Don't add the trivia if the binop is binding
         BinOp::GreaterThan(_)
@@ -308,7 +307,7 @@ fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, indent_level: usize) -> B
             let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
             // Create a newline just before the BinOp, and preserve the indentation
             trailing_comments.push(create_newline_trivia(ctx));
-            trailing_comments.push(create_plain_indent_trivia(ctx, indent_level));
+            trailing_comments.push(create_indent_trivia(ctx, shape));
 
             binop.update_trivia(
                 FormatTriviaType::Replace(trailing_comments),
@@ -343,11 +342,10 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
 }
 
 fn hang_binop_expression<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: Expression<'ast>,
     top_binop: BinOp<'ast>,
     shape: Shape,
-    indent_level: usize,
 ) -> Expression<'ast> {
     let full_expression = expression.to_owned();
 
@@ -359,10 +357,10 @@ fn hang_binop_expression<'ast>(
                 && binop.is_right_associative() == top_binop.is_right_associative();
             let is_right_associative = top_binop.is_right_associative();
 
-            let indent_level = if same_op_level {
-                indent_level
+            let shape = if same_op_level {
+                shape
             } else {
-                indent_level + 1
+                shape.increment_additional_indent()
             };
 
             let side_to_use = if is_right_associative {
@@ -375,20 +373,16 @@ fn hang_binop_expression<'ast>(
                 .add_width(binop_expression_length(&full_expression, &binop))
                 .over_budget();
 
-            let binop = format_binop(ctx, &binop);
+            let binop = format_binop(ctx, &binop, shape);
             let (binop, updated_side) = if same_op_level || over_column_width {
-                let shape = Shape::with_indent_level(ctx, indent_level)
-                    + strip_trivia(&binop).to_string().len()
-                    + 1;
+                let op = hang_binop(ctx, binop.to_owned(), shape);
 
-                let op = hang_binop(ctx, binop.to_owned(), indent_level);
-
+                let shape = shape + strip_trivia(&binop).to_string().len() + 1;
                 let side = hang_binop_expression(
                     ctx,
                     *side_to_use,
                     if same_op_level { top_binop } else { binop },
                     shape,
-                    indent_level,
                 );
 
                 (op, side)
@@ -411,22 +405,15 @@ fn hang_binop_expression<'ast>(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => format_hanging_expression_(
-            ctx,
-            &expression,
-            shape,
-            indent_level,
-            ExpressionContext::Standard,
-        ),
+        _ => format_hanging_expression_(ctx, &expression, shape, ExpressionContext::Standard),
     }
 }
 
 /// Internal expression formatter, where the binop is also hung
 fn format_hanging_expression_<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: &Expression<'ast>,
     shape: Shape,
-    indent_level: usize,
     expression_context: ExpressionContext,
 ) -> Expression<'ast> {
     match expression {
@@ -436,15 +423,9 @@ fn format_hanging_expression_<'ast>(
             type_assertion,
         } => {
             let value = Box::new(match &**value {
-                Value::ParenthesesExpression(expression) => {
-                    Value::ParenthesesExpression(format_hanging_expression_(
-                        ctx,
-                        expression,
-                        shape,
-                        indent_level,
-                        expression_context,
-                    ))
-                }
+                Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+                    format_hanging_expression_(ctx, expression, shape, expression_context),
+                ),
                 _ => format_value(ctx, value, shape),
             });
             Expression::Value {
@@ -466,9 +447,9 @@ fn format_hanging_expression_<'ast>(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
-                format_hanging_expression_(ctx, expression, shape, indent_level, expression_context)
+                format_hanging_expression_(ctx, expression, shape, expression_context)
             } else {
-                let contained = format_contained_span(ctx, &contained);
+                let contained = format_contained_span(ctx, &contained, shape);
 
                 // Provide a sample formatting to see how large it is
                 // Examine the expression itself to see if needs to be split onto multiple lines
@@ -490,36 +471,33 @@ fn format_hanging_expression_<'ast>(
                 let contained = ContainedSpan::new(
                     start_token.update_trailing_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_plain_indent_trivia(ctx, indent_level + 1),
+                        create_indent_trivia(ctx, shape),
                     ])),
                     end_token.update_leading_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_plain_indent_trivia(ctx, indent_level),
+                        create_indent_trivia(ctx, shape),
                     ])),
                 );
+
+                // Update the expression shape to be used inside the parentheses, applying the indent increase
+                let expression_shape = shape.reset().increment_additional_indent();
 
                 Expression::Parentheses {
                     contained,
                     expression: Box::new(format_hanging_expression_(
                         ctx,
                         &expression,
-                        Shape::with_indent_level(ctx, indent_level + 1),
-                        indent_level + 1, // Apply indent increase
+                        expression_shape,
                         ExpressionContext::Standard,
                     )),
                 }
             }
         }
         Expression::UnaryOperator { unop, expression } => {
-            let unop = format_unop(ctx, unop);
+            let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let expression = format_hanging_expression_(
-                ctx,
-                &expression,
-                shape,
-                indent_level,
-                expression_context,
-            );
+            let expression =
+                format_hanging_expression_(ctx, &expression, shape, expression_context);
 
             Expression::UnaryOperator {
                 unop,
@@ -528,16 +506,14 @@ fn format_hanging_expression_<'ast>(
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
-            let lhs =
-                hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, indent_level);
-            let binop = format_binop(ctx, binop);
-            let shape = Shape::with_indent_level(ctx, indent_level)
-                + strip_trivia(&binop).to_string().len()
-                + 1;
+            let lhs = hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape);
 
-            let binop = hang_binop(ctx, binop, indent_level);
-            let rhs =
-                hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape, indent_level);
+            let binop = format_binop(ctx, binop, shape);
+            let shape = shape.reset();
+            let binop = hang_binop(ctx, binop, shape);
+
+            let shape = shape + strip_trivia(&binop).to_string().len() + 1;
+            let rhs = hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape);
 
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
@@ -550,31 +526,25 @@ fn format_hanging_expression_<'ast>(
 }
 
 pub fn hang_expression<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: &Expression<'ast>,
     shape: Shape,
-    additional_indent_level: Option<usize>,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
-    let additional_indent_level = additional_indent_level.unwrap_or(0) + hang_level.unwrap_or(0);
-    let hang_level = ctx.indent_level() + additional_indent_level;
+    let shape = match hang_level {
+        Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
+        None => shape,
+    };
 
-    format_hanging_expression_(
-        ctx,
-        expression,
-        shape,
-        hang_level,
-        ExpressionContext::Standard,
-    )
+    format_hanging_expression_(ctx, expression, shape, ExpressionContext::Standard)
 }
 
 pub fn hang_expression_trailing_newline<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     expression: &Expression<'ast>,
     shape: Shape,
-    additional_indent_level: Option<usize>,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
-    hang_expression(ctx, expression, shape, additional_indent_level, hang_level)
+    hang_expression(ctx, expression, shape, hang_level)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
 }

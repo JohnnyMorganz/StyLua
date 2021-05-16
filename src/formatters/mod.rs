@@ -36,8 +36,8 @@ impl CodeFormatter {
     /// Runs the formatter over the given AST
     pub fn format<'ast>(&self, ast: Ast<'ast>) -> Ast<'ast> {
         let shape = Shape::new(&self.context);
-        let new_block = format_block(&mut self.context, ast.nodes(), shape);
-        let new_eof = format_eof(&mut self.context, ast.eof());
+        let new_block = format_block(&self.context, ast.nodes(), shape);
+        let new_eof = format_eof(&self.context, ast.eof(), shape);
 
         ast.with_nodes(new_block).with_eof(new_eof)
     }

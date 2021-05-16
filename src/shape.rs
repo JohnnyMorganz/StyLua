@@ -69,6 +69,14 @@ impl Indent {
             ..*self
         }
     }
+
+    /// Increases the additional indentation level by amount specified
+    pub fn add_indent_level(&self, amount: usize) -> Self {
+        Self {
+            additional_indent: self.block_indent.saturating_add(amount),
+            ..*self
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -91,8 +99,8 @@ impl Shape {
         }
     }
 
-    /// Create a shape with a given Indent
-    pub fn with_indent(ctx: &Context, indent: Indent) -> Self {
+    /// Create a shape from the given Indent
+    pub fn from_indent(ctx: &Context, indent: Indent) -> Self {
         Self {
             indent,
             offset: 0,
@@ -108,6 +116,11 @@ impl Shape {
         }
     }
 
+    /// Recreates the shape with the provided indentation
+    pub fn with_indent(&self, indent: Indent) -> Self {
+        Self { indent, ..*self }
+    }
+
     /// Recreates the shape with an infinite width. Useful when testing layouts and want to force code onto a single line
     pub fn with_infinite_width(&self) -> Self {
         self.with_column_width(usize::MAX)
@@ -116,6 +129,38 @@ impl Shape {
     /// The current indentation of the shape
     pub fn indent(&self) -> Indent {
         self.indent
+    }
+
+    /// Increments the block indentation level by one. Alias for `shape.with_indent(shape.indent().increment_block_indent())`
+    pub fn increment_block_indent(&self) -> Self {
+        Self {
+            indent: self.indent.increment_block_indent(),
+            ..*self
+        }
+    }
+
+    /// Decrements the block indentation level by one. Alias for `shape.with_indent(shape.indent().decrement_block_indent())`
+    pub fn decrement_block_indent(&self) -> Self {
+        Self {
+            indent: self.indent.decrement_block_indent(),
+            ..*self
+        }
+    }
+
+    /// Increments the additional indentation level by one. Alias for `shape.with_indent(shape.indent().increment_additional_indent())`
+    pub fn increment_additional_indent(&self) -> Self {
+        Self {
+            indent: self.indent.increment_additional_indent(),
+            ..*self
+        }
+    }
+
+    /// Decrements the additional indentation level by one. Alias for `shape.with_indent(shape.indent().decrement_additional_indent())`
+    pub fn decrement_additional_indent(&self) -> Self {
+        Self {
+            indent: self.indent.decrement_additional_indent(),
+            ..*self
+        }
     }
 
     /// The width currently taken up for this line

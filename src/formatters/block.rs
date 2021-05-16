@@ -31,7 +31,7 @@ macro_rules! update_first_token {
 }
 
 pub fn format_return<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     return_node: &Return<'ast>,
     shape: Shape,
 ) -> Return<'ast> {
@@ -40,14 +40,14 @@ pub fn format_return<'ast>(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     if return_node.returns().is_empty() {
-        let token = fmt_symbol!(ctx, return_node.token(), "return").update_trivia(
+        let token = fmt_symbol!(ctx, return_node.token(), "return", shape).update_trivia(
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
         );
 
         Return::new().with_token(token)
     } else {
-        let token = fmt_symbol!(ctx, return_node.token(), "return ")
+        let token = fmt_symbol!(ctx, return_node.token(), "return ", shape)
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
@@ -76,17 +76,19 @@ pub fn format_return<'ast>(
 }
 
 pub fn format_last_stmt<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     last_stmt: &LastStmt<'ast>,
     shape: Shape,
 ) -> LastStmt<'ast> {
     check_should_format!(ctx, last_stmt);
 
     match last_stmt {
-        LastStmt::Break(token) => LastStmt::Break(fmt_symbol!(ctx, token, "break").update_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-            FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-        )),
+        LastStmt::Break(token) => {
+            LastStmt::Break(fmt_symbol!(ctx, token, "break", shape).update_trivia(
+                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
+                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
+            ))
+        }
 
         LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node, shape)),
         #[cfg(feature = "luau")]
@@ -303,12 +305,13 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
 }
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
-pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) -> Block<'ast> {
+pub fn format_block<'ast>(ctx: &Context, block: &Block<'ast>, shape: Shape) -> Block<'ast> {
     let mut formatted_statements: Vec<(Stmt<'ast>, Option<TokenReference<'ast>>)> = Vec::new();
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
 
     while let Some((stmt, semi)) = stmt_iterator.next() {
+        let shape = shape.reset();
         let mut stmt = format_stmt(ctx, stmt, shape);
 
         // If this is the first stmt, then remove any leading newlines
@@ -347,7 +350,7 @@ pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) 
                 stmt = updated_stmt;
                 Some(
                     match semi {
-                        Some(semi) => crate::fmt_symbol!(ctx, semi, ";"),
+                        Some(semi) => crate::fmt_symbol!(ctx, semi, ";", shape),
                         None => TokenReference::symbol(";").expect("could not make semicolon"),
                     }
                     .update_trailing_trivia(FormatTriviaType::Append(trivia)),
@@ -365,6 +368,7 @@ pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) 
                             ctx,
                             semi,
                             &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
+                            shape,
                         )
                         .update_trailing_trivia(FormatTriviaType::Append(trivia)),
                     )
@@ -381,6 +385,7 @@ pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) 
 
     let formatted_last_stmt = match block.last_stmt_with_semicolon() {
         Some((last_stmt, semi)) => {
+            let shape = shape.reset();
             let mut last_stmt = format_last_stmt(ctx, last_stmt, shape);
             // If this is the first stmt, then remove any leading newlines
             if !found_first_stmt && ctx.should_format_node(&last_stmt) {
@@ -400,6 +405,7 @@ pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) 
                         ctx,
                         semi,
                         &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
+                        shape,
                     )
                     .update_trailing_trivia(FormatTriviaType::Append(trivia));
                     Some(semicolon_token)
@@ -412,6 +418,7 @@ pub fn format_block<'ast>(ctx: &mut Context, block: &Block<'ast>, shape: Shape) 
     };
 
     block
+        .to_owned()
         .with_stmts(formatted_statements)
         .with_last_stmt(formatted_last_stmt)
 }
