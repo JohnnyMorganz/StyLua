@@ -31,15 +31,13 @@ pub fn hang_punctuated_list<'ast>(
     punctuated: &Punctuated<'ast, Expression<'ast>>,
     shape: Shape,
 ) -> Punctuated<'ast, Expression<'ast>> {
-    // Increment the indentation level of the list
-    let mut shape = shape.increment_additional_indent();
-
+    let mut shape = shape;
     let mut output = Punctuated::new();
 
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
-        let value = hang_expression(ctx, pair.value(), shape, None);
+        let value = hang_expression(ctx, pair.value(), shape, Some(1));
         shape = shape.take_last_line(&strip_trivia(&value));
 
         output.push(Pair::new(

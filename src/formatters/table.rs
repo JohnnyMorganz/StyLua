@@ -59,7 +59,7 @@ fn format_field<'ast>(
             let value = if trivia_util::can_hang_expression(value)
                 && shape.take_first_line(&singleline_value).over_budget()
             {
-                hang_expression(ctx, value, shape, None)
+                hang_expression(ctx, value, shape, Some(1))
                     .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
             } else {
                 singleline_value
@@ -84,7 +84,7 @@ fn format_field<'ast>(
             let value = if trivia_util::can_hang_expression(value)
                 && shape.take_first_line(&singleline_value).over_budget()
             {
-                hang_expression(ctx, value, shape, None)
+                hang_expression(ctx, value, shape, Some(1))
                     .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
             } else {
                 singleline_value
@@ -101,7 +101,7 @@ fn format_field<'ast>(
                 let formatted_expression = if trivia_util::can_hang_expression(expression)
                     && shape.take_first_line(&formatted_expression).over_budget()
                 {
-                    hang_expression(ctx, expression, shape, None)
+                    hang_expression(ctx, expression, shape, Some(1))
                 } else {
                     formatted_expression
                 };

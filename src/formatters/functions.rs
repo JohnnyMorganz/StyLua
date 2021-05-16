@@ -4,7 +4,6 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
 use std::boxed::Box;
 
@@ -110,11 +109,6 @@ pub fn format_function_args<'ast>(
             arguments,
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
-            // Find the range of the function arguments
-            let function_call_range = (
-                Token::end_position(&start_parens).bytes(),
-                Token::start_position(&end_parens).bytes(),
-            );
 
             // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
             // need expanding. We will ignore punctuation for now
@@ -346,7 +340,7 @@ pub fn format_function_args<'ast>(
 
                     // Hang the expression if necessary
                     if require_multiline_expression {
-                        formatted_argument = hang_expression(ctx, argument.value(), shape, None);
+                        formatted_argument = hang_expression(ctx, argument.value(), shape, Some(1));
                     }
 
                     // Add the leading indent for the argument
