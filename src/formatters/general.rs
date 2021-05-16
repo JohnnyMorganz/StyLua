@@ -454,7 +454,7 @@ where
             is_first = false;
             shape
         } else {
-            shape.reset().increment_additional_indent()
+            shape.reset()
         };
 
         // Include hang level if required
