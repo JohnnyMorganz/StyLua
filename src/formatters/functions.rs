@@ -321,24 +321,27 @@ pub fn format_function_args<'ast>(
                 for argument in arguments.pairs() {
                     let shape = shape.reset(); // Argument is on a new line, so reset the shape
 
-                    let mut formatted_argument = format_expression(ctx, argument.value(), shape);
+                    // First format the argument assuming infinite width
+                    let infinite_width_argument =
+                        format_expression(ctx, argument.value(), shape.with_infinite_width());
 
-                    let require_multiline_expression =
-                        trivia_util::can_hang_expression(argument.value())
-                            && shape
-                                .take_first_line(&strip_trivia(&formatted_argument))
-                                .over_budget();
-
-                    // Hang the expression if necessary
-                    if require_multiline_expression {
-                        formatted_argument = hang_expression(ctx, argument.value(), shape, Some(1));
+                    // If the argument fits, great! Otherwise, see if we can hang the expression
+                    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
+                    let formatted_argument = if shape
+                        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+                        .over_budget()
+                    {
+                        if trivia_util::can_hang_expression(argument.value()) {
+                            hang_expression(ctx, argument.value(), shape, Some(1))
+                        } else {
+                            format_expression(ctx, argument.value(), shape)
+                        }
+                    } else {
+                        infinite_width_argument
                     }
-
-                    // Add the leading indent for the argument
-                    formatted_argument =
-                        formatted_argument.update_leading_trivia(FormatTriviaType::Append(vec![
-                            create_indent_trivia(ctx, shape),
-                        ]));
+                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                        ctx, shape,
+                    )]));
 
                     let punctuation = match argument.punctuation() {
                         Some(punctuation) => {
