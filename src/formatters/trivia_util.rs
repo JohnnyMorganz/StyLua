@@ -356,7 +356,14 @@ pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
     }
 }
 
-pub fn get_expression_trailing_comments<'ast>(
+pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
+    get_expression_leading_trivia(expression)
+        .iter()
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .collect()
+}
+
     expression: &Expression<'ast>,
 ) -> (Expression<'ast>, Vec<Token<'ast>>) {
     let trailing_comments = get_expression_trailing_trivia(expression)

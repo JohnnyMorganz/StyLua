@@ -291,8 +291,16 @@ pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>, shape: Shape) -> UnOp
     })
 }
 
-/// Pushes a BinOp onto a newline, and indent its depending on indent_level. Moves trailing comments to before the BinOp.
-fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, shape: Shape) -> BinOp<'ast> {
+/// Pushes a [`BinOp`] onto a newline, and indent its depending on indent_level.
+/// Preserves any leading comments, and moves trailing comments to before the BinOp.
+/// Also takes in the [`Expression`] present on the RHS of the BinOp - this is needed so that we can take any
+/// leading comments from the expression, and place them before the BinOp.
+fn hang_binop<'ast>(
+    ctx: &Context,
+    binop: BinOp<'ast>,
+    shape: Shape,
+    rhs: &Expression<'ast>,
+) -> BinOp<'ast> {
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
     // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
@@ -310,6 +318,19 @@ fn hang_binop<'ast>(ctx: &Context, binop: BinOp<'ast>, shape: Shape) -> BinOp<'a
     // If there are any comments trailing the BinOp, we need to move them to before the BinOp
     let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
     leading_comments.append(&mut trailing_comments);
+
+    // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
+    let mut expression_leading_comments = trivia_util::expression_leading_comments(rhs)
+        .iter()
+        .flat_map(|x| {
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    leading_comments.append(&mut expression_leading_comments);
 
     // Create a newline just before the BinOp, and preserve the indentation
     leading_comments.push(create_newline_trivia(ctx));
@@ -487,7 +508,7 @@ fn hang_binop_expression<'ast>(
 
             let binop = format_binop(ctx, &binop, shape);
             let (binop, updated_side) = if same_op_level || over_column_width {
-                let op = hang_binop(ctx, binop.to_owned(), shape);
+                let op = hang_binop(ctx, binop.to_owned(), shape, &rhs);
 
                 let shape = shape + strip_trivia(&binop).to_string().len() + 1;
                 let side = hang_binop_expression(
@@ -681,14 +702,15 @@ fn format_hanging_expression_<'ast>(
                 || (shape.take_last_line(&lhs) + format!("{}{}", binop, rhs).len()).over_budget()
             {
                 let hanging_shape = shape.reset() + strip_trivia(binop).to_string().len() + 1;
-                new_binop = hang_binop(ctx, binop.to_owned(), shape);
+                new_binop = hang_binop(ctx, binop.to_owned(), shape, rhs);
                 new_rhs = hang_binop_expression(
                     ctx,
                     *rhs.to_owned(),
                     binop.to_owned(),
                     hanging_shape,
                     None,
-                );
+                )
+                .update_leading_trivia(FormatTriviaType::Replace(Vec::new()));
             }
 
             Expression::BinaryOperator {
