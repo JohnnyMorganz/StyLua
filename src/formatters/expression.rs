@@ -519,25 +519,27 @@ fn hang_binop_expression<'ast>(
 
             let (lhs, rhs) = match should_hang {
                 true => {
-                    let shape = shape + strip_trivia(&new_binop).to_string().len() + 1;
+                    let lhs_shape = shape;
+                    let rhs_shape = shape + strip_trivia(&new_binop).to_string().len() + 1;
+
                     let (lhs, rhs) = match side_to_hang {
                         ExpressionSide::Left => (
                             hang_binop_expression(
                                 ctx,
                                 *lhs,
                                 if same_op_level { top_binop } else { binop },
-                                shape,
+                                lhs_shape,
                                 lhs_range,
                             ),
-                            format_expression(ctx, &*rhs, shape),
+                            format_expression(ctx, &*rhs, rhs_shape),
                         ),
                         ExpressionSide::Right => (
-                            format_expression(ctx, &*lhs, shape),
+                            format_expression(ctx, &*lhs, lhs_shape),
                             hang_binop_expression(
                                 ctx,
                                 *rhs,
                                 if same_op_level { top_binop } else { binop },
-                                shape,
+                                rhs_shape,
                                 lhs_range,
                             ),
                         ),
