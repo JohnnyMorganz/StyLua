@@ -38,6 +38,14 @@ impl Indent {
         (self.block_indent + self.additional_indent) * self.indent_width
     }
 
+    /// Recreates an Indent struct with the given additional indent level
+    pub fn with_additional_indent(&self, additional_indent: usize) -> Self {
+        Self {
+            additional_indent,
+            ..*self
+        }
+    }
+
     /// Increments the block indentation level by one
     pub fn increment_block_indent(&self) -> Self {
         Self {

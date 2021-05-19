@@ -1,7 +1,11 @@
-use full_moon::ast::{
-    span::ContainedSpan, BinOp, Expression, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
-};
 use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::{
+    ast::{
+        span::ContainedSpan, BinOp, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
+        VarExpression,
+    },
+    node::Node,
+};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -194,6 +198,7 @@ pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -
                     expression,
                     shape,
                     ExpressionContext::Prefix,
+                    None,
                 ))
             } else {
                 Prefix::Expression(singleline_format)
@@ -339,11 +344,99 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
     }
 }
 
+fn range<'ast, N: Node<'ast>>(node: N) -> (usize, usize) {
+    let (start, end) = node.range().unwrap();
+    (start.bytes(), end.bytes())
+}
+
+/// This struct encompasses information about the leftmost-expression in a BinaryExpression tree.
+/// It holds the range of the leftmost binary expression, and the original additional indent level of this range.
+/// This struct is only used when the hanging binary expression involves a hang level, for example:
+/// ```lua
+/// foooo
+///    + bar
+///    + baz
+/// ```
+/// or in a larger context:
+/// ```lua
+/// local someVariable = foooo
+///    + bar
+///    + baz
+/// ```
+/// As seen, the first item (`foooo`) is inlined, and has an indent level one lower than the rest of the binary
+/// expressions. We want to ensure that whenever we have `foooo` in our expression, we use the original indentation level
+/// because the expression is (at this current point in time) inlined - otherwise, it will be over-indented.
+/// We hold the original indentation level incase we are deep down in the recursivecalls:
+/// ```lua
+/// local ratio = (minAxis - minAxisSize) / delta * (self.props.maxScaleRatio - self.props.minScaleRatio)
+///     + self.props.minScaleRatio
+/// ```
+/// Since the first line contains binary operators at a different precedence level to the `+`, then the indentation
+/// level has been increased even further. But we want to use the original indentation level, because as it stands,
+/// the expression is currently inlined on the original line.
+#[derive(Clone, Copy, Debug)]
+struct LeftmostRangeHang {
+    range: (usize, usize),
+    original_additional_indent_level: usize,
+}
+
+impl LeftmostRangeHang {
+    /// Finds the leftmost expression from the given (full) expression, and then creates a [`LeftmostRangeHang`]
+    /// to represent it
+    fn find(expression: &Expression, original_additional_indent_level: usize) -> Self {
+        match expression {
+            Expression::BinaryOperator { lhs, .. } => {
+                Self::find(lhs, original_additional_indent_level)
+            }
+            _ => Self {
+                range: range(expression),
+                original_additional_indent_level,
+            },
+        }
+    }
+
+    /// Given an [`Expression`], returns the [`Shape`] to use for this expression.
+    /// This function checks the provided expression to see if the LeftmostRange falls inside of it.
+    /// If so, then we need to use the original indentation level shape, as (so far) the expression is inlined.
+    fn required_shape(&self, shape: Shape, expression: &Expression) -> Shape {
+        let (expression_start, expression_end) = range(expression);
+        let (lhs_start, lhs_end) = self.range;
+
+        if lhs_start >= expression_start && lhs_end <= expression_end {
+            shape.with_indent(
+                shape
+                    .indent()
+                    .with_additional_indent(self.original_additional_indent_level),
+            )
+        } else {
+            shape
+        }
+    }
+}
+
+fn is_hang_binop_over_width(
+    shape: Shape,
+    expression: &Expression,
+    top_binop: &BinOp,
+    lhs_range: Option<LeftmostRangeHang>,
+) -> bool {
+    let shape = if let Some(lhs_hang) = lhs_range {
+        lhs_hang.required_shape(shape, expression)
+    } else {
+        shape
+    };
+
+    shape
+        .add_width(binop_expression_length(expression, top_binop))
+        .over_budget()
+}
+
 fn hang_binop_expression<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
     top_binop: BinOp<'ast>,
     shape: Shape,
+    lhs_range: Option<LeftmostRangeHang>,
 ) -> Expression<'ast> {
     let full_expression = expression.to_owned();
 
@@ -367,9 +460,8 @@ fn hang_binop_expression<'ast>(
                 lhs.to_owned()
             };
 
-            let over_column_width = shape
-                .add_width(binop_expression_length(&full_expression, &binop))
-                .over_budget();
+            let over_column_width =
+                is_hang_binop_over_width(shape, &full_expression, &binop, lhs_range);
 
             let binop = format_binop(ctx, &binop, shape);
             let (binop, updated_side) = if same_op_level || over_column_width {
@@ -381,6 +473,7 @@ fn hang_binop_expression<'ast>(
                     *side_to_use,
                     if same_op_level { top_binop } else { binop },
                     shape,
+                    lhs_range,
                 );
 
                 (op, side)
@@ -403,7 +496,13 @@ fn hang_binop_expression<'ast>(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => format_hanging_expression_(ctx, &expression, shape, ExpressionContext::Standard),
+        _ => format_hanging_expression_(
+            ctx,
+            &expression,
+            shape,
+            ExpressionContext::Standard,
+            lhs_range,
+        ),
     }
 }
 
@@ -413,6 +512,7 @@ fn format_hanging_expression_<'ast>(
     expression: &Expression<'ast>,
     shape: Shape,
     expression_context: ExpressionContext,
+    lhs_range: Option<LeftmostRangeHang>,
 ) -> Expression<'ast> {
     match expression {
         Expression::Value {
@@ -420,10 +520,22 @@ fn format_hanging_expression_<'ast>(
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
+            let shape = if let Some(lhs_hang) = lhs_range {
+                lhs_hang.required_shape(shape, expression)
+            } else {
+                shape
+            };
+
             let value = Box::new(match &**value {
-                Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
-                    format_hanging_expression_(ctx, expression, shape, expression_context),
-                ),
+                Value::ParenthesesExpression(expression) => {
+                    Value::ParenthesesExpression(format_hanging_expression_(
+                        ctx,
+                        expression,
+                        shape,
+                        expression_context,
+                        lhs_range,
+                    ))
+                }
                 _ => format_value(ctx, value, shape),
             });
             Expression::Value {
@@ -445,7 +557,7 @@ fn format_hanging_expression_<'ast>(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
-                format_hanging_expression_(ctx, expression, shape, expression_context)
+                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range)
             } else {
                 let contained = format_contained_span(ctx, &contained, shape);
 
@@ -488,6 +600,7 @@ fn format_hanging_expression_<'ast>(
                         &expression,
                         expression_shape,
                         ExpressionContext::Standard,
+                        lhs_range,
                     )),
                 }
             }
@@ -496,7 +609,7 @@ fn format_hanging_expression_<'ast>(
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
             let expression =
-                format_hanging_expression_(ctx, &expression, shape, expression_context);
+                format_hanging_expression_(ctx, &expression, shape, expression_context, lhs_range);
 
             Expression::UnaryOperator {
                 unop,
@@ -505,14 +618,15 @@ fn format_hanging_expression_<'ast>(
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
-            let lhs = hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape);
+            let lhs =
+                hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, lhs_range);
 
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.reset();
             let binop = hang_binop(ctx, binop, shape);
 
             let shape = shape + strip_trivia(&binop).to_string().len() + 1;
-            let rhs = hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape);
+            let rhs = hang_binop_expression(ctx, *rhs.to_owned(), binop.to_owned(), shape, None);
 
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
@@ -530,12 +644,22 @@ pub fn hang_expression<'ast>(
     shape: Shape,
     hang_level: Option<usize>,
 ) -> Expression<'ast> {
+    let original_additional_indent_level = shape.indent().additional_indent();
     let shape = match hang_level {
         Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
         None => shape,
     };
 
-    format_hanging_expression_(ctx, expression, shape, ExpressionContext::Standard)
+    let lhs_range =
+        hang_level.map(|_| LeftmostRangeHang::find(expression, original_additional_indent_level));
+
+    format_hanging_expression_(
+        ctx,
+        expression,
+        shape,
+        ExpressionContext::Standard,
+        lhs_range,
+    )
 }
 
 pub fn hang_expression_trailing_newline<'ast>(
