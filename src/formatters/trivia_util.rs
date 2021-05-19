@@ -364,6 +364,7 @@ pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<T
         .collect()
 }
 
+pub fn take_expression_trailing_comments<'ast>(
     expression: &Expression<'ast>,
 ) -> (Expression<'ast>, Vec<Token<'ast>>) {
     let trailing_comments = get_expression_trailing_trivia(expression)

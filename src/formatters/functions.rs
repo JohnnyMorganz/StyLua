@@ -392,7 +392,7 @@ pub fn format_function_args<'ast>(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::get_expression_trailing_comments(&new_expression);
+                trivia_util::take_expression_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(
@@ -423,7 +423,7 @@ pub fn format_function_args<'ast>(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::get_expression_trailing_comments(&new_expression);
+                trivia_util::take_expression_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(
