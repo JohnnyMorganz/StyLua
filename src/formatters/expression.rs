@@ -467,7 +467,7 @@ fn is_hang_binop_over_width(
 }
 
 /// If present, finds the precedence level of the provided binop in the BinOp expression. Otherwise, returns 0
-fn binop_precedence_level<'ast>(expression: &Expression<'ast>) -> u8 {
+fn binop_precedence_level(expression: &Expression) -> u8 {
     match expression {
         Expression::BinaryOperator { binop, .. } => binop.precedence(),
         _ => 0,
