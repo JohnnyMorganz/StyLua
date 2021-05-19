@@ -5,9 +5,6 @@ use full_moon::{
 };
 use std::borrow::Cow;
 
-/// A Range, from a Start Position to an End Position
-pub type Range = (usize, usize);
-
 #[derive(Debug, Clone)]
 pub struct Context {
     /// The configuration passed to the formatter

@@ -54,13 +54,13 @@ impl Indent {
         }
     }
 
-    /// Decrements the block indentation level by one
-    pub fn decrement_block_indent(&self) -> Self {
-        Self {
-            block_indent: self.block_indent.saturating_sub(1),
-            ..*self
-        }
-    }
+    // Decrements the block indentation level by one
+    // pub fn decrement_block_indent(&self) -> Self {
+    //     Self {
+    //         block_indent: self.block_indent.saturating_sub(1),
+    //         ..*self
+    //     }
+    // }
 
     /// Increments the additional indentation level by one
     pub fn increment_additional_indent(&self) -> Self {
@@ -70,13 +70,13 @@ impl Indent {
         }
     }
 
-    /// Decrements the additional indentation level by one
-    pub fn decrement_additional_indent(&self) -> Self {
-        Self {
-            additional_indent: self.additional_indent.saturating_sub(1),
-            ..*self
-        }
-    }
+    // Decrements the additional indentation level by one
+    // pub fn decrement_additional_indent(&self) -> Self {
+    //     Self {
+    //         additional_indent: self.additional_indent.saturating_sub(1),
+    //         ..*self
+    //     }
+    // }
 
     /// Increases the additional indentation level by amount specified
     pub fn add_indent_level(&self, amount: usize) -> Self {
@@ -102,15 +102,6 @@ impl Shape {
     pub fn new(ctx: &Context) -> Self {
         Self {
             indent: Indent::new(ctx),
-            offset: 0,
-            column_width: ctx.config().column_width,
-        }
-    }
-
-    /// Create a shape from the given Indent
-    pub fn from_indent(ctx: &Context, indent: Indent) -> Self {
-        Self {
-            indent,
             offset: 0,
             column_width: ctx.config().column_width,
         }
@@ -147,26 +138,10 @@ impl Shape {
         }
     }
 
-    /// Decrements the block indentation level by one. Alias for `shape.with_indent(shape.indent().decrement_block_indent())`
-    pub fn decrement_block_indent(&self) -> Self {
-        Self {
-            indent: self.indent.decrement_block_indent(),
-            ..*self
-        }
-    }
-
     /// Increments the additional indentation level by one. Alias for `shape.with_indent(shape.indent().increment_additional_indent())`
     pub fn increment_additional_indent(&self) -> Self {
         Self {
             indent: self.indent.increment_additional_indent(),
-            ..*self
-        }
-    }
-
-    /// Decrements the additional indentation level by one. Alias for `shape.with_indent(shape.indent().decrement_additional_indent())`
-    pub fn decrement_additional_indent(&self) -> Self {
-        Self {
-            indent: self.indent.decrement_additional_indent(),
             ..*self
         }
     }

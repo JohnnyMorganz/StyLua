@@ -15,7 +15,6 @@ pub mod stmt;
 pub mod table;
 pub mod trivia;
 pub mod trivia_util;
-pub mod util;
 
 use block::format_block;
 use general::format_eof;
