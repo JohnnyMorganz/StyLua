@@ -345,9 +345,22 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
     }
 }
 
-fn range<'ast, N: Node<'ast>>(node: N) -> (usize, usize) {
-    let (start, end) = node.range().unwrap();
-    (start.bytes(), end.bytes())
+/// Converts an item to a range
+trait ToRange {
+    fn to_range(&self) -> (usize, usize);
+}
+
+impl ToRange for (usize, usize) {
+    fn to_range(&self) -> (usize, usize) {
+        *self
+    }
+}
+
+impl ToRange for Expression<'_> {
+    fn to_range(&self) -> (usize, usize) {
+        let (start, end) = self.range().unwrap();
+        (start.bytes(), end.bytes())
+    }
 }
 
 /// This struct encompasses information about the leftmost-expression in a BinaryExpression tree.
@@ -390,7 +403,7 @@ impl LeftmostRangeHang {
                 Self::find(lhs, original_additional_indent_level)
             }
             _ => Self {
-                range: range(expression),
+                range: expression.to_range(),
                 original_additional_indent_level,
             },
         }
@@ -399,8 +412,8 @@ impl LeftmostRangeHang {
     /// Given an [`Expression`], returns the [`Shape`] to use for this expression.
     /// This function checks the provided expression to see if the LeftmostRange falls inside of it.
     /// If so, then we need to use the original indentation level shape, as (so far) the expression is inlined.
-    fn required_shape(&self, shape: Shape, expression: &Expression) -> Shape {
-        let (expression_start, expression_end) = range(expression);
+    fn required_shape<T: ToRange>(&self, shape: Shape, item: &T) -> Shape {
+        let (expression_start, expression_end) = item.to_range();
         let (lhs_start, lhs_end) = self.range;
 
         if lhs_start >= expression_start && lhs_end <= expression_end {
@@ -523,18 +536,14 @@ fn format_hanging_expression_<'ast>(
     expression_context: ExpressionContext,
     lhs_range: Option<LeftmostRangeHang>,
 ) -> Expression<'ast> {
+    let expression_range = expression.to_range();
+
     match expression {
         Expression::Value {
             value,
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
-            let shape = if let Some(lhs_hang) = lhs_range {
-                lhs_hang.required_shape(shape, expression)
-            } else {
-                shape
-            };
-
             let value = Box::new(match &**value {
                 Value::ParenthesesExpression(expression) => {
                     Value::ParenthesesExpression(format_hanging_expression_(
@@ -545,7 +554,14 @@ fn format_hanging_expression_<'ast>(
                         lhs_range,
                     ))
                 }
-                _ => format_value(ctx, value, shape),
+                _ => {
+                    let shape = if let Some(lhs_hang) = lhs_range {
+                        lhs_hang.required_shape(shape, &expression_range)
+                    } else {
+                        shape
+                    };
+                    format_value(ctx, value, shape)
+                }
             });
             Expression::Value {
                 value,
@@ -560,22 +576,34 @@ fn format_hanging_expression_<'ast>(
             contained,
             expression,
         } => {
+            let lhs_shape = if let Some(lhs_hang) = lhs_range {
+                lhs_hang.required_shape(shape, &expression_range)
+            } else {
+                shape
+            };
+
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
             let use_internal_expression = check_excess_parentheses(expression);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
-                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range)
+                format_hanging_expression_(
+                    ctx,
+                    expression,
+                    lhs_shape,
+                    expression_context,
+                    lhs_range,
+                )
             } else {
-                let contained = format_contained_span(ctx, &contained, shape);
+                let contained = format_contained_span(ctx, &contained, lhs_shape);
 
                 // Provide a sample formatting to see how large it is
                 // Examine the expression itself to see if needs to be split onto multiple lines
-                let formatted_expression = format_expression(ctx, expression, shape + 1); // 1 = opening parentheses
+                let formatted_expression = format_expression(ctx, expression, lhs_shape + 1); // 1 = opening parentheses
 
                 let expression_str = formatted_expression.to_string();
-                if !shape.add_width(2 + expression_str.len()).over_budget() {
+                if !lhs_shape.add_width(2 + expression_str.len()).over_budget() {
                     // The expression inside the parentheses is small, we do not need to break it down further
                     return Expression::Parentheses {
                         contained,
@@ -584,6 +612,8 @@ fn format_hanging_expression_<'ast>(
                 }
 
                 // Update the expression shape to be used inside the parentheses, applying the indent increase
+                // Use the original `shape` rather than the LeftmostRangeHang-determined shape, because we are now
+                // indenting the internal expression, which is not part of the hang
                 let expression_shape = shape.reset().increment_additional_indent();
 
                 // Modify the parentheses to hang the expression
@@ -609,7 +639,7 @@ fn format_hanging_expression_<'ast>(
                         &expression,
                         expression_shape,
                         ExpressionContext::Standard,
-                        lhs_range,
+                        None,
                     )),
                 }
             }
