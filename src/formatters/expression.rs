@@ -474,6 +474,11 @@ fn binop_precedence_level<'ast>(expression: &Expression<'ast>) -> u8 {
     }
 }
 
+enum ExpressionSide {
+    Left,
+    Right,
+}
+
 fn hang_binop_expression<'ast>(
     ctx: &Context,
     expression: Expression<'ast>,
@@ -497,45 +502,61 @@ fn hang_binop_expression<'ast>(
                 shape.increment_additional_indent()
             };
 
-            let side_to_use = if is_right_associative {
-                rhs.to_owned()
+            let side_to_hang = if is_right_associative {
+                ExpressionSide::Right
             } else {
-                lhs.to_owned()
+                ExpressionSide::Left
             };
 
             let over_column_width =
                 is_hang_binop_over_width(shape, &full_expression, &binop, lhs_range);
+            let should_hang = same_op_level || over_column_width;
 
-            let binop = format_binop(ctx, &binop, shape);
-            let (binop, updated_side) = if same_op_level || over_column_width {
-                let op = hang_binop(ctx, binop.to_owned(), shape, &rhs);
+            let mut new_binop = format_binop(ctx, &binop, shape);
+            if should_hang {
+                new_binop = hang_binop(ctx, binop.to_owned(), shape, &rhs);
+            }
 
-                let shape = shape + strip_trivia(&binop).to_string().len() + 1;
-                let side = hang_binop_expression(
-                    ctx,
-                    *side_to_use,
-                    if same_op_level { top_binop } else { binop },
-                    shape,
-                    lhs_range,
-                );
-
-                (op, side)
-            } else {
-                (binop, format_expression(ctx, &*side_to_use, shape))
+            let (lhs, rhs) = match should_hang {
+                true => {
+                    let shape = shape + strip_trivia(&new_binop).to_string().len() + 1;
+                    let (lhs, rhs) = match side_to_hang {
+                        ExpressionSide::Left => (
+                            hang_binop_expression(
+                                ctx,
+                                *lhs,
+                                if same_op_level { top_binop } else { binop },
+                                shape,
+                                lhs_range,
+                            ),
+                            format_expression(ctx, &*rhs, shape),
+                        ),
+                        ExpressionSide::Right => (
+                            format_expression(ctx, &*lhs, shape),
+                            hang_binop_expression(
+                                ctx,
+                                *rhs,
+                                if same_op_level { top_binop } else { binop },
+                                shape,
+                                lhs_range,
+                            ),
+                        ),
+                    };
+                    (
+                        lhs,
+                        rhs.update_leading_trivia(FormatTriviaType::Replace(Vec::new())),
+                    )
+                }
+                false => (
+                    format_expression(ctx, &*lhs, shape),
+                    format_expression(ctx, &*rhs, shape),
+                ),
             };
 
-            if is_right_associative {
-                Expression::BinaryOperator {
-                    lhs: Box::new(format_expression(ctx, &*lhs, shape)),
-                    binop,
-                    rhs: Box::new(updated_side),
-                }
-            } else {
-                Expression::BinaryOperator {
-                    lhs: Box::new(updated_side),
-                    binop,
-                    rhs: Box::new(format_expression(ctx, &*rhs, shape)),
-                }
+            Expression::BinaryOperator {
+                lhs: Box::new(lhs),
+                binop: new_binop,
+                rhs: Box::new(rhs),
             }
         }
         // Base case: no more binary operators - just return to normal splitting
