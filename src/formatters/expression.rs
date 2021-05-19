@@ -680,7 +680,7 @@ fn format_hanging_expression_<'ast>(
                     .any(trivia_util::trivia_is_comment)
                 || (shape.take_last_line(&lhs) + format!("{}{}", binop, rhs).len()).over_budget()
             {
-                let hanging_shape = shape + strip_trivia(binop).to_string().len() + 1;
+                let hanging_shape = shape.reset() + strip_trivia(binop).to_string().len() + 1;
                 new_binop = hang_binop(ctx, binop.to_owned(), shape);
                 new_rhs = hang_binop_expression(
                     ctx,
