@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CLI will now look for `stylua.toml` and its hidden counterpart, `.stylua.toml`. ([#145](https://github.com/JohnnyMorganz/StyLua/issues/145))
 - Added CLI flag `--search-parent-directories`. If enabled, we will look in parent directories for a configuration file, or look in `$XDG_CONFIG_HOME` or `$XDG_CONFIG_HOME/stylua`. ([#127](https://github.com/JohnnyMorganz/StyLua/issues/127), [#146](https://github.com/JohnnyMorganz/StyLua/issues/146))
+- Updated full-moon: Added support for typed variadics under the Luau feature flag
 - Will now hang on equality operators within binary expressions, if over width.
 
 ### Changed
 - Long prefix expressions which are hangable and go over the line limit (e.g. `("foooo" .. "barrrrrrr" .. "bazzzzzz"):format(...)`) will now hang multiline ([#139](https://github.com/JohnnyMorganz/StyLua/issues/139))
+- Changed formatting for assignments. We will now try all tactics then determine the best one. Multiple assignments will now no longer attempt to hang a single expression first - we will hang the whole punctuated list. ([#157](https://github.com/JohnnyMorganz/StyLua/issues/157))
+- Function calls with single arguments are now possible to be expanded. This will allow the call to be expanded if the line goes over budget. ([[#156](https://github.com/JohnnyMorganz/StyLua/issues/156)])
+- StyLua will now firstly prefer hanging long arguments to function calls to try and fit under the width, before expanding them multiline. ([#159](https://github.com/JohnnyMorganz/StyLua/issues/159))
 
 ### Fixed
 - Fixed 1 or 2 digit numerical escapes being incorrectly removed

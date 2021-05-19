@@ -4,7 +4,6 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::node::Node;
 use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::boxed::Box;
 
@@ -14,6 +13,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
+        block::format_block,
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_span, format_end_token, format_punctuated, format_symbol,
@@ -24,7 +24,6 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
-        util::{expression_range, token_range},
     },
     shape::Shape,
 };
@@ -32,16 +31,13 @@ use crate::{
 /// Formats an Anonymous Function
 /// This doesn't have its own struct, but it is part of Value::Function
 pub fn format_anonymous_function<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_token: &TokenReference<'ast>,
     function_body: &FunctionBody<'ast>,
+    shape: Shape,
 ) -> (TokenReference<'ast>, FunctionBody<'ast>) {
-    let function_token_range = token_range(function_token.token());
-    let additional_indent_level = ctx.get_range_indent_increase(function_token_range);
-
-    let function_token = fmt_symbol!(ctx, function_token, "function");
-    let mut function_body =
-        format_function_body(ctx, function_body, false, Shape::from_context(ctx)); // TODO: shape
+    let function_token = fmt_symbol!(ctx, function_token, "function", shape);
+    let mut function_body = format_function_body(ctx, function_body, false, shape.reset()); // TODO: do we want to reset this shape?
 
     // Need to insert any additional trivia, as it isn't being inserted elsewhere
     #[cfg(feature = "luau")]
@@ -82,15 +78,14 @@ pub fn format_anonymous_function<'ast>(
     let end_token = function_body
         .end_token()
         .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-            ctx,
-            additional_indent_level,
+            ctx, shape,
         )]));
 
     (function_token, function_body.with_end_token(end_token))
 }
 
 /// Formats a Call node
-pub fn format_call<'ast>(ctx: &mut Context, call: &Call<'ast>, shape: Shape) -> Call<'ast> {
+pub fn format_call<'ast>(ctx: &Context, call: &Call<'ast>, shape: Shape) -> Call<'ast> {
     match call {
         Call::AnonymousCall(function_args) => {
             Call::AnonymousCall(format_function_args(ctx, function_args, shape))
@@ -104,7 +99,7 @@ pub fn format_call<'ast>(ctx: &mut Context, call: &Call<'ast>, shape: Shape) -> 
 
 /// Formats a FunctionArgs node
 pub fn format_function_args<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_args: &FunctionArgs<'ast>,
     shape: Shape,
 ) -> FunctionArgs<'ast> {
@@ -114,19 +109,13 @@ pub fn format_function_args<'ast>(
             arguments,
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
-            // Find the range of the function arguments
-            let function_call_range = (
-                Token::end_position(&start_parens).bytes(),
-                Token::start_position(&end_parens).bytes(),
-            );
 
-            // Format all the arguments, so that we can prepare them and check to see whether they need expanding
-            // We will ignore punctuation for now
+            // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
+            // need expanding. We will ignore punctuation for now
             let mut first_iter_formatted_arguments = Vec::new();
-            let mut first_iter_shape = shape;
+            let infinite_shape = shape.with_infinite_width();
             for argument in arguments.iter() {
-                let argument = format_expression(ctx, argument, first_iter_shape);
-                first_iter_shape = shape.take_last_line(&argument);
+                let argument = format_expression(ctx, argument, infinite_shape);
                 first_iter_formatted_arguments.push(argument);
             }
 
@@ -173,13 +162,8 @@ pub fn format_function_args<'ast>(
             let mut singleline_shape = shape + 1; // 1 = opening parentheses
 
             if !force_mutliline {
-                // If we only have one argument then we will not make it multi line (expanding it would have little value)
-                // Unless, the argument is a hangable expression
-                if first_iter_formatted_arguments.len() == 1
-                    && !trivia_util::can_hang_expression(
-                        first_iter_formatted_arguments.first().unwrap(),
-                    )
-                {
+                // If we have no arguments, then we can skip hanging multiline
+                if first_iter_formatted_arguments.is_empty() {
                     is_multiline = false;
                 } else {
                     // Find how far we are currently indented, we can use this to determine when to expand
@@ -257,11 +241,18 @@ pub fn format_function_args<'ast>(
                                         if seen_multiline_arg {
                                             seen_other_arg_after_multiline = true;
                                         }
+
+                                        // Take the first line to see if we are over budget
+                                        if singleline_shape.take_first_line(argument).over_budget()
+                                        {
+                                            is_multiline = true;
+                                            break;
+                                        }
+
+                                        // Set the shape to the last line, then examine if over budget
                                         singleline_shape =
-                                            singleline_shape + argument.to_string().len();
+                                            singleline_shape.take_last_line(argument);
                                         if singleline_shape.over_budget() {
-                                            // We have passed 80 characters without a table or anonymous function
-                                            // There is nothing else stopping us from expanding - so we will
                                             is_multiline = true;
                                             break;
                                         }
@@ -277,10 +268,15 @@ pub fn format_function_args<'ast>(
                                     seen_other_arg_after_multiline = true;
                                 }
 
-                                singleline_shape = singleline_shape + argument.to_string().len();
+                                // Take the first line to see if we are over budget
+                                if singleline_shape.take_first_line(argument).over_budget() {
+                                    is_multiline = true;
+                                    break;
+                                }
+
+                                // Set the shape to the last line, then examine if over budget
+                                singleline_shape = singleline_shape.take_last_line(argument);
                                 if singleline_shape.over_budget() {
-                                    // We have passed 80 characters without a table or anonymous function
-                                    // There is nothing else stopping us from expanding - so we will
                                     is_multiline = true;
                                     break;
                                 }
@@ -290,81 +286,67 @@ pub fn format_function_args<'ast>(
                         // Add width which would be taken up by comment and space
                         singleline_shape = singleline_shape + 2;
                     }
+
+                    // Check the final shape to see if its over budget
+                    // -1 because we added +2 for ", " in the last iteration, but we don't want a trailing space and the comma is replaced with a parentheses
+                    if singleline_shape.sub_width(1).over_budget() {
+                        is_multiline = true;
+                    }
                 }
             }
 
             if is_multiline {
-                // TODO: This is similar to multiline in TableConstructor, can we resolve?
                 // Format start and end brace properly with correct trivia
-
                 // Calculate to see if the end parentheses requires any additional indentation
-                let end_parens_additional_indent_level =
-                    ctx.get_range_indent_increase(token_range(end_parens));
-                let end_parens_leading_trivia = vec![create_indent_trivia(
-                    ctx,
-                    end_parens_additional_indent_level,
-                )];
+                let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
                 // Add new_line trivia to start_parens
-                let start_parens_token = fmt_symbol!(ctx, start_parens, "(")
+                let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
                     .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
                         ctx,
                     )]));
 
-                let end_parens_token = TokenReference::new(
-                    end_parens_leading_trivia,
-                    Token::new(TokenType::Symbol {
-                        symbol: Symbol::RightParen,
-                    }),
-                    vec![],
-                );
+                let end_parens_token =
+                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
+                        .update_leading_trivia(FormatTriviaType::Append(end_parens_leading_trivia));
 
-                let parentheses = ContainedSpan::new(
-                    start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token),
-                );
+                let parentheses = ContainedSpan::new(start_parens_token, end_parens_token);
 
                 let mut formatted_arguments = Punctuated::new();
-                ctx.add_indent_range(function_call_range);
+                let shape = shape.increment_additional_indent();
 
                 for argument in arguments.pairs() {
-                    let argument_range = expression_range(argument.value());
-                    let additional_indent_level = ctx.get_range_indent_increase(argument_range);
-                    let shape = shape
-                        .reset()
-                        .with_additional_indent(additional_indent_level); // Argument is on a new line, so reset the shape
+                    let shape = shape.reset(); // Argument is on a new line, so reset the shape
 
-                    let mut formatted_argument = format_expression(ctx, argument.value(), shape);
+                    // First format the argument assuming infinite width
+                    let infinite_width_argument =
+                        format_expression(ctx, argument.value(), shape.with_infinite_width());
 
-                    let require_multiline_expression =
-                        trivia_util::can_hang_expression(argument.value())
-                            && shape
-                                .take_first_line(&strip_trivia(&formatted_argument))
-                                .over_budget();
-
-                    // Hang the expression if necessary
-                    if require_multiline_expression {
-                        formatted_argument = hang_expression(
-                            ctx,
-                            argument.value(),
-                            shape,
-                            additional_indent_level,
-                            None,
-                        );
+                    // If the argument fits, great! Otherwise, see if we can hang the expression
+                    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
+                    let formatted_argument = if shape
+                        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+                        .over_budget()
+                    {
+                        if trivia_util::can_hang_expression(argument.value()) {
+                            hang_expression(ctx, argument.value(), shape, Some(1))
+                        } else {
+                            format_expression(ctx, argument.value(), shape)
+                        }
+                    } else {
+                        infinite_width_argument
                     }
-
-                    // Add the leading indent for the argument
-                    formatted_argument =
-                        formatted_argument.update_leading_trivia(FormatTriviaType::Append(vec![
-                            create_indent_trivia(ctx, additional_indent_level),
-                        ]));
+                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                        ctx, shape,
+                    )]));
 
                     let punctuation = match argument.punctuation() {
                         Some(punctuation) => {
                             // Continue adding a comma and a new line for multiline function args
-                            let symbol = fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
-                                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-                            );
+                            let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
+                                .update_trailing_trivia(FormatTriviaType::Append(vec![
+                                    create_newline_trivia(ctx),
+                                ]));
 
                             Some(symbol)
                         }
@@ -386,7 +368,7 @@ pub fn format_function_args<'ast>(
                 // We don't need to worry about comments here, as if there were comments present, we would have
                 // multiline function args
 
-                let parentheses = format_contained_span(ctx, &parentheses);
+                let parentheses = format_contained_span(ctx, &parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_expression); // 1 = opening parentheses
 
                 FunctionArgs::Parentheses {
@@ -463,15 +445,13 @@ pub fn format_function_args<'ast>(
 
 /// Formats a FunctionBody node
 pub fn format_function_body<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_body: &FunctionBody<'ast>,
     add_trivia: bool,
     shape: Shape,
 ) -> FunctionBody<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(function_body.end_token()));
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     // Check if the parameters should be placed across multiple lines
@@ -507,7 +487,9 @@ pub fn format_function_body<'ast>(
                     .chain(std::iter::once(function_body.return_type())) // Include optional return type
                     .map(|x| {
                         x.map_or(0, |specifier| {
-                            format_type_specifier(ctx, specifier).to_string().len()
+                            format_type_specifier(ctx, specifier, shape)
+                                .to_string()
+                                .len()
                         })
                     })
                     .sum::<usize>()
@@ -517,7 +499,7 @@ pub fn format_function_body<'ast>(
                 types_length = 0
             }
 
-            let line_length = format_singleline_parameters(ctx, function_body)
+            let line_length = format_singleline_parameters(ctx, function_body, shape)
                     .to_string()
                     .len()
                         + 2 // Account for the parentheses around the parameters
@@ -535,15 +517,11 @@ pub fn format_function_body<'ast>(
             let (start_parens, end_parens) = function_body.parameters_parentheses().tokens();
 
             // Calculate to see if the end parentheses requires any additional indentation
-            let end_parens_additional_indent_level =
-                ctx.get_range_indent_increase(token_range(end_parens));
-            let end_parens_leading_trivia = vec![
-                create_newline_trivia(ctx),
-                create_indent_trivia(ctx, end_parens_additional_indent_level),
-            ];
+            let end_parens_leading_trivia =
+                vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
 
             // Add new_line trivia to start_parens
-            let start_parens_token = fmt_symbol!(ctx, start_parens, "(")
+            let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
                 .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
 
             let end_parens_token = TokenReference::new(
@@ -555,16 +533,16 @@ pub fn format_function_body<'ast>(
             );
 
             (
-                format_multiline_parameters(ctx, function_body),
+                format_multiline_parameters(ctx, function_body, shape),
                 ContainedSpan::new(
                     start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token),
+                    format_symbol(ctx, end_parens, &end_parens_token, shape),
                 ),
             )
         }
         false => (
-            format_singleline_parameters(ctx, function_body),
-            format_contained_span(ctx, function_body.parameters_parentheses()),
+            format_singleline_parameters(ctx, function_body, shape),
+            format_contained_span(ctx, function_body.parameters_parentheses(), shape),
         ),
     };
 
@@ -579,12 +557,12 @@ pub fn format_function_body<'ast>(
     {
         type_specifiers = function_body
             .type_specifiers()
-            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier)))
+            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
             .collect();
 
         return_type = match function_body.return_type() {
             Some(return_type) => Some({
-                let formatted = format_type_specifier(ctx, return_type);
+                let formatted = format_type_specifier(ctx, return_type, shape);
                 if add_trivia {
                     added_trailing_trivia = true;
                     formatted.update_trailing_trivia(FormatTriviaType::Append(
@@ -603,19 +581,34 @@ pub fn format_function_body<'ast>(
             .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
     }
 
+    let block_shape = shape.reset().increment_block_indent();
+    let block = format_block(ctx, function_body.block(), block_shape);
+
     let end_token = if add_trivia {
-        format_end_token(ctx, function_body.end_token(), EndTokenType::BlockEnd).update_trivia(
+        format_end_token(
+            ctx,
+            function_body.end_token(),
+            EndTokenType::BlockEnd,
+            shape,
+        )
+        .update_trivia(
             FormatTriviaType::Append(leading_trivia),
             FormatTriviaType::Append(trailing_trivia),
         )
     } else {
-        format_end_token(ctx, function_body.end_token(), EndTokenType::BlockEnd)
+        format_end_token(
+            ctx,
+            function_body.end_token(),
+            EndTokenType::BlockEnd,
+            shape,
+        )
     };
 
     let function_body = function_body
         .to_owned()
         .with_parameters_parentheses(parameters_parentheses)
         .with_parameters(formatted_parameters)
+        .with_block(block)
         .with_end_token(end_token);
 
     #[cfg(feature = "luau")]
@@ -628,7 +621,7 @@ pub fn format_function_body<'ast>(
 
 /// Formats a FunctionCall node
 pub fn format_function_call<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_call: &FunctionCall<'ast>,
     shape: Shape,
 ) -> FunctionCall<'ast> {
@@ -687,33 +680,23 @@ pub fn format_function_call<'ast>(
     let mut shape = shape.take_last_line(&strip_leading_trivia(&formatted_prefix));
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
     for suffix in function_call.suffixes() {
-        // Calculate the range before formatting, otherwise it will reset to (0,0)
-        let range = (
-            suffix.start_position().expect("no suffix position").bytes(),
-            suffix.end_position().expect("no suffix position").bytes(),
-        );
-
-        let indent_level = if should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))) {
-            ctx.add_indent_range(range);
-            // Adding the range will cause the range_indent_increase to increment by one, as wanted since the
-            // function call hangs by one
-            ctx.get_range_indent_increase(range)
-        } else {
-            None
-        };
-        shape = shape.with_additional_indent(indent_level);
-
-        if indent_level.is_some() {
-            // The suffix will be added onto a new line
+        // Only hang if this is a method call
+        let should_hang = should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_)));
+        let current_shape = if should_hang {
+            // Reset the shape as the call will be on a newline
             shape = shape.reset();
-        }
+            // Increment the additional indent level for this current suffix
+            shape.increment_additional_indent()
+        } else {
+            shape
+        };
 
-        let mut suffix = format_suffix(ctx, suffix, shape);
+        let mut suffix = format_suffix(ctx, suffix, current_shape);
 
-        if indent_level.is_some() {
+        if should_hang {
             suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
                 create_newline_trivia(ctx),
-                create_indent_trivia(ctx, indent_level),
+                create_indent_trivia(ctx, current_shape),
             ]));
         }
 
@@ -726,8 +709,9 @@ pub fn format_function_call<'ast>(
 
 /// Formats a FunctionName node
 pub fn format_function_name<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_name: &FunctionName<'ast>,
+    shape: Shape,
 ) -> FunctionName<'ast> {
     // TODO: This is based off formatters::format_punctuated - can we merge them into one?
     let mut formatted_names = Punctuated::new();
@@ -735,12 +719,12 @@ pub fn format_function_name<'ast>(
         // Format Punctuation
         match pair {
             Pair::Punctuated(value, punctuation) => {
-                let formatted_punctuation = fmt_symbol!(ctx, &punctuation, ".");
-                let formatted_value = format_token_reference(ctx, &value);
+                let formatted_punctuation = fmt_symbol!(ctx, &punctuation, ".", shape);
+                let formatted_value = format_token_reference(ctx, &value, shape);
                 formatted_names.push(Pair::new(formatted_value, Some(formatted_punctuation)));
             }
             Pair::End(value) => {
-                let formatted_value = format_token_reference(ctx, &value);
+                let formatted_value = format_token_reference(ctx, &value, shape);
                 formatted_names.push(Pair::new(formatted_value, None));
             }
         }
@@ -751,8 +735,8 @@ pub fn format_function_name<'ast>(
     if let Some(method_colon) = function_name.method_colon() {
         if let Some(token_reference) = function_name.method_name() {
             formatted_method = Some((
-                fmt_symbol!(ctx, method_colon, ":"),
-                format_token_reference(ctx, token_reference),
+                fmt_symbol!(ctx, method_colon, ":", shape),
+                format_token_reference(ctx, token_reference, shape),
             ));
         }
     };
@@ -762,63 +746,61 @@ pub fn format_function_name<'ast>(
 
 /// Formats a FunctionDeclaration node
 pub fn format_function_declaration<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_declaration: &FunctionDeclaration<'ast>,
     shape: Shape,
 ) -> FunctionDeclaration<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(function_declaration.function_token()));
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
-    let function_token = fmt_symbol!(ctx, function_declaration.function_token(), "function ")
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let formatted_function_name = format_function_name(ctx, function_declaration.name());
+    let function_token = fmt_symbol!(
+        ctx,
+        function_declaration.function_token(),
+        "function ",
+        shape
+    )
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let formatted_function_name = format_function_name(ctx, function_declaration.name(), shape);
 
-    let shape = shape.with_additional_indent(additional_indent_level)
-        + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
-    let formatted_function_body =
-        format_function_body(ctx, function_declaration.body(), true, shape);
+    let shape = shape + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
+    let function_body = format_function_body(ctx, function_declaration.body(), true, shape);
 
     FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
-        .with_body(formatted_function_body)
+        .with_body(function_body)
 }
 
 /// Formats a LocalFunction node
 pub fn format_local_function<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     local_function: &LocalFunction<'ast>,
     shape: Shape,
 ) -> LocalFunction<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(local_function.local_token()));
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
-    let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ")
+    let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ");
-    let formatted_name = format_token_reference(ctx, local_function.name());
+    let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ", shape);
+    let formatted_name = format_token_reference(ctx, local_function.name(), shape);
 
-    let shape = shape.with_additional_indent(additional_indent_level)
-        + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
-    let formatted_function_body = format_function_body(ctx, local_function.body(), true, shape);
+    let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
+    let function_body = format_function_body(ctx, local_function.body(), true, shape);
 
     LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_func_body(formatted_function_body)
+        .with_body(function_body)
 }
 
 /// Formats a MethodCall node
 pub fn format_method_call<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     method_call: &MethodCall<'ast>,
     shape: Shape,
 ) -> MethodCall<'ast> {
-    let formatted_colon_token = format_token_reference(ctx, method_call.colon_token());
-    let formatted_name = format_token_reference(ctx, method_call.name());
+    let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
+    let formatted_name = format_token_reference(ctx, method_call.name(), shape);
     let shape =
         shape + (formatted_colon_token.to_string().len() + formatted_name.to_string().len());
     let formatted_function_args = format_function_args(ctx, method_call.args(), shape);
@@ -827,11 +809,15 @@ pub fn format_method_call<'ast>(
 }
 
 /// Formats a single Parameter node
-pub fn format_parameter<'ast>(ctx: &mut Context, parameter: &Parameter<'ast>) -> Parameter<'ast> {
+pub fn format_parameter<'ast>(
+    ctx: &Context,
+    parameter: &Parameter<'ast>,
+    shape: Shape,
+) -> Parameter<'ast> {
     match parameter {
-        Parameter::Ellipse(token) => Parameter::Ellipse(fmt_symbol!(ctx, token, "...")),
+        Parameter::Ellipse(token) => Parameter::Ellipse(fmt_symbol!(ctx, token, "...", shape)),
         Parameter::Name(token_reference) => {
-            Parameter::Name(format_token_reference(ctx, token_reference))
+            Parameter::Name(format_token_reference(ctx, token_reference, shape))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -839,17 +825,17 @@ pub fn format_parameter<'ast>(ctx: &mut Context, parameter: &Parameter<'ast>) ->
 
 /// Formats the [`Parameters`] in the provided [`FunctionBody`] onto a single line.
 fn format_singleline_parameters<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_body: &FunctionBody<'ast>,
+    shape: Shape,
 ) -> Punctuated<'ast, Parameter<'ast>> {
     let mut formatted_parameters = Punctuated::new();
 
     for pair in function_body.parameters().pairs() {
-        let parameter = format_parameter(ctx, pair.value());
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ", ")),
-            None => None,
-        };
+        let parameter = format_parameter(ctx, pair.value(), shape);
+        let punctuation = pair
+            .punctuation()
+            .map(|punctuation| fmt_symbol!(ctx, punctuation, ", ", shape));
 
         formatted_parameters.push(Pair::new(parameter, punctuation));
     }
@@ -859,31 +845,24 @@ fn format_singleline_parameters<'ast>(
 
 /// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
 fn format_multiline_parameters<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     function_body: &FunctionBody<'ast>,
+    shape: Shape,
 ) -> Punctuated<'ast, Parameter<'ast>> {
     let mut formatted_parameters = Punctuated::new();
 
     for pair in function_body.parameters().pairs() {
-        // Calculate indent increase
-        let additional_indent_level = ctx.get_range_indent_increase(match pair.value() {
-            Parameter::Name(token) | Parameter::Ellipse(token) => token_range(token),
-            other => panic!("unknown node {:?}", other),
-        });
+        // Reset the shape (as the parameter is on a newline), and increment the additional indent level
+        let shape = shape.reset().increment_additional_indent();
 
-        let parameter = format_parameter(ctx, pair.value()).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(
-                ctx,
-                Some(additional_indent_level.unwrap_or(0) + 1),
-            )]),
+        let parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
+            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
         );
 
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
-                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-            )),
-            None => None,
-        };
+        let punctuation = pair.punctuation().map(|punctuation| {
+            fmt_symbol!(ctx, punctuation, ",", shape)
+                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+        });
 
         formatted_parameters.push(Pair::new(parameter, punctuation))
     }

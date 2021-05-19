@@ -4,7 +4,6 @@ use crate::{
     formatters::{
         trivia::{FormatTriviaType, UpdateTrailingTrivia},
         trivia_util,
-        util::token_range,
     },
     shape::Shape,
     QuoteStyle,
@@ -33,15 +32,19 @@ pub enum EndTokenType {
     /// A closing brace at the end of a table.
     /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
     ClosingBrace,
+    /// A closing parentheses at the end of e.g. a function call
+    /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
+    ClosingParens,
 }
 
 #[macro_export]
 macro_rules! fmt_symbol {
-    ($ctx:expr, $token:expr, $x:expr) => {
+    ($ctx:expr, $token:expr, $x:expr, $shape:expr) => {
         crate::formatters::general::format_symbol(
             $ctx,
             $token,
             &TokenReference::symbol($x).unwrap(),
+            $shape,
         )
     };
 }
@@ -86,7 +89,7 @@ fn format_token<'ast>(
     ctx: &Context,
     token: &Token<'ast>,
     format_type: &FormatTokenType,
-    additional_indent_level: Option<usize>,
+    shape: Shape,
 ) -> (
     Token<'ast>,
     Option<Vec<Token<'ast>>>,
@@ -185,14 +188,7 @@ fn format_token<'ast>(
 
             match format_type {
                 FormatTokenType::LeadingTrivia => {
-                    let additional_indent_level = additional_indent_level.unwrap_or(0)
-                        + ctx
-                            .get_range_indent_increase(token_range(token))
-                            .unwrap_or(0);
-                    leading_trivia = Some(vec![create_indent_trivia(
-                        ctx,
-                        Some(additional_indent_level),
-                    )]);
+                    leading_trivia = Some(vec![create_indent_trivia(ctx, shape)]);
                     trailing_trivia = Some(vec![create_newline_trivia(ctx)]);
                 }
                 FormatTokenType::TrailingTrivia => {
@@ -208,14 +204,7 @@ fn format_token<'ast>(
         }
         TokenType::MultiLineComment { blocks, comment } => {
             if let FormatTokenType::LeadingTrivia = format_type {
-                let additional_indent_level = additional_indent_level.unwrap_or(0)
-                    + ctx
-                        .get_range_indent_increase(token_range(token))
-                        .unwrap_or(0);
-                leading_trivia = Some(vec![create_indent_trivia(
-                    ctx,
-                    Some(additional_indent_level),
-                )]);
+                leading_trivia = Some(vec![create_indent_trivia(ctx, shape)]);
                 // Add a new line once the comment is completed
                 trailing_trivia = Some(vec![create_newline_trivia(ctx)]);
             }
@@ -242,7 +231,7 @@ fn load_token_trivia<'ast>(
     ctx: &Context,
     current_trivia: Vec<&Token<'ast>>,
     format_token_type: FormatTokenType,
-    additional_indent_level: Option<usize>,
+    shape: Shape,
 ) -> Vec<Token<'ast>> {
     let mut token_trivia = Vec::new();
 
@@ -306,12 +295,8 @@ fn load_token_trivia<'ast>(
             }
         }
 
-        let (token, leading_trivia, trailing_trivia) = format_token(
-            ctx,
-            trivia.to_owned(),
-            &format_token_type,
-            additional_indent_level,
-        );
+        let (token, leading_trivia, trailing_trivia) =
+            format_token(ctx, trivia.to_owned(), &format_token_type, shape);
         if let Some(mut trivia) = leading_trivia {
             token_trivia.append(&mut trivia);
         }
@@ -329,35 +314,27 @@ fn load_token_trivia<'ast>(
 pub fn format_token_reference<'a>(
     ctx: &Context,
     token_reference: &TokenReference<'a>,
+    shape: Shape,
 ) -> TokenReference<'a> {
     // Preserve comments in leading/trailing trivia
     let formatted_leading_trivia: Vec<Token<'a>> = load_token_trivia(
         ctx,
         token_reference.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
-        None,
+        shape,
     );
     let formatted_trailing_trivia: Vec<Token<'a>> = load_token_trivia(
         ctx,
         token_reference.trailing_trivia().collect(),
         FormatTokenType::TrailingTrivia,
-        None,
+        shape,
     );
 
     let (token, _leading_trivia, _trailing_trivia) =
-        format_token(ctx, token_reference.token(), &FormatTokenType::Token, None);
+        format_token(ctx, token_reference.token(), &FormatTokenType::Token, shape);
 
     TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
 }
-
-pub fn format_token_reference_mut<'ast>(
-    ctx: &mut Context,
-    token_reference: &TokenReference<'ast>,
-    _: Shape,
-) -> TokenReference<'ast> {
-    format_token_reference(ctx, token_reference)
-}
-
 // Formats a punctuation for a Punctuated sequence
 // Removes any trailing comments to be stored in a comments buffer
 pub fn format_punctuation<'ast>(
@@ -386,14 +363,14 @@ pub fn format_punctuation<'ast>(
 // Formats a Punctuated sequence with correct punctuated values
 // If there are any comments in between tied to the punctuation, they will be removed and stored in a returned comments buffer
 pub fn format_punctuated_buffer<'a, T, F>(
-    ctx: &mut Context,
+    ctx: &Context,
     old: &Punctuated<'a, T>,
     shape: Shape,
     value_formatter: F,
 ) -> (Punctuated<'a, T>, Vec<Token<'a>>)
 where
     T: std::fmt::Display,
-    F: Fn(&mut Context, &T, Shape) -> T,
+    F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
     let mut comments_buffer = Vec::new();
@@ -425,14 +402,14 @@ where
 /// This function assumes that there are no comments present which would lead to a syntax error if the list was collapsed.
 /// If not sure about comments, [`try_format_punctuated`] should be used instead.
 pub fn format_punctuated<'a, T, F>(
-    ctx: &mut Context,
+    ctx: &Context,
     old: &Punctuated<'a, T>,
     shape: Shape,
     value_formatter: F,
 ) -> Punctuated<'a, T>
 where
     T: std::fmt::Display,
-    F: Fn(&mut Context, &T, Shape) -> T,
+    F: Fn(&Context, &T, Shape) -> T,
 {
     let mut list: Punctuated<T> = Punctuated::new();
     let mut shape = shape;
@@ -441,7 +418,7 @@ where
         match pair {
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
-                let punctuation = fmt_symbol!(ctx, punctuation, ", ");
+                let punctuation = fmt_symbol!(ctx, punctuation, ", ", shape);
                 shape = shape + (value.to_string().len() + 2); // 2 = ", "
 
                 list.push(Pair::new(value, Some(punctuation)));
@@ -458,7 +435,7 @@ where
 
 // Formats a Punctuated sequence across multiple lines. Also indents each item by hang_level
 pub fn format_punctuated_multiline<'a, T, F>(
-    ctx: &mut Context,
+    ctx: &Context,
     old: &Punctuated<'a, T>,
     shape: Shape,
     value_formatter: F,
@@ -466,37 +443,33 @@ pub fn format_punctuated_multiline<'a, T, F>(
 ) -> Punctuated<'a, T>
 where
     T: Node<'a>,
-    F: Fn(&mut Context, &T, Shape) -> T,
+    F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
     let mut is_first = true; // Don't want to add an indent range for the first item, as it will be inline
-    let mut shape = shape;
 
     for pair in old.pairs() {
         // Indent the pair (unless its the first item)
-        if is_first {
+        let shape = if is_first {
             is_first = false;
+            shape
         } else {
-            let range = (
-                pair.start_position()
-                    .expect("no pair start position")
-                    .bytes(),
-                pair.end_position().expect("no pair end position").bytes(),
-            );
-            let additional_indent_level = ctx.get_range_indent_increase(range);
-            ctx.add_indent_range(range); // TODO: should this be before we get the range indent increaese?
-            shape = shape
-                .reset()
-                .with_additional_indent(additional_indent_level);
-        }
+            shape.reset()
+        };
+
+        // Include hang level if required
+        let shape = match hang_level {
+            Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
+            None => shape,
+        };
 
         match pair {
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
-                let punctuation = fmt_symbol!(ctx, punctuation, ",").update_trailing_trivia(
+                let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
                     FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, hang_level),
+                        create_indent_trivia(ctx, shape),
                     ]),
                 );
                 formatted.push(Pair::new(value, Some(punctuation)));
@@ -514,14 +487,14 @@ where
 /// Formats a Punctuated sequence, depending on its layout. If the sequence contains comments, we will format
 /// across multiple lines
 pub fn try_format_punctuated<'a, T, F>(
-    ctx: &mut Context,
+    ctx: &Context,
     old: &Punctuated<'a, T>,
     shape: Shape,
     value_formatter: F,
 ) -> Punctuated<'a, T>
 where
     T: Node<'a> + std::fmt::Display,
-    F: Fn(&mut Context, &T, Shape) -> T,
+    F: Fn(&Context, &T, Shape) -> T,
 {
     let mut format_multiline = false;
 
@@ -544,12 +517,13 @@ where
 pub fn format_contained_span<'ast>(
     ctx: &Context,
     contained_span: &ContainedSpan<'ast>,
+    shape: Shape,
 ) -> ContainedSpan<'ast> {
     let (start_token, end_token) = contained_span.tokens();
 
     ContainedSpan::new(
-        format_token_reference(ctx, start_token),
-        format_token_reference(ctx, end_token),
+        format_token_reference(ctx, start_token, shape),
+        format_token_reference(ctx, end_token, shape),
     )
 }
 
@@ -559,19 +533,20 @@ pub fn format_symbol<'ast>(
     ctx: &Context,
     current_symbol: &TokenReference<'ast>,
     wanted_symbol: &TokenReference<'ast>,
+    shape: Shape,
 ) -> TokenReference<'ast> {
     // Preserve comments in leading/trailing trivia
     let mut formatted_leading_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
         current_symbol.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
-        None,
+        shape,
     );
     let mut formatted_trailing_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
         current_symbol.trailing_trivia().collect(),
         FormatTokenType::TrailingTrivia,
-        None,
+        shape,
     );
 
     // Add on any whitespace created in the new symbol
@@ -601,26 +576,23 @@ pub fn format_symbol<'ast>(
 pub fn format_end_token<'ast>(
     ctx: &Context,
     current_token: &TokenReference<'ast>,
-    token_type: EndTokenType,
+    _token_type: EndTokenType,
+    shape: Shape,
 ) -> TokenReference<'ast> {
     // Indent any comments leading a token, as these comments are technically part of the function body block
     let formatted_leading_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
         current_token.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
-        match token_type {
-            // The indent level we are currently at is one less (as we are at the end token, not the indented block).
-            // The comment is present inside the indented block
-            EndTokenType::BlockEnd => Some(1),
-            // We are closing an "indent range". The leading comments will still be inside this range, so we don't need an extra indent level
-            EndTokenType::ClosingBrace => None,
-        },
+        // The indent level we are currently at is one less (as we are at the block closing token, not the indented block).
+        // The comment is present inside the indented block
+        shape.increment_additional_indent(),
     );
     let formatted_trailing_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
         current_token.trailing_trivia().collect(),
         FormatTokenType::TrailingTrivia,
-        None,
+        shape,
     );
 
     // Special case for block end tokens:
@@ -675,17 +647,19 @@ fn pop_until_no_whitespace(trivia: &mut Vec<Token>) {
 /// Format the EOF token.
 /// This is done by removing any leading whitespace, whilst preserving leading comments.
 /// An EOF token has no trailing trivia
-pub fn format_eof<'ast>(ctx: &mut Context, eof: &TokenReference<'ast>) -> TokenReference<'ast> {
+pub fn format_eof<'ast>(
+    ctx: &Context,
+    eof: &TokenReference<'ast>,
+    shape: Shape,
+) -> TokenReference<'ast> {
     check_should_format!(ctx, eof);
 
     // Need to preserve any comments in leading_trivia if present
-    // The indent level will be 0 at this point, as we have finished the whole file, so we need to one-index it again
-    ctx.increment_indent_level();
     let mut formatted_leading_trivia: Vec<Token<'ast>> = load_token_trivia(
         ctx,
         eof.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
-        None,
+        shape,
     );
 
     let only_whitespace = formatted_leading_trivia

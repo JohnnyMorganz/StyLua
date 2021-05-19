@@ -1,7 +1,5 @@
-use crate::{context::Context, Config};
-use full_moon::ast::Block;
-use full_moon::tokenizer::TokenReference;
-use full_moon::visitors::VisitorMut;
+use crate::{context::Context, shape::Shape, Config};
+use full_moon::ast::Ast;
 
 pub mod assignment;
 pub mod block;
@@ -17,7 +15,6 @@ pub mod stmt;
 pub mod table;
 pub mod trivia;
 pub mod trivia_util;
-pub mod util;
 
 use block::format_block;
 use general::format_eof;
@@ -34,21 +31,13 @@ impl CodeFormatter {
             context: Context::new(config, range),
         }
     }
-}
 
-impl<'ast> VisitorMut<'ast> for CodeFormatter {
-    fn visit_block(&mut self, node: Block<'ast>) -> Block<'ast> {
-        self.context.increment_indent_level();
-        format_block(&mut self.context, node)
-    }
+    /// Runs the formatter over the given AST
+    pub fn format<'ast>(&self, ast: Ast<'ast>) -> Ast<'ast> {
+        let shape = Shape::new(&self.context);
+        let new_block = format_block(&self.context, ast.nodes(), shape);
+        let new_eof = format_eof(&self.context, ast.eof(), shape);
 
-    fn visit_block_end(&mut self, node: Block<'ast>) -> Block<'ast> {
-        self.context.decrement_indent_level();
-        node
-    }
-
-    // Remove any extra whitespace at the end of the file
-    fn visit_eof(&mut self, node: TokenReference<'ast>) -> TokenReference<'ast> {
-        format_eof(&mut self.context, &node)
+        ast.with_nodes(new_block).with_eof(new_eof)
     }
 }

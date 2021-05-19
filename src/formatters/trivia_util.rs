@@ -159,6 +159,7 @@ fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast
         }
 
         TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
+        TypeInfo::Variadic { type_info, .. } => type_info_trailing_trivia(type_info),
 
         other => panic!("unknown node {:?}", other),
     }
@@ -587,6 +588,16 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 trailing_trivia,
             )
         }
+        TypeInfo::Variadic { ellipse, type_info } => {
+            let (type_info, trailing_trivia) = get_type_info_trailing_trivia(*type_info);
+            (
+                TypeInfo::Variadic {
+                    ellipse,
+                    type_info: Box::new(type_info),
+                },
+                trailing_trivia,
+            )
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -708,10 +719,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             let body = stmt.body().to_owned().with_end_token(new_end_token);
-            (
-                Stmt::LocalFunction(stmt.with_func_body(body)),
-                trailing_trivia,
-            )
+            (Stmt::LocalFunction(stmt.with_body(body)), trailing_trivia)
         }
         Stmt::NumericFor(stmt) => {
             end_stmt_trailing_trivia!(NumericFor, stmt)
