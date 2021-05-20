@@ -4,7 +4,7 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenKind, TokenReference, TokenType};
+use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -141,10 +141,7 @@ pub fn format_function_args<'ast>(
                                 trivia_util::get_expression_trailing_trivia(argument.value())
                                     .iter(),
                             )
-                            .any(|x| {
-                                x.token_kind() == TokenKind::SingleLineComment
-                                    || x.token_kind() == TokenKind::MultiLineComment
-                            })
+                            .any(trivia_util::trivia_is_comment)
                         {
                             contains_comments = true;
                         } else if let Some(punctuation) = argument.punctuation() {
@@ -395,7 +392,7 @@ pub fn format_function_args<'ast>(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::get_expression_trailing_comments(&new_expression);
+                trivia_util::take_expression_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(
@@ -426,7 +423,7 @@ pub fn format_function_args<'ast>(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::get_expression_trailing_comments(&new_expression);
+                trivia_util::take_expression_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(

@@ -14,7 +14,7 @@ use full_moon::ast::{
     span::ContainedSpan,
     Field, TableConstructor,
 };
-use full_moon::tokenizer::{Token, TokenKind, TokenReference};
+use full_moon::tokenizer::{Token, TokenReference};
 
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]
@@ -196,13 +196,12 @@ pub fn format_table_constructor<'ast>(
 
     // Determine if there are any comments within the table. If so, we should force, multiline
     let contains_comments = {
-        let braces_contain_comments = start_brace.trailing_trivia().any(|trivia| {
-            trivia.token_kind() == TokenKind::SingleLineComment
-                || trivia.token_kind() == TokenKind::MultiLineComment
-        }) || end_brace.leading_trivia().any(|trivia| {
-            trivia.token_kind() == TokenKind::SingleLineComment
-                || trivia.token_kind() == TokenKind::MultiLineComment
-        });
+        let braces_contain_comments = start_brace
+            .trailing_trivia()
+            .any(trivia_util::trivia_is_comment)
+            || end_brace
+                .leading_trivia()
+                .any(trivia_util::trivia_is_comment);
 
         braces_contain_comments || trivia_util::table_fields_contains_comments(table_constructor)
     };

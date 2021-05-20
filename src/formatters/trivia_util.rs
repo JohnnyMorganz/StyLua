@@ -13,7 +13,14 @@ use full_moon::{
 };
 
 pub fn trivia_is_whitespace(trivia: &Token) -> bool {
-    matches!(trivia.token_type(), TokenType::Whitespace { .. })
+    matches!(trivia.token_kind(), TokenKind::Whitespace)
+}
+
+pub fn trivia_is_comment(trivia: &Token) -> bool {
+    matches!(
+        trivia.token_kind(),
+        TokenKind::SingleLineComment | TokenKind::MultiLineComment
+    )
 }
 
 pub fn trivia_is_newline(trivia: &Token) -> bool {
@@ -294,6 +301,31 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
     }
 }
 
+pub fn binop_leading_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+    match binop {
+        BinOp::And(token)
+        | BinOp::Caret(token)
+        | BinOp::GreaterThan(token)
+        | BinOp::GreaterThanEqual(token)
+        | BinOp::LessThan(token)
+        | BinOp::LessThanEqual(token)
+        | BinOp::Minus(token)
+        | BinOp::Or(token)
+        | BinOp::Percent(token)
+        | BinOp::Plus(token)
+        | BinOp::Slash(token)
+        | BinOp::Star(token)
+        | BinOp::TildeEqual(token)
+        | BinOp::TwoDots(token)
+        | BinOp::TwoEqual(token) => token
+            .leading_trivia()
+            .filter(|token| trivia_is_comment(token))
+            .map(|x| x.to_owned())
+            .collect(),
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
     match binop {
         BinOp::And(token)
@@ -313,30 +345,31 @@ pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
         | BinOp::TwoEqual(token) => {
             token
                 .trailing_trivia()
-                .filter(|token| {
-                    token.token_kind() == TokenKind::SingleLineComment
-                        || token.token_kind() == TokenKind::MultiLineComment
-                })
-                .map(|x| {
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
                     // Prepend a single space beforehand
                     vec![Token::new(TokenType::spaces(1)), x.to_owned()]
                 })
-                .flatten()
                 .collect()
         }
         other => panic!("unknown node {:?}", other),
     }
 }
 
-pub fn get_expression_trailing_comments<'ast>(
+pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
+    get_expression_leading_trivia(expression)
+        .iter()
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .collect()
+}
+
+pub fn take_expression_trailing_comments<'ast>(
     expression: &Expression<'ast>,
 ) -> (Expression<'ast>, Vec<Token<'ast>>) {
     let trailing_comments = get_expression_trailing_trivia(expression)
         .iter()
-        .filter(|token| {
-            token.token_kind() == TokenKind::SingleLineComment
-                || token.token_kind() == TokenKind::MultiLineComment
-        })
+        .filter(|token| trivia_is_comment(token))
         .map(|x| {
             // Prepend a single space beforehand
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
@@ -817,9 +850,7 @@ pub fn token_trivia_contains_comments<'ast>(
     trivia: impl Iterator<Item = &'ast Token<'ast>>,
 ) -> bool {
     for trivia in trivia {
-        if trivia.token_kind() == TokenKind::SingleLineComment
-            || trivia.token_kind() == TokenKind::MultiLineComment
-        {
+        if trivia_is_comment(trivia) {
             return true;
         }
     }
