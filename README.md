@@ -9,8 +9,24 @@ There are multiple ways to install StyLua:
 
 ### With Github Releases
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
+
 Please note, currently by default, **StyLua is built with Luau features enabled**. If you would just like to format Lua 5.1 code,
 or would like to format Lua 5.2 code, please see [installing from crates.io](#from-cratesio)
+
+### From Crates.io
+If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo
+```
+cargo install stylua
+```
+This will compile StyLua (for Lua 5.1) and install it on your local machine.
+If you would like Luau features, pass the `--features luau` argument.
+```
+cargo install stylua --features luau
+```
+Similarly, for Lua 5.2 syntax, pass the `--features lua52` argument.
+```
+cargo install stylua --features lua52
+```
 
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
@@ -31,20 +47,9 @@ Set StyLua as your formatter when prompted, or add the following configuration t
 
 and StyLua will then be used to format your code. It is recommended to also enable `editor.formatOnSave`.
 
-### From Crates.io
-If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo
-```
-cargo install stylua
-```
-This will compile StyLua (for Lua 5.1) and install it on your local machine.
-If you would like Luau features, pass the `--features luau` argument.
-```
-cargo install stylua --features luau
-```
-Similarly, for Lua 5.2 syntax, pass the `--features lua52` argument.
-```
-cargo install stylua --features lua52
-```
+### GitHub Actions
+You can use the [stylua-action](https://github.com/marketplace/actions/stylua) GitHub Action in your CI to install and run StyLua efficiently.
+This action will use GitHub releases, rather than running cargo install, to speed up your workflow.
 
 ## Usage
 Once installed, using StyLua is quick and simple, just pass the files to format to the CLI.

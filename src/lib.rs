@@ -1,5 +1,4 @@
 use anyhow::{format_err, Result};
-use full_moon::visitors::VisitorMut;
 use serde::Deserialize;
 
 #[macro_use]
@@ -167,15 +166,15 @@ impl Default for Config {
 
 /// Formats given Lua code
 pub fn format_code(code: &str, config: Config, range: Option<Range>) -> Result<String> {
-    let mut ast = match full_moon::parse(&code) {
+    let ast = match full_moon::parse(&code) {
         Ok(ast) => ast,
         Err(error) => {
             return Err(format_err!("error parsing: {}", error));
         }
     };
 
-    let mut code_formatter = formatters::CodeFormatter::new(config, range);
-    ast = code_formatter.visit_ast(ast);
+    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let ast = code_formatter.format(ast);
 
     Ok(full_moon::print(&ast))
 }

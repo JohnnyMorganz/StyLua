@@ -631,6 +631,11 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             right: Box::new(right.update_trailing_trivia(trailing)),
         },
 
+        TypeInfo::Variadic { ellipse, type_info } => TypeInfo::Variadic {
+            ellipse: ellipse.to_owned(),
+            type_info: Box::new(type_info.update_trailing_trivia(trailing)),
+        },
+
         other => panic!("unknown node {:?}", other),
     }
 });

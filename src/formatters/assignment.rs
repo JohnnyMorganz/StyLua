@@ -4,7 +4,6 @@ use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     Assignment, Expression, LocalAssignment,
 };
-use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenKind, TokenReference};
 
 #[cfg(feature = "luau")]
@@ -15,7 +14,7 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var, hang_expression},
         general::{
-            format_punctuated, format_punctuated_multiline, format_token_reference_mut,
+            format_punctuated, format_punctuated_multiline, format_token_reference,
             try_format_punctuated,
         },
         trivia::{
@@ -23,35 +22,27 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
         trivia_util,
-        util::token_range,
     },
     shape::Shape,
 };
 
 pub fn hang_punctuated_list<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     punctuated: &Punctuated<'ast, Expression<'ast>>,
     shape: Shape,
-    additional_indent_level: Option<usize>,
 ) -> Punctuated<'ast, Expression<'ast>> {
-    // Add the expression list into the indent range, as it will be indented by one
-    let expr_range = punctuated
-        .range()
-        .expect("no range for assignment punctuated list");
-    ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-
-    let mut output = Punctuated::new();
     let mut shape = shape;
+    let mut output = Punctuated::new();
 
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
     for pair in punctuated.pairs() {
-        let value = hang_expression(ctx, pair.value(), shape, additional_indent_level, None);
+        let value = hang_expression(ctx, pair.value(), shape, Some(1));
         shape = shape.take_last_line(&strip_trivia(&value));
 
         output.push(Pair::new(
             value,
-            pair.punctuation().map(|x| fmt_symbol!(ctx, x, ", ")),
+            pair.punctuation().map(|x| fmt_symbol!(ctx, x, ", ", shape)),
         ));
         shape = shape + 2; // 2 = ", "
     }
@@ -62,13 +53,13 @@ pub fn hang_punctuated_list<'ast>(
 /// Hangs at the equal token, and indents the first item.
 /// Returns the new equal token [`TokenReference`]
 fn hang_equal_token<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     equal_token: TokenReference<'ast>,
-    additional_indent_level: Option<usize>,
+    shape: Shape,
 ) -> TokenReference<'ast> {
     let equal_token_trailing_trivia = vec![
         create_newline_trivia(ctx),
-        create_indent_trivia(ctx, additional_indent_level.or(Some(0)).map(|x| x + 1)),
+        create_indent_trivia(ctx, shape.increment_additional_indent()),
     ]
     .iter()
     .chain(
@@ -83,18 +74,77 @@ fn hang_equal_token<'ast>(
     equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
 }
 
+/// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
+/// formatting output.
+fn attempt_assignment_tactics<'ast>(
+    ctx: &Context,
+    expressions: &Punctuated<'ast, Expression<'ast>>,
+    shape: Shape,
+    equal_token: TokenReference<'ast>,
+) -> (Punctuated<'ast, Expression<'ast>>, TokenReference<'ast>) {
+    // The next tactic is to see whether there is more than one item in the punctuated list
+    // If there is, we should put it on multiple lines
+    if expressions.len() > 1 {
+        // First try hanging at the equal token, using an infinite width, to see if its enough
+        let hanging_equal_token = hang_equal_token(ctx, equal_token.to_owned(), shape);
+        let hanging_shape = shape.reset().increment_additional_indent();
+        let expr_list = format_punctuated(
+            ctx,
+            expressions,
+            hanging_shape.with_infinite_width(),
+            format_expression,
+        );
+
+        if hanging_shape
+            .take_first_line(&strip_trivia(&expr_list))
+            .over_budget()
+        {
+            // Hang the expressions on multiple lines
+            let multiline_expr =
+                format_punctuated_multiline(ctx, expressions, shape, format_expression, Some(1));
+            // TODO: should we check each multiline expr in the list, to see if we need to hang them?
+            (multiline_expr, equal_token.to_owned())
+        } else {
+            (expr_list, hanging_equal_token)
+        }
+    } else {
+        // There is only a single element in the list
+        // Create an example hanging the expression - we need to create a new context so that we don't overwrite it
+        let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
+        let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
+
+        // Create an example formatting the expression normally
+        let expr_list = format_punctuated(ctx, expressions, shape, format_expression);
+        let formatting_shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
+
+        // Find the better format out of the hanging shape or the normal formatting
+        if hanging_shape.used_width() < formatting_shape.used_width() {
+            // Hanging version is better
+            (hanging_expr_list, equal_token)
+        } else {
+            // Normal format is better: but check to see if the formatting is still over budget
+            if formatting_shape.over_budget() {
+                // Hang at the equal token
+                let equal_token = hang_equal_token(ctx, equal_token, shape);
+                // Add the expression list into the indent range, as it will be indented by one
+                let shape = shape.increment_additional_indent();
+                let expr_list = format_punctuated(ctx, expressions, shape, format_expression);
+                (expr_list, equal_token)
+            } else {
+                (expr_list, equal_token)
+            }
+        }
+    }
+}
+
 pub fn format_assignment<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     assignment: &Assignment<'ast>,
     shape: Shape,
 ) -> Assignment<'ast> {
-    // Calculate trivia - pick an arbitrary range within the whole assignment expression to see if
-    // indentation is required
+    // Calculate trivia
     // Leading trivia added to before the var_list, trailing trivia added to the end of the expr_list
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(assignment.equal_token().token()));
-    let shape = shape.with_additional_indent(additional_indent_level);
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     // Check if the assignment expressions contain comments. If they do, we bail out of determining any tactics
@@ -112,7 +162,7 @@ pub fn format_assignment<'ast>(
         shape.with_infinite_width(),
         format_var,
     );
-    let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ");
+    let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ", shape);
     let mut expr_list = format_punctuated(
         ctx,
         assignment.expressions(),
@@ -129,70 +179,11 @@ pub fn format_assignment<'ast>(
         // We won't attempt anything else with the var_list. Format it normally
         var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
         let shape = shape + (strip_leading_trivia(&var_list).to_string().len() + 3);
-        // The next tactic will be to see if we can hang the expression
-        // We can either hang the expression list, or hang at the equals token
-        if assignment
-            .expressions()
-            .iter()
-            .any(|x| trivia_util::can_hang_expression(x))
-        {
-            expr_list = hang_punctuated_list(
-                ctx,
-                assignment.expressions(),
-                shape,
-                additional_indent_level,
-            );
-        } else {
-            // The next tactic is to see whether there is more than one item in the punctuated list
-            // If there is, we should put it on multiple lines
-            if expr_list.len() > 1 {
-                // First try hanging at the equal token, using an infinite width, to see if its enough
-                let hanging_equal_token =
-                    hang_equal_token(ctx, equal_token.to_owned(), additional_indent_level);
-                let hanging_shape = shape
-                    .reset()
-                    .with_additional_indent(Some(additional_indent_level.unwrap_or(0) + 1));
-                expr_list = format_punctuated(
-                    ctx,
-                    assignment.expressions(),
-                    hanging_shape.with_infinite_width(),
-                    format_expression,
-                );
 
-                if hanging_shape
-                    .take_first_line(&strip_trivia(&expr_list))
-                    .over_budget()
-                {
-                    // Hang the expressions on multiple lines
-                    expr_list = format_punctuated_multiline(
-                        ctx,
-                        assignment.expressions(),
-                        shape,
-                        format_expression,
-                        Some(1),
-                    );
-                } else {
-                    equal_token = hanging_equal_token;
-                }
-            } else {
-                // Format the expressions normally. If still over budget, hang at the equals token
-                expr_list =
-                    format_punctuated(ctx, assignment.expressions(), shape, format_expression);
-                let formatting_shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
-
-                if formatting_shape.over_budget() {
-                    equal_token = hang_equal_token(ctx, equal_token, additional_indent_level);
-                    // Add the expression list into the indent range, as it will be indented by one
-                    let expr_range = assignment
-                        .expressions()
-                        .range()
-                        .expect("no range for assignment punctuated list");
-                    ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-                    expr_list =
-                        format_punctuated(ctx, assignment.expressions(), shape, format_expression);
-                }
-            }
-        }
+        let (new_expr_list, new_equal_token) =
+            attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
+        expr_list = new_expr_list;
+        equal_token = new_equal_token;
     }
 
     // Add necessary trivia
@@ -203,23 +194,23 @@ pub fn format_assignment<'ast>(
 }
 
 fn format_local_no_assignment<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     assignment: &LocalAssignment<'ast>,
     shape: Shape,
     leading_trivia: Vec<Token<'ast>>,
     trailing_trivia: Vec<Token<'ast>>,
 ) -> LocalAssignment<'ast> {
-    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
+    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let shape = shape + 6; // 6 = "local "
     let mut name_list =
-        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
+        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference);
 
     #[cfg(feature = "luau")]
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
         .type_specifiers()
         .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
             None => None,
         })
         .collect();
@@ -252,17 +243,13 @@ fn format_local_no_assignment<'ast>(
 }
 
 pub fn format_local_assignment<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     assignment: &LocalAssignment<'ast>,
     shape: Shape,
 ) -> LocalAssignment<'ast> {
-    // Calculate trivia - pick an arbitrary range within the whole local assignment expression to see if
-    // indentation is required
+    // Calculate trivia
     // Leading trivia added to before the local token, and trailing trivia added to the end of the expr_list, or name_list if no expr_list provided
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(assignment.local_token().token()));
-    let shape = shape.with_additional_indent(additional_indent_level);
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     if assignment.expressions().is_empty() {
@@ -277,16 +264,16 @@ pub fn format_local_assignment<'ast>(
         });
 
         // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
-        let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ")
+        let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         let mut name_list = try_format_punctuated(
             ctx,
             assignment.names(),
             shape.with_infinite_width(),
-            format_token_reference_mut,
+            format_token_reference,
         );
-        let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ");
+        let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ", shape);
         let mut expr_list = format_punctuated(
             ctx,
             assignment.expressions(),
@@ -298,7 +285,7 @@ pub fn format_local_assignment<'ast>(
         let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
             .map(|x| match x {
-                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier)),
+                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
                 None => None,
             })
             .collect();
@@ -325,78 +312,14 @@ pub fn format_local_assignment<'ast>(
         if contains_comments || singleline_shape.over_budget() {
             // We won't attempt anything else with the name_list. Format it normally
             name_list =
-                try_format_punctuated(ctx, assignment.names(), shape, format_token_reference_mut);
+                try_format_punctuated(ctx, assignment.names(), shape, format_token_reference);
             let shape = shape
                 + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
-            // The next tactic will be to see if we can hang the expression
-            // We can either hang the expression list, or hang at the equals token
-            if assignment
-                .expressions()
-                .iter()
-                .any(|x| trivia_util::can_hang_expression(x))
-            {
-                expr_list = hang_punctuated_list(
-                    ctx,
-                    assignment.expressions(),
-                    shape,
-                    additional_indent_level,
-                );
-            } else {
-                // The next tactic is to see whether there is more than one item in the punctuated list
-                // If there is, we should put it on multiple lines
-                if expr_list.len() > 1 {
-                    // First try hanging at the equal token, using an infinite width, to see if its enough
-                    let hanging_equal_token =
-                        hang_equal_token(ctx, equal_token.to_owned(), additional_indent_level);
-                    let hanging_shape = shape
-                        .reset()
-                        .with_additional_indent(Some(additional_indent_level.unwrap_or(0) + 1));
-                    expr_list = format_punctuated(
-                        ctx,
-                        assignment.expressions(),
-                        hanging_shape.with_infinite_width(),
-                        format_expression,
-                    );
 
-                    if hanging_shape
-                        .take_first_line(&strip_trivia(&expr_list))
-                        .over_budget()
-                    {
-                        // Hang the expressions on multiple lines
-                        expr_list = format_punctuated_multiline(
-                            ctx,
-                            assignment.expressions(),
-                            shape,
-                            format_expression,
-                            Some(1),
-                        );
-                    } else {
-                        equal_token = hanging_equal_token;
-                    }
-                } else {
-                    // Format the expressions normally. If still over budget, hang at the equals token
-                    expr_list =
-                        format_punctuated(ctx, assignment.expressions(), shape, format_expression);
-                    let formatting_shape =
-                        shape.take_first_line(&strip_trailing_trivia(&expr_list));
-
-                    if formatting_shape.over_budget() {
-                        equal_token = hang_equal_token(ctx, equal_token, additional_indent_level);
-                        // Add the expression list into the indent range, as it will be indented by one
-                        let expr_range = assignment
-                            .expressions()
-                            .range()
-                            .expect("no range for assignment punctuated list");
-                        ctx.add_indent_range((expr_range.0.bytes(), expr_range.1.bytes()));
-                        expr_list = format_punctuated(
-                            ctx,
-                            assignment.expressions(),
-                            shape,
-                            format_expression,
-                        );
-                    }
-                }
-            }
+            let (new_expr_list, new_equal_token) =
+                attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
+            expr_list = new_expr_list;
+            equal_token = new_equal_token;
         }
 
         // Add necessary trivia

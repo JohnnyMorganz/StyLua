@@ -4,14 +4,12 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_symbol, format_token_reference,
-            format_token_reference_mut, try_format_punctuated,
+            format_contained_span, format_symbol, format_token_reference, try_format_punctuated,
         },
         table::{create_table_braces, TableType},
         trivia::{
             strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
-        util::{expression_range, token_range},
     },
     shape::Shape,
 };
@@ -27,8 +25,12 @@ use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::borrow::Cow;
 use std::boxed::Box;
 
-pub fn format_compound_op<'ast>(ctx: &Context, compound_op: &CompoundOp<'ast>) -> CompoundOp<'ast> {
-    fmt_op!(ctx, CompoundOp, compound_op, {
+pub fn format_compound_op<'ast>(
+    ctx: &Context,
+    compound_op: &CompoundOp<'ast>,
+    shape: Shape,
+) -> CompoundOp<'ast> {
+    fmt_op!(ctx, CompoundOp, compound_op, shape, {
         PlusEqual = " += ",
         MinusEqual = " -= ",
         StarEqual = " *= ",
@@ -40,20 +42,17 @@ pub fn format_compound_op<'ast>(ctx: &Context, compound_op: &CompoundOp<'ast>) -
 }
 
 pub fn format_compound_assignment<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     compound_assignment: &CompoundAssignment<'ast>,
     shape: Shape,
 ) -> CompoundAssignment<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(expression_range(compound_assignment.rhs()));
-    let shape = shape.with_additional_indent(additional_indent_level);
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let lhs = format_var(ctx, compound_assignment.lhs(), shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let compound_operator = format_compound_op(ctx, compound_assignment.compound_operator());
+    let compound_operator = format_compound_op(ctx, compound_assignment.compound_operator(), shape);
     let shape = shape
         + (strip_leading_trivia(&lhs).to_string().len() + compound_operator.to_string().len());
 
@@ -63,29 +62,25 @@ pub fn format_compound_assignment<'ast>(
     CompoundAssignment::new(lhs, compound_operator, rhs)
 }
 
-fn format_type_info_shape<'ast>(
-    ctx: &mut Context,
+pub fn format_type_info<'ast>(
+    ctx: &Context,
     type_info: &TypeInfo<'ast>,
-    _shape: Shape,
+    shape: Shape,
 ) -> TypeInfo<'ast> {
-    format_type_info(ctx, type_info)
-}
-
-pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> TypeInfo<'ast> {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
             let (start_brace, end_brace) = braces.tokens().to_owned();
             let braces = ContainedSpan::new(
-                fmt_symbol!(ctx, start_brace, "{ "),
-                fmt_symbol!(ctx, end_brace, " }"),
+                fmt_symbol!(ctx, start_brace, "{ ", shape),
+                fmt_symbol!(ctx, end_brace, " }", shape),
             );
-            let type_info = Box::new(format_type_info(ctx, type_info));
+            let type_info = Box::new(format_type_info(ctx, type_info, shape));
 
             TypeInfo::Array { braces, type_info }
         }
 
         TypeInfo::Basic(token_reference) => {
-            let token_reference = format_token_reference(ctx, token_reference);
+            let token_reference = format_token_reference(ctx, token_reference, shape);
             TypeInfo::Basic(token_reference)
         }
 
@@ -95,15 +90,10 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             arrow,
             return_type,
         } => {
-            let parentheses = format_contained_span(ctx, parentheses);
-            let arguments = try_format_punctuated(
-                ctx,
-                arguments,
-                Shape::from_context(ctx),
-                format_type_info_shape,
-            );
-            let arrow = fmt_symbol!(ctx, arrow, " -> ");
-            let return_type = Box::new(format_type_info(ctx, return_type));
+            let parentheses = format_contained_span(ctx, parentheses, shape);
+            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info);
+            let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
+            let return_type = Box::new(format_type_info(ctx, return_type, shape));
             TypeInfo::Callback {
                 parentheses,
                 arguments,
@@ -117,14 +107,9 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             arrows,
             generics,
         } => {
-            let base = format_token_reference(ctx, base);
-            let arrows = format_contained_span(ctx, arrows);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                Shape::from_context(ctx),
-                format_type_info_shape,
-            );
+            let base = format_token_reference(ctx, base, shape);
+            let arrows = format_contained_span(ctx, arrows, shape);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -137,9 +122,9 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             ampersand,
             right,
         } => {
-            let left = Box::new(format_type_info(ctx, left));
-            let ampersand = fmt_symbol!(ctx, ampersand, " & ");
-            let right = Box::new(format_type_info(ctx, right));
+            let left = Box::new(format_type_info(ctx, left, shape));
+            let ampersand = fmt_symbol!(ctx, ampersand, " & ", shape);
+            let right = Box::new(format_type_info(ctx, right, shape));
             TypeInfo::Intersection {
                 left,
                 ampersand,
@@ -152,9 +137,9 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             punctuation,
             type_info,
         } => {
-            let module = format_token_reference(ctx, module);
-            let punctuation = fmt_symbol!(ctx, punctuation, ".");
-            let type_info = Box::new(format_indexed_type_info(ctx, type_info));
+            let module = format_token_reference(ctx, module, shape);
+            let punctuation = fmt_symbol!(ctx, punctuation, ".", shape);
+            let type_info = Box::new(format_indexed_type_info(ctx, type_info, shape));
             TypeInfo::Module {
                 module,
                 punctuation,
@@ -166,8 +151,8 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
             base,
             question_mark,
         } => {
-            let base = Box::new(format_type_info(ctx, base));
-            let question_mark = fmt_symbol!(ctx, question_mark, "?");
+            let base = Box::new(format_type_info(ctx, base, shape));
+            let question_mark = fmt_symbol!(ctx, question_mark, "?", shape);
             TypeInfo::Optional {
                 base,
                 question_mark,
@@ -191,19 +176,13 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                 None => TableType::Empty,
             };
 
-            if is_multiline {
-                ctx.add_indent_range(braces_range);
-            }
+            let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
 
-            let additional_indent_level =
-                ctx.get_range_indent_increase(token_range(end_brace.token()));
-            let braces = create_table_braces(
-                ctx,
-                start_brace,
-                end_brace,
-                table_type,
-                additional_indent_level,
-            );
+            let shape = if is_multiline {
+                shape.increment_additional_indent()
+            } else {
+                shape
+            };
 
             let mut fields = Punctuated::new();
 
@@ -211,18 +190,11 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                 let (field, punctuation) = pair.into_tuple();
 
                 let leading_trivia = match is_multiline {
-                    true => {
-                        let range = token_range(field.colon_token().token());
-                        let additional_indent_level = ctx.get_range_indent_increase(range);
-                        FormatTriviaType::Append(vec![create_indent_trivia(
-                            ctx,
-                            additional_indent_level,
-                        )])
-                    }
+                    true => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
                     false => FormatTriviaType::NoChange,
                 };
 
-                let formatted_field = format_type_field(ctx, &field, leading_trivia);
+                let formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
                 let mut formatted_punctuation = None;
 
                 match is_multiline {
@@ -230,7 +202,7 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                         // Continue adding a comma and a new line for multiline tables
                         // Add newline trivia to the end of the symbol
                         let symbol = match punctuation {
-                            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ","),
+                            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
                             None => TokenReference::symbol(",").unwrap(),
                         }
                         .update_trailing_trivia(FormatTriviaType::Append(vec![
@@ -243,7 +215,9 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                         if current_fields.peek().is_some() {
                             // Have more elements still to go
                             formatted_punctuation = match punctuation {
-                                Some(punctuation) => Some(fmt_symbol!(ctx, &punctuation, ", ")),
+                                Some(punctuation) => {
+                                    Some(fmt_symbol!(ctx, &punctuation, ", ", shape))
+                                }
                                 None => Some(TokenReference::symbol(", ").unwrap()),
                             }
                         };
@@ -271,9 +245,10 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
                     }),
                     vec![],
                 ),
+                shape,
             );
-            let parentheses = format_contained_span(ctx, parentheses);
-            let inner = Box::new(format_expression(ctx, inner, Shape::from_context(ctx)));
+            let parentheses = format_contained_span(ctx, parentheses, shape);
+            let inner = Box::new(format_expression(ctx, inner, shape));
             TypeInfo::Typeof {
                 typeof_token,
                 parentheses,
@@ -282,19 +257,25 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
         }
 
         TypeInfo::Tuple { parentheses, types } => {
-            let parentheses = format_contained_span(ctx, parentheses);
-            let types =
-                try_format_punctuated(ctx, types, Shape::from_context(ctx), format_type_info_shape);
+            let parentheses = format_contained_span(ctx, parentheses, shape);
+            let types = try_format_punctuated(ctx, types, shape, format_type_info);
 
             TypeInfo::Tuple { parentheses, types }
         }
 
         TypeInfo::Union { left, pipe, right } => {
-            let left = Box::new(format_type_info(ctx, left));
-            let pipe = fmt_symbol!(ctx, pipe, " | ");
-            let right = Box::new(format_type_info(ctx, right));
+            let left = Box::new(format_type_info(ctx, left, shape));
+            let pipe = fmt_symbol!(ctx, pipe, " | ", shape);
+            let right = Box::new(format_type_info(ctx, right, shape));
 
             TypeInfo::Union { left, pipe, right }
+        }
+
+        TypeInfo::Variadic { ellipse, type_info } => {
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+            let type_info = Box::new(format_type_info(ctx, type_info, shape));
+
+            TypeInfo::Variadic { ellipse, type_info }
         }
 
         other => panic!("unknown node {:?}", other),
@@ -302,12 +283,13 @@ pub fn format_type_info<'ast>(ctx: &mut Context, type_info: &TypeInfo<'ast>) -> 
 }
 
 pub fn format_indexed_type_info<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     indexed_type_info: &IndexedTypeInfo<'ast>,
+    shape: Shape,
 ) -> IndexedTypeInfo<'ast> {
     match indexed_type_info {
         IndexedTypeInfo::Basic(token_reference) => {
-            IndexedTypeInfo::Basic(format_token_reference(ctx, token_reference))
+            IndexedTypeInfo::Basic(format_token_reference(ctx, token_reference, shape))
         }
 
         IndexedTypeInfo::Generic {
@@ -315,14 +297,9 @@ pub fn format_indexed_type_info<'ast>(
             arrows,
             generics,
         } => {
-            let base = format_token_reference(ctx, base);
-            let arrows = format_contained_span(ctx, arrows);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                Shape::from_context(ctx),
-                format_type_info_shape,
-            );
+            let base = format_token_reference(ctx, base, shape);
+            let arrows = format_contained_span(ctx, arrows, shape);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
             IndexedTypeInfo::Generic {
                 base,
                 arrows,
@@ -335,13 +312,14 @@ pub fn format_indexed_type_info<'ast>(
 }
 
 pub fn format_type_field<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_field: &TypeField<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
+    shape: Shape,
 ) -> TypeField<'ast> {
-    let key = format_type_field_key(ctx, type_field.key(), leading_trivia);
-    let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ");
-    let value = format_type_info(ctx, type_field.value());
+    let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
+    let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
+    let value = format_type_info(ctx, type_field.value(), shape);
 
     type_field
         .to_owned()
@@ -351,40 +329,42 @@ pub fn format_type_field<'ast>(
 }
 
 pub fn format_type_field_key<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_field_key: &TypeFieldKey<'ast>,
     leading_trivia: FormatTriviaType<'ast>,
+    shape: Shape,
 ) -> TypeFieldKey<'ast> {
     match type_field_key {
         TypeFieldKey::Name(token) => TypeFieldKey::Name(
-            format_token_reference(ctx, token).update_leading_trivia(leading_trivia),
+            format_token_reference(ctx, token, shape).update_leading_trivia(leading_trivia),
         ),
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
-            brackets: format_contained_span(ctx, brackets).update_leading_trivia(leading_trivia),
-            inner: format_type_info(ctx, inner),
+            brackets: format_contained_span(ctx, brackets, shape)
+                .update_leading_trivia(leading_trivia),
+            inner: format_type_info(ctx, inner, shape),
         },
         other => panic!("unknown node {:?}", other),
     }
 }
 
 pub fn format_type_assertion<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_assertion: &TypeAssertion<'ast>,
+    shape: Shape,
 ) -> TypeAssertion<'ast> {
-    let assertion_op = fmt_symbol!(ctx, type_assertion.assertion_op(), " :: ");
-    let cast_to = format_type_info(ctx, type_assertion.cast_to());
+    let assertion_op = fmt_symbol!(ctx, type_assertion.assertion_op(), " :: ", shape);
+    let cast_to = format_type_info(ctx, type_assertion.cast_to(), shape);
 
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
 fn format_type_declaration<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_declaration: &TypeDeclaration<'ast>,
     add_leading_trivia: bool,
+    shape: Shape,
 ) -> TypeDeclaration<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(type_declaration.type_token()));
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let mut type_token = format_symbol(
@@ -397,20 +377,21 @@ fn format_type_declaration<'ast>(
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),
+        shape,
     );
 
     if add_leading_trivia {
-        let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+        let leading_trivia = vec![create_indent_trivia(ctx, shape)];
         type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
     }
 
-    let type_name = format_token_reference(ctx, type_declaration.type_name());
+    let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
     let generics = match type_declaration.generics() {
-        Some(generics) => Some(format_generic_declaration(ctx, generics)),
+        Some(generics) => Some(format_generic_declaration(ctx, generics, shape)),
         None => None,
     };
-    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ");
-    let type_definition = format_type_info(ctx, type_declaration.type_definition())
+    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
+    let type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     type_declaration
@@ -425,23 +406,24 @@ fn format_type_declaration<'ast>(
 /// Wrapper around `format_type_declaration` for statements
 /// This is required as `format_type_declaration` is also used for ExportedTypeDeclaration, and we don't want leading trivia there
 pub fn format_type_declaration_stmt<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_declaration: &TypeDeclaration<'ast>,
-    _shape: Shape,
+    shape: Shape,
 ) -> TypeDeclaration<'ast> {
-    format_type_declaration(ctx, type_declaration, true)
+    format_type_declaration(ctx, type_declaration, true, shape)
 }
 
 pub fn format_generic_declaration<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     generic_declaration: &GenericDeclaration<'ast>,
+    shape: Shape,
 ) -> GenericDeclaration<'ast> {
-    let arrows = format_contained_span(ctx, generic_declaration.arrows());
+    let arrows = format_contained_span(ctx, generic_declaration.arrows(), shape);
     let generics = try_format_punctuated(
         ctx,
         generic_declaration.generics(),
-        Shape::from_context(ctx),
-        format_token_reference_mut,
+        shape,
+        format_token_reference,
     );
 
     generic_declaration
@@ -451,11 +433,12 @@ pub fn format_generic_declaration<'ast>(
 }
 
 pub fn format_type_specifier<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     type_specifier: &TypeSpecifier<'ast>,
+    shape: Shape,
 ) -> TypeSpecifier<'ast> {
-    let punctuation = fmt_symbol!(ctx, type_specifier.punctuation(), ": ");
-    let type_info = format_type_info(ctx, type_specifier.type_info());
+    let punctuation = fmt_symbol!(ctx, type_specifier.punctuation(), ": ", shape);
+    let type_info = format_type_info(ctx, type_specifier.type_info(), shape);
 
     type_specifier
         .to_owned()
@@ -464,14 +447,12 @@ pub fn format_type_specifier<'ast>(
 }
 
 pub fn format_exported_type_declaration<'ast>(
-    ctx: &mut Context,
+    ctx: &Context,
     exported_type_declaration: &ExportedTypeDeclaration<'ast>,
-    _shape: Shape,
+    shape: Shape,
 ) -> ExportedTypeDeclaration<'ast> {
     // Calculate trivia
-    let additional_indent_level =
-        ctx.get_range_indent_increase(token_range(exported_type_declaration.export_token()));
-    let leading_trivia = vec![create_indent_trivia(ctx, additional_indent_level)];
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     let export_token = format_symbol(
         ctx,
@@ -483,10 +464,15 @@ pub fn format_exported_type_declaration<'ast>(
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),
+        shape,
     )
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let type_declaration =
-        format_type_declaration(ctx, exported_type_declaration.type_declaration(), false);
+    let type_declaration = format_type_declaration(
+        ctx,
+        exported_type_declaration.type_declaration(),
+        false,
+        shape,
+    );
 
     exported_type_declaration
         .to_owned()
