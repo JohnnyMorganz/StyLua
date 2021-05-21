@@ -1,10 +1,10 @@
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
+        span::ContainedSpan, BinOp, Call, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
         VarExpression,
     },
     node::Node,
+    tokenizer::{Symbol, Token, TokenReference, TokenType},
 };
 use std::boxed::Box;
 
@@ -212,9 +212,16 @@ pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -
 }
 
 /// Formats a Suffix Node
-pub fn format_suffix<'ast>(ctx: &Context, suffix: &Suffix<'ast>, shape: Shape) -> Suffix<'ast> {
+pub fn format_suffix<'ast>(
+    ctx: &Context,
+    suffix: &Suffix<'ast>,
+    shape: Shape,
+    no_parens_ambiguous_next_node: bool,
+) -> Suffix<'ast> {
     match suffix {
-        Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape)),
+        Suffix::Call(call) => {
+            Suffix::Call(format_call(ctx, call, shape, no_parens_ambiguous_next_node))
+        }
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
         other => panic!("unknown node {:?}", other),
     }
@@ -270,14 +277,20 @@ pub fn format_var_expression<'ast>(
     let formatted_prefix = format_prefix(ctx, var_expression.prefix(), shape);
     let mut shape = shape + strip_leading_trivia(&formatted_prefix).to_string().len();
 
-    let formatted_suffixes = var_expression
-        .suffixes()
-        .map(|x| {
-            let suffix = format_suffix(ctx, x, shape);
-            shape = shape + suffix.to_string().len();
-            suffix
-        })
-        .collect();
+    let mut formatted_suffixes = Vec::new();
+    let mut suffixes = var_expression.suffixes().peekable();
+
+    while let Some(suffix) = suffixes.next() {
+        // If the suffix after this one is something like `.foo` or `:foo` - this affects removing parentheses
+        let ambiguous_next_suffix = matches!(
+            suffixes.peek(),
+            Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
+        );
+
+        let suffix = format_suffix(ctx, suffix, shape, ambiguous_next_suffix);
+        shape = shape + suffix.to_string().len();
+        formatted_suffixes.push(suffix);
+    }
 
     VarExpression::new(formatted_prefix).with_suffixes(formatted_suffixes)
 }

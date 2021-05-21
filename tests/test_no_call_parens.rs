@@ -131,7 +131,7 @@ fn test_no_parens_method_chain_1() {
 foo("foo"):andThen()
 "###
         ),
-        @r###"foo "foo":andThen()
+        @r###"foo("foo"):andThen()
 "###
     );
 }
@@ -149,10 +149,45 @@ Job:new({
         ),
         @r###"
     Job
-    	:new {
+    	:new({
     		foo = "bar",
-    	}
+    	})
     	:sync()
+    "###
+    );
+}
+
+#[test]
+#[cfg_attr(feature = "luau", ignore)]
+fn test_no_parens_large_example() {
+    insta::assert_snapshot!(
+        format(
+            r###"
+local foo = require "foo"
+local has_parens = require("configuration").has_parens
+
+local opt = my_function {
+    hello = true
+}
+
+local still_got_em = my_function({
+    config = true,
+    value = "yup",
+}):method()
+"###
+        ),
+        @r###"
+    local foo = require "foo"
+    local has_parens = require("configuration").has_parens
+
+    local opt = my_function {
+    	hello = true,
+    }
+
+    local still_got_em = my_function({
+    	config = true,
+    	value = "yup",
+    }):method()
     "###
     );
 }
