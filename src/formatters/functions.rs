@@ -405,7 +405,7 @@ pub fn format_function_args<'ast>(
 
         FunctionArgs::String(token_reference) => {
             if ctx.config().no_call_parentheses {
-                let token_reference = format_token_reference(ctx, token_reference)
+                let token_reference = format_token_reference(ctx, token_reference, shape)
                     .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
                         TokenType::spaces(1),
                     )])); // Single space before the token reference
