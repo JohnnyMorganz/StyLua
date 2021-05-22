@@ -151,10 +151,10 @@ fn format_else_if<'ast>(ctx: &Context, else_if_node: &ElseIf<'ast>, shape: Shape
         || trivia_util::token_contains_leading_comments(else_if_node.then_token())
         || trivia_util::contains_comments(&condition);
 
-    let (else_if_trailing_trivia, then_text) = if require_multiline_expression {
-        (vec![create_newline_trivia(ctx)], "then")
+    let else_if_trailing_trivia = if require_multiline_expression {
+        vec![create_newline_trivia(ctx)]
     } else {
-        (vec![Token::new(TokenType::spaces(1))], " then")
+        vec![Token::new(TokenType::spaces(1))]
     };
 
     let formatted_else_if_token = format_end_token(
@@ -176,15 +176,20 @@ fn format_else_if<'ast>(ctx: &Context, else_if_node: &ElseIf<'ast>, shape: Shape
         format_expression(ctx, &condition, shape + 7) // 7 = "elseif "
     };
 
-    let formatted_then_token = fmt_symbol!(ctx, else_if_node.then_token(), then_text, shape)
-        .update_trivia(
-            if require_multiline_expression {
-                FormatTriviaType::Append(leading_trivia)
-            } else {
-                FormatTriviaType::NoChange
-            },
-            FormatTriviaType::Append(trailing_trivia),
-        );
+    let formatted_then_token = format_end_token(
+        ctx,
+        else_if_node.then_token(),
+        EndTokenType::BlockEnd,
+        shape,
+    )
+    .update_trivia(
+        if require_multiline_expression {
+            FormatTriviaType::Append(leading_trivia) // "then" on newline
+        } else {
+            FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]) // " then" in condition
+        },
+        FormatTriviaType::Append(trailing_trivia),
+    );
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, else_if_node.block(), block_shape);
@@ -213,10 +218,10 @@ pub fn format_if<'ast>(ctx: &Context, if_node: &If<'ast>, shape: Shape) -> If<'a
         || trivia_util::token_contains_leading_comments(if_node.then_token())
         || trivia_util::contains_comments(&condition);
 
-    let (if_trailing_trivia, then_text) = if require_multiline_expression {
-        (vec![create_newline_trivia(ctx)], "then")
+    let if_trailing_trivia = if require_multiline_expression {
+        vec![create_newline_trivia(ctx)]
     } else {
-        (vec![Token::new(TokenType::spaces(1))], " then")
+        vec![Token::new(TokenType::spaces(1))]
     };
 
     let if_token = fmt_symbol!(ctx, if_node.if_token(), "if", shape)
@@ -233,14 +238,16 @@ pub fn format_if<'ast>(ctx: &Context, if_node: &If<'ast>, shape: Shape) -> If<'a
         format_expression(ctx, &condition, shape + 3) // 3 = "if "
     };
 
-    let then_token = fmt_symbol!(ctx, if_node.then_token(), then_text, shape).update_trivia(
-        if require_multiline_expression {
-            FormatTriviaType::Append(leading_trivia.to_owned())
-        } else {
-            FormatTriviaType::NoChange
-        },
-        FormatTriviaType::Append(trailing_trivia.to_owned()),
-    );
+    let then_token = format_end_token(ctx, if_node.then_token(), EndTokenType::BlockEnd, shape)
+        .update_trivia(
+            if require_multiline_expression {
+                FormatTriviaType::Append(leading_trivia.to_owned()) // "then" on newline
+            } else {
+                FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))])
+                // " then" in condition
+            },
+            FormatTriviaType::Append(trailing_trivia.to_owned()),
+        );
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, if_node.block(), block_shape);
@@ -438,7 +445,7 @@ pub fn format_while_block<'ast>(
     };
 
     let do_token = match require_multiline_expression {
-        true => fmt_symbol!(ctx, while_block.do_token(), "do", shape)
+        true => format_end_token(ctx, while_block.do_token(), EndTokenType::BlockEnd, shape)
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
         false => singleline_do_token,
     }

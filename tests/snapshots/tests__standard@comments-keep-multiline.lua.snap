@@ -26,7 +26,7 @@ end
 
 if
 	foo
--- comment
+	-- comment
 then
 end
 
@@ -37,7 +37,7 @@ end
 
 while
 	foo
--- comment
+	-- comment
 do
 end
 
