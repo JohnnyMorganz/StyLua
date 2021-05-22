@@ -857,6 +857,14 @@ pub fn token_trivia_contains_comments<'ast>(
     false
 }
 
+pub fn token_contains_leading_comments(token_ref: &TokenReference) -> bool {
+    token_trivia_contains_comments(token_ref.leading_trivia())
+}
+
+pub fn token_contains_trailing_comments(token_ref: &TokenReference) -> bool {
+    token_trivia_contains_comments(token_ref.trailing_trivia())
+}
+
 pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.leading_trivia())
         || token_trivia_contains_comments(token_ref.trailing_trivia())

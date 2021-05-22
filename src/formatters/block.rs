@@ -57,7 +57,14 @@ pub fn format_return<'ast>(
         // Determine if we need to hang the condition
         let require_multiline_expression = shape
             .take_first_line(&strip_trivia(&formatted_returns))
-            .over_budget();
+            .over_budget()
+            || {
+                trivia_util::contains_comments(
+                    return_node
+                        .returns()
+                        .update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
+                )
+            };
 
         if require_multiline_expression {
             formatted_returns = hang_punctuated_list(ctx, return_node.returns(), shape);
