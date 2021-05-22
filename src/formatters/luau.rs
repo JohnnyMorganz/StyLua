@@ -386,10 +386,9 @@ fn format_type_declaration<'ast>(
     }
 
     let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
-    let generics = match type_declaration.generics() {
-        Some(generics) => Some(format_generic_declaration(ctx, generics, shape)),
-        None => None,
-    };
+    let generics = type_declaration
+        .generics()
+        .map(|generics| format_generic_declaration(ctx, generics, shape));
     let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
     let type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));

@@ -225,10 +225,7 @@ fn format_local_no_assignment<'ast>(
     #[cfg(feature = "luau")]
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
         .type_specifiers()
-        .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-            None => None,
-        })
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
 
     // See if the last variable assigned has a type specifier, and add a new line to that
@@ -300,11 +297,7 @@ pub fn format_local_assignment<'ast>(
         #[cfg(feature = "luau")]
         let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
-            .map(|x| match x {
-                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-                None => None,
-            })
-            .collect();
+            .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape))).collect();
         let type_specifier_len;
         #[cfg(feature = "luau")]
         {
