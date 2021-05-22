@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the double formatting of a hanging call chain when it was being assigned to a variable causing it to be incorrectly formatted ([#151](https://github.com/JohnnyMorganz/StyLua/issues/151))
 - Fixed leading comments to a binop in a hanging expression being lost ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154#issuecomment-841703038))
 - Fixed mistransformation of comments leading the RHS of a hanging binop. They are now moved to before the binop ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154))
+- Fixed mistransformation of comments in `if condition then` or `while condition do` lines - improved assurance that they will hang multiline ([#164](https://github.com/JohnnyMorganz/StyLua/issues/164))
+- Fixed indentation of comments leading a `then` or `do` token when `if ... then` or `while ... do` are multiline.
 
 ## [0.8.1] - 2021-04-30
 ### Fixed
