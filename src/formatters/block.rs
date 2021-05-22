@@ -51,8 +51,13 @@ pub fn format_return<'ast>(
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
-        let mut formatted_returns =
-            try_format_punctuated(ctx, return_node.returns(), shape, format_expression);
+        let mut formatted_returns = try_format_punctuated(
+            ctx,
+            return_node.returns(),
+            shape,
+            format_expression,
+            Some(1),
+        );
 
         // Determine if we need to hang the condition
         let require_multiline_expression = shape
