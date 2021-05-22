@@ -560,20 +560,16 @@ pub fn format_function_body<'ast>(
             .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
             .collect();
 
-        return_type = match function_body.return_type() {
-            Some(return_type) => Some({
-                let formatted = format_type_specifier(ctx, return_type, shape);
-                if add_trivia {
-                    added_trailing_trivia = true;
-                    formatted.update_trailing_trivia(FormatTriviaType::Append(
-                        trailing_trivia.to_owned(),
-                    ))
-                } else {
-                    formatted
-                }
-            }),
-            None => None,
-        };
+        return_type = function_body.return_type().map(|return_type| {
+            let formatted = format_type_specifier(ctx, return_type, shape);
+            if add_trivia {
+                added_trailing_trivia = true;
+                formatted
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+            } else {
+                formatted
+            }
+        });
     }
 
     if !added_trailing_trivia && add_trivia {

@@ -93,10 +93,7 @@ pub fn format_generic_for<'ast>(
     #[cfg(feature = "luau")]
     let type_specifiers = generic_for
         .type_specifiers()
-        .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-            None => None,
-        })
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
 
     let in_token = fmt_symbol!(ctx, generic_for.in_token(), " in ", shape);
@@ -296,10 +293,9 @@ pub fn format_numeric_for<'ast>(
     let index_variable = format_token_reference(ctx, numeric_for.index_variable(), shape);
 
     #[cfg(feature = "luau")]
-    let type_specifier = match numeric_for.type_specifier() {
-        Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-        None => None,
-    };
+    let type_specifier = numeric_for
+        .type_specifier()
+        .map(|type_specifier| format_type_specifier(ctx, type_specifier, shape));
 
     // TODO: Should we actually update the shape here?
     let equal_token = fmt_symbol!(ctx, numeric_for.equal_token(), " = ", shape);

@@ -120,10 +120,9 @@ fn format_expression_internal<'ast>(
         } => Expression::Value {
             value: Box::new(format_value(ctx, value, shape)),
             #[cfg(feature = "luau")]
-            type_assertion: match type_assertion {
-                Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
-                None => None,
-            },
+            type_assertion: type_assertion
+                .as_ref()
+                .map(|assertion| format_type_assertion(ctx, assertion, shape)),
         },
         Expression::Parentheses {
             contained,
@@ -610,10 +609,9 @@ fn format_hanging_expression_<'ast>(
             Expression::Value {
                 value,
                 #[cfg(feature = "luau")]
-                type_assertion: match type_assertion {
-                    Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
-                    None => None,
-                },
+                type_assertion: type_assertion
+                    .as_ref()
+                    .map(|assertion| format_type_assertion(ctx, assertion, shape)),
             }
         }
         Expression::Parentheses {

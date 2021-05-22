@@ -23,7 +23,7 @@ jobs:
 
     - name: Clippy
       run: |
-        cargo clippy -- -D warnings
+        cargo clippy --all-features -- -D warnings
     - name: Rustfmt
       run: |
         cargo fmt -- --check
