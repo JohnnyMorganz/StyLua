@@ -281,7 +281,8 @@ pub fn format_local_assignment<'ast>(
         #[cfg(feature = "luau")]
         let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
-            .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape))).collect();
+            .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
+            .collect();
         let type_specifier_len;
         #[cfg(feature = "luau")]
         {
