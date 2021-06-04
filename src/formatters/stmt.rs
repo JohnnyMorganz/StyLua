@@ -141,54 +141,61 @@ fn format_else_if<'ast>(ctx: &Context, else_if_node: &ElseIf<'ast>, shape: Shape
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
-    // Determine if we need to hang the condition
-    let singleline_shape = shape + (7 + 5 + strip_trivia(&condition).to_string().len()); // 7 = "elseif ", 5 = " then"
-    let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::expression_contains_inline_comments(&condition);
-
-    let (else_if_trailing_trivia, then_text) = if require_multiline_expression {
-        (vec![create_newline_trivia(ctx)], "then")
-    } else {
-        (vec![Token::new(TokenType::spaces(1))], " then")
-    };
-
-    let formatted_else_if_token = format_end_token(
+    let elseif_token = format_end_token(
         ctx,
         else_if_node.else_if_token(),
         EndTokenType::BlockEnd,
         shape,
-    )
-    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()))
-    .update_trailing_trivia(FormatTriviaType::Append(else_if_trailing_trivia));
+    );
+    let singleline_condition = format_expression(ctx, &condition, shape + 7);
+    let singleline_then_token = fmt_symbol!(ctx, else_if_node.then_token(), " then", shape);
 
-    let formatted_condition = if require_multiline_expression {
-        // Reset the shape onto a new line, and increment the additional indent level
-        let shape = shape.reset().increment_additional_indent();
-        hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-        )
-    } else {
-        format_expression(ctx, &condition, shape + 7) // 7 = "elseif "
+    // Determine if we need to hang the condition
+    let singleline_shape = shape + (7 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 3 = " then"
+    let require_multiline_expression = singleline_shape.over_budget()
+        || trivia_util::token_contains_trailing_comments(else_if_node.else_if_token())
+        || trivia_util::token_contains_leading_comments(else_if_node.then_token())
+        || trivia_util::contains_comments(&condition);
+
+    let elseif_token = match require_multiline_expression {
+        true => elseif_token
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
+        false => elseif_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+            TokenType::spaces(1),
+        )])),
+    }
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+
+    let condition = match require_multiline_expression {
+        true => {
+            let shape = shape.reset().increment_additional_indent();
+            hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
+                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
+            )
+        }
+        false => singleline_condition,
     };
 
-    let formatted_then_token = fmt_symbol!(ctx, else_if_node.then_token(), then_text, shape)
-        .update_trivia(
-            if require_multiline_expression {
-                FormatTriviaType::Append(leading_trivia)
-            } else {
-                FormatTriviaType::NoChange
-            },
-            FormatTriviaType::Append(trailing_trivia),
-        );
+    let then_token = match require_multiline_expression {
+        true => format_end_token(
+            ctx,
+            else_if_node.then_token(),
+            EndTokenType::BlockEnd,
+            shape,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        false => singleline_then_token,
+    }
+    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, else_if_node.block(), block_shape);
 
     else_if_node
         .to_owned()
-        .with_else_if_token(formatted_else_if_token)
-        .with_condition(formatted_condition)
-        .with_then_token(formatted_then_token)
+        .with_else_if_token(elseif_token)
+        .with_condition(condition)
+        .with_then_token(then_token)
         .with_block(block)
 }
 
@@ -201,38 +208,40 @@ pub fn format_if<'ast>(ctx: &Context, if_node: &If<'ast>, shape: Shape) -> If<'a
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
 
+    let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
+    let singleline_condition = format_expression(ctx, &condition, shape + 6);
+    let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
+
     // Determine if we need to hang the condition
-    let singleline_shape = shape + (3 + 5 + strip_trivia(&condition).to_string().len()); // 3 = "if ", 5 = " then"
+    let singleline_shape = shape + (3 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 3 = "if ", 5 = " then"
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::expression_contains_inline_comments(&condition);
+        || trivia_util::token_contains_trailing_comments(if_node.if_token())
+        || trivia_util::token_contains_leading_comments(if_node.then_token())
+        || trivia_util::contains_comments(&condition);
 
-    let (if_text, then_text) = if require_multiline_expression {
-        ("if\n", "then")
-    } else {
-        ("if ", " then")
+    let if_token = match require_multiline_expression {
+        true => fmt_symbol!(ctx, if_node.if_token(), "if", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
+        false => singleline_if_token,
+    }
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+
+    let condition = match require_multiline_expression {
+        true => {
+            let shape = shape.reset().increment_additional_indent();
+            hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
+                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
+            )
+        }
+        false => singleline_condition,
     };
 
-    let if_token = fmt_symbol!(ctx, if_node.if_token(), if_text, shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
-
-    let condition = if require_multiline_expression {
-        // Reset the shape onto a new line, and increment the additional indent level
-        let shape = shape.reset().increment_additional_indent();
-        hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-        )
-    } else {
-        format_expression(ctx, &condition, shape + 3) // 3 = "if "
-    };
-
-    let then_token = fmt_symbol!(ctx, if_node.then_token(), then_text, shape).update_trivia(
-        if require_multiline_expression {
-            FormatTriviaType::Append(leading_trivia.to_owned())
-        } else {
-            FormatTriviaType::NoChange
-        },
-        FormatTriviaType::Append(trailing_trivia.to_owned()),
-    );
+    let then_token = match require_multiline_expression {
+        true => format_end_token(ctx, if_node.then_token(), EndTokenType::BlockEnd, shape)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        false => singleline_then_token,
+    }
+    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, if_node.block(), block_shape);
@@ -407,10 +416,13 @@ pub fn format_while_block<'ast>(
     // Determine if we need to hang the condition
     let singleline_shape = shape + (6 + 3 + strip_trivia(&singleline_condition).to_string().len()); // 6 = "while ", 3 = " do"
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::expression_contains_inline_comments(&condition);
+        || trivia_util::token_contains_trailing_comments(while_block.while_token())
+        || trivia_util::token_contains_leading_comments(while_block.do_token())
+        || trivia_util::contains_comments(&condition);
 
     let while_token = match require_multiline_expression {
-        true => fmt_symbol!(ctx, while_block.while_token(), "while\n", shape),
+        true => fmt_symbol!(ctx, while_block.while_token(), "while", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         false => singleline_while_token,
     }
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
@@ -426,7 +438,7 @@ pub fn format_while_block<'ast>(
     };
 
     let do_token = match require_multiline_expression {
-        true => fmt_symbol!(ctx, while_block.do_token(), "do", shape)
+        true => format_end_token(ctx, while_block.do_token(), EndTokenType::BlockEnd, shape)
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
         false => singleline_do_token,
     }

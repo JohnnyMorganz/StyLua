@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed comments trailing unnecessary parentheses around expressions that were later removed not being preserved ([#176](https://github.com/JohnnyMorganz/StyLua/issues/176))
 - Fixed a double unary minus (`- -foo`/`-(-foo)`) being formatted as `--foo` leading to a comment syntax error. Parentheses are now enforced: `-(-foo)` ([#171](https://github.com/JohnnyMorganz/StyLua/issues/171))
 - Fixed semicolon being removed leading to `function call x new statement` ambiguity when next statement is an assignment with the first variable being a parentheses var expression ([#173](https://github.com/JohnnyMorganz/StyLua/issues/173))
+- Fixed mistransformation of comments in `if condition then` or `while condition do` lines - improved assurance that they will hang multiline ([#164](https://github.com/JohnnyMorganz/StyLua/issues/164))
+- Fixed indentation of comments leading a `then` or `do` token when `if ... then` or `while ... do` are multiline.
+- Fixed mistransformation of comments in a generic declaration under the `luau` feature flag ([#166](https://github.com/JohnnyMorganz/StyLua/issues/166))
+- Fixed trailing comma being added after comments in multiline type table under the `luau` feature flag ([#166](https://github.com/JohnnyMorganz/StyLua/issues/166))
 
 ## [0.8.1] - 2021-04-30
 ### Fixed

@@ -1,5 +1,5 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeInfo, TypeSpecifier};
+use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeInfo, TypeSpecifier};
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
@@ -664,6 +664,12 @@ define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
 define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
     this.to_owned()
         .with_cast_to(this.cast_to().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_trailing_trivia!(TypeField, |this, trailing| {
+    this.to_owned()
+        .with_value(this.value().update_trailing_trivia(trailing))
 });
 
 #[cfg(feature = "luau")]

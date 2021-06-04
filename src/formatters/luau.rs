@@ -4,12 +4,14 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_symbol, format_token_reference, try_format_punctuated,
+            format_contained_span, format_end_token, format_symbol, format_token_reference,
+            try_format_punctuated, EndTokenType,
         },
         table::{create_table_braces, TableType},
         trivia::{
             strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
+        trivia_util::{contains_comments, take_type_field_trailing_comments},
     },
     shape::Shape,
 };
@@ -91,7 +93,7 @@ pub fn format_type_info<'ast>(
             return_type,
         } => {
             let parentheses = format_contained_span(ctx, parentheses, shape);
-            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info);
+            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info, None);
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
             TypeInfo::Callback {
@@ -109,7 +111,7 @@ pub fn format_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base, shape);
             let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info, None);
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -194,20 +196,24 @@ pub fn format_type_info<'ast>(
                     false => FormatTriviaType::NoChange,
                 };
 
-                let formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
+                let mut formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
                 let mut formatted_punctuation = None;
 
                 match is_multiline {
                     true => {
                         // Continue adding a comma and a new line for multiline tables
                         // Add newline trivia to the end of the symbol
+
+                        let (field, mut trailing_comments) =
+                            take_type_field_trailing_comments(formatted_field);
+                        formatted_field = field;
+                        trailing_comments.push(create_newline_trivia(ctx));
+
                         let symbol = match punctuation {
                             Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
                             None => TokenReference::symbol(",").unwrap(),
                         }
-                        .update_trailing_trivia(FormatTriviaType::Append(vec![
-                            create_newline_trivia(ctx),
-                        ]));
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
                         formatted_punctuation = Some(symbol)
                     }
 
@@ -258,7 +264,7 @@ pub fn format_type_info<'ast>(
 
         TypeInfo::Tuple { parentheses, types } => {
             let parentheses = format_contained_span(ctx, parentheses, shape);
-            let types = try_format_punctuated(ctx, types, shape, format_type_info);
+            let types = try_format_punctuated(ctx, types, shape, format_type_info, None);
 
             TypeInfo::Tuple { parentheses, types }
         }
@@ -299,7 +305,7 @@ pub fn format_indexed_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base, shape);
             let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info, None);
             IndexedTypeInfo::Generic {
                 base,
                 arrows,
@@ -417,13 +423,48 @@ pub fn format_generic_declaration<'ast>(
     generic_declaration: &GenericDeclaration<'ast>,
     shape: Shape,
 ) -> GenericDeclaration<'ast> {
-    let arrows = format_contained_span(ctx, generic_declaration.arrows(), shape);
-    let generics = try_format_punctuated(
-        ctx,
-        generic_declaration.generics(),
-        shape,
-        format_token_reference,
-    );
+    // If the generics contains comments, then format multiline
+    let (arrows, generics) = if contains_comments(generic_declaration.generics()) {
+        let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+
+        // Format start and end arrows properly with correct trivia
+        let end_arrow_leading_trivia =
+            vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
+
+        // Add new_line trivia to start arrow
+        let start_arrow_token = fmt_symbol!(ctx, start_arrow, "<", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+
+        let end_arrow_token = format_end_token(ctx, end_arrow, EndTokenType::ClosingBrace, shape)
+            .update_leading_trivia(FormatTriviaType::Append(end_arrow_leading_trivia));
+
+        let arrows = ContainedSpan::new(start_arrow_token, end_arrow_token);
+
+        let shape = shape.reset().increment_additional_indent();
+        let generics = try_format_punctuated(
+            ctx,
+            generic_declaration.generics(),
+            shape,
+            format_token_reference,
+            None,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+            ctx, shape,
+        )]));
+
+        (arrows, generics)
+    } else {
+        (
+            format_contained_span(ctx, generic_declaration.arrows(), shape),
+            try_format_punctuated(
+                ctx,
+                generic_declaration.generics(),
+                shape,
+                format_token_reference,
+                None,
+            ),
+        )
+    };
 
     generic_declaration
         .to_owned()

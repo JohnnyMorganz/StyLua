@@ -491,6 +491,7 @@ pub fn try_format_punctuated<'a, T, F>(
     old: &Punctuated<'a, T>,
     shape: Shape,
     value_formatter: F,
+    hang_level: Option<usize>,
 ) -> Punctuated<'a, T>
 where
     T: Node<'a> + std::fmt::Display,
@@ -508,7 +509,7 @@ where
     }
 
     if format_multiline {
-        format_punctuated_multiline(ctx, old, shape, value_formatter, Some(1))
+        format_punctuated_multiline(ctx, old, shape, value_formatter, hang_level)
     } else {
         format_punctuated(ctx, old, shape, value_formatter)
     }
