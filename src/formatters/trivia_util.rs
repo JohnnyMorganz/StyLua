@@ -386,9 +386,9 @@ pub fn take_expression_trailing_comments<'ast>(
 }
 
 #[cfg(feature = "luau")]
-pub fn take_type_field_trailing_comments<'ast>(
-    type_field: TypeField<'ast>,
-) -> (TypeField<'ast>, Vec<Token<'ast>>) {
+pub fn take_type_field_trailing_comments(
+    type_field: TypeField<'_>,
+) -> (TypeField<'_>, Vec<Token<'_>>) {
     let trailing_comments = type_info_trailing_trivia(type_field.value())
         .iter()
         .filter(|token| trivia_is_comment(token))
