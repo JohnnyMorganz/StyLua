@@ -134,7 +134,19 @@ fn format_expression_internal<'ast>(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
+                // Get the trailing comments from contained span and append them onto the expression
+                let trailing_comments = contained
+                    .tokens()
+                    .1
+                    .trailing_trivia()
+                    .filter(|token| trivia_util::trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
                 format_expression(ctx, expression, shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 Expression::Parentheses {
                     contained: format_contained_span(ctx, &contained, shape),
