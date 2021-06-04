@@ -11,7 +11,7 @@ use crate::{
         trivia::{
             strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
-        trivia_util::contains_comments,
+        trivia_util::{contains_comments, take_type_field_trailing_comments},
     },
     shape::Shape,
 };
@@ -196,20 +196,24 @@ pub fn format_type_info<'ast>(
                     false => FormatTriviaType::NoChange,
                 };
 
-                let formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
+                let mut formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
                 let mut formatted_punctuation = None;
 
                 match is_multiline {
                     true => {
                         // Continue adding a comma and a new line for multiline tables
                         // Add newline trivia to the end of the symbol
+
+                        let (field, mut trailing_comments) =
+                            take_type_field_trailing_comments(formatted_field);
+                        formatted_field = field;
+                        trailing_comments.push(create_newline_trivia(ctx));
+
                         let symbol = match punctuation {
                             Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
                             None => TokenReference::symbol(",").unwrap(),
                         }
-                        .update_trailing_trivia(FormatTriviaType::Append(vec![
-                            create_newline_trivia(ctx),
-                        ]));
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
                         formatted_punctuation = Some(symbol)
                     }
 

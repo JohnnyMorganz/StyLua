@@ -9,6 +9,6 @@ export type IntrospectionNamedTypeRef<
 > = {
 	kind: any, -- deviation: add this type spec later: $PropertyType<T, 'kind'>,
 	name: string,
-	ofType: T -- TODO: this field is missing,
+	ofType: T, -- TODO: this field is missing
 }
 
