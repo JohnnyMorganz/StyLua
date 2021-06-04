@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed leading comments to a binop in a hanging expression being lost ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154#issuecomment-841703038))
 - Fixed mistransformation of comments leading the RHS of a hanging binop. They are now moved to before the binop ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154))
 - Fixed comments trailing unnecessary parentheses around expressions that were later removed not being preserved ([#176](https://github.com/JohnnyMorganz/StyLua/issues/176))
+- Fixed a double unary minus (`- -foo`/`-(-foo)`) being formatted as `--foo` leading to a comment syntax error. Parentheses are now enforced: `-(-foo)` ([#171](https://github.com/JohnnyMorganz/StyLua/issues/171))
 
 ## [0.8.1] - 2021-04-30
 ### Fixed

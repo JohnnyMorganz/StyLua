@@ -157,9 +157,45 @@ fn format_expression_internal<'ast>(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
+            let mut expression = format_expression(ctx, expression, shape);
+
+            // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
+            // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
+            if let UnOp::Minus(_) = unop {
+                let require_parentheses = match expression {
+                    Expression::UnaryOperator {
+                        unop: UnOp::Minus(_),
+                        ..
+                    } => true,
+
+                    Expression::Value { ref value, .. } => matches!(
+                        **value,
+                        Value::ParenthesesExpression(Expression::UnaryOperator {
+                            unop: UnOp::Minus(_),
+                            ..
+                        })
+                    ),
+
+                    _ => false,
+                };
+
+                if require_parentheses {
+                    let (new_expression, trailing_comments) =
+                        trivia_util::take_expression_trailing_comments(&expression);
+                    expression = Expression::Parentheses {
+                        contained: ContainedSpan::new(
+                            TokenReference::symbol("(").unwrap(),
+                            TokenReference::symbol(")").unwrap(),
+                        )
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
+                        expression: Box::new(new_expression),
+                    }
+                }
+            }
+
             Expression::UnaryOperator {
                 unop,
-                expression: Box::new(format_expression(ctx, expression, shape)),
+                expression: Box::new(expression),
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
