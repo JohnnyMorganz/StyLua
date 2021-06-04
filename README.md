@@ -72,6 +72,7 @@ stylua -g *.lua -g !*.spec.lua -- .
 will format all Lua files, but ignore any `.spec.lua` test files.
 Note, if you are using the glob argument, it can take in multiple strings, so a `--` is required to break between the glob pattern and the files to format.
 The glob defaults to `**/*.lua`.
+If you explicitly pass a file to StyLua to format, but it doesn't match the glob, it will still be formatted (e.g. `stylua foo` for file `foo` containing Lua code)
 
 ### Filtering using `.styluaignore`
 You can also create a `.styluaignore` file, with a similar format to a `.gitignore` file. Any files matched will be ignored by StyLua.

@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added CLI flag `--search-parent-directories`. If enabled, we will look in parent directories for a configuration file, or look in `$XDG_CONFIG_HOME` or `$XDG_CONFIG_HOME/stylua`. ([#127](https://github.com/JohnnyMorganz/StyLua/issues/127), [#146](https://github.com/JohnnyMorganz/StyLua/issues/146))
 - Updated full-moon: Added support for typed variadics under the Luau feature flag
 - Will now hang on equality operators within binary expressions, if over width.
+- If a file path is explicitly provided to the CLI which doesn't end with `.lua` ending, the `*.lua` glob check is skipped. ([#170](https://github.com/JohnnyMorganz/StyLua/issues/170))
 
 ### Changed
 - Long prefix expressions which are hangable and go over the line limit (e.g. `("foooo" .. "barrrrrrr" .. "bazzzzzz"):format(...)`) will now hang multiline ([#139](https://github.com/JohnnyMorganz/StyLua/issues/139))
 - Changed formatting for assignments. We will now try all tactics then determine the best one. Multiple assignments will now no longer attempt to hang a single expression first - we will hang the whole punctuated list. ([#157](https://github.com/JohnnyMorganz/StyLua/issues/157))
-- Function calls with single arguments are now possible to be expanded. This will allow the call to be expanded if the line goes over budget. ([[#156](https://github.com/JohnnyMorganz/StyLua/issues/156)])
+- Function calls with single arguments are now possible to be expanded. This will allow the call to be expanded if the line goes over budget. ([#156](https://github.com/JohnnyMorganz/StyLua/issues/156))
 - StyLua will now firstly prefer hanging long arguments to function calls to try and fit under the width, before expanding them multiline. ([#159](https://github.com/JohnnyMorganz/StyLua/issues/159))
 - When hanging a binary expression, previously, we would always hang the "root" node of AST BinExp tree. Now we will check to see if is necessary (we are over width) before hanging ([#163](https://github.com/JohnnyMorganz/StyLua/issues/163))
 
@@ -24,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the double formatting of a hanging call chain when it was being assigned to a variable causing it to be incorrectly formatted ([#151](https://github.com/JohnnyMorganz/StyLua/issues/151))
 - Fixed leading comments to a binop in a hanging expression being lost ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154#issuecomment-841703038))
 - Fixed mistransformation of comments leading the RHS of a hanging binop. They are now moved to before the binop ([#154](https://github.com/JohnnyMorganz/StyLua/issues/154))
+- Fixed comments trailing unnecessary parentheses around expressions that were later removed not being preserved ([#176](https://github.com/JohnnyMorganz/StyLua/issues/176))
+- Fixed a double unary minus (`- -foo`/`-(-foo)`) being formatted as `--foo` leading to a comment syntax error. Parentheses are now enforced: `-(-foo)` ([#171](https://github.com/JohnnyMorganz/StyLua/issues/171))
+- Fixed semicolon being removed leading to `function call x new statement` ambiguity when next statement is an assignment with the first variable being a parentheses var expression ([#173](https://github.com/JohnnyMorganz/StyLua/issues/173))
 - Fixed mistransformation of comments in `if condition then` or `while condition do` lines - improved assurance that they will hang multiline ([#164](https://github.com/JohnnyMorganz/StyLua/issues/164))
 - Fixed indentation of comments leading a `then` or `do` token when `if ... then` or `while ... do` are multiline.
 - Fixed mistransformation of comments in a generic declaration under the `luau` feature flag ([#166](https://github.com/JohnnyMorganz/StyLua/issues/166))

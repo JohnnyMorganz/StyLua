@@ -346,6 +346,17 @@ pub fn format_block<'ast>(ctx: &Context, block: &Block<'ast>, shape: Shape) -> B
                         function_call.prefix(),
                         Prefix::Expression(Expression::Parentheses { .. })
                     ),
+                    Some((Stmt::Assignment(assignment), _)) => {
+                        match assignment.variables().iter().next() {
+                            Some(Var::Expression(var_expression)) => {
+                                matches!(
+                                    var_expression.prefix(),
+                                    Prefix::Expression(Expression::Parentheses { .. })
+                                )
+                            }
+                            _ => false,
+                        }
+                    }
                     _ => false,
                 }
             }
