@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated full-moon: Added support for typed variadics under the Luau feature flag
 - Will now hang on equality operators within binary expressions, if over width.
 - If a file path is explicitly provided to the CLI which doesn't end with `.lua` ending, the `*.lua` glob check is skipped. ([#170](https://github.com/JohnnyMorganz/StyLua/issues/170))
+- Long type unions will now hang under the `luau` feature flag. ([#165](https://github.com/JohnnyMorganz/StyLua/issues/165))
 
 ### Changed
 - Long prefix expressions which are hangable and go over the line limit (e.g. `("foooo" .. "barrrrrrr" .. "bazzzzzz"):format(...)`) will now hang multiline ([#139](https://github.com/JohnnyMorganz/StyLua/issues/139))
