@@ -233,9 +233,9 @@ fn format_multiline_table<'ast>(
     let mut shape = shape.reset().increment_additional_indent(); // Will take new line, and additional indentation
 
     let mut fields = Punctuated::new();
-    let mut current_fields = table_constructor.fields().pairs().peekable();
+    let current_fields = table_constructor.fields().pairs();
 
-    while let Some(pair) = current_fields.next() {
+    for pair in current_fields {
         let (field, punctuation) = (pair.value(), pair.punctuation());
 
         // Reset the shape onto a new line, as we are a new field
