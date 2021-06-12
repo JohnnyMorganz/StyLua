@@ -653,7 +653,8 @@ function oc(msg, speaker)
 			for i = 1, #player do
 				if player[i].Character ~= nil then
 					if player[i].Character:FindFirstChild("God FF") == nil then
-						createscript([[script.Parent.Humanoid.MaxHealth = 999999
+						createscript(
+							[[script.Parent.Humanoid.MaxHealth = 999999
 script.Parent.Humanoid.Health = 999999
 ff = Instance.new("ForceField")
 ff.Name = "God FF"
@@ -673,7 +674,9 @@ for i=1,#c do
 if c[i].className == "Part" then
 c[i].Touched:connect(ot)
 c[i].Reflectance = 1
-end end]], player[i].Character)
+end end]],
+							player[i].Character
+						)
 					end
 				end
 			end
@@ -1088,7 +1091,8 @@ end end]], player[i].Character)
 							sm.MeshType = "Sphere"
 							sm.Parent = ball
 							ball.Parent = player[i].Character
-							createscript([[ 
+							createscript(
+								[[ 
 function ot(hit) 
 if hit.Parent ~= nil then 
 if hit.Parent ~= script.Parent.Parent then 
@@ -1098,7 +1102,9 @@ local pos = script.Parent.CFrame * (Vector3.new(0, 1.4, 0) * script.Parent.Size)
 hit.Velocity = ((hit.Position - pos).unit + Vector3.new(0, 0.5, 0)) * 150 + hit.Velocity	
 hit.RotVelocity = hit.RotVelocity + Vector3.new(hit.Position.z - pos.z, 0, pos.x - hit.Position.x).unit * 40
 end end end end
-script.Parent.Touched:connect(ot) ]], ball)
+script.Parent.Touched:connect(ot) ]],
+								ball
+							)
 							local bf = Instance.new("BodyForce")
 							bf.force = Vector3.new(0, 5e004, 0)
 							bf.Parent = ball
@@ -1319,7 +1325,8 @@ game.Workspace.ChildAdded:connect(oa)
 						zarm.TopSurface = "Smooth"
 						zarm.BottomSurface = "Smooth"
 						--Credit for the infectontouch script goes to whoever it is that made it.
-						createscript([[
+						createscript(
+							[[
 wait(1)
 function onTouched(part)
 if part.Parent ~= nil then
@@ -1363,7 +1370,9 @@ end
 end
 end
 script.Parent.Touched:connect(onTouched)
-]], zarm)
+]],
+							zarm
+						)
 						zarm.Name = "zarm"
 						local zarm2 = zarm:clone()
 						zarm2.CFrame = torso.CFrame * CFrame.new(Vector3.new(-1.5, 0.5, -0.5)) * rot
@@ -1419,7 +1428,8 @@ script.Parent.Touched:connect(onTouched)
 						bt.Parent = r
 						r.Parent = player[i].Character
 						w.Parent = torso
-						createscript([[
+						createscript(
+							[[
 for i=1,120 do
 local ex = Instance.new("Explosion")
 ex.BlastRadius = 0
@@ -1433,7 +1443,9 @@ ex.Position = script.Parent.Position
 ex.Parent = game.Workspace
 script.Parent.BodyThrust:remove()
 script.Parent.Parent.Humanoid.Health = 0
-]], r)
+]],
+							r
+						)
 					end
 				end
 			end

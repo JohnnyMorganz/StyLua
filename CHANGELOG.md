@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - StyLua will now firstly prefer hanging long arguments to function calls to try and fit under the width, before expanding them multiline. ([#159](https://github.com/JohnnyMorganz/StyLua/issues/159))
 - When hanging a binary expression, previously, we would always hang the "root" node of AST BinExp tree. Now we will check to see if is necessary (we are over width) before hanging ([#163](https://github.com/JohnnyMorganz/StyLua/issues/163))
 - StyLua will hug together table braces with function call parentheses when formatting a function call taking a single table as an argument. ([#182](https://github.com/JohnnyMorganz/StyLua/issues/182))
+- Function calls with more than one argument, where an argument is "complex", will now expand multiline. "complex" is an argument spanning multiple lines, but excludes a table or anonymous function, as we handle them explicitly. ([#183](https://github.com/JohnnyMorganz/StyLua/issues/183))
 
 ### Fixed
 - Fixed 1 or 2 digit numerical escapes being incorrectly removed
