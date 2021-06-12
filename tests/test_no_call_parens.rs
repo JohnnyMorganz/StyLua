@@ -132,7 +132,7 @@ foo("foo"):andThen()
 "###
         ),
         @r###"foo("foo"):andThen()
-"###
+    "###
     );
 }
 
