@@ -176,78 +176,73 @@ pub fn create_table_braces<'ast>(
     }
 }
 
-pub fn format_table_constructor<'ast>(
+/// Formats a table constructor onto a single line.
+/// This function does not perform any length checking, or checking whether comments are present.
+fn format_singleline_table<'ast>(
     ctx: &Context,
     table_constructor: &TableConstructor<'ast>,
     shape: Shape,
 ) -> TableConstructor<'ast> {
-    let mut fields = Punctuated::new();
-    let mut current_fields = table_constructor
-        .fields()
-        .to_owned()
-        .into_pairs()
-        .peekable();
+    let table_type = TableType::SingleLine;
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
-    let braces_range = (
-        start_brace.token().end_position().bytes(),
-        end_brace.token().start_position().bytes(),
-    );
-
-    // Determine if there are any comments within the table. If so, we should force, multiline
-    let contains_comments = {
-        let braces_contain_comments = start_brace
-            .trailing_trivia()
-            .any(trivia_util::trivia_is_comment)
-            || end_brace
-                .leading_trivia()
-                .any(trivia_util::trivia_is_comment);
-
-        braces_contain_comments || trivia_util::table_fields_contains_comments(table_constructor)
-    };
-
-    // Use input shape to determine if we are over budget
-    // TODO: should we format the table onto a single line first?
-    let singleline_shape = shape + (braces_range.1 - braces_range.0);
-
-    let table_type = match (contains_comments, current_fields.peek()) {
-        // We have comments, so force multiline
-        (true, _) => TableType::MultiLine,
-
-        (false, Some(_)) => match singleline_shape.over_budget() {
-            true => TableType::MultiLine,
-            false => {
-                // Determine if there was a new line at the end of the start brace
-                // If so, then we should always be multiline
-                if start_brace
-                    .trailing_trivia()
-                    .any(trivia_util::trivia_is_newline)
-                {
-                    TableType::MultiLine
-                } else {
-                    TableType::SingleLine
-                }
-            }
-        },
-        (false, None) => TableType::Empty,
-    };
-
     let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
-    let mut shape = match table_type {
-        TableType::SingleLine => shape + 2, // 1 = opening brace, 1 = space
-        TableType::MultiLine => shape.reset().increment_additional_indent(), // Will take new line, and additional indentation
-        TableType::Empty => shape,
-    };
+    let mut shape = shape + 2; // 2 = "{ "
+
+    let mut fields = Punctuated::new();
+    let mut current_fields = table_constructor.fields().pairs().peekable();
 
     while let Some(pair) = current_fields.next() {
-        let (field, punctuation) = pair.into_tuple();
+        let (field, punctuation) = (pair.value(), pair.punctuation());
 
-        // Reset the shape onto a newline if multiline
-        if let TableType::MultiLine = table_type {
-            shape = shape.reset()
+        // Format the field. We will ignore the taken trailing trivia, as we do not need it.
+        // (If there were any comments present, this function should never have been called)
+        let formatted_field = format_field(ctx, field, table_type, shape).0;
+
+        let formatted_punctuation = match current_fields.peek() {
+            Some(_) => {
+                // Have more elements still to go
+                shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
+                match punctuation {
+                    Some(punctuation) => Some(fmt_symbol!(ctx, &punctuation, ", ", shape)),
+                    None => Some(TokenReference::symbol(", ").unwrap()),
+                }
+            }
+            None => None,
         };
 
-        let (formatted_field, mut trailing_trivia) = format_field(ctx, &field, table_type, shape);
+        fields.push(Pair::new(formatted_field, formatted_punctuation))
+    }
+
+    TableConstructor::new()
+        .with_braces(braces)
+        .with_fields(fields)
+}
+
+/// Expands a table constructor to format it onto multiple lines
+/// This function does not perform any length checking.
+fn format_multiline_table<'ast>(
+    ctx: &Context,
+    table_constructor: &TableConstructor<'ast>,
+    shape: Shape,
+) -> TableConstructor<'ast> {
+    let table_type = TableType::MultiLine;
+
+    let (start_brace, end_brace) = table_constructor.braces().tokens();
+    let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
+    let mut shape = shape.reset().increment_additional_indent(); // Will take new line, and additional indentation
+
+    let mut fields = Punctuated::new();
+    let mut current_fields = table_constructor.fields().pairs().peekable();
+
+    while let Some(pair) = current_fields.next() {
+        let (field, punctuation) = (pair.value(), pair.punctuation());
+
+        // Reset the shape onto a new line, as we are a new field
+        shape = shape.reset();
+
+        // Format the field
+        let (formatted_field, mut trailing_trivia) = format_field(ctx, field, table_type, shape);
 
         // If trivia is just whitespace, ignore it completely
         if trailing_trivia
@@ -264,31 +259,16 @@ pub fn format_table_constructor<'ast>(
                 .collect();
         }
 
-        let mut formatted_punctuation = None;
+        // Continue adding a comma and a new line for multiline tables
+        // Add newline trivia to the end of the symbol
+        trailing_trivia.push(create_newline_trivia(ctx));
 
-        match table_type {
-            TableType::MultiLine => {
-                // Continue adding a comma and a new line for multiline tables
-                // Add newline trivia to the end of the symbol
-                trailing_trivia.push(create_newline_trivia(ctx));
-                let symbol = match punctuation {
-                    Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
-                    None => TokenReference::symbol(",").unwrap(),
-                }
-                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-                formatted_punctuation = Some(symbol)
-            }
-            _ => {
-                if current_fields.peek().is_some() {
-                    // Have more elements still to go
-                    shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
-                    formatted_punctuation = match punctuation {
-                        Some(punctuation) => Some(fmt_symbol!(ctx, &punctuation, ", ", shape)),
-                        None => Some(TokenReference::symbol(", ").unwrap()),
-                    }
-                };
-            }
+        let symbol = match punctuation {
+            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
+            None => TokenReference::symbol(",").unwrap(),
         }
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+        let formatted_punctuation = Some(symbol);
 
         fields.push(Pair::new(formatted_field, formatted_punctuation))
     }
@@ -296,4 +276,63 @@ pub fn format_table_constructor<'ast>(
     TableConstructor::new()
         .with_braces(braces)
         .with_fields(fields)
+}
+
+pub fn format_table_constructor<'ast>(
+    ctx: &Context,
+    table_constructor: &TableConstructor<'ast>,
+    shape: Shape,
+) -> TableConstructor<'ast> {
+    let (start_brace, end_brace) = table_constructor.braces().tokens();
+
+    // Determine if there are any comments within the table. If so, we should force, multiline
+    let contains_comments = {
+        let braces_contain_comments = start_brace
+            .trailing_trivia()
+            .any(trivia_util::trivia_is_comment)
+            || end_brace
+                .leading_trivia()
+                .any(trivia_util::trivia_is_comment);
+
+        braces_contain_comments || trivia_util::table_fields_contains_comments(table_constructor)
+    };
+
+    let table_type = match (contains_comments, table_constructor.fields().iter().next()) {
+        // We have comments, so force multiline
+        (true, _) => TableType::MultiLine,
+
+        (false, Some(_)) => {
+            // Format the table onto a single line, then take the shape to determine if we are over budget
+            let singleline_table =
+                format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
+            let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
+
+            match singleline_shape.over_budget() {
+                true => TableType::MultiLine,
+                false => {
+                    // Determine if there was a new line at the end of the start brace
+                    // If so, then we should always be multiline
+                    if start_brace
+                        .trailing_trivia()
+                        .any(trivia_util::trivia_is_newline)
+                    {
+                        TableType::MultiLine
+                    } else {
+                        TableType::SingleLine
+                    }
+                }
+            }
+        }
+
+        (false, None) => TableType::Empty,
+    };
+
+    match table_type {
+        TableType::Empty => {
+            let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
+            TableConstructor::new().with_braces(braces)
+        }
+        TableType::SingleLine => format_singleline_table(ctx, table_constructor, shape),
+        TableType::MultiLine => format_multiline_table(ctx, table_constructor, shape),
+    }
 }
