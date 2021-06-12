@@ -9,7 +9,8 @@ use crate::{
         },
         table::{create_table_braces, TableType},
         trivia::{
-            strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
+            strip_leading_trivia, strip_trailing_trivia, FormatTriviaType, UpdateLeadingTrivia,
+            UpdateTrailingTrivia,
         },
         trivia_util::{contains_comments, take_type_field_trailing_comments},
     },
@@ -288,6 +289,24 @@ pub fn format_type_info<'ast>(
     }
 }
 
+pub fn hang_type_info<'ast>(
+    ctx: &Context,
+    type_info: TypeInfo<'ast>,
+    shape: Shape,
+) -> TypeInfo<'ast> {
+    match type_info {
+        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
+            left,
+            pipe: pipe.update_leading_trivia(FormatTriviaType::Replace(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ])),
+            right: Box::new(hang_type_info(ctx, *right, shape)),
+        },
+        _ => type_info,
+    }
+}
+
 pub fn format_indexed_type_info<'ast>(
     ctx: &Context,
     indexed_type_info: &IndexedTypeInfo<'ast>,
@@ -395,9 +414,26 @@ fn format_type_declaration<'ast>(
     let generics = type_declaration
         .generics()
         .map(|generics| format_generic_declaration(ctx, generics, shape));
-    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
+    let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
+    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+
+    let shape = shape
+        .add_width(
+            5 + type_name.to_string().len()
+                + generics.as_ref().map_or(0, |x| x.to_string().len())
+                + 3,
+        ) // 5 = "type ", "3" = " = "
+        .take_last_line(&strip_trailing_trivia(&type_definition));
+
+    if shape.over_budget() {
+        let shape = shape.increment_additional_indent();
+        equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
+            create_newline_trivia(ctx),
+            create_indent_trivia(ctx, shape),
+        ]));
+        type_definition = hang_type_info(ctx, type_definition, shape);
+    }
 
     type_declaration
         .to_owned()
@@ -492,6 +528,7 @@ pub fn format_exported_type_declaration<'ast>(
     shape: Shape,
 ) -> ExportedTypeDeclaration<'ast> {
     // Calculate trivia
+    let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     let export_token = format_symbol(
@@ -511,7 +548,7 @@ pub fn format_exported_type_declaration<'ast>(
         ctx,
         exported_type_declaration.type_declaration(),
         false,
-        shape,
+        shape + 7, // 7 = "export "
     );
 
     exported_type_declaration
