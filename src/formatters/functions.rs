@@ -19,6 +19,7 @@ use crate::{
             format_contained_span, format_end_token, format_punctuated, format_symbol,
             format_token_reference, EndTokenType,
         },
+        table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
@@ -84,14 +85,40 @@ pub fn format_anonymous_function<'ast>(
     (function_token, function_body.with_end_token(end_token))
 }
 
+/// An enum providing information regarding the next AST node after a function call.
+/// Currently, this information is only useful for the `no_call_parentheses` configuration, to determine whether
+/// to remove parentheses.
+pub enum FunctionCallNextNode {
+    /// The syntax is obscure if we remove parentheses around a function call due to the next AST node.
+    /// For example, the next AST node could be an index or a method call:
+    /// ```lua
+    /// getsomething "foobar".setup -> getsomething("foobar").setup
+    /// setup { yes = true }:run() -> setup({ yes = true }):run()
+    /// ```
+    /// It looks like we are indexing the string, or calling a method on the table, but these are actually applied
+    /// to the returned value from the call. Removing the parentheses around the arguments to the call makes this obscure.
+    ObscureWithoutParens,
+
+    /// There is no important information regarding the next node
+    None,
+}
+
 /// Formats a Call node
-pub fn format_call<'ast>(ctx: &Context, call: &Call<'ast>, shape: Shape) -> Call<'ast> {
+pub fn format_call<'ast>(
+    ctx: &Context,
+    call: &Call<'ast>,
+    shape: Shape,
+    call_next_node: FunctionCallNextNode,
+) -> Call<'ast> {
     match call {
-        Call::AnonymousCall(function_args) => {
-            Call::AnonymousCall(format_function_args(ctx, function_args, shape))
-        }
+        Call::AnonymousCall(function_args) => Call::AnonymousCall(format_function_args(
+            ctx,
+            function_args,
+            shape,
+            call_next_node,
+        )),
         Call::MethodCall(method_call) => {
-            Call::MethodCall(format_method_call(ctx, method_call, shape))
+            Call::MethodCall(format_method_call(ctx, method_call, shape, call_next_node))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -108,17 +135,48 @@ fn is_complex_arg(value: &Value) -> bool {
     value.to_string().trim().contains('\n')
 }
 
-/// Formats a FunctionArgs node
+/// Formats a FunctionArgs node.
+/// [`call_next_node`] provides information about the node after the FunctionArgs. This only matters if the configuration specifies no call parentheses.
 pub fn format_function_args<'ast>(
     ctx: &Context,
     function_args: &FunctionArgs<'ast>,
     shape: Shape,
+    call_next_node: FunctionCallNextNode,
 ) -> FunctionArgs<'ast> {
     match function_args {
         FunctionArgs::Parentheses {
             parentheses,
             arguments,
         } => {
+            // Handle config where parentheses are omitted, and there is only one argument
+            if ctx.config().no_call_parentheses
+                && arguments.len() == 1
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            {
+                let argument = arguments.iter().next().unwrap();
+                if let Expression::Value { value, .. } = argument {
+                    match &**value {
+                        Value::String(token_reference) => {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::String(token_reference.to_owned()),
+                                shape,
+                                call_next_node,
+                            );
+                        }
+                        Value::TableConstructor(table_constructor) => {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::TableConstructor(table_constructor.to_owned()),
+                                shape,
+                                call_next_node,
+                            );
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
             let (start_parens, end_parens) = parentheses.tokens();
 
             // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
@@ -409,6 +467,17 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::String(token_reference) => {
+            if ctx.config().no_call_parentheses
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            {
+                let token_reference = format_token_reference(ctx, token_reference, shape)
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])); // Single space before the token reference
+
+                return FunctionArgs::String(token_reference);
+            }
+
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
@@ -440,6 +509,17 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::TableConstructor(table_constructor) => {
+            if ctx.config().no_call_parentheses
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            {
+                let table_constructor = format_table_constructor(ctx, table_constructor, shape)
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])); // Single space before the table constructor
+
+                return FunctionArgs::TableConstructor(table_constructor);
+            }
+
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
@@ -668,7 +748,7 @@ pub fn format_function_call<'ast>(
             // Create a temporary formatted version of suffixes to use for this check
             let formatted_suffixes = function_call
                 .suffixes()
-                .map(|x| format_suffix(ctx, x, shape)) // TODO: is this the right shape to use?
+                .map(|x| format_suffix(ctx, x, shape, FunctionCallNextNode::None)) // TODO: is this the right shape to use?
                 .collect();
             let preliminary_function_call =
                 FunctionCall::new(formatted_prefix.to_owned()).with_suffixes(formatted_suffixes);
@@ -705,7 +785,8 @@ pub fn format_function_call<'ast>(
 
     let mut shape = shape.take_last_line(&strip_leading_trivia(&formatted_prefix));
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
-    for suffix in function_call.suffixes() {
+    let mut suffixes = function_call.suffixes().peekable();
+    while let Some(suffix) = suffixes.next() {
         // Only hang if this is a method call
         let should_hang = should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_)));
         let current_shape = if should_hang {
@@ -717,7 +798,17 @@ pub fn format_function_call<'ast>(
             shape
         };
 
-        let mut suffix = format_suffix(ctx, suffix, current_shape);
+        // If the suffix after this one is something like `.foo` or `:foo` - this affects removing parentheses
+        let ambiguous_next_suffix = if matches!(
+            suffixes.peek(),
+            Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
+        ) {
+            FunctionCallNextNode::ObscureWithoutParens
+        } else {
+            FunctionCallNextNode::None
+        };
+
+        let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
         if should_hang {
             suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
@@ -824,12 +915,14 @@ pub fn format_method_call<'ast>(
     ctx: &Context,
     method_call: &MethodCall<'ast>,
     shape: Shape,
+    call_next_node: FunctionCallNextNode,
 ) -> MethodCall<'ast> {
     let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
     let formatted_name = format_token_reference(ctx, method_call.name(), shape);
     let shape =
         shape + (formatted_colon_token.to_string().len() + formatted_name.to_string().len());
-    let formatted_function_args = format_function_args(ctx, method_call.args(), shape);
+    let formatted_function_args =
+        format_function_args(ctx, method_call.args(), shape, call_next_node);
 
     MethodCall::new(formatted_name, formatted_function_args).with_colon_token(formatted_colon_token)
 }

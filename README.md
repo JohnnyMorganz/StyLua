@@ -176,3 +176,24 @@ Defaults to `AutoPreferDouble`.
 ```toml
 quote_style = "AutoPreferDouble"
 ```
+
+### `no_call_parentheses`
+
+When enabled, parentheses are removed around function arguments where a single string literal/table is passed.
+Note: if the function call is followed by an index or a method call, parentheses are added/kept. This is because
+the syntax becomes obscure.
+```lua
+require("foobar") -> require "foobar"
+something({ foo = bar }) -> something { foo = bar }
+
+-- keep/add parentheses due to obscurity
+-- it looks like its indexing the string, but its actually indexing the return from the function call
+getsomething "foobar".setup -> getsomething("foobar").setup
+setup { yes = true }:run() -> setup({ yes = true }):run()
+```
+This option was added for adoption purposes.
+Defaults to `false`
+
+```toml
+no_call_parentheses = false
+```

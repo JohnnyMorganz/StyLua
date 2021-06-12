@@ -91,6 +91,9 @@ pub struct Config {
     indent_width: usize,
     /// The style of quotes to use in string literals.
     quote_style: QuoteStyle,
+    /// Whether to omit parentheses around function calls which take a single string literal or table.
+    /// This is added for adoption reasons only, and is not recommended for new work.
+    no_call_parentheses: bool,
 }
 
 impl Config {
@@ -138,6 +141,14 @@ impl Config {
             ..self
         }
     }
+
+    /// Returns a new config with the given value for [`no_call_parentheses`]
+    pub fn with_no_call_parentheses(self, no_call_parentheses: bool) -> Self {
+        Self {
+            no_call_parentheses,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -148,6 +159,7 @@ impl Default for Config {
             indent_type: IndentType::Tabs,
             indent_width: 4,
             quote_style: QuoteStyle::default(),
+            no_call_parentheses: false,
         }
     }
 }
