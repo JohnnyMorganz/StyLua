@@ -128,10 +128,13 @@ do
 		}
 
 		for _, runtimeError in ipairs(self:getErrorChain()) do
-			table.insert(errorStrings, table.concat({
-				runtimeError.trace or runtimeError.error,
-				runtimeError.context,
-			}, "\n"))
+			table.insert(
+				errorStrings,
+				table.concat({
+					runtimeError.trace or runtimeError.error,
+					runtimeError.context,
+				}, "\n")
+			)
 		end
 
 		return table.concat(errorStrings, "\n")

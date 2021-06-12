@@ -26,25 +26,41 @@ use crate::{
     shape::Shape,
 };
 
+/// Hangs each [`Expression`] in a [`Punctuated`] list.
+/// The Punctuated list is hung multiline at the comma aswell, and each subsequent item after the first is
+/// indented by one.
 pub fn hang_punctuated_list<'ast>(
     ctx: &Context,
     punctuated: &Punctuated<'ast, Expression<'ast>>,
     shape: Shape,
 ) -> Punctuated<'ast, Expression<'ast>> {
-    let mut shape = shape;
     let mut output = Punctuated::new();
 
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
-    for pair in punctuated.pairs() {
-        let value = hang_expression(ctx, pair.value(), shape, Some(1));
-        shape = shape.take_last_line(&strip_trivia(&value));
+    for (idx, pair) in punctuated.pairs().enumerate() {
+        let shape = if idx == 0 {
+            shape
+        } else {
+            shape.reset().increment_additional_indent()
+        };
+
+        let mut value = hang_expression(ctx, pair.value(), shape, Some(1));
+        if idx != 0 {
+            value =
+                value.update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                    ctx, shape,
+                )]));
+        }
 
         output.push(Pair::new(
             value,
-            pair.punctuation().map(|x| fmt_symbol!(ctx, x, ", ", shape)),
+            pair.punctuation().map(|x| {
+                fmt_symbol!(ctx, x, ",", shape).update_trailing_trivia(FormatTriviaType::Append(
+                    vec![create_newline_trivia(ctx)],
+                ))
+            }),
         ));
-        shape = shape + 2; // 2 = ", "
     }
 
     output
@@ -161,6 +177,7 @@ pub fn format_assignment<'ast>(
         assignment.variables(),
         shape.with_infinite_width(),
         format_var,
+        Some(1),
     );
     let mut equal_token = fmt_symbol!(ctx, assignment.equal_token(), " = ", shape);
     let mut expr_list = format_punctuated(
@@ -177,7 +194,7 @@ pub fn format_assignment<'ast>(
             + strip_trailing_trivia(&expr_list).to_string().len());
     if contains_comments || singleline_shape.over_budget() {
         // We won't attempt anything else with the var_list. Format it normally
-        var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var);
+        var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var, Some(1));
         let shape = shape + (strip_leading_trivia(&var_list).to_string().len() + 3);
 
         let (new_expr_list, new_equal_token) =
@@ -203,16 +220,18 @@ fn format_local_no_assignment<'ast>(
     let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let shape = shape + 6; // 6 = "local "
-    let mut name_list =
-        try_format_punctuated(ctx, assignment.names(), shape, format_token_reference);
+    let mut name_list = try_format_punctuated(
+        ctx,
+        assignment.names(),
+        shape,
+        format_token_reference,
+        Some(1),
+    );
 
     #[cfg(feature = "luau")]
     let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
         .type_specifiers()
-        .map(|x| match x {
-            Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-            None => None,
-        })
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
 
     // See if the last variable assigned has a type specifier, and add a new line to that
@@ -272,6 +291,7 @@ pub fn format_local_assignment<'ast>(
             assignment.names(),
             shape.with_infinite_width(),
             format_token_reference,
+            Some(1),
         );
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ", shape);
         let mut expr_list = format_punctuated(
@@ -284,10 +304,7 @@ pub fn format_local_assignment<'ast>(
         #[cfg(feature = "luau")]
         let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
             .type_specifiers()
-            .map(|x| match x {
-                Some(type_specifier) => Some(format_type_specifier(ctx, type_specifier, shape)),
-                None => None,
-            })
+            .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
             .collect();
         let type_specifier_len;
         #[cfg(feature = "luau")]
@@ -311,8 +328,13 @@ pub fn format_local_assignment<'ast>(
 
         if contains_comments || singleline_shape.over_budget() {
             // We won't attempt anything else with the name_list. Format it normally
-            name_list =
-                try_format_punctuated(ctx, assignment.names(), shape, format_token_reference);
+            name_list = try_format_punctuated(
+                ctx,
+                assignment.names(),
+                shape,
+                format_token_reference,
+                Some(1),
+            );
             let shape = shape
                 + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
 

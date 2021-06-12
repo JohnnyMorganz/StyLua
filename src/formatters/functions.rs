@@ -109,6 +109,17 @@ pub fn format_call<'ast>(
     }
 }
 
+fn is_table_constructor(expression: &Expression) -> bool {
+    match expression {
+        Expression::Value { value, .. } => matches!(**value, Value::TableConstructor(_)),
+        _ => false,
+    }
+}
+
+fn is_complex_arg(value: &Value) -> bool {
+    value.to_string().trim().contains('\n')
+}
+
 /// Formats a FunctionArgs node.
 /// [`no_parens_ambiguous_next_node`] only matters if the configuration specifies no call parentheses.
 /// If it does, but the next node is of the form `.foo` or `:foo`, then omitting parentheses makes the code harder to
@@ -288,6 +299,13 @@ pub fn format_function_args<'ast>(
                                             seen_other_arg_after_multiline = true;
                                         }
 
+                                        // If the argument is complex (spans multiple lines), then we will immediately
+                                        // exit and span multiline - it is most likely too complex to keep going forward.
+                                        if is_complex_arg(value) && arguments.len() > 1 {
+                                            is_multiline = true;
+                                            break;
+                                        }
+
                                         // Take the first line to see if we are over budget
                                         if singleline_shape.take_first_line(argument).over_budget()
                                         {
@@ -341,7 +359,14 @@ pub fn format_function_args<'ast>(
                 }
             }
 
-            if is_multiline {
+            // Handle special case: we want to go multiline, but we have a single argument which is a table constructor
+            // In this case, we want to hug the table braces with the parentheses.
+            // To do this, we format single line, but include the closing parentheses in the shape
+            let hug_table_constructor = is_multiline
+                && arguments.len() == 1
+                && is_table_constructor(arguments.iter().next().unwrap());
+
+            if is_multiline && !hug_table_constructor {
                 // Format start and end brace properly with correct trivia
                 // Calculate to see if the end parentheses requires any additional indentation
                 let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -414,8 +439,13 @@ pub fn format_function_args<'ast>(
                 // We don't need to worry about comments here, as if there were comments present, we would have
                 // multiline function args
 
+                // If we are hugging a table constructor with the parentheses, we use a shape increment of 2 to include the closing
+                // parentheses aswell. Otherwise, we just use 1 = opening parentheses.
+                let shape_increment = if hug_table_constructor { 2 } else { 1 };
+
                 let parentheses = format_contained_span(ctx, &parentheses, shape);
-                let arguments = format_punctuated(ctx, arguments, shape + 1, format_expression); // 1 = opening parentheses
+                let arguments =
+                    format_punctuated(ctx, arguments, shape + shape_increment, format_expression);
 
                 FunctionArgs::Parentheses {
                     parentheses,
@@ -624,20 +654,16 @@ pub fn format_function_body<'ast>(
             .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
             .collect();
 
-        return_type = match function_body.return_type() {
-            Some(return_type) => Some({
-                let formatted = format_type_specifier(ctx, return_type, shape);
-                if add_trivia {
-                    added_trailing_trivia = true;
-                    formatted.update_trailing_trivia(FormatTriviaType::Append(
-                        trailing_trivia.to_owned(),
-                    ))
-                } else {
-                    formatted
-                }
-            }),
-            None => None,
-        };
+        return_type = function_body.return_type().map(|return_type| {
+            let formatted = format_type_specifier(ctx, return_type, shape);
+            if add_trivia {
+                added_trailing_trivia = true;
+                formatted
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+            } else {
+                formatted
+            }
+        });
     }
 
     if !added_trailing_trivia && add_trivia {

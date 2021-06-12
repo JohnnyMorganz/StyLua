@@ -120,10 +120,9 @@ fn format_expression_internal<'ast>(
         } => Expression::Value {
             value: Box::new(format_value(ctx, value, shape)),
             #[cfg(feature = "luau")]
-            type_assertion: match type_assertion {
-                Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
-                None => None,
-            },
+            type_assertion: type_assertion
+                .as_ref()
+                .map(|assertion| format_type_assertion(ctx, assertion, shape)),
         },
         Expression::Parentheses {
             contained,
@@ -135,7 +134,19 @@ fn format_expression_internal<'ast>(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
+                // Get the trailing comments from contained span and append them onto the expression
+                let trailing_comments = contained
+                    .tokens()
+                    .1
+                    .trailing_trivia()
+                    .filter(|token| trivia_util::trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
                 format_expression(ctx, expression, shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 Expression::Parentheses {
                     contained: format_contained_span(ctx, &contained, shape),
@@ -146,9 +157,45 @@ fn format_expression_internal<'ast>(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
+            let mut expression = format_expression(ctx, expression, shape);
+
+            // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
+            // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
+            if let UnOp::Minus(_) = unop {
+                let require_parentheses = match expression {
+                    Expression::UnaryOperator {
+                        unop: UnOp::Minus(_),
+                        ..
+                    } => true,
+
+                    Expression::Value { ref value, .. } => matches!(
+                        **value,
+                        Value::ParenthesesExpression(Expression::UnaryOperator {
+                            unop: UnOp::Minus(_),
+                            ..
+                        })
+                    ),
+
+                    _ => false,
+                };
+
+                if require_parentheses {
+                    let (new_expression, trailing_comments) =
+                        trivia_util::take_expression_trailing_comments(&expression);
+                    expression = Expression::Parentheses {
+                        contained: ContainedSpan::new(
+                            TokenReference::symbol("(").unwrap(),
+                            TokenReference::symbol(")").unwrap(),
+                        )
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
+                        expression: Box::new(new_expression),
+                    }
+                }
+            }
+
             Expression::UnaryOperator {
                 unop,
-                expression: Box::new(format_expression(ctx, expression, shape)),
+                expression: Box::new(expression),
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
@@ -359,7 +406,7 @@ fn hang_binop<'ast>(
 fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinOp<'ast>) -> usize {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            if binop.precedence() == top_binop.precedence()
+            if binop.precedence() >= top_binop.precedence()
                 && binop.is_right_associative() == top_binop.is_right_associative()
             {
                 if binop.is_right_associative() {
@@ -623,10 +670,9 @@ fn format_hanging_expression_<'ast>(
             Expression::Value {
                 value,
                 #[cfg(feature = "luau")]
-                type_assertion: match type_assertion {
-                    Some(assertion) => Some(format_type_assertion(ctx, assertion, shape)),
-                    None => None,
-                },
+                type_assertion: type_assertion
+                    .as_ref()
+                    .map(|assertion| format_type_assertion(ctx, assertion, shape)),
             }
         }
         Expression::Parentheses {

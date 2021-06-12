@@ -51,13 +51,25 @@ pub fn format_return<'ast>(
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
-        let mut formatted_returns =
-            try_format_punctuated(ctx, return_node.returns(), shape, format_expression);
+        let mut formatted_returns = try_format_punctuated(
+            ctx,
+            return_node.returns(),
+            shape,
+            format_expression,
+            Some(1),
+        );
 
         // Determine if we need to hang the condition
         let require_multiline_expression = shape
             .take_first_line(&strip_trivia(&formatted_returns))
-            .over_budget();
+            .over_budget()
+            || {
+                trivia_util::contains_comments(
+                    return_node
+                        .returns()
+                        .update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
+                )
+            };
 
         if require_multiline_expression {
             formatted_returns = hang_punctuated_list(ctx, return_node.returns(), shape);
@@ -334,6 +346,17 @@ pub fn format_block<'ast>(ctx: &Context, block: &Block<'ast>, shape: Shape) -> B
                         function_call.prefix(),
                         Prefix::Expression(Expression::Parentheses { .. })
                     ),
+                    Some((Stmt::Assignment(assignment), _)) => {
+                        match assignment.variables().iter().next() {
+                            Some(Var::Expression(var_expression)) => {
+                                matches!(
+                                    var_expression.prefix(),
+                                    Prefix::Expression(Expression::Parentheses { .. })
+                                )
+                            }
+                            _ => false,
+                        }
+                    }
                     _ => false,
                 }
             }

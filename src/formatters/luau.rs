@@ -4,12 +4,15 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_symbol, format_token_reference, try_format_punctuated,
+            format_contained_span, format_end_token, format_symbol, format_token_reference,
+            try_format_punctuated, EndTokenType,
         },
         table::{create_table_braces, TableType},
         trivia::{
-            strip_leading_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia,
+            strip_leading_trivia, strip_trailing_trivia, FormatTriviaType, UpdateLeadingTrivia,
+            UpdateTrailingTrivia,
         },
+        trivia_util::{contains_comments, take_type_field_trailing_comments},
     },
     shape::Shape,
 };
@@ -91,7 +94,7 @@ pub fn format_type_info<'ast>(
             return_type,
         } => {
             let parentheses = format_contained_span(ctx, parentheses, shape);
-            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info);
+            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info, None);
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
             TypeInfo::Callback {
@@ -109,7 +112,7 @@ pub fn format_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base, shape);
             let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info, None);
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -194,20 +197,24 @@ pub fn format_type_info<'ast>(
                     false => FormatTriviaType::NoChange,
                 };
 
-                let formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
+                let mut formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
                 let mut formatted_punctuation = None;
 
                 match is_multiline {
                     true => {
                         // Continue adding a comma and a new line for multiline tables
                         // Add newline trivia to the end of the symbol
+
+                        let (field, mut trailing_comments) =
+                            take_type_field_trailing_comments(formatted_field);
+                        formatted_field = field;
+                        trailing_comments.push(create_newline_trivia(ctx));
+
                         let symbol = match punctuation {
                             Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
                             None => TokenReference::symbol(",").unwrap(),
                         }
-                        .update_trailing_trivia(FormatTriviaType::Append(vec![
-                            create_newline_trivia(ctx),
-                        ]));
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
                         formatted_punctuation = Some(symbol)
                     }
 
@@ -258,7 +265,7 @@ pub fn format_type_info<'ast>(
 
         TypeInfo::Tuple { parentheses, types } => {
             let parentheses = format_contained_span(ctx, parentheses, shape);
-            let types = try_format_punctuated(ctx, types, shape, format_type_info);
+            let types = try_format_punctuated(ctx, types, shape, format_type_info, None);
 
             TypeInfo::Tuple { parentheses, types }
         }
@@ -282,6 +289,24 @@ pub fn format_type_info<'ast>(
     }
 }
 
+pub fn hang_type_info<'ast>(
+    ctx: &Context,
+    type_info: TypeInfo<'ast>,
+    shape: Shape,
+) -> TypeInfo<'ast> {
+    match type_info {
+        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
+            left,
+            pipe: pipe.update_leading_trivia(FormatTriviaType::Replace(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ])),
+            right: Box::new(hang_type_info(ctx, *right, shape)),
+        },
+        _ => type_info,
+    }
+}
+
 pub fn format_indexed_type_info<'ast>(
     ctx: &Context,
     indexed_type_info: &IndexedTypeInfo<'ast>,
@@ -299,7 +324,7 @@ pub fn format_indexed_type_info<'ast>(
         } => {
             let base = format_token_reference(ctx, base, shape);
             let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(ctx, generics, shape, format_type_info);
+            let generics = try_format_punctuated(ctx, generics, shape, format_type_info, None);
             IndexedTypeInfo::Generic {
                 base,
                 arrows,
@@ -386,13 +411,29 @@ fn format_type_declaration<'ast>(
     }
 
     let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
-    let generics = match type_declaration.generics() {
-        Some(generics) => Some(format_generic_declaration(ctx, generics, shape)),
-        None => None,
-    };
-    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
+    let generics = type_declaration
+        .generics()
+        .map(|generics| format_generic_declaration(ctx, generics, shape));
+    let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
+    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+
+    let shape = shape
+        .add_width(
+            5 + type_name.to_string().len()
+                + generics.as_ref().map_or(0, |x| x.to_string().len())
+                + 3,
+        ) // 5 = "type ", "3" = " = "
+        .take_last_line(&strip_trailing_trivia(&type_definition));
+
+    if shape.over_budget() {
+        let shape = shape.increment_additional_indent();
+        equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
+            create_newline_trivia(ctx),
+            create_indent_trivia(ctx, shape),
+        ]));
+        type_definition = hang_type_info(ctx, type_definition, shape);
+    }
 
     type_declaration
         .to_owned()
@@ -418,13 +459,48 @@ pub fn format_generic_declaration<'ast>(
     generic_declaration: &GenericDeclaration<'ast>,
     shape: Shape,
 ) -> GenericDeclaration<'ast> {
-    let arrows = format_contained_span(ctx, generic_declaration.arrows(), shape);
-    let generics = try_format_punctuated(
-        ctx,
-        generic_declaration.generics(),
-        shape,
-        format_token_reference,
-    );
+    // If the generics contains comments, then format multiline
+    let (arrows, generics) = if contains_comments(generic_declaration.generics()) {
+        let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+
+        // Format start and end arrows properly with correct trivia
+        let end_arrow_leading_trivia =
+            vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
+
+        // Add new_line trivia to start arrow
+        let start_arrow_token = fmt_symbol!(ctx, start_arrow, "<", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+
+        let end_arrow_token = format_end_token(ctx, end_arrow, EndTokenType::ClosingBrace, shape)
+            .update_leading_trivia(FormatTriviaType::Append(end_arrow_leading_trivia));
+
+        let arrows = ContainedSpan::new(start_arrow_token, end_arrow_token);
+
+        let shape = shape.reset().increment_additional_indent();
+        let generics = try_format_punctuated(
+            ctx,
+            generic_declaration.generics(),
+            shape,
+            format_token_reference,
+            None,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+            ctx, shape,
+        )]));
+
+        (arrows, generics)
+    } else {
+        (
+            format_contained_span(ctx, generic_declaration.arrows(), shape),
+            try_format_punctuated(
+                ctx,
+                generic_declaration.generics(),
+                shape,
+                format_token_reference,
+                None,
+            ),
+        )
+    };
 
     generic_declaration
         .to_owned()
@@ -452,6 +528,7 @@ pub fn format_exported_type_declaration<'ast>(
     shape: Shape,
 ) -> ExportedTypeDeclaration<'ast> {
     // Calculate trivia
+    let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     let export_token = format_symbol(
@@ -471,7 +548,7 @@ pub fn format_exported_type_declaration<'ast>(
         ctx,
         exported_type_declaration.type_declaration(),
         false,
-        shape,
+        shape + 7, // 7 = "export "
     );
 
     exported_type_declaration

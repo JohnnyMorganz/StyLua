@@ -130,7 +130,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let path = entry.path();
                     if path.is_file() {
                         // If the user didn't provide a glob pattern, we should match against our default one
-                        if use_default_glob {
+                        // We should ignore the glob check if the path provided was explicitly given to the CLI
+                        if use_default_glob && opt.files.iter().find(|p| path == *p).is_none() {
                             lazy_static::lazy_static! {
                                 static ref DEFAULT_GLOB: globset::GlobMatcher = globset::Glob::new("**/*.lua").expect("cannot create default glob").compile_matcher();
                             }
