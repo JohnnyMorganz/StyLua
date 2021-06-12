@@ -104,6 +104,10 @@ fn is_table_constructor(expression: &Expression) -> bool {
     }
 }
 
+fn is_complex_arg(value: &Value) -> bool {
+    value.to_string().trim().contains('\n')
+}
+
 /// Formats a FunctionArgs node
 pub fn format_function_args<'ast>(
     ctx: &Context,
@@ -247,6 +251,13 @@ pub fn format_function_args<'ast>(
                                         // in the mix, update the state to respond to this
                                         if seen_multiline_arg {
                                             seen_other_arg_after_multiline = true;
+                                        }
+
+                                        // If the argument is complex (spans multiple lines), then we will immediately
+                                        // exit and span multiline - it is most likely too complex to keep going forward.
+                                        if is_complex_arg(value) && arguments.len() > 1 {
+                                            is_multiline = true;
+                                            break;
                                         }
 
                                         // Take the first line to see if we are over budget
