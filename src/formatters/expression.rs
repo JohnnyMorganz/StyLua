@@ -14,7 +14,9 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        functions::{format_anonymous_function, format_call, format_function_call},
+        functions::{
+            format_anonymous_function, format_call, format_function_call, FunctionCallNextNode,
+        },
         general::{format_contained_span, format_token_reference},
         table::format_table_constructor,
         trivia::{
@@ -263,12 +265,10 @@ pub fn format_suffix<'ast>(
     ctx: &Context,
     suffix: &Suffix<'ast>,
     shape: Shape,
-    no_parens_ambiguous_next_node: bool,
+    call_next_node: FunctionCallNextNode,
 ) -> Suffix<'ast> {
     match suffix {
-        Suffix::Call(call) => {
-            Suffix::Call(format_call(ctx, call, shape, no_parens_ambiguous_next_node))
-        }
+        Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape, call_next_node)),
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
         other => panic!("unknown node {:?}", other),
     }
@@ -329,10 +329,14 @@ pub fn format_var_expression<'ast>(
 
     while let Some(suffix) = suffixes.next() {
         // If the suffix after this one is something like `.foo` or `:foo` - this affects removing parentheses
-        let ambiguous_next_suffix = matches!(
+        let ambiguous_next_suffix = if matches!(
             suffixes.peek(),
             Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
-        );
+        ) {
+            FunctionCallNextNode::ObscureWithoutParens
+        } else {
+            FunctionCallNextNode::None
+        };
 
         let suffix = format_suffix(ctx, suffix, shape, ambiguous_next_suffix);
         shape = shape + suffix.to_string().len();

@@ -85,26 +85,39 @@ pub fn format_anonymous_function<'ast>(
     (function_token, function_body.with_end_token(end_token))
 }
 
+/// An enum providing information regarding the next AST node after a function call
+pub enum FunctionCallNextNode {
+    /// The syntax is obscure if we remove parentheses around a function call due to the next AST node.
+    /// For example, the next AST node could be an index or a method call:
+    /// ```lua
+    /// getsomething "foobar".setup -> getsomething("foobar").setup
+    /// setup { yes = true }:run() -> setup({ yes = true }):run()
+    /// ```
+    /// It looks like we are indexing the string, or calling a method on the table, but these are actually applied
+    /// to the returned value from the call. Removing the parentheses around the arguments to the call makes this obscure.
+    ObscureWithoutParens,
+
+    /// There is no important information regarding the next node
+    None,
+}
+
 /// Formats a Call node
 pub fn format_call<'ast>(
     ctx: &Context,
     call: &Call<'ast>,
     shape: Shape,
-    no_parens_ambiguous_next_node: bool,
+    call_next_node: FunctionCallNextNode,
 ) -> Call<'ast> {
     match call {
         Call::AnonymousCall(function_args) => Call::AnonymousCall(format_function_args(
             ctx,
             function_args,
             shape,
-            no_parens_ambiguous_next_node,
+            call_next_node,
         )),
-        Call::MethodCall(method_call) => Call::MethodCall(format_method_call(
-            ctx,
-            method_call,
-            shape,
-            no_parens_ambiguous_next_node,
-        )),
+        Call::MethodCall(method_call) => {
+            Call::MethodCall(format_method_call(ctx, method_call, shape, call_next_node))
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -121,15 +134,15 @@ fn is_complex_arg(value: &Value) -> bool {
 }
 
 /// Formats a FunctionArgs node.
-/// [`no_parens_ambiguous_next_node`] only matters if the configuration specifies no call parentheses.
+/// [`call_next_node`] provides information about the node after the FunctionArgs. This only matters if the configuration specifies no call parentheses.
 /// If it does, but the next node is of the form `.foo` or `:foo`, then omitting parentheses makes the code harder to
 /// understand: `require "foobar".setup`, it looks like `.setup` is being indexed on the string, but its actually
-/// an index of the overall function call. In this case, we will keep parentheses present.
+/// an index of the overall function call. In this case, we will keep parentheses present, indicated by [`FunctionCallNextNode`].
 pub fn format_function_args<'ast>(
     ctx: &Context,
     function_args: &FunctionArgs<'ast>,
     shape: Shape,
-    no_parens_ambiguous_next_node: bool, // Whether the node after this function
+    call_next_node: FunctionCallNextNode,
 ) -> FunctionArgs<'ast> {
     match function_args {
         FunctionArgs::Parentheses {
@@ -139,7 +152,7 @@ pub fn format_function_args<'ast>(
             // Handle config where parentheses are omitted, and there is only one argument
             if ctx.config().no_call_parentheses
                 && arguments.len() == 1
-                && !no_parens_ambiguous_next_node
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
                 let argument = arguments.iter().next().unwrap();
                 if let Expression::Value { value, .. } = argument {
@@ -149,7 +162,7 @@ pub fn format_function_args<'ast>(
                                 ctx,
                                 &FunctionArgs::String(token_reference.to_owned()),
                                 shape,
-                                no_parens_ambiguous_next_node,
+                                call_next_node,
                             );
                         }
                         Value::TableConstructor(table_constructor) => {
@@ -157,7 +170,7 @@ pub fn format_function_args<'ast>(
                                 ctx,
                                 &FunctionArgs::TableConstructor(table_constructor.to_owned()),
                                 shape,
-                                no_parens_ambiguous_next_node,
+                                call_next_node,
                             );
                         }
                         _ => (),
@@ -455,7 +468,9 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::String(token_reference) => {
-            if ctx.config().no_call_parentheses && !no_parens_ambiguous_next_node {
+            if ctx.config().no_call_parentheses
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            {
                 let token_reference = format_token_reference(ctx, token_reference, shape)
                     .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
                         TokenType::spaces(1),
@@ -495,7 +510,9 @@ pub fn format_function_args<'ast>(
         }
 
         FunctionArgs::TableConstructor(table_constructor) => {
-            if ctx.config().no_call_parentheses && !no_parens_ambiguous_next_node {
+            if ctx.config().no_call_parentheses
+                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            {
                 let table_constructor = format_table_constructor(ctx, table_constructor, shape)
                     .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
                         TokenType::spaces(1),
@@ -732,7 +749,7 @@ pub fn format_function_call<'ast>(
             // Create a temporary formatted version of suffixes to use for this check
             let formatted_suffixes = function_call
                 .suffixes()
-                .map(|x| format_suffix(ctx, x, shape, false)) // TODO: is this the right shape to use?
+                .map(|x| format_suffix(ctx, x, shape, FunctionCallNextNode::None)) // TODO: is this the right shape to use?
                 .collect();
             let preliminary_function_call =
                 FunctionCall::new(formatted_prefix.to_owned()).with_suffixes(formatted_suffixes);
@@ -783,10 +800,14 @@ pub fn format_function_call<'ast>(
         };
 
         // If the suffix after this one is something like `.foo` or `:foo` - this affects removing parentheses
-        let ambiguous_next_suffix = matches!(
+        let ambiguous_next_suffix = if matches!(
             suffixes.peek(),
             Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
-        );
+        ) {
+            FunctionCallNextNode::ObscureWithoutParens
+        } else {
+            FunctionCallNextNode::None
+        };
 
         let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
@@ -895,18 +916,14 @@ pub fn format_method_call<'ast>(
     ctx: &Context,
     method_call: &MethodCall<'ast>,
     shape: Shape,
-    no_parens_ambiguous_next_node: bool,
+    call_next_node: FunctionCallNextNode,
 ) -> MethodCall<'ast> {
     let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
     let formatted_name = format_token_reference(ctx, method_call.name(), shape);
     let shape =
         shape + (formatted_colon_token.to_string().len() + formatted_name.to_string().len());
-    let formatted_function_args = format_function_args(
-        ctx,
-        method_call.args(),
-        shape,
-        no_parens_ambiguous_next_node,
-    );
+    let formatted_function_args =
+        format_function_args(ctx, method_call.args(), shape, call_next_node);
 
     MethodCall::new(formatted_name, formatted_function_args).with_colon_token(formatted_colon_token)
 }
