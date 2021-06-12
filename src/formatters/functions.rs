@@ -85,7 +85,9 @@ pub fn format_anonymous_function<'ast>(
     (function_token, function_body.with_end_token(end_token))
 }
 
-/// An enum providing information regarding the next AST node after a function call
+/// An enum providing information regarding the next AST node after a function call.
+/// Currently, this information is only useful for the `no_call_parentheses` configuration, to determine whether
+/// to remove parentheses.
 pub enum FunctionCallNextNode {
     /// The syntax is obscure if we remove parentheses around a function call due to the next AST node.
     /// For example, the next AST node could be an index or a method call:
@@ -135,9 +137,6 @@ fn is_complex_arg(value: &Value) -> bool {
 
 /// Formats a FunctionArgs node.
 /// [`call_next_node`] provides information about the node after the FunctionArgs. This only matters if the configuration specifies no call parentheses.
-/// If it does, but the next node is of the form `.foo` or `:foo`, then omitting parentheses makes the code harder to
-/// understand: `require "foobar".setup`, it looks like `.setup` is being indexed on the string, but its actually
-/// an index of the overall function call. In this case, we will keep parentheses present, indicated by [`FunctionCallNextNode`].
 pub fn format_function_args<'ast>(
     ctx: &Context,
     function_args: &FunctionArgs<'ast>,
