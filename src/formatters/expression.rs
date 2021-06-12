@@ -393,7 +393,7 @@ fn hang_binop<'ast>(
 fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinOp<'ast>) -> usize {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            if binop.precedence() == top_binop.precedence()
+            if binop.precedence() >= top_binop.precedence()
                 && binop.is_right_associative() == top_binop.is_right_associative()
             {
                 if binop.is_right_associative() {
