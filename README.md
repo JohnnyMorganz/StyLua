@@ -181,7 +181,7 @@ quote_style = "AutoPreferDouble"
 
 When enabled, parentheses are removed around function arguments where a single string literal/table is passed.
 Note: if the function call is followed by an index or a method call, parentheses are added/kept. This is because
-the syntax becomes ambiguous.
+the syntax becomes obscure.
 ```lua
 require("foobar") -> require "foobar"
 something({ foo = bar }) -> something { foo = bar }
