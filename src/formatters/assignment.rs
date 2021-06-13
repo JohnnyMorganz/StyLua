@@ -115,11 +115,17 @@ fn attempt_assignment_tactics<'ast>(
             .take_first_line(&strip_trivia(&expr_list))
             .over_budget()
         {
+            // See whether there is more than one item in the punctuated list
             // Hang the expressions on multiple lines
-            let multiline_expr =
-                format_punctuated_multiline(ctx, expressions, shape, format_expression, Some(1));
+            let multiline_expr = format_punctuated_multiline(
+                ctx,
+                expressions,
+                hanging_shape,
+                format_expression,
+                None,
+            );
             // TODO: should we check each multiline expr in the list, to see if we need to hang them?
-            (multiline_expr, equal_token.to_owned())
+            (multiline_expr, hanging_equal_token)
         } else {
             (expr_list, hanging_equal_token)
         }
