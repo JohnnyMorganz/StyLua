@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CLI will now look for `stylua.toml` and its hidden counterpart, `.stylua.toml`. ([#145](https://github.com/JohnnyMorganz/StyLua/issues/145))
 - Added CLI flag `--search-parent-directories`. If enabled, we will look in parent directories for a configuration file, or look in `$XDG_CONFIG_HOME` or `$XDG_CONFIG_HOME/stylua`. ([#127](https://github.com/JohnnyMorganz/StyLua/issues/127), [#146](https://github.com/JohnnyMorganz/StyLua/issues/146))
-- Updated full-moon: Added support for typed variadics under the Luau feature flag
+- Updated full-moon: Added support for typed variadics, named function type args, and generic functions under the Luau feature flag
 - Will now hang on equality operators within binary expressions, if over width.
 - If a file path is explicitly provided to the CLI which doesn't end with `.lua` ending, the `*.lua` glob check is skipped. ([#170](https://github.com/JohnnyMorganz/StyLua/issues/170))
 - Long type unions will now hang under the `luau` feature flag. ([#165](https://github.com/JohnnyMorganz/StyLua/issues/165))
