@@ -8,7 +8,7 @@ use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
-use crate::formatters::luau::format_type_specifier;
+use crate::formatters::luau::{format_generic_declaration, format_type_specifier};
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
@@ -879,12 +879,24 @@ pub fn format_function_declaration<'ast>(
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let formatted_function_name = format_function_name(ctx, function_declaration.name(), shape);
 
+    #[cfg(feature = "luau")]
+    let generics = function_declaration
+        .generics()
+        .map(|generic_declaration| format_generic_declaration(ctx, generic_declaration, shape));
+
     let shape = shape + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
+    #[cfg(feature = "luau")]
+    let shape = shape + generics.as_ref().map_or(0, |x| x.to_string().len());
     let function_body = format_function_body(ctx, function_declaration.body(), true, shape);
 
-    FunctionDeclaration::new(formatted_function_name)
+    let function_declaration = FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let function_declaration = function_declaration.with_generics(generics);
+
+    function_declaration
 }
 
 /// Formats a LocalFunction node
@@ -901,13 +913,25 @@ pub fn format_local_function<'ast>(
     let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ", shape);
     let formatted_name = format_token_reference(ctx, local_function.name(), shape);
 
+    #[cfg(feature = "luau")]
+    let generics = local_function
+        .generics()
+        .map(|generic_declaration| format_generic_declaration(ctx, generic_declaration, shape));
+
     let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
+    #[cfg(feature = "luau")]
+    let shape = shape + generics.as_ref().map_or(0, |x| x.to_string().len());
     let function_body = format_function_body(ctx, local_function.body(), true, shape);
 
-    LocalFunction::new(formatted_name)
+    let local_function = LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let local_function = local_function.with_generics(generics);
+
+    local_function
 }
 
 /// Formats a MethodCall node
