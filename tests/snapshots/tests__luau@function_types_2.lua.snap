@@ -16,6 +16,5 @@ local function foo(
 	plugh: Instance,
 	xyzzy: Instance,
 	thud: Instance
-)
-end
+) end
 
