@@ -12,7 +12,7 @@ use crate::{
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Field, TableConstructor,
+    Expression, Field, TableConstructor, Value,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 
@@ -278,6 +278,50 @@ fn format_multiline_table<'ast>(
         .with_fields(fields)
 }
 
+fn expression_is_function(expression: &Expression) -> bool {
+    if let Expression::Value { value } = expression {
+        if let Value::Function(_) = &**value {
+            return true;
+        }
+    }
+    false
+}
+
+/// Examines the fields of a table constructor to see if we should force the table constructor multiline.
+/// This will only happen if either:
+///  1) There are comments within the table
+///  2) There are anonymous functions defined within the table [As these will expand multiline]
+fn should_expand(table_constructor: &TableConstructor) -> bool {
+    let (start_brace, end_brace) = table_constructor.braces().tokens();
+    let contains_comments = start_brace
+        .trailing_trivia()
+        .any(trivia_util::trivia_is_comment)
+        || end_brace
+            .leading_trivia()
+            .any(trivia_util::trivia_is_comment)
+        || trivia_util::table_fields_contains_comments(table_constructor);
+
+    if contains_comments {
+        true
+    } else {
+        for field in table_constructor.fields() {
+            let should_expand = match field {
+                Field::ExpressionKey { key, value, .. } => {
+                    expression_is_function(key) || expression_is_function(value)
+                }
+                Field::NameKey { value, .. } => expression_is_function(value),
+                Field::NoKey(expression) => expression_is_function(expression),
+                other => panic!("unknown node {:?}", other),
+            };
+
+            if should_expand {
+                return true;
+            }
+        }
+        false
+    }
+}
+
 pub fn format_table_constructor<'ast>(
     ctx: &Context,
     table_constructor: &TableConstructor<'ast>,
@@ -285,20 +329,11 @@ pub fn format_table_constructor<'ast>(
 ) -> TableConstructor<'ast> {
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
-    // Determine if there are any comments within the table. If so, we should force, multiline
-    let contains_comments = {
-        let braces_contain_comments = start_brace
-            .trailing_trivia()
-            .any(trivia_util::trivia_is_comment)
-            || end_brace
-                .leading_trivia()
-                .any(trivia_util::trivia_is_comment);
+    // Determine if we need to force the table multiline
+    let should_expand = should_expand(table_constructor);
 
-        braces_contain_comments || trivia_util::table_fields_contains_comments(table_constructor)
-    };
-
-    let table_type = match (contains_comments, table_constructor.fields().iter().next()) {
-        // We have comments, so force multiline
+    let table_type = match (should_expand, table_constructor.fields().iter().next()) {
+        // We should expand, so force multiline
         (true, _) => TableType::MultiLine,
 
         (false, Some(_)) => {
