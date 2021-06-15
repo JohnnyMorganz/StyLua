@@ -31,7 +31,7 @@ cargo install stylua --features lua52
 ### With [Foreman](https://github.com/Roblox/foreman)
 StyLua can be installed using foreman. Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.8.1" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.9.0" }
 ```
 
 ### Using the VSCode Extension
