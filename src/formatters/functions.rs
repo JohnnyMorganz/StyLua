@@ -21,8 +21,8 @@ use crate::{
         },
         table::format_table_constructor,
         trivia::{
-            strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
-            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
+            strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
+            UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
@@ -212,9 +212,8 @@ pub fn format_function_args<'ast>(
                                     // Check to see if we have a table constructor, or anonymous function
                                     Value::Function((_, function_body)) => {
                                         // Check to see whether it has been expanded
-                                        let is_expanded = strip_trailing_trivia(function_body)
-                                            .to_string()
-                                            .contains('\n');
+                                        let is_expanded =
+                                            !trivia_util::is_block_empty(function_body.block());
                                         if is_expanded {
                                             // If we have a mixture of multiline args, and other arguments
                                             // Then the function args should be expanded
