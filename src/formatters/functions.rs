@@ -38,51 +38,9 @@ pub fn format_anonymous_function<'ast>(
     shape: Shape,
 ) -> (TokenReference<'ast>, FunctionBody<'ast>) {
     let function_token = fmt_symbol!(ctx, function_token, "function", shape);
-    let mut function_body = format_function_body(ctx, function_body, false, shape.reset()); // TODO: do we want to reset this shape?
+    let function_body = format_function_body(ctx, function_body, false, shape.reset()); // TODO: do we want to reset this shape?
 
-    // Need to insert any additional trivia, as it isn't being inserted elsewhere
-    #[cfg(feature = "luau")]
-    {
-        let (parameters_parentheses, return_type) = match function_body.return_type() {
-            Some(return_type) => (
-                function_body.parameters_parentheses().to_owned(),
-                Some(
-                    return_type.update_trailing_trivia(FormatTriviaType::Append(vec![
-                        create_newline_trivia(ctx),
-                    ])),
-                ),
-            ),
-            None => (
-                // No return type, so add trivia to the parentheses instead
-                function_body
-                    .parameters_parentheses()
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
-                        ctx,
-                    )])),
-                None,
-            ),
-        };
-
-        function_body = function_body
-            .with_parameters_parentheses(parameters_parentheses)
-            .with_return_type(return_type);
-    }
-
-    #[cfg(not(feature = "luau"))]
-    {
-        let parameters_parentheses = function_body
-            .parameters_parentheses()
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
-        function_body = function_body.with_parameters_parentheses(parameters_parentheses);
-    };
-
-    let end_token = function_body
-        .end_token()
-        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-            ctx, shape,
-        )]));
-
-    (function_token, function_body.with_end_token(end_token))
+    (function_token, function_body)
 }
 
 /// An enum providing information regarding the next AST node after a function call.
@@ -252,26 +210,42 @@ pub fn format_function_args<'ast>(
                             Expression::Value { value, .. } => {
                                 match &**value {
                                     // Check to see if we have a table constructor, or anonymous function
-                                    Value::Function(_) => {
-                                        // If we have a mixture of multiline args, and other arguments
-                                        // Then the function args should be expanded
-                                        if seen_multiline_arg && seen_other_arg_after_multiline {
-                                            is_multiline = true;
-                                            break;
+                                    Value::Function((_, function_body)) => {
+                                        // Check to see whether it has been expanded
+                                        let is_expanded =
+                                            !trivia_util::is_block_empty(function_body.block());
+                                        if is_expanded {
+                                            // If we have a mixture of multiline args, and other arguments
+                                            // Then the function args should be expanded
+                                            if seen_multiline_arg && seen_other_arg_after_multiline
+                                            {
+                                                is_multiline = true;
+                                                break;
+                                            }
+
+                                            seen_multiline_arg = true;
+
+                                            // First check the top line of the anonymous function (i.e. the function token and any parameters)
+                                            // If this is over budget, then we should expand
+                                            singleline_shape =
+                                                singleline_shape.take_first_line(value);
+                                            if singleline_shape.over_budget() {
+                                                is_multiline = true;
+                                                break;
+                                            }
+
+                                            // Reset the shape onto a new line // 3 = "end" for the function line
+                                            singleline_shape = singleline_shape.reset() + 3;
+                                        } else {
+                                            // We have a collapsed function (normally indicitive of a noop function)
+                                            // add the width, and if it fails, we need to expand
+                                            singleline_shape =
+                                                singleline_shape + argument.to_string().len();
+                                            if singleline_shape.over_budget() {
+                                                is_multiline = true;
+                                                break;
+                                            }
                                         }
-
-                                        seen_multiline_arg = true;
-
-                                        // First check the top line of the anonymous function (i.e. the function token and any parameters)
-                                        // If this is over budget, then we should expand
-                                        singleline_shape = singleline_shape.take_first_line(value);
-                                        if singleline_shape.over_budget() {
-                                            is_multiline = true;
-                                            break;
-                                        }
-
-                                        // Reset the shape onto a new line // 3 = "end" for the function line
-                                        singleline_shape = singleline_shape.reset() + 3;
                                     }
                                     Value::TableConstructor(table) => {
                                         // Check to see whether it has been expanded
@@ -557,12 +531,16 @@ pub fn format_function_args<'ast>(
 pub fn format_function_body<'ast>(
     ctx: &Context,
     function_body: &FunctionBody<'ast>,
-    add_trivia: bool,
+    add_trivia_after_end: bool,
     shape: Shape,
 ) -> FunctionBody<'ast> {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
+
+    // If the FunctionBody block is empty, then don't add a newline after the parameters, but add a space:
+    // `function() end`
+    let block_empty = trivia_util::is_block_empty(function_body.block());
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
@@ -609,11 +587,16 @@ pub fn format_function_body<'ast>(
                 types_length = 0
             }
 
-            let line_length = format_singleline_parameters(ctx, function_body, shape)
+            let mut line_length = format_singleline_parameters(ctx, function_body, shape)
                     .to_string()
                     .len()
                         + 2 // Account for the parentheses around the parameters
                         + types_length; // Account for type specifiers and return type
+
+            // If the block is empty, then the `end` will be inlined. We should include this in our line length check
+            if block_empty {
+                line_length += 4 // 4 = " end"
+            }
 
             let singleline_shape = shape + line_length;
             singleline_shape.over_budget()
@@ -672,43 +655,47 @@ pub fn format_function_body<'ast>(
 
         return_type = function_body.return_type().map(|return_type| {
             let formatted = format_type_specifier(ctx, return_type, shape);
-            if add_trivia {
-                added_trailing_trivia = true;
-                formatted
-                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+            added_trailing_trivia = true;
+            let trivia = if block_empty {
+                vec![Token::new(TokenType::spaces(1))]
             } else {
-                formatted
-            }
+                trailing_trivia.to_owned()
+            };
+            formatted.update_trailing_trivia(FormatTriviaType::Append(trivia))
         });
     }
 
-    if !added_trailing_trivia && add_trivia {
-        parameters_parentheses = parameters_parentheses
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+    if !added_trailing_trivia {
+        parameters_parentheses = parameters_parentheses.update_trailing_trivia(
+            FormatTriviaType::Append(if block_empty {
+                vec![Token::new(TokenType::spaces(1))]
+            } else {
+                trailing_trivia.to_owned()
+            }),
+        )
     }
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, function_body.block(), block_shape);
 
-    let end_token = if add_trivia {
-        format_end_token(
-            ctx,
-            function_body.end_token(),
-            EndTokenType::BlockEnd,
-            shape,
-        )
-        .update_trivia(
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        )
-    } else {
-        format_end_token(
-            ctx,
-            function_body.end_token(),
-            EndTokenType::BlockEnd,
-            shape,
-        )
-    };
+    let (end_token_leading_trivia, end_token_trailing_trivia) = (
+        match block_empty {
+            true => FormatTriviaType::NoChange,
+            false => FormatTriviaType::Append(leading_trivia),
+        },
+        match add_trivia_after_end {
+            true => FormatTriviaType::Append(trailing_trivia),
+            false => FormatTriviaType::NoChange,
+        },
+    );
+
+    let end_token = format_end_token(
+        ctx,
+        function_body.end_token(),
+        EndTokenType::BlockEnd,
+        shape,
+    )
+    .update_trivia(end_token_leading_trivia, end_token_trailing_trivia);
 
     let function_body = function_body
         .to_owned()

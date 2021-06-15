@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Function calls with more than one argument, where an argument is "complex", will now expand multiline. "complex" is an argument spanning multiple lines, but excludes a table or anonymous function, as we handle them explicitly. ([#183](https://github.com/JohnnyMorganz/StyLua/issues/183))
 - StyLua will always hang at the equals token for a multi-variable assignment. ([#185](https://github.com/JohnnyMorganz/StyLua/issues/185))
 - Tables with multiline fields (such as an anonymous function expression) should always expand if previously on single line. ([#187](https://github.com/JohnnyMorganz/StyLua/issues/187))
+- Function definitions (both normal and anonymous) with an empty body will now be kept on a single line. This is common for noop functions `local function noop() end`. ([#188](https://github.com/JohnnyMorganz/StyLua/issues/188))
 
 ### Fixed
 - Fixed 1 or 2 digit numerical escapes being incorrectly removed

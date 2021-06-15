@@ -278,10 +278,10 @@ fn format_multiline_table<'ast>(
         .with_fields(fields)
 }
 
-fn expression_is_function(expression: &Expression) -> bool {
+fn expression_is_multiline_function(expression: &Expression) -> bool {
     if let Expression::Value { value, .. } = expression {
-        if let Value::Function(_) = &**value {
-            return true;
+        if let Value::Function((_, function_body)) = &**value {
+            return !trivia_util::is_block_empty(function_body.block());
         }
     }
     false
@@ -307,10 +307,10 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
         for field in table_constructor.fields() {
             let should_expand = match field {
                 Field::ExpressionKey { key, value, .. } => {
-                    expression_is_function(key) || expression_is_function(value)
+                    expression_is_multiline_function(key) || expression_is_multiline_function(value)
                 }
-                Field::NameKey { value, .. } => expression_is_function(value),
-                Field::NoKey(expression) => expression_is_function(expression),
+                Field::NameKey { value, .. } => expression_is_multiline_function(value),
+                Field::NoKey(expression) => expression_is_multiline_function(expression),
                 other => panic!("unknown node {:?}", other),
             };
 
