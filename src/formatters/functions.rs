@@ -1,8 +1,8 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Block, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
-    FunctionName, LocalFunction, MethodCall, Parameter, Suffix, Value,
+    Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
+    LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
 use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -528,10 +528,6 @@ pub fn format_function_args<'ast>(
     }
 }
 
-fn is_block_empty(block: &Block) -> bool {
-    block.stmts().next().is_none() && block.last_stmt().is_none()
-}
-
 /// Formats a FunctionBody node
 pub fn format_function_body<'ast>(
     ctx: &Context,
@@ -545,7 +541,7 @@ pub fn format_function_body<'ast>(
 
     // If the FunctionBody block is empty, then don't add a newline after the parameters, but add a space:
     // `function() end`
-    let block_empty = is_block_empty(function_body.block());
+    let block_empty = trivia_util::is_block_empty(function_body.block());
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
