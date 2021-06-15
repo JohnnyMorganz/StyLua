@@ -279,7 +279,7 @@ fn format_multiline_table<'ast>(
 }
 
 fn expression_is_function(expression: &Expression) -> bool {
-    if let Expression::Value { value } = expression {
+    if let Expression::Value { value, .. } = expression {
         if let Value::Function(_) = &**value {
             return true;
         }
