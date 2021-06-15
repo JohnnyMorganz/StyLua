@@ -18,7 +18,7 @@ use crate::{
 };
 use full_moon::ast::types::{
     CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
@@ -94,7 +94,8 @@ pub fn format_type_info<'ast>(
             return_type,
         } => {
             let parentheses = format_contained_span(ctx, parentheses, shape);
-            let arguments = try_format_punctuated(ctx, arguments, shape, format_type_info, None);
+            let arguments =
+                try_format_punctuated(ctx, arguments, shape, format_type_argument, None);
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
             TypeInfo::Callback {
@@ -334,6 +335,29 @@ pub fn format_indexed_type_info<'ast>(
 
         other => panic!("unknown node {:?}", other),
     }
+}
+
+fn format_type_argument<'ast>(
+    ctx: &Context,
+    type_argument: &TypeArgument<'ast>,
+    shape: Shape,
+) -> TypeArgument<'ast> {
+    let name = match type_argument.name() {
+        Some((name, colon_token)) => {
+            let name = format_token_reference(ctx, name, shape);
+            let colon_token = fmt_symbol!(ctx, colon_token, ": ", shape);
+
+            Some((name, colon_token))
+        }
+        None => None,
+    };
+
+    let type_info = format_type_info(ctx, type_argument.type_info(), shape);
+
+    type_argument
+        .to_owned()
+        .with_name(name)
+        .with_type_info(type_info)
 }
 
 pub fn format_type_field<'ast>(
