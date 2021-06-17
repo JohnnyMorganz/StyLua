@@ -8,6 +8,21 @@ enforcing a consistent code style.
 
 For more information, see the main [repository](https://github.com/JohnnyMorganz/StyLua)
 
+## Usage
+
+Set StyLua as your formatter when prompted, or add the following configuration to your `settings.json` file:
+
+```json
+"[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua"
+},
+```
+
+You can then use StyLua to format your code by running the `Format Document` command (In `CMD/CTRL + Shift + P`).
+The `Format Selection` command is also supported, firstly highlight the code you wish to format, and select `Format Selection`.
+
+You can also enable `editor.formatOnSave` to format your code automatically on save.
+
 ## Extension Settings
 
 You can specify the path of the StyLua binary using the `stylua.styluaPath` setting.
