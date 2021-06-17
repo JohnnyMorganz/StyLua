@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/master/CHANGELOG.md)
 
 ## [Unreleased]
+### Added
+- StyLua will now emit an error if the provided file path does not exist
+- StyLua will now hot reload the stylua binary if the configuration changes
 
 ## [1.2.0] - 2021-04-19
 

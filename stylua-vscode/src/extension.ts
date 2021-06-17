@@ -33,6 +33,16 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (change) => {
+      if (change.affectsConfiguration("stylua")) {
+        styluaBinaryPath = await util.ensureStyluaExists(
+          context.globalStorageUri
+        );
+      }
+    })
+  );
+
   let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
     "lua",
     {

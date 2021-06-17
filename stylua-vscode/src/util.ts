@@ -132,7 +132,10 @@ export const ensureStyluaExists = async (
     return await getStyluaPath(storageDirectory);
   } else {
     if (!(await fileExists(path))) {
-      throw new Error("Path given for StyLua does not exist");
+      vscode.window.showErrorMessage(
+        `The path given for StyLua (${path}) does not exist`
+      );
+      return;
     }
 
     try {
