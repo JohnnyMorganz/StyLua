@@ -8,6 +8,12 @@ pub struct Opt {
     #[structopt(long = "config-path", parse(from_os_str))]
     pub config_path: Option<PathBuf>,
 
+    /// Specify the location of the file that is being passed into stdin.
+    /// Ignored if not taking in input from stdin.
+    /// This option is only used to help determine where to find the configuration file.
+    #[structopt(long = "stdin-filepath", parse(from_os_str))]
+    pub stdin_filepath: Option<PathBuf>,
+
     /// Search parent directories for stylua.toml, if not found in current directory.
     /// Ignored if config_path is provided.
     /// Keeps searching recursively up the parent directory tree, until the root directory is reached.

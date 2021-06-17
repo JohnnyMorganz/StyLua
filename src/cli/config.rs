@@ -47,7 +47,13 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
     match &opt.config_path {
         Some(config_path) => read_config_file(config_path),
         None => {
-            let current_dir = env::current_dir().context("Could not find current directory")?;
+            let current_dir = match &opt.stdin_filepath {
+                Some(file_path) => file_path
+                    .parent()
+                    .context("Could not find current directory from provided stdin filepath")?
+                    .to_path_buf(),
+                None => env::current_dir().context("Could not find current directory")?,
+            };
             let config = find_config_file(current_dir, opt.search_parent_directories)?;
             match config {
                 Some(config) => Ok(config),

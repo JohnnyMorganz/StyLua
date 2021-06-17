@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added `--stdin-filepath` option to specify location of file being taken in from stdin. This is optional and is only used to determine where to find the configuration file. If not provided, we default to searching from current working directory. ([#192](https://github.com/JohnnyMorganz/StyLua/issues/192))
+
 ### Fixed
 - Fixed empty functions with comments being incorrectly collapsed leading to syntax error. ([#195](https://github.com/JohnnyMorganz/StyLua/issues/195))
 
