@@ -213,7 +213,7 @@ pub fn format_function_args<'ast>(
                                     Value::Function((_, function_body)) => {
                                         // Check to see whether it has been expanded
                                         let is_expanded =
-                                            !trivia_util::is_block_empty(function_body.block());
+                                            !trivia_util::is_function_empty(function_body);
                                         if is_expanded {
                                             // If we have a mixture of multiline args, and other arguments
                                             // Then the function args should be expanded
@@ -540,7 +540,7 @@ pub fn format_function_body<'ast>(
 
     // If the FunctionBody block is empty, then don't add a newline after the parameters, but add a space:
     // `function() end`
-    let block_empty = trivia_util::is_block_empty(function_body.block());
+    let block_empty = trivia_util::is_function_empty(function_body);
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {

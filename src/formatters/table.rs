@@ -281,7 +281,7 @@ fn format_multiline_table<'ast>(
 fn expression_is_multiline_function(expression: &Expression) -> bool {
     if let Expression::Value { value, .. } = expression {
         if let Value::Function((_, function_body)) = &**value {
-            return !trivia_util::is_block_empty(function_body.block());
+            return !trivia_util::is_function_empty(function_body);
         }
     }
     false
