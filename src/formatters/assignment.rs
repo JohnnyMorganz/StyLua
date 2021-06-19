@@ -1,5 +1,3 @@
-use std::iter::FromIterator;
-
 #[cfg(feature = "luau")]
 use full_moon::ast::types::TypeSpecifier;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -142,7 +140,7 @@ fn attempt_assignment_tactics<'ast>(
 
         // Special case: there is a comment in between the equals and the expression
         if trivia_util::token_contains_comments(&equal_token)
-            || trivia_util::expression_leading_comments(expression).len() > 0
+            || !trivia_util::expression_leading_comments(expression).is_empty()
         {
             // We will hang at the equals token, and then format the expression as necessary
             let equal_token = hang_equal_token(ctx, equal_token, shape, false);
@@ -173,7 +171,7 @@ fn attempt_assignment_tactics<'ast>(
                 expression.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
 
             // Rebuild expression back into a list
-            let expr_list = Punctuated::from_iter(std::iter::once(Pair::new(expression, None)));
+            let expr_list = std::iter::once(Pair::new(expression, None)).collect();
 
             return (expr_list, equal_token);
         }
