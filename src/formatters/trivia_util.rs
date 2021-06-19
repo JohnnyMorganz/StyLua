@@ -1,4 +1,4 @@
-use crate::formatters::trivia::{FormatTriviaType, UpdateTrailingTrivia};
+use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia};
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
@@ -381,6 +381,23 @@ pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<T
         .filter(|token| trivia_is_comment(token))
         .map(|x| x.to_owned())
         .collect()
+}
+
+pub fn take_expression_leading_comments<'ast>(
+    expression: &Expression<'ast>,
+) -> (Expression<'ast>, Vec<Token<'ast>>) {
+    let trailing_comments = get_expression_leading_trivia(expression)
+        .iter()
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .collect();
+
+    (
+        expression.update_leading_trivia(
+            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
+        ),
+        trailing_comments,
+    )
 }
 
 pub fn take_expression_trailing_comments<'ast>(
