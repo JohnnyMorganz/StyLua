@@ -4,7 +4,8 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_end_token, format_symbol, format_token_reference,
+            format_contained_span, format_end_token, format_punctuated,
+            format_punctuated_multiline, format_symbol, format_token_reference,
             try_format_punctuated, EndTokenType,
         },
         table::{create_table_braces, TableType},
@@ -12,7 +13,9 @@ use crate::{
             strip_leading_trivia, strip_trailing_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia,
         },
-        trivia_util::{contains_comments, take_type_field_trailing_comments},
+        trivia_util::{
+            contains_comments, take_type_field_trailing_comments, token_trivia_contains_comments,
+        },
     },
     shape::Shape,
 };
@@ -93,11 +96,49 @@ pub fn format_type_info<'ast>(
             arrow,
             return_type,
         } => {
-            let parentheses = format_contained_span(ctx, parentheses, shape);
-            let arguments =
-                try_format_punctuated(ctx, arguments, shape, format_type_argument, None);
+            let (start_parens, end_parens) = parentheses.tokens();
+
+            let force_multiline = token_trivia_contains_comments(start_parens.trailing_trivia())
+                || token_trivia_contains_comments(end_parens.leading_trivia())
+                || contains_comments(arguments);
+
+            let (parentheses, arguments, shape) = if force_multiline {
+                let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![
+                        create_newline_trivia(ctx),
+                        create_indent_trivia(ctx, shape.increment_additional_indent()),
+                    ]));
+                let end_parens =
+                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
+                        .update_leading_trivia(FormatTriviaType::Append(vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, shape),
+                        ]));
+
+                let parentheses = ContainedSpan::new(start_parens, end_parens);
+
+                let arguments = format_punctuated_multiline(
+                    ctx,
+                    arguments,
+                    shape.reset(),
+                    format_type_argument,
+                    Some(1),
+                );
+
+                let shape = shape.reset() + 1; // 1 = ")"
+
+                (parentheses, arguments, shape)
+            } else {
+                let parentheses = format_contained_span(ctx, &parentheses, shape);
+                let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
+                let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
+
+                (parentheses, arguments, shape)
+            };
+
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
+
             TypeInfo::Callback {
                 parentheses,
                 arguments,

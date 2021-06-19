@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
-- Fixed parentheses around type assertions being classed as unnecessary and removed.
+- Fixed parentheses around type assertions being classed as unnecessary and removed under the `luau` feature flag.
+- Fixed mistransformation of function type where arguments have comments under the `luau` feature flag. ([#201](https://github.com/JohnnyMorganz/StyLua/issues/201))
 
 ## [0.9.1] - 2021-06-17
 ### Added
