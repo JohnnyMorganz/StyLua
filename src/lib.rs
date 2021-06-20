@@ -205,7 +205,7 @@ pub fn format_code(
             Ok(ast) => ast,
             Err(error) => {
                 return Err(format_err!(
-                "output AST generated a syntax error, please report this to the issue tracker:\n{}",
+                "INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{}",
                 error
             ))
             }
@@ -213,7 +213,7 @@ pub fn format_code(
 
         if !input_ast.to_owned().similar(&reparsed_output) {
             return Err(format_err!(
-                "output AST is different to input AST. code correctness may have changed. please report this to the issue tracker"
+                "INTERNAL ERROR: Output AST is different to input AST. Code correctness may have changed. Please report this at https://github.com/johnnymorganz/stylua/issues"
             ));
         }
     }
