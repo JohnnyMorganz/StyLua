@@ -78,7 +78,17 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
         Expression::UnaryOperator { expression, .. } => check_excess_parentheses(expression),
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
         Expression::BinaryOperator { .. } => false,
-        Expression::Value { value, .. } => {
+        Expression::Value {
+            value,
+            #[cfg(feature = "luau")]
+            type_assertion,
+        } => {
+            // If we have a type assertion, we should always keep parentheses
+            #[cfg(feature = "luau")]
+            if type_assertion.is_some() {
+                return false;
+            }
+
             match &**value {
                 // Internal expression is a function call
                 // We could potentially be culling values, so we should not remove parentheses

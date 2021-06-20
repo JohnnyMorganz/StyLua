@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed parentheses around type assertions being classed as unnecessary and removed under the `luau` feature flag.
+- Fixed mistransformation of function type where arguments have comments under the `luau` feature flag. ([#201](https://github.com/JohnnyMorganz/StyLua/issues/201))
+- Fixed comments in an assignment in between the equals token and the expression leading to a mistransformation. ([#200](https://github.com/JohnnyMorganz/StyLua/issues/200))
 
 ## [0.9.1] - 2021-06-17
 ### Added

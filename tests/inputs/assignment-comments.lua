@@ -1,0 +1,14 @@
+local isValid =
+	-- Allow nil for conditional declaration
+	contextType == nil or
+	(contextType["$$typeof"] == REACT_CONTEXT_TYPE and
+		contextType._context == nil) -- Not a <Context.Consumer>
+
+local isValid = -- Allow nil for conditional declaration
+	foo
+
+local isValid = -- test comment
+	-- Allow nil for conditional declaration
+	contextType == nil or
+	(contextType["$$typeof"] == REACT_CONTEXT_TYPE and
+		contextType._context == nil) -- Not a <Context.Consumer>
