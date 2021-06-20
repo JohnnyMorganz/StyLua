@@ -11,10 +11,13 @@ const RELEASES_URL = "https://damp-breeze-6671.johnnymorganz.workers.dev/";
 
 type GithubRelease = {
   assets: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     browser_download_url: string;
     name: string;
   }[];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   tag_name: string;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   html_url: string;
 };
 
@@ -72,6 +75,7 @@ const downloadStylua = async (outputDirectory: vscode.Uri) => {
       return new Promise(async (resolve, reject) => {
         fetch(asset.browser_download_url, {
           headers: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             "User-Agent": "stylua-vscode",
           },
         })
