@@ -1,4 +1,5 @@
 use anyhow::{format_err, Result};
+use full_moon::node::Node;
 use serde::Deserialize;
 
 #[macro_use]
@@ -164,17 +165,58 @@ impl Default for Config {
     }
 }
 
+/// The type of verification to perform to validate that the output AST is still correct.
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub enum OutputVerification {
+    /// Reparse the generated output to detect any changes to code correctness.
+    Full,
+    /// Perform no verification of the output.
+    None,
+}
+
 /// Formats given Lua code
-pub fn format_code(code: &str, config: Config, range: Option<Range>) -> Result<String> {
-    let ast = match full_moon::parse(&code) {
+pub fn format_code(
+    code: &str,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<String> {
+    let input_ast = match full_moon::parse(&code) {
         Ok(ast) => ast,
         Err(error) => {
             return Err(format_err!("error parsing: {}", error));
         }
     };
 
-    let code_formatter = formatters::CodeFormatter::new(config, range);
-    let ast = code_formatter.format(ast);
+    // Clone the input AST only if we are verifying, to later use for checking
+    let input_ast_for_verification = if let OutputVerification::Full = verify_output {
+        Some(input_ast.to_owned())
+    } else {
+        None
+    };
 
-    Ok(full_moon::print(&ast))
+    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let ast = code_formatter.format(input_ast);
+    let output = full_moon::print(&ast);
+
+    // If we are verifying, reparse the output then check it matches the original input
+    if let Some(input_ast) = input_ast_for_verification {
+        let reparsed_output = match full_moon::parse(&output) {
+            Ok(ast) => ast,
+            Err(error) => {
+                return Err(format_err!(
+                "output AST generated a syntax error, please report this to the issue tracker:\n{}",
+                error
+            ))
+            }
+        };
+
+        if !input_ast.to_owned().similar(&reparsed_output) {
+            return Err(format_err!(
+                "output AST is different to input AST. code correctness may have changed. please report this to the issue tracker"
+            ));
+        }
+    }
+
+    Ok(output)
 }

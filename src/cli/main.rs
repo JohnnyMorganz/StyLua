@@ -5,7 +5,7 @@ use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
 use structopt::StructOpt;
 
-use stylua_lib::{format_code, Config, Range};
+use stylua_lib::{format_code, Config, OutputVerification, Range};
 
 mod config;
 mod opt;
@@ -16,11 +16,12 @@ fn format_file(
     config: Config,
     range: Option<Range>,
     check_only: bool,
+    verify_output: OutputVerification,
     color: opt::Color,
 ) -> Result<i32> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
-    let formatted_contents = format_code(&contents, config, range)
+    let formatted_contents = format_code(&contents, config, range, verify_output)
         .with_context(|| format!("Could not format file {}", path.display()))?;
 
     if check_only {
@@ -41,10 +42,15 @@ fn format_file(
 
 /// Takes in a string and outputs the formatted version to stdout
 /// Used when input has been provided to stdin
-fn format_string(input: String, config: Config, range: Option<Range>) -> Result<()> {
+fn format_string(
+    input: String,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<()> {
     let out = &mut stdout();
     let formatted_contents =
-        format_code(&input, config, range).context("Failed to format from stdin")?;
+        format_code(&input, config, range, verify_output).context("Failed to format from stdin")?;
     out.write_all(&formatted_contents.into_bytes())
         .context("Could not output to stdout")?;
     Ok(())
@@ -63,6 +69,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
         Some(Range::from_values(opt.range_start, opt.range_end))
     } else {
         None
+    };
+
+    // Determine if we need to verify the output
+    let verify_output = if opt.verify {
+        OutputVerification::Full
+    } else {
+        OutputVerification::None
     };
 
     let mut errors = vec![];
@@ -118,7 +131,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                     let mut buf = String::new();
                     match stdin().read_to_string(&mut buf) {
-                        Ok(_) => match format_string(buf, config, range) {
+                        Ok(_) => match format_string(buf, config, range, verify_output) {
                             Ok(_) => continue,
                             Err(error) => errors.push(error),
                         },
@@ -139,7 +152,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
                                 continue;
                             }
                         }
-                        match format_file(path, config, range, opt.check, opt.color) {
+                        match format_file(path, config, range, opt.check, verify_output, opt.color)
+                        {
                             Ok(code) => {
                                 if code != 0 {
                                     error_code = code

@@ -1,7 +1,7 @@
-use stylua_lib::{format_code, Config};
+use stylua_lib::{format_code, Config, OutputVerification};
 
 fn format(input: &str) -> String {
-    format_code(input, Config::default(), None).unwrap()
+    format_code(input, Config::default(), None, OutputVerification::None).unwrap()
 }
 
 #[test]

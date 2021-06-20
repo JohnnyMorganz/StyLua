@@ -28,6 +28,11 @@ pub struct Opt {
     #[structopt(short, long)]
     pub check: bool,
 
+    /// Verify the output after formatting.
+    /// Checks the generated AST with the original AST to detect if code correctness has changed.
+    #[structopt(short, long)]
+    pub verify: bool,
+
     // Whether the output should include terminal colour or not
     #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
     pub color: Color,

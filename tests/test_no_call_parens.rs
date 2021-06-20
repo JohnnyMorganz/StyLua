@@ -1,10 +1,11 @@
-use stylua_lib::{format_code, Config};
+use stylua_lib::{format_code, Config, OutputVerification};
 
 fn format(input: &str) -> String {
     format_code(
         input,
         Config::default().with_no_call_parentheses(true),
         None,
+        OutputVerification::None,
     )
     .unwrap()
 }
