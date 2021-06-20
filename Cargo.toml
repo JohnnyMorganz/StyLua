@@ -1,6 +1,6 @@
 [package]
 name = "stylua"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
@@ -28,19 +28,19 @@ lua52 = ["full_moon/lua52"]
 anyhow = "1.0.40"
 console = "0.14.0"
 directories = "3.0.2"
-full_moon = { version = "0.12.1" }
+full_moon = { version="0.12.1" }
 globset = "0.4.6"
 ignore = "0.4.17"
 lazy_static = "1.4.0"
 regex = "1.4.2"
 serde = "1.0.118"
-similar = { version = "1.2.2", features = ["text", "inline"] }
+similar = { version="1.2.2", features=["text", "inline"] }
 structopt = "0.3.0"
 toml = "0.5.7"
 
 [dev-dependencies]
 criterion = "0.3.3"
-insta = { version = "1.6.3", features = ["glob"] }
+insta = { version="1.6.3", features=["glob"] }
 
 [[bench]]
 name = "date"
