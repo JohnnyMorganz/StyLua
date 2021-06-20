@@ -1,0 +1,26 @@
+name: Lint VSCode Extension
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14.x
+      - name: Install dependencies
+        run: npm ci
+        working-directory: stylua-vscode
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: stylua-vscode
+      - name: Prettier
+        run: npm run check:format
+        working-directory: stylua-vscode
