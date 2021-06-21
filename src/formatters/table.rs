@@ -361,17 +361,20 @@ pub fn format_table_constructor<'ast>(
         (true, _) => TableType::MultiLine,
 
         (false, Some(_)) => {
-            // Format the table onto a single line, then take the shape to determine if we are over budget
-            // let singleline_table =
-            //     format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
-            // let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
-            // let braces_range = (
-            //     start_brace.token().end_position().bytes(),
-            //     end_brace.token().start_position().bytes(),
-            // );
-            // let singleline_shape = shape + (braces_range.1 - braces_range.0);
+            // Compare the difference between the position of the start brace and the end brace to
+            // guess how long the table is. This heuristic is very naiive, since it relies on the input.
+            // If the input is badly formatted (e.g. lots of spaces in the table), then it would flag this over width.
+            // However, this is currently our best solution: attempting to format the input onto a single line to
+            // see if we are over width (both completely and in a fail-fast shape.over_budget() check) leads to
+            // exponential time complexity with respect to how deep the table is.
+            // TODO: find an improved heuristic whilst comparing against benchmarks
+            let braces_range = (
+                start_brace.token().end_position().bytes(),
+                end_brace.token().start_position().bytes(),
+            );
+            let singleline_shape = shape + (braces_range.1 - braces_range.0);
 
-            match check_table_over_budget(ctx, table_constructor.fields(), shape) {
+            match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
                 false => {
                     // Determine if there was a new line at the end of the start brace
