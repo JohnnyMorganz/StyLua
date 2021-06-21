@@ -338,9 +338,14 @@ pub fn format_table_constructor<'ast>(
 
         (false, Some(_)) => {
             // Format the table onto a single line, then take the shape to determine if we are over budget
-            let singleline_table =
-                format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
-            let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
+            // let singleline_table =
+            //     format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
+            // let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
+            let braces_range = (
+                start_brace.token().end_position().bytes(),
+                end_brace.token().start_position().bytes(),
+            );
+            let singleline_shape = shape + (braces_range.1 - braces_range.0);
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
