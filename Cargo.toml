@@ -45,3 +45,7 @@ insta = { version="1.7.1", features=["glob"] }
 [[bench]]
 name = "date"
 harness = false
+
+[[bench]]
+name = "nested_tables"
+harness = false
