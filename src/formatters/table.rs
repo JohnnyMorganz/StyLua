@@ -322,6 +322,30 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
     }
 }
 
+/// A fail-fast check to determine whether the formatted fields are going over the budget.
+/// We format each field one at a time, then add its width to the shape, and check to see if the shape is over budget.
+/// Originally, we used `format_singleline_table()` to check this, which had exponential time complexity for nested tables.
+/// We don't need to format the whole table to see if we are going over budget.
+fn check_table_over_budget<'ast>(
+    ctx: &Context,
+    fields: &Punctuated<'ast, Field<'ast>>,
+    shape: Shape,
+) -> bool {
+    // Use an infinite width shape to force everything onto a single line as much as possible
+    // + 2 = opening brace plus space
+    let mut shape = shape.with_infinite_width() + 2;
+
+    for field in fields {
+        let formatted_field = format_field(ctx, field, TableType::SingleLine, shape).0;
+        shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
+        if shape.over_budget() {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub fn format_table_constructor<'ast>(
     ctx: &Context,
     table_constructor: &TableConstructor<'ast>,
@@ -341,13 +365,13 @@ pub fn format_table_constructor<'ast>(
             // let singleline_table =
             //     format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
             // let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
-            let braces_range = (
-                start_brace.token().end_position().bytes(),
-                end_brace.token().start_position().bytes(),
-            );
-            let singleline_shape = shape + (braces_range.1 - braces_range.0);
+            // let braces_range = (
+            //     start_brace.token().end_position().bytes(),
+            //     end_brace.token().start_position().bytes(),
+            // );
+            // let singleline_shape = shape + (braces_range.1 - braces_range.0);
 
-            match singleline_shape.over_budget() {
+            match check_table_over_budget(ctx, table_constructor.fields(), shape) {
                 true => TableType::MultiLine,
                 false => {
                     // Determine if there was a new line at the end of the start brace
