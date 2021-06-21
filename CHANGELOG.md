@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed severe performance regression due to a change in table formatting leading to exponential blowup for nested tables. ([#205](https://github.com/JohnnyMorganz/StyLua/issues/205))
 
 ## [0.9.2] - 2021-06-20
 ### Changed
