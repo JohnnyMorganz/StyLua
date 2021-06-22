@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+- Fixed severe performance regression due to a change in table formatting leading to exponential blowup for nested tables. ([#205](https://github.com/JohnnyMorganz/StyLua/issues/205))
 - Fixed long binop chains with a comment deep inside not being hung, leading to a syntax error. ([#210](https://github.com/JohnnyMorganz/StyLua/issues/210))
 
 ## [0.9.2] - 2021-06-20
