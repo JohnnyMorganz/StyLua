@@ -3,7 +3,7 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use structopt::StructOpt;
 
 use stylua_lib::{format_code, Config, Range};
@@ -26,10 +26,6 @@ macro_rules! verbose_println {
     };
 }
 
-fn duration_to_f32(d: Duration) -> f32 {
-    d.as_secs() as f32 + d.subsec_nanos() as f32 / 1_000_000_000f32
-}
-
 fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt) -> Result<i32> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
@@ -41,9 +37,9 @@ fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt
 
     verbose_println!(
         opt.verbose,
-        "formatted {} in {1:.3}s",
+        "formatted {} in {:?}",
         path.display(),
-        duration_to_f32(after_formatting.duration_since(before_formatting))
+        after_formatting.duration_since(before_formatting)
     );
 
     if opt.check {
