@@ -28,6 +28,10 @@ pub struct Opt {
     #[structopt(short, long)]
     pub check: bool,
 
+    /// Whether to print out verbose output
+    #[structopt(short, long)]
+    pub verbose: bool,
+
     // Whether the output should include terminal colour or not
     #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
     pub color: Color,
