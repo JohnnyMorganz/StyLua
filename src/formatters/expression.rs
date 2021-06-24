@@ -23,7 +23,10 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util::{self, contains_comments, get_expression_trailing_trivia},
+        trivia_util::{
+            self, contains_comments, expression_leading_comments, get_expression_trailing_trivia,
+            trivia_is_newline,
+        },
     },
     shape::Shape,
 };
@@ -440,6 +443,28 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
     }
 }
 
+fn binop_expression_contains_comments<'ast>(
+    expression: &Expression<'ast>,
+    top_binop: &BinOp<'ast>,
+) -> bool {
+    match expression {
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            if binop.precedence() == top_binop.precedence() {
+                contains_comments(binop)
+                    || !expression_leading_comments(rhs).is_empty()
+                    || get_expression_trailing_trivia(&lhs)
+                        .iter()
+                        .any(trivia_util::trivia_is_comment)
+                    || binop_expression_contains_comments(lhs, top_binop)
+                    || binop_expression_contains_comments(rhs, top_binop)
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
 /// Converts an item to a range
 trait ToRange {
     fn to_range(&self) -> (usize, usize);
@@ -548,6 +573,21 @@ fn binop_precedence_level(expression: &Expression) -> u8 {
     }
 }
 
+fn did_hang_expression(expression: &Expression) -> bool {
+    if let Expression::BinaryOperator { binop, .. } = expression {
+        // Examine the binop's leading trivia for a newline
+        // TODO: this works..., but is it the right solution?
+        binop
+            .surrounding_trivia()
+            .0
+            .iter()
+            .any(|x| trivia_is_newline(x))
+    } else {
+        false
+    }
+}
+
+#[derive(Debug)]
 enum ExpressionSide {
     Left,
     Right,
@@ -568,9 +608,9 @@ fn hang_binop_expression<'ast>(
             // They should also have the same associativity
             let same_op_level = binop.precedence() == top_binop.precedence()
                 && binop.is_right_associative() == top_binop.is_right_associative();
-            let is_right_associative = top_binop.is_right_associative();
+            let is_right_associative = binop.is_right_associative();
 
-            let shape = if same_op_level {
+            let test_shape = if same_op_level {
                 shape
             } else {
                 shape.increment_additional_indent()
@@ -583,8 +623,13 @@ fn hang_binop_expression<'ast>(
             };
 
             let over_column_width =
-                is_hang_binop_over_width(shape, &full_expression, &binop, lhs_range);
-            let should_hang = same_op_level || over_column_width;
+                is_hang_binop_over_width(test_shape, &full_expression, &binop, lhs_range);
+            let should_hang = same_op_level
+                || over_column_width
+                || binop_expression_contains_comments(&full_expression, &binop);
+
+            // Only use the indented shape if we are planning to hang
+            let shape = if should_hang { test_shape } else { shape };
 
             let mut new_binop = format_binop(ctx, &binop, shape);
             if should_hang {
@@ -623,10 +668,23 @@ fn hang_binop_expression<'ast>(
                         rhs.update_leading_trivia(FormatTriviaType::Replace(Vec::new())),
                     )
                 }
-                false => (
-                    format_expression(ctx, &*lhs, shape),
-                    format_expression(ctx, &*rhs, shape),
-                ),
+                false => {
+                    // Check if the chain still has comments deeper inside of it.
+                    // If it does, we need to hang that part of the chain still, otherwise the comments will mess it up
+                    let lhs = if contains_comments(&*lhs) {
+                        hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
+                    } else {
+                        format_expression(ctx, &*lhs, shape)
+                    };
+
+                    let rhs = if contains_comments(&*rhs) {
+                        hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                    } else {
+                        format_expression(ctx, &*rhs, shape)
+                    };
+
+                    (lhs, rhs)
+                }
             };
 
             Expression::BinaryOperator {
@@ -790,7 +848,7 @@ fn format_hanging_expression_<'ast>(
             );
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
-            if binop_precedence_level(&lhs) >= binop.precedence()
+            if (did_hang_expression(&lhs) && binop_precedence_level(&lhs) >= binop.precedence())
                 || contains_comments(binop)
                 || get_expression_trailing_trivia(&lhs)
                     .iter()
