@@ -7,7 +7,8 @@ import * as unzip from "unzipper";
 import fetch from "node-fetch";
 import { executeStylua } from "./stylua";
 
-const RELEASES_URL = "https://damp-breeze-6671.johnnymorganz.workers.dev/";
+const RELEASES_URL =
+  "https://api.github.com/repos/JohnnyMorganz/StyLua/releases";
 
 type GithubRelease = {
   assets: {
@@ -21,8 +22,20 @@ type GithubRelease = {
   html_url: string;
 };
 
-const getLatestRelease = async (): Promise<GithubRelease> => {
-  return await fetch(RELEASES_URL).then((r) => r.json());
+const getRelease = async (version: string): Promise<GithubRelease> => {
+  if (version === "latest") {
+    return await (await fetch(RELEASES_URL + "/latest")).json();
+  }
+
+  version = version.startsWith("v") ? version : "v" + version;
+  const releases: GithubRelease[] = await (await fetch(RELEASES_URL)).json();
+  for (const release of releases) {
+    if (release.tag_name.startsWith(version)) {
+      return release;
+    }
+  }
+
+  throw new Error(`No release version matches ${version}.`);
 };
 
 const getDownloadOutputFilename = () => {
@@ -59,11 +72,14 @@ export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
 };
 
 const downloadStylua = async (outputDirectory: vscode.Uri) => {
-  const latestRelease = await getLatestRelease();
+  const version = vscode.workspace
+    .getConfiguration("stylua")
+    .get<string>("releaseVersion", "latest");
+  const release = await getRelease(version);
   const assetFilename = getAssetFilenamePattern();
   const outputFilename = getDownloadOutputFilename();
 
-  for (const asset of latestRelease.assets) {
+  for (const asset of release.assets) {
     if (assetFilename.test(asset.name)) {
       const file = fs.createWriteStream(
         vscode.Uri.joinPath(outputDirectory, outputFilename).fsPath,
@@ -143,10 +159,13 @@ export const ensureStyluaExists = async (
     }
 
     try {
-      const version = (await executeStylua(path, ["--version"]))?.trim();
-      const release = await getLatestRelease();
+      const currentVersion = (await executeStylua(path, ["--version"]))?.trim();
+      const desiredVersion = vscode.workspace
+        .getConfiguration("stylua")
+        .get<string>("releaseVersion", "latest");
+      const release = await getRelease(desiredVersion);
       if (
-        version !==
+        currentVersion !==
         `stylua ${
           release.tag_name.startsWith("v")
             ? release.tag_name.substr(1)
@@ -168,14 +187,14 @@ export const ensureStyluaExists = async (
 function openUpdatePrompt(directory: vscode.Uri, release: GithubRelease) {
   vscode.window
     .showInformationMessage(
-      `There's an update available for StyLua: ${release.tag_name}`,
-      "Install Update",
+      `StyLua ${release.tag_name} is available to install.`,
+      "Install",
       "Later",
       "Release Notes"
     )
     .then((option) => {
       switch (option) {
-        case "Install Update":
+        case "Install":
           downloadStyLuaVisual(directory);
           break;
         case "Release Notes":

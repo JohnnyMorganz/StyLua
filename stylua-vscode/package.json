@@ -42,19 +42,6 @@
     "configuration": {
       "title": "StyLua",
       "properties": {
-        "stylua.management": {
-          "type": "string",
-          "default": "partial",
-          "enum": [
-            "partial",
-            "none"
-          ],
-          "enumDescriptions": [
-            "Manage StyLua installation just for this extension.",
-            "Do not manage StyLua installation."
-          ],
-          "description": "The management style of the StyLua installation."
-        },
         "stylua.releaseVersion": {
           "type": "string",
           "default": "latest",
@@ -64,18 +51,9 @@
             "v0.8",
             "v0.7",
             "v0.6",
-            "v0.5",
-            "v0.4",
-            "v0.3",
-            "v0.2",
-            "v0.1"
+            "v0.5"
           ],
           "description": "The release version to download."
-        },
-        "stylua.styluaBinary": {
-          "type": "string",
-          "default": "stylua",
-          "description": "The name or path of the StyLua binary."
         },
         "stylua.styluaPath": {
           "type": [
