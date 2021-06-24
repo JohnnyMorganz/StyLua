@@ -53,7 +53,15 @@
             "v0.6",
             "v0.5"
           ],
-          "description": "The release version to download."
+          "enumDescriptions": [
+            "The most recent version released. This will always keep you up to date."
+          ],
+          "description": "The release version to install."
+        },
+        "stylua.targetReleaseVersion": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Target a specific release version tag such as `v0.9.1` or `v0.9`. This overrides the version set by `#stylua.releaseVersion#`."
         },
         "stylua.styluaPath": {
           "type": [

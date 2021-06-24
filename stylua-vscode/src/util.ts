@@ -63,6 +63,15 @@ const getAssetFilenamePattern = () => {
   }
 };
 
+const getDesiredVersion = (): string => {
+  const config = vscode.workspace.getConfiguration("stylua");
+  const targetVersion = config.get<string>("targetReleaseVersion", "").trim();
+  if (targetVersion.length === 0) {
+    return config.get<string>("releaseVersion", "latest");
+  }
+  return targetVersion;
+};
+
 export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
   const uri = path instanceof vscode.Uri ? path : vscode.Uri.file(path);
   return vscode.workspace.fs.stat(uri).then(
@@ -72,9 +81,7 @@ export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
 };
 
 const downloadStylua = async (outputDirectory: vscode.Uri) => {
-  const version = vscode.workspace
-    .getConfiguration("stylua")
-    .get<string>("releaseVersion", "latest");
+  const version = getDesiredVersion();
   const release = await getRelease(version);
   const assetFilename = getAssetFilenamePattern();
   const outputFilename = getDownloadOutputFilename();
@@ -160,9 +167,7 @@ export const ensureStyluaExists = async (
 
     try {
       const currentVersion = (await executeStylua(path, ["--version"]))?.trim();
-      const desiredVersion = vscode.workspace
-        .getConfiguration("stylua")
-        .get<string>("releaseVersion", "latest");
+      const desiredVersion = getDesiredVersion();
       const release = await getRelease(desiredVersion);
       if (
         currentVersion !==
