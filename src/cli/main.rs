@@ -32,6 +32,9 @@ macro_rules! verbose_println {
 enum FormatResult {
     /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
     Complete,
+    /// Formatting was a success, but the formatted contents are buffered, ready to be sent to stdout.
+    /// This is used when formatting from stdin - we want to buffer the output so it can be sent in a locked channel.
+    SuccessBufferedOutput(Vec<u8>),
     /// There is a diff output. This stores the diff created
     Diff(Vec<u8>),
 }
@@ -78,15 +81,36 @@ fn format_file(
     }
 }
 
-/// Takes in a string and outputs the formatted version to stdout
+/// Takes in a string and returns the formatted output in a buffer
 /// Used when input has been provided to stdin
-fn format_string(input: String, config: Config, range: Option<Range>) -> Result<FormatResult> {
-    let out = &mut stdout();
+fn format_string(
+    input: String,
+    config: Config,
+    range: Option<Range>,
+    opt: &opt::Opt,
+) -> Result<FormatResult> {
     let formatted_contents =
         format_code(&input, config, range).context("Failed to format from stdin")?;
-    out.write_all(&formatted_contents.into_bytes())
-        .context("Could not output to stdout")?;
-    Ok(FormatResult::Complete)
+
+    if opt.check {
+        let diff = output_diff::output_diff(
+            &input,
+            &formatted_contents,
+            3,
+            "Diff from stdin:".into(),
+            opt.color,
+        )
+        .context("Failed to create diff")?;
+
+        match diff {
+            Some(diff) => Ok(FormatResult::Diff(diff)),
+            None => Ok(FormatResult::Complete),
+        }
+    } else {
+        Ok(FormatResult::SuccessBufferedOutput(
+            formatted_contents.into_bytes(),
+        ))
+    }
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
@@ -161,6 +185,14 @@ fn format(opt: opt::Opt) -> Result<i32> {
             match output {
                 Ok(result) => match result {
                     FormatResult::Complete => (),
+                    FormatResult::SuccessBufferedOutput(output) => {
+                        let stdout = stdout();
+                        let mut handle = stdout.lock();
+                        match handle.write_all(&output) {
+                            Ok(_) => (),
+                            Err(err) => eprintln!("Could not output to stdout: {:#}", err),
+                        };
+                    }
                     FormatResult::Diff(diff) => {
                         read_error_code.store(1, Ordering::SeqCst);
 
@@ -190,16 +222,9 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let opt = opt.clone();
 
                     pool.execute(move || {
-                        if opt.check {
-                            tx.send(Err(format_err!(
-                                "warning: `--check` cannot be used whilst reading from stdin"
-                            )))
-                            .unwrap();
-                        };
-
                         let mut buf = String::new();
                         match stdin().read_to_string(&mut buf) {
-                            Ok(_) => tx.send(format_string(buf, config, range)),
+                            Ok(_) => tx.send(format_string(buf, config, range, &opt)),
                             Err(error) => {
                                 tx.send(Err(error).context("Could not format from stdin"))
                             }
