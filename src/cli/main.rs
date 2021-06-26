@@ -3,6 +3,7 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
+use std::time::Instant;
 use structopt::StructOpt;
 
 use stylua_lib::{format_code, Config, Range};
@@ -11,25 +12,43 @@ mod config;
 mod opt;
 mod output_diff;
 
-fn format_file(
-    path: &Path,
-    config: Config,
-    range: Option<Range>,
-    check_only: bool,
-    color: opt::Color,
-) -> Result<i32> {
+#[macro_export]
+macro_rules! verbose_println {
+    ($verbosity:expr, $str:expr) => {
+        if $verbosity {
+            println!($str);
+        }
+    };
+    ($verbosity:expr, $str:expr, $($arg:tt)*) => {
+        if $verbosity {
+            println!($str, $($arg)*);
+        }
+    };
+}
+
+fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt) -> Result<i32> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
+
+    let before_formatting = Instant::now();
     let formatted_contents = format_code(&contents, config, range)
         .with_context(|| format!("Could not format file {}", path.display()))?;
+    let after_formatting = Instant::now();
 
-    if check_only {
+    verbose_println!(
+        opt.verbose,
+        "formatted {} in {:?}",
+        path.display(),
+        after_formatting.duration_since(before_formatting)
+    );
+
+    if opt.check {
         let is_diff = output_diff::output_diff(
             &contents,
             &formatted_contents,
             3,
             format!("Diff in {}:", path.display()),
-            color,
+            opt.color,
         );
         Ok(if is_diff { 1 } else { 0 })
     } else {
@@ -83,11 +102,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
         .add_custom_ignore_filename(".styluaignore");
 
     let use_default_glob = match opt.glob {
-        Some(globs) => {
+        Some(ref globs) => {
             // Build overriders with any patterns given
             let mut overrides = OverrideBuilder::new(cwd);
             for pattern in globs {
-                match overrides.add(&pattern) {
+                match overrides.add(pattern) {
                     Ok(_) => continue,
                     Err(err) => errors.push(format_err!(
                         "error: cannot parse glob pattern {}: {}",
@@ -139,7 +158,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                                 continue;
                             }
                         }
-                        match format_file(path, config, range, opt.check, opt.color) {
+                        match format_file(path, config, range, &opt) {
                             Ok(code) => {
                                 if code != 0 {
                                     error_code = code
