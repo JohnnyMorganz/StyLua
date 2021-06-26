@@ -32,11 +32,11 @@ use crate::{
 /// Hangs each [`Expression`] in a [`Punctuated`] list.
 /// The Punctuated list is hung multiline at the comma aswell, and each subsequent item after the first is
 /// indented by one.
-pub fn hang_punctuated_list<'ast>(
+pub fn hang_punctuated_list(
     ctx: &Context,
-    punctuated: &Punctuated<'ast, Expression<'ast>>,
+    punctuated: &Punctuated<Expression>,
     shape: Shape,
-) -> Punctuated<'ast, Expression<'ast>> {
+) -> Punctuated<Expression> {
     let mut output = Punctuated::new();
 
     // Format each expression and hang them
@@ -71,12 +71,12 @@ pub fn hang_punctuated_list<'ast>(
 
 /// Hangs at the equal token, and indents the first item.
 /// Returns the new equal token [`TokenReference`]
-fn hang_equal_token<'ast>(
+fn hang_equal_token(
     ctx: &Context,
-    equal_token: TokenReference<'ast>,
+    equal_token: TokenReference,
     shape: Shape,
     indent_first_item: bool,
-) -> TokenReference<'ast> {
+) -> TokenReference {
     let mut equal_token_trailing_trivia = vec![create_newline_trivia(ctx)];
     if indent_first_item {
         equal_token_trailing_trivia.push(create_indent_trivia(
@@ -97,12 +97,12 @@ fn hang_equal_token<'ast>(
 
 /// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
 /// formatting output.
-fn attempt_assignment_tactics<'ast>(
+fn attempt_assignment_tactics(
     ctx: &Context,
-    expressions: &Punctuated<'ast, Expression<'ast>>,
+    expressions: &Punctuated<Expression>,
     shape: Shape,
-    equal_token: TokenReference<'ast>,
-) -> (Punctuated<'ast, Expression<'ast>>, TokenReference<'ast>) {
+    equal_token: TokenReference,
+) -> (Punctuated<Expression>, TokenReference) {
     // The next tactic is to see whether there is more than one item in the punctuated list
     // If there is, we should put it on multiple lines
     if expressions.len() > 1 {
@@ -204,11 +204,7 @@ fn attempt_assignment_tactics<'ast>(
     }
 }
 
-pub fn format_assignment<'ast>(
-    ctx: &Context,
-    assignment: &Assignment<'ast>,
-    shape: Shape,
-) -> Assignment<'ast> {
+pub fn format_assignment(ctx: &Context, assignment: &Assignment, shape: Shape) -> Assignment {
     // Calculate trivia
     // Leading trivia added to before the var_list, trailing trivia added to the end of the expr_list
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -262,13 +258,13 @@ pub fn format_assignment<'ast>(
     Assignment::new(var_list, expr_list).with_equal_token(equal_token)
 }
 
-fn format_local_no_assignment<'ast>(
+fn format_local_no_assignment(
     ctx: &Context,
-    assignment: &LocalAssignment<'ast>,
+    assignment: &LocalAssignment,
     shape: Shape,
-    leading_trivia: Vec<Token<'ast>>,
-    trailing_trivia: Vec<Token<'ast>>,
-) -> LocalAssignment<'ast> {
+    leading_trivia: Vec<Token>,
+    trailing_trivia: Vec<Token>,
+) -> LocalAssignment {
     let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let shape = shape + 6; // 6 = "local "
@@ -281,7 +277,7 @@ fn format_local_no_assignment<'ast>(
     );
 
     #[cfg(feature = "luau")]
-    let mut type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
+    let mut type_specifiers: Vec<Option<TypeSpecifier>> = assignment
         .type_specifiers()
         .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
@@ -313,11 +309,11 @@ fn format_local_no_assignment<'ast>(
     local_assignment
 }
 
-pub fn format_local_assignment<'ast>(
+pub fn format_local_assignment(
     ctx: &Context,
-    assignment: &LocalAssignment<'ast>,
+    assignment: &LocalAssignment,
     shape: Shape,
-) -> LocalAssignment<'ast> {
+) -> LocalAssignment {
     // Calculate trivia
     // Leading trivia added to before the local token, and trailing trivia added to the end of the expr_list, or name_list if no expr_list provided
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -357,7 +353,7 @@ pub fn format_local_assignment<'ast>(
         );
 
         #[cfg(feature = "luau")]
-        let type_specifiers: Vec<Option<TypeSpecifier<'ast>>> = assignment
+        let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
             .type_specifiers()
             .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
             .collect();

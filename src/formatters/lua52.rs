@@ -10,7 +10,7 @@ use crate::{
 use full_moon::ast::lua52::{Goto, Label};
 use full_moon::tokenizer::TokenReference;
 
-pub fn format_goto<'ast>(ctx: &Context, goto: &Goto<'ast>, shape: Shape) -> Goto<'ast> {
+pub fn format_goto(ctx: &Context, goto: &Goto, shape: Shape) -> Goto {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -24,7 +24,7 @@ pub fn format_goto<'ast>(ctx: &Context, goto: &Goto<'ast>, shape: Shape) -> Goto
     Goto::new(label_name).with_goto_token(goto_token)
 }
 
-pub fn format_label<'ast>(ctx: &Context, label: &Label<'ast>, shape: Shape) -> Label<'ast> {
+pub fn format_label(ctx: &Context, label: &Label, shape: Shape) -> Label {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];

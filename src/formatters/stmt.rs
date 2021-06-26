@@ -55,7 +55,7 @@ fn remove_condition_parentheses(expression: Expression) -> Expression {
 }
 
 /// Format a Do node
-pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, shape: Shape) -> Do<'ast> {
+pub fn format_do_block(ctx: &Context, do_block: &Do, shape: Shape) -> Do {
     // Create trivia
     let leading_trivia = FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]);
     let trailing_trivia = FormatTriviaType::Append(vec![create_newline_trivia(ctx)]);
@@ -75,11 +75,7 @@ pub fn format_do_block<'ast>(ctx: &Context, do_block: &Do<'ast>, shape: Shape) -
 }
 
 /// Format a GenericFor node
-pub fn format_generic_for<'ast>(
-    ctx: &Context,
-    generic_for: &GenericFor<'ast>,
-    shape: Shape,
-) -> GenericFor<'ast> {
+pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape) -> GenericFor {
     // Create trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let mut trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -132,7 +128,7 @@ pub fn format_generic_for<'ast>(
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
-fn format_else_if<'ast>(ctx: &Context, else_if_node: &ElseIf<'ast>, shape: Shape) -> ElseIf<'ast> {
+fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf {
     // Calculate trivia
     let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -200,7 +196,7 @@ fn format_else_if<'ast>(ctx: &Context, else_if_node: &ElseIf<'ast>, shape: Shape
 }
 
 /// Format an If node
-pub fn format_if<'ast>(ctx: &Context, if_node: &If<'ast>, shape: Shape) -> If<'ast> {
+pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -288,11 +284,7 @@ pub fn format_if<'ast>(ctx: &Context, if_node: &If<'ast>, shape: Shape) -> If<'a
 }
 
 /// Format a NumericFor node
-pub fn format_numeric_for<'ast>(
-    ctx: &Context,
-    numeric_for: &NumericFor<'ast>,
-    shape: Shape,
-) -> NumericFor<'ast> {
+pub fn format_numeric_for(ctx: &Context, numeric_for: &NumericFor, shape: Shape) -> NumericFor {
     // Create trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -351,11 +343,7 @@ pub fn format_numeric_for<'ast>(
 }
 
 /// Format a Repeat node
-pub fn format_repeat_block<'ast>(
-    ctx: &Context,
-    repeat_block: &Repeat<'ast>,
-    shape: Shape,
-) -> Repeat<'ast> {
+pub fn format_repeat_block(ctx: &Context, repeat_block: &Repeat, shape: Shape) -> Repeat {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -397,11 +385,7 @@ pub fn format_repeat_block<'ast>(
 }
 
 /// Format a While node
-pub fn format_while_block<'ast>(
-    ctx: &Context,
-    while_block: &While<'ast>,
-    shape: Shape,
-) -> While<'ast> {
+pub fn format_while_block(ctx: &Context, while_block: &While, shape: Shape) -> While {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -465,11 +449,11 @@ pub fn format_while_block<'ast>(
 /// Wrapper around `format_function_call`, but also handles adding the trivia around the function call.
 /// This can't be done in the original function, as function calls are not always statements, but can also be
 /// in expressions.
-pub fn format_function_call_stmt<'ast>(
+pub fn format_function_call_stmt(
     ctx: &Context,
-    function_call: &FunctionCall<'ast>,
+    function_call: &FunctionCall,
     shape: Shape,
-) -> FunctionCall<'ast> {
+) -> FunctionCall {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -480,7 +464,7 @@ pub fn format_function_call_stmt<'ast>(
     )
 }
 
-pub fn format_stmt<'ast>(ctx: &Context, stmt: &Stmt<'ast>, shape: Shape) -> Stmt<'ast> {
+pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
     check_should_format!(ctx, stmt);
 
     fmt_stmt!(ctx, stmt, shape, {

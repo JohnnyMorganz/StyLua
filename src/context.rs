@@ -3,7 +3,6 @@ use full_moon::{
     node::Node,
     tokenizer::{Token, TokenType},
 };
-use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 pub struct Context {
@@ -28,7 +27,7 @@ impl Context {
     /// Firstly determines whether the node has an ignore comment present.
     /// If not, checks whether the provided node is within the formatting range.
     /// If not, the node should not be formatted.
-    pub fn should_format_node<'ast>(&self, node: &impl Node<'ast>) -> bool {
+    pub fn should_format_node(&self, node: &impl Node) -> bool {
         // Check comments
         let leading_trivia = node.surrounding_trivia().0;
         for trivia in leading_trivia {
@@ -92,14 +91,14 @@ fn line_ending_character(line_endings: LineEndings) -> String {
 }
 
 /// Creates a new Token containing whitespace for indents, used for trivia
-pub fn create_indent_trivia<'ast>(ctx: &Context, shape: Shape) -> Token<'ast> {
+pub fn create_indent_trivia(ctx: &Context, shape: Shape) -> Token {
     let indent_level = shape.indent().block_indent() + shape.indent().additional_indent();
     create_plain_indent_trivia(ctx, indent_level)
 }
 
 /// Creates indent trivia without including `ctx.indent_level()`.
 /// You should pass the exact amount of indent you require to this function
-pub fn create_plain_indent_trivia<'ast>(ctx: &Context, indent_level: usize) -> Token<'ast> {
+pub fn create_plain_indent_trivia(ctx: &Context, indent_level: usize) -> Token {
     match ctx.config().indent_type {
         IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
         IndentType::Spaces => {
@@ -109,8 +108,8 @@ pub fn create_plain_indent_trivia<'ast>(ctx: &Context, indent_level: usize) -> T
 }
 
 /// Creates a new Token containing new line whitespace, used for trivia
-pub fn create_newline_trivia<'ast>(ctx: &Context) -> Token<'ast> {
+pub fn create_newline_trivia(ctx: &Context) -> Token {
     Token::new(TokenType::Whitespace {
-        characters: Cow::Owned(line_ending_character(ctx.config().line_endings)),
+        characters: line_ending_character(ctx.config().line_endings).into(),
     })
 }
