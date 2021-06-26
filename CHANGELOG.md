@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed buffering of error messages in the CLI. Originally, they would be buffered till the end, but now they are output immediately when seen.
 - Allowed the use of `--check` when taking input from stdin.
 - An error when parsing provided globs will cause the program to immediately exit rather than continuing with the incorrect glob.
+- Only diff errors will exit with a status code of `1`. Other errors (e.g. parse errors or internal errors) will now exit with status code of `2`.
 
 ## [0.9.3] - 2021-06-26
 ### Added

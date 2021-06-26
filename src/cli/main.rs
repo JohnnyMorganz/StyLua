@@ -29,6 +29,15 @@ macro_rules! verbose_println {
     };
 }
 
+macro_rules! error {
+    ($code_store:expr, $error_code:expr, $str:expr, $($arg:tt)*) => {
+        {
+            eprintln!($str, $($arg)*);
+            $code_store.store($error_code, Ordering::SeqCst);
+        }
+    };
+}
+
 enum FormatResult {
     /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
     Complete,
@@ -188,24 +197,25 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         let mut handle = stdout.lock();
                         match handle.write_all(&output) {
                             Ok(_) => (),
-                            Err(err) => eprintln!("Could not output to stdout: {:#}", err),
+                            Err(err) => {
+                                error!(read_error_code, 2, "Could not output to stdout: {:#}", err)
+                            }
                         };
                     }
                     FormatResult::Diff(diff) => {
-                        read_error_code.store(1, Ordering::SeqCst);
+                        if read_error_code.load(Ordering::SeqCst) != 2 {
+                            read_error_code.store(1, Ordering::SeqCst);
+                        }
 
                         let stdout = stdout();
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => eprintln!("{:#}", err),
+                            Err(err) => error!(read_error_code, 2, "{:#}", err),
                         }
                     }
                 },
-                Err(err) => {
-                    eprintln!("{:#}", err);
-                    read_error_code.store(1, Ordering::SeqCst);
-                }
+                Err(err) => error!(read_error_code, 2, "{:#}", err),
             }
         }
     });
@@ -251,10 +261,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     }
                 }
             }
-            Err(error) => {
-                eprintln!("{:#}", format_err!("error: could not walk: {}", error));
-                error_code.store(1, Ordering::SeqCst);
-            }
+            Err(error) => error!(
+                error_code,
+                2,
+                "{:#}",
+                format_err!("error: could not walk: {}", error)
+            ),
         }
     }
 
@@ -263,7 +275,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
     // Exit with non-zero code if we have a panic
     let output_code = if pool.panic_count() > 0 {
-        1
+        2
     } else {
         error_code.load(Ordering::SeqCst)
     };
@@ -277,7 +289,7 @@ fn main() {
         Ok(code) => code,
         Err(e) => {
             eprintln!("{:#}", e);
-            1
+            2
         }
     };
 
