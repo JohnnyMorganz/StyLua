@@ -3,8 +3,11 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
+use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::Arc;
 use std::time::Instant;
 use structopt::StructOpt;
+use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, Range};
 
@@ -60,13 +63,13 @@ fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt
 
 /// Takes in a string and outputs the formatted version to stdout
 /// Used when input has been provided to stdin
-fn format_string(input: String, config: Config, range: Option<Range>) -> Result<()> {
+fn format_string(input: String, config: Config, range: Option<Range>) -> Result<i32> {
     let out = &mut stdout();
     let formatted_contents =
         format_code(&input, config, range).context("Failed to format from stdin")?;
     out.write_all(&formatted_contents.into_bytes())
         .context("Could not output to stdout")?;
-    Ok(())
+    Ok(1)
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
@@ -84,8 +87,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
         None
     };
 
-    let mut errors = vec![];
-    let mut error_code = 0;
+    let error_code = AtomicI32::new(0);
 
     let cwd = std::env::current_dir()?;
 
@@ -108,11 +110,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
             for pattern in globs {
                 match overrides.add(pattern) {
                     Ok(_) => continue,
-                    Err(err) => errors.push(format_err!(
-                        "error: cannot parse glob pattern {}: {}",
-                        pattern,
-                        err
-                    )),
+                    Err(err) => {
+                        return Err(format_err!(
+                            "error: cannot parse glob pattern {}: {}",
+                            pattern,
+                            err
+                        ));
+                    }
                 }
             }
             let overrides = overrides.build()?;
@@ -123,30 +127,63 @@ fn format(opt: opt::Opt) -> Result<i32> {
         None => true,
     };
 
+    verbose_println!(
+        opt.verbose,
+        "creating a pool with {} threads",
+        opt.num_threads
+    );
+    let pool = ThreadPool::new(opt.num_threads);
+    let (tx, rx) = crossbeam_channel::unbounded::<Result<i32>>();
+    let opt = Arc::new(opt);
+    let error_code = Arc::new(error_code);
+
+    // Create a thread to handle the formatting output
+    let read_error_code = error_code.clone();
+    pool.execute(move || {
+        for output in rx {
+            match output {
+                Ok(code) => {
+                    if code != 0 {
+                        read_error_code.store(code, Ordering::SeqCst);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("{:#}", err);
+                    read_error_code.store(1, Ordering::SeqCst);
+                }
+            }
+        }
+    });
+
     let walker = walker_builder.build();
 
     for result in walker {
         match result {
             Ok(entry) => {
                 if entry.is_stdin() {
-                    if opt.check {
-                        errors.push(format_err!(
-                            "warning: `--check` cannot be used whilst reading from stdin"
-                        ))
-                    };
+                    let tx = tx.clone();
+                    let opt = opt.clone();
 
-                    let mut buf = String::new();
-                    match stdin().read_to_string(&mut buf) {
-                        Ok(_) => match format_string(buf, config, range) {
-                            Ok(_) => continue,
-                            Err(error) => errors.push(error),
-                        },
-                        Err(error) => {
-                            errors.push(format_err!("error: could not read from stdin: {}", error))
+                    pool.execute(move || {
+                        if opt.check {
+                            tx.send(Err(format_err!(
+                                "warning: `--check` cannot be used whilst reading from stdin"
+                            )))
+                            .unwrap();
+                        };
+
+                        let mut buf = String::new();
+                        match stdin().read_to_string(&mut buf) {
+                            Ok(_) => tx.send(format_string(buf, config, range)),
+                            Err(error) => {
+                                tx.send(Err(error).context("Could not format from stdin"))
+                            }
                         }
-                    }
+                        .unwrap();
+                    });
                 } else {
-                    let path = entry.path();
+                    let path = entry.path().to_owned(); // TODO: stop to_owned?
+                    let opt = opt.clone();
                     if path.is_file() {
                         // If the user didn't provide a glob pattern, we should match against our default one
                         // We should ignore the glob check if the path provided was explicitly given to the CLI
@@ -154,35 +191,29 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             lazy_static::lazy_static! {
                                 static ref DEFAULT_GLOB: globset::GlobMatcher = globset::Glob::new("**/*.lua").expect("cannot create default glob").compile_matcher();
                             }
-                            if !DEFAULT_GLOB.is_match(path) {
+                            if !DEFAULT_GLOB.is_match(&path) {
                                 continue;
                             }
                         }
-                        match format_file(path, config, range, &opt) {
-                            Ok(code) => {
-                                if code != 0 {
-                                    error_code = code
-                                }
-                            }
-                            Err(error) => errors.push(error),
-                        }
+
+                        let tx = tx.clone();
+                        pool.execute(move || {
+                            tx.send(format_file(&path, config, range, &opt)).unwrap()
+                        });
                     }
                 }
             }
             Err(error) => {
-                errors.push(format_err!("error: could not walk: {}", error));
+                eprintln!("{:#}", format_err!("error: could not walk: {}", error));
+                error_code.store(1, Ordering::SeqCst);
             }
         }
     }
 
-    if !errors.is_empty() {
-        for error in errors.iter() {
-            eprintln!("{:#}", error);
-        }
-        return Ok(1);
-    }
+    drop(tx);
+    pool.join();
 
-    Ok(error_code)
+    Ok(Arc::try_unwrap(error_code).unwrap().into_inner())
 }
 
 fn main() {

@@ -41,6 +41,10 @@ pub struct Opt {
     #[structopt(short, long)]
     pub glob: Option<Vec<String>>,
 
+    /// The number of threads to use to format files in parallel. Defaults to the number of cores on your system.
+    #[structopt(long, default_value = "12")] // TODO: num_threads = num_cores
+    pub num_threads: usize,
+
     /// A starting range to format files, given as a byte offset from the beginning of the file.
     /// Any content before this value will be ignored.
     #[structopt(long)]

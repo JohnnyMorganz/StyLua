@@ -856,6 +856,7 @@ dependencies = [
  "anyhow",
  "console",
  "criterion",
+ "crossbeam-channel",
  "directories",
  "full_moon",
  "globset",
@@ -866,6 +867,7 @@ dependencies = [
  "serde",
  "similar",
  "structopt",
+ "threadpool",
  "toml",
 ]
 
@@ -906,6 +908,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8018d24e04c95ac8790716a5987d0fec4f8b27249ffa0f7d33f1369bdfb88cbd"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "threadpool"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d050e60b33d41c19108b32cea32164033a9013fe3b46cbd4457559bfbf77afaa"
+dependencies = [
+ "num_cpus",
 ]
 
 [[package]]
