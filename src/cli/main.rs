@@ -29,7 +29,19 @@ macro_rules! verbose_println {
     };
 }
 
-fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt) -> Result<i32> {
+enum FormatResult {
+    /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
+    Complete,
+    /// There is a diff output. This stores the diff created
+    Diff(Vec<u8>),
+}
+
+fn format_file(
+    path: &Path,
+    config: Config,
+    range: Option<Range>,
+    opt: &opt::Opt,
+) -> Result<FormatResult> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
 
@@ -46,30 +58,35 @@ fn format_file(path: &Path, config: Config, range: Option<Range>, opt: &opt::Opt
     );
 
     if opt.check {
-        let is_diff = output_diff::output_diff(
+        let diff = output_diff::output_diff(
             &contents,
             &formatted_contents,
             3,
             format!("Diff in {}:", path.display()),
             opt.color,
-        );
-        Ok(if is_diff { 1 } else { 0 })
+        )
+        .context("Failed to create diff")?;
+
+        match diff {
+            Some(diff) => Ok(FormatResult::Diff(diff)),
+            None => Ok(FormatResult::Complete),
+        }
     } else {
         fs::write(path, formatted_contents)
             .with_context(|| format!("Could not write to {}", path.display()))?;
-        Ok(0)
+        Ok(FormatResult::Complete)
     }
 }
 
 /// Takes in a string and outputs the formatted version to stdout
 /// Used when input has been provided to stdin
-fn format_string(input: String, config: Config, range: Option<Range>) -> Result<i32> {
+fn format_string(input: String, config: Config, range: Option<Range>) -> Result<FormatResult> {
     let out = &mut stdout();
     let formatted_contents =
         format_code(&input, config, range).context("Failed to format from stdin")?;
     out.write_all(&formatted_contents.into_bytes())
         .context("Could not output to stdout")?;
-    Ok(1)
+    Ok(FormatResult::Complete)
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
@@ -133,7 +150,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
         opt.num_threads
     );
     let pool = ThreadPool::new(opt.num_threads);
-    let (tx, rx) = crossbeam_channel::unbounded::<Result<i32>>();
+    let (tx, rx) = crossbeam_channel::unbounded();
     let opt = Arc::new(opt);
     let error_code = Arc::new(error_code);
 
@@ -142,11 +159,19 @@ fn format(opt: opt::Opt) -> Result<i32> {
     pool.execute(move || {
         for output in rx {
             match output {
-                Ok(code) => {
-                    if code != 0 {
-                        read_error_code.store(code, Ordering::SeqCst);
+                Ok(result) => match result {
+                    FormatResult::Complete => (),
+                    FormatResult::Diff(diff) => {
+                        read_error_code.store(1, Ordering::SeqCst);
+
+                        let stdout = stdout();
+                        let mut handle = stdout.lock();
+                        match handle.write_all(&diff) {
+                            Ok(_) => (),
+                            Err(err) => eprintln!("{:#}", err),
+                        }
                     }
-                }
+                },
                 Err(err) => {
                     eprintln!("{:#}", err);
                     read_error_code.store(1, Ordering::SeqCst);
