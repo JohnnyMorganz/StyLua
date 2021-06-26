@@ -863,6 +863,7 @@ dependencies = [
  "ignore",
  "insta",
  "lazy_static",
+ "num_cpus",
  "regex",
  "serde",
  "similar",

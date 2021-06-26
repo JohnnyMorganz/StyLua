@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 use structopt::{clap::arg_enum, StructOpt};
 
+lazy_static::lazy_static! {
+    static ref NUM_CPUS: String = num_cpus::get().to_string();
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
 pub struct Opt {
@@ -41,8 +45,8 @@ pub struct Opt {
     #[structopt(short, long)]
     pub glob: Option<Vec<String>>,
 
-    /// The number of threads to use to format files in parallel. Defaults to the number of cores on your system.
-    #[structopt(long, default_value = "12")] // TODO: num_threads = num_cores
+    /// The number of threads to use to format files in parallel. Defaults to the number of logical cores on your system.
+    #[structopt(long, default_value = &NUM_CPUS)]
     pub num_threads: usize,
 
     /// A starting range to format files, given as a byte offset from the beginning of the file.
