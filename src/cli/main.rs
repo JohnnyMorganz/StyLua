@@ -128,8 +128,6 @@ fn format(opt: opt::Opt) -> Result<i32> {
         None
     };
 
-    let error_code = AtomicI32::new(0);
-
     let cwd = std::env::current_dir()?;
 
     // Build WalkBuilder with the files given, using any overrides set
@@ -175,8 +173,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
     );
     let pool = ThreadPool::new(opt.num_threads);
     let (tx, rx) = crossbeam_channel::unbounded();
+    let error_code = Arc::new(AtomicI32::new(0));
     let opt = Arc::new(opt);
-    let error_code = Arc::new(error_code);
 
     // Create a thread to handle the formatting output
     let read_error_code = error_code.clone();
@@ -263,7 +261,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
     drop(tx);
     pool.join();
 
-    Ok(Arc::try_unwrap(error_code).unwrap().into_inner())
+    // Exit with non-zero code if we have a panic
+    let output_code = if pool.panic_count() > 0 {
+        1
+    } else {
+        error_code.load(Ordering::SeqCst)
+    };
+    Ok(output_code)
 }
 
 fn main() {
