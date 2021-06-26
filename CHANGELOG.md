@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added multithreaded support for formatting file in the CLI. Now each file will be formatted in its own thread. The number of threads used defaults to the number of cores on your computer, but can be set using `--num-threads`
+
+### Changed
+- Changed buffering of error messages in the CLI. Originally, they would be buffered till the end, but now they are output immediately when seen.
+- Allowed the use of `--check` when taking input from stdin.
+- An error when parsing provided globs will cause the program to immediately exit rather than continuing with the incorrect glob.
 
 ## [0.9.3] - 2021-06-26
 ### Added
