@@ -179,10 +179,10 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
             EndTokenType::BlockEnd,
             shape,
         )
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia)),
         false => singleline_then_token,
     }
-    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
+    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, else_if_node.block(), block_shape);
@@ -356,7 +356,7 @@ pub fn format_repeat_block(ctx: &Context, repeat_block: &Repeat, shape: Shape) -
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, repeat_block.block(), block_shape);
     let until_token = fmt_symbol!(ctx, repeat_block.until_token(), "until ", shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(repeat_block.until().to_owned());
