@@ -56,7 +56,7 @@
           "enumDescriptions": [
             "The most recent version released. This will always keep you up to date."
           ],
-          "description": "The release version to install."
+          "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`."
         },
         "stylua.targetReleaseVersion": {
           "type": "string",
