@@ -28,14 +28,9 @@ use full_moon::ast::{
     span::ContainedSpan,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
-use std::borrow::Cow;
 use std::boxed::Box;
 
-pub fn format_compound_op<'ast>(
-    ctx: &Context,
-    compound_op: &CompoundOp<'ast>,
-    shape: Shape,
-) -> CompoundOp<'ast> {
+pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape) -> CompoundOp {
     fmt_op!(ctx, CompoundOp, compound_op, shape, {
         PlusEqual = " += ",
         MinusEqual = " -= ",
@@ -47,11 +42,11 @@ pub fn format_compound_op<'ast>(
     })
 }
 
-pub fn format_compound_assignment<'ast>(
+pub fn format_compound_assignment(
     ctx: &Context,
-    compound_assignment: &CompoundAssignment<'ast>,
+    compound_assignment: &CompoundAssignment,
     shape: Shape,
-) -> CompoundAssignment<'ast> {
+) -> CompoundAssignment {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -68,11 +63,7 @@ pub fn format_compound_assignment<'ast>(
     CompoundAssignment::new(lhs, compound_operator, rhs)
 }
 
-pub fn format_type_info<'ast>(
-    ctx: &Context,
-    type_info: &TypeInfo<'ast>,
-    shape: Shape,
-) -> TypeInfo<'ast> {
+pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
             let (start_brace, end_brace) = braces.tokens().to_owned();
@@ -290,7 +281,7 @@ pub fn format_type_info<'ast>(
                 &TokenReference::new(
                     vec![],
                     Token::new(TokenType::Identifier {
-                        identifier: Cow::Owned(String::from("typeof")),
+                        identifier: "typeof".into(),
                     }),
                     vec![],
                 ),
@@ -331,11 +322,7 @@ pub fn format_type_info<'ast>(
     }
 }
 
-pub fn hang_type_info<'ast>(
-    ctx: &Context,
-    type_info: TypeInfo<'ast>,
-    shape: Shape,
-) -> TypeInfo<'ast> {
+pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
             left,
@@ -349,11 +336,11 @@ pub fn hang_type_info<'ast>(
     }
 }
 
-pub fn format_indexed_type_info<'ast>(
+pub fn format_indexed_type_info(
     ctx: &Context,
-    indexed_type_info: &IndexedTypeInfo<'ast>,
+    indexed_type_info: &IndexedTypeInfo,
     shape: Shape,
-) -> IndexedTypeInfo<'ast> {
+) -> IndexedTypeInfo {
     match indexed_type_info {
         IndexedTypeInfo::Basic(token_reference) => {
             IndexedTypeInfo::Basic(format_token_reference(ctx, token_reference, shape))
@@ -378,11 +365,7 @@ pub fn format_indexed_type_info<'ast>(
     }
 }
 
-fn format_type_argument<'ast>(
-    ctx: &Context,
-    type_argument: &TypeArgument<'ast>,
-    shape: Shape,
-) -> TypeArgument<'ast> {
+fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shape) -> TypeArgument {
     let name = match type_argument.name() {
         Some((name, colon_token)) => {
             let name = format_token_reference(ctx, name, shape);
@@ -401,12 +384,12 @@ fn format_type_argument<'ast>(
         .with_type_info(type_info)
 }
 
-pub fn format_type_field<'ast>(
+pub fn format_type_field(
     ctx: &Context,
-    type_field: &TypeField<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
+    type_field: &TypeField,
+    leading_trivia: FormatTriviaType,
     shape: Shape,
-) -> TypeField<'ast> {
+) -> TypeField {
     let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
     let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
     let value = format_type_info(ctx, type_field.value(), shape);
@@ -418,12 +401,12 @@ pub fn format_type_field<'ast>(
         .with_value(value)
 }
 
-pub fn format_type_field_key<'ast>(
+pub fn format_type_field_key(
     ctx: &Context,
-    type_field_key: &TypeFieldKey<'ast>,
-    leading_trivia: FormatTriviaType<'ast>,
+    type_field_key: &TypeFieldKey,
+    leading_trivia: FormatTriviaType,
     shape: Shape,
-) -> TypeFieldKey<'ast> {
+) -> TypeFieldKey {
     match type_field_key {
         TypeFieldKey::Name(token) => TypeFieldKey::Name(
             format_token_reference(ctx, token, shape).update_leading_trivia(leading_trivia),
@@ -437,23 +420,23 @@ pub fn format_type_field_key<'ast>(
     }
 }
 
-pub fn format_type_assertion<'ast>(
+pub fn format_type_assertion(
     ctx: &Context,
-    type_assertion: &TypeAssertion<'ast>,
+    type_assertion: &TypeAssertion,
     shape: Shape,
-) -> TypeAssertion<'ast> {
+) -> TypeAssertion {
     let assertion_op = fmt_symbol!(ctx, type_assertion.assertion_op(), " :: ", shape);
     let cast_to = format_type_info(ctx, type_assertion.cast_to(), shape);
 
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
-fn format_type_declaration<'ast>(
+fn format_type_declaration(
     ctx: &Context,
-    type_declaration: &TypeDeclaration<'ast>,
+    type_declaration: &TypeDeclaration,
     add_leading_trivia: bool,
     shape: Shape,
-) -> TypeDeclaration<'ast> {
+) -> TypeDeclaration {
     // Calculate trivia
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -463,7 +446,7 @@ fn format_type_declaration<'ast>(
         &TokenReference::new(
             vec![],
             Token::new(TokenType::Identifier {
-                identifier: Cow::Owned(String::from("type")),
+                identifier: "type".into(),
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),
@@ -511,19 +494,19 @@ fn format_type_declaration<'ast>(
 
 /// Wrapper around `format_type_declaration` for statements
 /// This is required as `format_type_declaration` is also used for ExportedTypeDeclaration, and we don't want leading trivia there
-pub fn format_type_declaration_stmt<'ast>(
+pub fn format_type_declaration_stmt(
     ctx: &Context,
-    type_declaration: &TypeDeclaration<'ast>,
+    type_declaration: &TypeDeclaration,
     shape: Shape,
-) -> TypeDeclaration<'ast> {
+) -> TypeDeclaration {
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
-pub fn format_generic_declaration<'ast>(
+pub fn format_generic_declaration(
     ctx: &Context,
-    generic_declaration: &GenericDeclaration<'ast>,
+    generic_declaration: &GenericDeclaration,
     shape: Shape,
-) -> GenericDeclaration<'ast> {
+) -> GenericDeclaration {
     // If the generics contains comments, then format multiline
     let (arrows, generics) = if contains_comments(generic_declaration.generics()) {
         let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
@@ -573,11 +556,11 @@ pub fn format_generic_declaration<'ast>(
         .with_generics(generics)
 }
 
-pub fn format_type_specifier<'ast>(
+pub fn format_type_specifier(
     ctx: &Context,
-    type_specifier: &TypeSpecifier<'ast>,
+    type_specifier: &TypeSpecifier,
     shape: Shape,
-) -> TypeSpecifier<'ast> {
+) -> TypeSpecifier {
     let punctuation = fmt_symbol!(ctx, type_specifier.punctuation(), ": ", shape);
     let type_info = format_type_info(ctx, type_specifier.type_info(), shape);
 
@@ -587,11 +570,11 @@ pub fn format_type_specifier<'ast>(
         .with_type_info(type_info)
 }
 
-pub fn format_exported_type_declaration<'ast>(
+pub fn format_exported_type_declaration(
     ctx: &Context,
-    exported_type_declaration: &ExportedTypeDeclaration<'ast>,
+    exported_type_declaration: &ExportedTypeDeclaration,
     shape: Shape,
-) -> ExportedTypeDeclaration<'ast> {
+) -> ExportedTypeDeclaration {
     // Calculate trivia
     let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -602,7 +585,7 @@ pub fn format_exported_type_declaration<'ast>(
         &TokenReference::new(
             vec![],
             Token::new(TokenType::Identifier {
-                identifier: Cow::Owned(String::from("export")),
+                identifier: "export".into(),
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),

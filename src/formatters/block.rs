@@ -19,8 +19,6 @@ use full_moon::ast::{
 };
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
-#[cfg(feature = "luau")]
-use std::borrow::Cow;
 
 macro_rules! update_first_token {
     ($enum:ident, $var:ident, $token:expr, $update_method:ident) => {{
@@ -30,11 +28,7 @@ macro_rules! update_first_token {
     }};
 }
 
-pub fn format_return<'ast>(
-    ctx: &Context,
-    return_node: &Return<'ast>,
-    shape: Shape,
-) -> Return<'ast> {
+pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Return {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -87,11 +81,7 @@ pub fn format_return<'ast>(
     }
 }
 
-pub fn format_last_stmt<'ast>(
-    ctx: &Context,
-    last_stmt: &LastStmt<'ast>,
-    shape: Shape,
-) -> LastStmt<'ast> {
+pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
     check_should_format!(ctx, last_stmt);
 
     match last_stmt {
@@ -111,7 +101,7 @@ pub fn format_last_stmt<'ast>(
                 &TokenReference::new(
                     vec![],
                     Token::new(TokenType::Identifier {
-                        identifier: Cow::Owned(String::from("continue")),
+                        identifier: "continue".into(),
                     }),
                     vec![],
                 ),
@@ -127,7 +117,7 @@ pub fn format_last_stmt<'ast>(
     }
 }
 
-fn trivia_remove_leading_newlines<'ast>(trivia: Vec<&Token<'ast>>) -> Vec<Token<'ast>> {
+fn trivia_remove_leading_newlines(trivia: Vec<&Token>) -> Vec<Token> {
     trivia
         .iter()
         .skip_while(|x| match x.token_type() {
@@ -138,7 +128,7 @@ fn trivia_remove_leading_newlines<'ast>(trivia: Vec<&Token<'ast>>) -> Vec<Token<
         .collect()
 }
 
-fn prefix_remove_leading_newlines<'ast>(prefix: &Prefix<'ast>) -> Prefix<'ast> {
+fn prefix_remove_leading_newlines(prefix: &Prefix) -> Prefix {
     match prefix {
         Prefix::Name(token) => {
             let leading_trivia = trivia_remove_leading_newlines(token.leading_trivia().collect());
@@ -315,8 +305,8 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
 }
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
-pub fn format_block<'ast>(ctx: &Context, block: &Block<'ast>, shape: Shape) -> Block<'ast> {
-    let mut formatted_statements: Vec<(Stmt<'ast>, Option<TokenReference<'ast>>)> = Vec::new();
+pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
+    let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
 

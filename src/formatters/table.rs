@@ -27,12 +27,12 @@ pub enum TableType {
     Empty,
 }
 
-fn format_field<'ast>(
+fn format_field(
     ctx: &Context,
-    field: &Field<'ast>,
+    field: &Field,
     table_type: TableType,
     shape: Shape,
-) -> (Field<'ast>, Vec<Token<'ast>>) {
+) -> (Field, Vec<Token>) {
     let leading_trivia = match table_type {
         TableType::MultiLine => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
         _ => FormatTriviaType::NoChange,
@@ -122,13 +122,13 @@ fn format_field<'ast>(
     (field, trailing_trivia)
 }
 
-pub fn create_table_braces<'ast>(
+pub fn create_table_braces(
     ctx: &Context,
-    start_brace: &TokenReference<'ast>,
-    end_brace: &TokenReference<'ast>,
+    start_brace: &TokenReference,
+    end_brace: &TokenReference,
     table_type: TableType,
     shape: Shape,
-) -> ContainedSpan<'ast> {
+) -> ContainedSpan {
     match table_type {
         TableType::MultiLine => {
             // Format start and end brace properly with correct trivia
@@ -178,11 +178,11 @@ pub fn create_table_braces<'ast>(
 
 /// Formats a table constructor onto a single line.
 /// This function does not perform any length checking, or checking whether comments are present.
-fn format_singleline_table<'ast>(
+fn format_singleline_table(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    table_constructor: &TableConstructor,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> TableConstructor {
     let table_type = TableType::SingleLine;
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
@@ -221,11 +221,11 @@ fn format_singleline_table<'ast>(
 
 /// Expands a table constructor to format it onto multiple lines
 /// This function does not perform any length checking.
-fn format_multiline_table<'ast>(
+fn format_multiline_table(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    table_constructor: &TableConstructor,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> TableConstructor {
     let table_type = TableType::MultiLine;
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
@@ -322,11 +322,11 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
     }
 }
 
-pub fn format_table_constructor<'ast>(
+pub fn format_table_constructor(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    table_constructor: &TableConstructor,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> TableConstructor {
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
     // Determine if we need to force the table multiline

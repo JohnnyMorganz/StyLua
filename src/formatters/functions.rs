@@ -31,12 +31,12 @@ use crate::{
 
 /// Formats an Anonymous Function
 /// This doesn't have its own struct, but it is part of Value::Function
-pub fn format_anonymous_function<'ast>(
+pub fn format_anonymous_function(
     ctx: &Context,
-    function_token: &TokenReference<'ast>,
-    function_body: &FunctionBody<'ast>,
+    function_token: &TokenReference,
+    function_body: &FunctionBody,
     shape: Shape,
-) -> (TokenReference<'ast>, FunctionBody<'ast>) {
+) -> (TokenReference, FunctionBody) {
     let function_token = fmt_symbol!(ctx, function_token, "function", shape);
     let function_body = format_function_body(ctx, function_body, false, shape.reset()); // TODO: do we want to reset this shape?
 
@@ -62,12 +62,12 @@ pub enum FunctionCallNextNode {
 }
 
 /// Formats a Call node
-pub fn format_call<'ast>(
+pub fn format_call(
     ctx: &Context,
-    call: &Call<'ast>,
+    call: &Call,
     shape: Shape,
     call_next_node: FunctionCallNextNode,
-) -> Call<'ast> {
+) -> Call {
     match call {
         Call::AnonymousCall(function_args) => Call::AnonymousCall(format_function_args(
             ctx,
@@ -95,12 +95,12 @@ fn is_complex_arg(value: &Value) -> bool {
 
 /// Formats a FunctionArgs node.
 /// [`call_next_node`] provides information about the node after the FunctionArgs. This only matters if the configuration specifies no call parentheses.
-pub fn format_function_args<'ast>(
+pub fn format_function_args(
     ctx: &Context,
-    function_args: &FunctionArgs<'ast>,
+    function_args: &FunctionArgs,
     shape: Shape,
     call_next_node: FunctionCallNextNode,
-) -> FunctionArgs<'ast> {
+) -> FunctionArgs {
     match function_args {
         FunctionArgs::Parentheses {
             parentheses,
@@ -528,12 +528,12 @@ pub fn format_function_args<'ast>(
 }
 
 /// Formats a FunctionBody node
-pub fn format_function_body<'ast>(
+pub fn format_function_body(
     ctx: &Context,
-    function_body: &FunctionBody<'ast>,
+    function_body: &FunctionBody,
     add_trivia_after_end: bool,
     shape: Shape,
-) -> FunctionBody<'ast> {
+) -> FunctionBody {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -713,11 +713,11 @@ pub fn format_function_body<'ast>(
 }
 
 /// Formats a FunctionCall node
-pub fn format_function_call<'ast>(
+pub fn format_function_call(
     ctx: &Context,
-    function_call: &FunctionCall<'ast>,
+    function_call: &FunctionCall,
     shape: Shape,
-) -> FunctionCall<'ast> {
+) -> FunctionCall {
     let formatted_prefix = format_prefix(ctx, function_call.prefix(), shape);
 
     let num_suffixes = function_call.suffixes().count();
@@ -812,11 +812,11 @@ pub fn format_function_call<'ast>(
 }
 
 /// Formats a FunctionName node
-pub fn format_function_name<'ast>(
+pub fn format_function_name(
     ctx: &Context,
-    function_name: &FunctionName<'ast>,
+    function_name: &FunctionName,
     shape: Shape,
-) -> FunctionName<'ast> {
+) -> FunctionName {
     // TODO: This is based off formatters::format_punctuated - can we merge them into one?
     let mut formatted_names = Punctuated::new();
     for pair in function_name.names().to_owned().into_pairs() {
@@ -834,7 +834,7 @@ pub fn format_function_name<'ast>(
         }
     }
 
-    let mut formatted_method: Option<(TokenReference<'ast>, TokenReference<'ast>)> = None;
+    let mut formatted_method: Option<(TokenReference, TokenReference)> = None;
 
     if let Some(method_colon) = function_name.method_colon() {
         if let Some(token_reference) = function_name.method_name() {
@@ -849,11 +849,11 @@ pub fn format_function_name<'ast>(
 }
 
 /// Formats a FunctionDeclaration node
-pub fn format_function_declaration<'ast>(
+pub fn format_function_declaration(
     ctx: &Context,
-    function_declaration: &FunctionDeclaration<'ast>,
+    function_declaration: &FunctionDeclaration,
     shape: Shape,
-) -> FunctionDeclaration<'ast> {
+) -> FunctionDeclaration {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
@@ -887,11 +887,11 @@ pub fn format_function_declaration<'ast>(
 }
 
 /// Formats a LocalFunction node
-pub fn format_local_function<'ast>(
+pub fn format_local_function(
     ctx: &Context,
-    local_function: &LocalFunction<'ast>,
+    local_function: &LocalFunction,
     shape: Shape,
-) -> LocalFunction<'ast> {
+) -> LocalFunction {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
@@ -922,12 +922,12 @@ pub fn format_local_function<'ast>(
 }
 
 /// Formats a MethodCall node
-pub fn format_method_call<'ast>(
+pub fn format_method_call(
     ctx: &Context,
-    method_call: &MethodCall<'ast>,
+    method_call: &MethodCall,
     shape: Shape,
     call_next_node: FunctionCallNextNode,
-) -> MethodCall<'ast> {
+) -> MethodCall {
     let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
     let formatted_name = format_token_reference(ctx, method_call.name(), shape);
     let shape =
@@ -939,11 +939,7 @@ pub fn format_method_call<'ast>(
 }
 
 /// Formats a single Parameter node
-pub fn format_parameter<'ast>(
-    ctx: &Context,
-    parameter: &Parameter<'ast>,
-    shape: Shape,
-) -> Parameter<'ast> {
+pub fn format_parameter(ctx: &Context, parameter: &Parameter, shape: Shape) -> Parameter {
     match parameter {
         Parameter::Ellipse(token) => Parameter::Ellipse(fmt_symbol!(ctx, token, "...", shape)),
         Parameter::Name(token_reference) => {
@@ -954,11 +950,11 @@ pub fn format_parameter<'ast>(
 }
 
 /// Formats the [`Parameters`] in the provided [`FunctionBody`] onto a single line.
-fn format_singleline_parameters<'ast>(
+fn format_singleline_parameters(
     ctx: &Context,
-    function_body: &FunctionBody<'ast>,
+    function_body: &FunctionBody,
     shape: Shape,
-) -> Punctuated<'ast, Parameter<'ast>> {
+) -> Punctuated<Parameter> {
     let mut formatted_parameters = Punctuated::new();
 
     for pair in function_body.parameters().pairs() {
@@ -974,11 +970,11 @@ fn format_singleline_parameters<'ast>(
 }
 
 /// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
-fn format_multiline_parameters<'ast>(
+fn format_multiline_parameters(
     ctx: &Context,
-    function_body: &FunctionBody<'ast>,
+    function_body: &FunctionBody,
     shape: Shape,
-) -> Punctuated<'ast, Parameter<'ast>> {
+) -> Punctuated<Parameter> {
     let mut formatted_parameters = Punctuated::new();
 
     for pair in function_body.parameters().pairs() {
