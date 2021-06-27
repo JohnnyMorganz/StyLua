@@ -19,8 +19,6 @@ use full_moon::ast::{
 };
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
-#[cfg(feature = "luau")]
-use std::borrow::Cow;
 
 macro_rules! update_first_token {
     ($enum:ident, $var:ident, $token:expr, $update_method:ident) => {{
@@ -103,7 +101,7 @@ pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> La
                 &TokenReference::new(
                     vec![],
                     Token::new(TokenType::Identifier {
-                        identifier: Cow::Owned(String::from("continue")),
+                        identifier: "continue".into(),
                     }),
                     vec![],
                 ),

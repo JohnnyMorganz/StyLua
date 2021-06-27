@@ -28,7 +28,6 @@ use full_moon::ast::{
     span::ContainedSpan,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
-use std::borrow::Cow;
 use std::boxed::Box;
 
 pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape) -> CompoundOp {
@@ -282,7 +281,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 &TokenReference::new(
                     vec![],
                     Token::new(TokenType::Identifier {
-                        identifier: Cow::Owned(String::from("typeof")),
+                        identifier: "typeof".into(),
                     }),
                     vec![],
                 ),
@@ -447,7 +446,7 @@ fn format_type_declaration(
         &TokenReference::new(
             vec![],
             Token::new(TokenType::Identifier {
-                identifier: Cow::Owned(String::from("type")),
+                identifier: "type".into(),
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),
@@ -586,7 +585,7 @@ pub fn format_exported_type_declaration(
         &TokenReference::new(
             vec![],
             Token::new(TokenType::Identifier {
-                identifier: Cow::Owned(String::from("export")),
+                identifier: "export".into(),
             }),
             vec![Token::new(TokenType::spaces(1))],
         ),
