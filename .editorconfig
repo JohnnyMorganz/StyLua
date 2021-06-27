@@ -12,7 +12,7 @@ indent_size = 4
 
 [*.lua]
 indent_style = tab
-indent_size = 2
+indent_size = 4
 
 [*.{md,markdown}]
 indent_style = space
