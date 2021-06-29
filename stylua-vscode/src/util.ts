@@ -181,7 +181,7 @@ export const ensureStyluaExists = async (
       }
     } catch (err) {
       vscode.window.showWarningMessage(
-        `Error checking latest StyLua version, falling back to installed version:\n${err}`
+        `Error checking the selected StyLua version, falling back to the currently installed version:\n${err}`
       );
     }
 
