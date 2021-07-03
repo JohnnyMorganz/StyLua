@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+function foo()
+	return fooooooooooooooooooo(barrr) or foooooooooooooooooooooooooooooooooooooooooooooooooooooopppo(barrrrrrrrrrrrrr)(
+		hello
+	) or bazzzzzzzzzzzzzzzzzz
+end
+
