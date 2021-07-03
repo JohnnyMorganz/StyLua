@@ -47,3 +47,6 @@ do
 		baz and foo
 end
 
+local x =
+	foo -- comment or bar,  -- commentbaz and foo
+

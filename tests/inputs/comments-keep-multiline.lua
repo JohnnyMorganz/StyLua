@@ -19,7 +19,7 @@ if -- comment
 then
 end
 
-if 
+if
 	foo
 	-- comment
 then
@@ -41,3 +41,7 @@ do
 		or bar, -- comment
 		baz and foo
 end
+
+local x = foo -- comment
+		or bar, -- comment
+		baz and foo
