@@ -2,7 +2,7 @@ use crate::{
     check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
     formatters::{
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+        trivia::{FormatTriviaType, UpdateTrailingTrivia},
         trivia_util,
     },
     shape::Shape,
@@ -432,47 +432,41 @@ pub fn format_punctuated_multiline<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node + UpdateLeadingTrivia,
+    T: Node,
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
+    let mut is_first = true; // Don't want to add an indent range for the first item, as it will be inline
 
-    for (idx, pair) in old.pairs().enumerate() {
+    for pair in old.pairs() {
         // Indent the pair (unless its the first item)
-        let shape = if idx == 0 {
+        let shape = if is_first {
+            is_first = false;
             shape
         } else {
-            let shape = shape.reset();
-            // Include hang level if required
-            match hang_level {
-                Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
-                None => shape,
-            }
+            shape.reset()
+        };
+
+        // Include hang level if required
+        let shape = match hang_level {
+            Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
+            None => shape,
         };
 
         match pair {
             Pair::Punctuated(value, punctuation) => {
-                let mut value = value_formatter(ctx, value, shape);
-                if idx != 0 {
-                    value = value.update_leading_trivia(FormatTriviaType::Append(vec![
-                        create_indent_trivia(ctx, shape),
-                    ]))
-                }
-
+                let value = value_formatter(ctx, value, shape);
                 let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
-                    FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
+                    FormatTriviaType::Append(vec![
+                        create_newline_trivia(ctx),
+                        create_indent_trivia(ctx, shape),
+                    ]),
                 );
                 formatted.push(Pair::new(value, Some(punctuation)));
             }
             Pair::End(value) => {
-                let mut value = value_formatter(ctx, value, shape);
-                if idx != 0 {
-                    value = value.update_leading_trivia(FormatTriviaType::Append(vec![
-                        create_indent_trivia(ctx, shape),
-                    ]))
-                }
-
-                formatted.push(Pair::new(value, None));
+                let formatted_value = value_formatter(ctx, value, shape);
+                formatted.push(Pair::new(formatted_value, None));
             }
         }
     }
@@ -490,7 +484,7 @@ pub fn try_format_punctuated<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node + std::fmt::Display + UpdateLeadingTrivia,
+    T: Node + std::fmt::Display,
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut format_multiline = false;
