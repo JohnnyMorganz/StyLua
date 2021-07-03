@@ -4,11 +4,12 @@ use crate::{
     fmt_symbol,
     formatters::{
         assignment::hang_punctuated_list,
-        expression::format_expression,
-        general::{format_symbol, try_format_punctuated},
+        expression::{format_expression, hang_expression},
+        general::{format_punctuated, format_punctuated_multiline, format_symbol},
         stmt::format_stmt,
         trivia::{
-            strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
+            strip_trailing_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
+            UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
@@ -45,35 +46,90 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
             .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
         let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
-        let mut formatted_returns = try_format_punctuated(
-            ctx,
-            return_node.returns(),
-            shape,
-            format_expression,
-            Some(1),
+
+        let returns = return_node.returns();
+
+        let contains_comments = trivia_util::contains_comments(
+            returns.update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
         );
 
-        // Determine if we need to hang the condition
-        let require_multiline_expression = shape
-            .take_first_line(&strip_trivia(&formatted_returns))
-            .over_budget()
-            || {
-                trivia_util::contains_comments(
-                    return_node
-                        .returns()
-                        .update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
-                )
-            };
+        // See if we need to format multiline
+        // If we contain comments, we immediately force multiline, and return an empty Punctuated sequence as a placeholder (it will never be used)
+        // If not, format the sequence on a single line, and test the shape. We return the singleline output incase we want to use it.
+        // We do it this way so that the singleline return is evaluated lazily - we don't want to create it if we never use it, but if we
+        // create it, we need to keep it incase we want to use it.
+        let (should_format_multiline, singleline_returns) = if contains_comments {
+            (true, Punctuated::new())
+        } else {
+            // Firstly attempt to format the returns onto a single line, using an infinite column width shape
+            let singleline_returns =
+                format_punctuated(ctx, returns, shape.with_infinite_width(), format_expression);
 
-        if require_multiline_expression {
-            formatted_returns = hang_punctuated_list(ctx, return_node.returns(), shape);
-        }
+            // Test the return to see if its over width
+            let singleline_shape =
+                shape + strip_trailing_trivia(&singleline_returns).to_string().len();
+            (singleline_shape.over_budget(), singleline_returns)
+        };
 
-        if let Some(pair) = formatted_returns.pop() {
-            let pair = pair
-                .map(|expr| expr.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)));
-            formatted_returns.push(pair);
-        }
+        // TODO: this is similar to assignment tactics - can we abstract them into a common function?
+        let formatted_returns = if should_format_multiline {
+            if returns.len() > 1 {
+                // Format the punctuated onto multiple lines
+                let hang_level = Some(1);
+                let multiline_returns =
+                    format_punctuated_multiline(ctx, returns, shape, format_expression, hang_level);
+
+                let mut output_returns = Punctuated::new();
+
+                // Look through each punctuated sequence to see if we need to hang the item further
+                for (idx, pair) in multiline_returns.into_pairs().enumerate() {
+                    // Recreate the shape
+                    let shape = if idx == 0 {
+                        shape
+                    } else {
+                        shape
+                            .reset()
+                            .with_indent(shape.indent().add_indent_level(hang_level.unwrap()))
+                    };
+
+                    if trivia_util::contains_comments(&pair)
+                        || shape.take_first_line(&pair).over_budget()
+                    {
+                        // Hang the pair
+                        output_returns
+                            .push(pair.map(|value| hang_expression(ctx, &value, shape, Some(1))))
+                    } else {
+                        // Add the pair as it is
+                        output_returns.push(pair);
+                    }
+                }
+
+                output_returns
+            } else {
+                // Create an example hanging the expression - we need to create a new context so that we don't overwrite it
+                let hanging_returns = hang_punctuated_list(ctx, returns, shape);
+                let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_returns));
+
+                // Create an example formatting the expression normally
+                let formatted_returns = format_punctuated(ctx, returns, shape, format_expression);
+                let formatting_shape =
+                    shape.take_first_line(&strip_trailing_trivia(&formatted_returns));
+
+                // Find the better format out of the hanging shape or the normal formatting
+                if hanging_shape.used_width() < formatting_shape.used_width() {
+                    // Hanging version is better
+                    hanging_returns
+                } else {
+                    formatted_returns
+                }
+            }
+        } else {
+            singleline_returns
+        };
+
+        // Add a newline at the end of the list
+        let formatted_returns =
+            formatted_returns.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
         Return::new()
             .with_token(token)
