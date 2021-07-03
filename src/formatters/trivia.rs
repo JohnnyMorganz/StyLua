@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeInfo, TypeSpecifier};
+use full_moon::ast::types::{
+    IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+};
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
@@ -667,9 +669,27 @@ define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_leading_trivia!(TypeField, |this, leading| {
+    this.to_owned()
+        .with_key(this.key().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
 define_update_trailing_trivia!(TypeField, |this, trailing| {
     this.to_owned()
         .with_value(this.value().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(TypeFieldKey, |this, leading| {
+    match this {
+        TypeFieldKey::Name(token) => TypeFieldKey::Name(token.update_leading_trivia(leading)),
+        TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
+            brackets: brackets.update_leading_trivia(leading),
+            inner: inner.to_owned(),
+        },
+        other => panic!("unknown node {:?}", other),
+    }
 });
 
 #[cfg(feature = "luau")]

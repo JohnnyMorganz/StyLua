@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Luau type tables (`luau` feature flag) now use the same formatting strategy as normal expression tables, so that their formatting is more aligned.
+- Luau typings now have improved checking against the current shape width to determine how to format if over column width.
+- Luau callback types will now format multiline if they become over width under the `luau` feature flag.
+
+### Fixed
+- Fixed comments inside Luau type tables leading to malformed formatting under the `luau` feature flag. ([#219](https://github.com/JohnnyMorganz/StyLua/issues/219))
 
 ## [0.9.3] - 2021-06-26
 ### Added
