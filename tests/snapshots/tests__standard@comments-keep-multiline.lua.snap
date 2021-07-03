@@ -48,5 +48,7 @@ do
 end
 
 local x =
-	foo -- comment or bar,  -- commentbaz and foo
+	foo -- comment
+	or bar, -- comment
+	baz and foo
 
