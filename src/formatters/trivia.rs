@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier};
+use full_moon::ast::types::{
+    IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+};
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
