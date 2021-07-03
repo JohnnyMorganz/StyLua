@@ -436,21 +436,19 @@ where
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
-    let mut is_first = true; // Don't want to add an indent range for the first item, as it will be inline
 
-    for pair in old.pairs() {
+    // Include hang level if required
+    let hanging_shape = match hang_level {
+        Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
+        None => shape,
+    };
+
+    for (idx, pair) in old.pairs().enumerate() {
         // Indent the pair (unless its the first item)
-        let shape = if is_first {
-            is_first = false;
+        let shape = if idx == 0 {
             shape
         } else {
-            shape.reset()
-        };
-
-        // Include hang level if required
-        let shape = match hang_level {
-            Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
-            None => shape,
+            hanging_shape.reset()
         };
 
         match pair {
@@ -459,7 +457,7 @@ where
                 let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
                     FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
+                        create_indent_trivia(ctx, hanging_shape), // Use hanging_shape here as we want to have a hanging indent for the next item, which may not be present in the shape of the first item.
                     ]),
                 );
                 formatted.push(Pair::new(value, Some(punctuation)));

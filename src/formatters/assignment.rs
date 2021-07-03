@@ -116,7 +116,11 @@ fn attempt_assignment_tactics(
             format_expression,
         );
 
-        if hanging_shape
+        if expressions.pairs().any(|pair| {
+            pair.punctuation()
+                .map_or(false, |x| trivia_util::token_contains_comments(x))
+                || trivia_util::expression_contains_inline_comments(pair.value())
+        }) || hanging_shape
             .take_first_line(&strip_trivia(&expr_list))
             .over_budget()
         {
@@ -129,8 +133,26 @@ fn attempt_assignment_tactics(
                 format_expression,
                 None,
             );
-            // TODO: should we check each multiline expr in the list, to see if we need to hang them?
-            (multiline_expr, hanging_equal_token)
+
+            // Look through each punctuated expression to see if we need to hang the item further
+            let mut output_expr = Punctuated::new();
+
+            for (idx, pair) in multiline_expr.into_pairs().enumerate() {
+                // Recreate the shape
+                let shape = if idx == 0 { shape } else { shape.reset() };
+
+                if trivia_util::contains_comments(&pair)
+                    || shape.take_first_line(&pair).over_budget()
+                {
+                    // Hang the pair
+                    output_expr.push(pair.map(|value| hang_expression(ctx, &value, shape, Some(1))))
+                } else {
+                    // Add the pair as it is
+                    output_expr.push(pair);
+                }
+            }
+
+            (output_expr, hanging_equal_token)
         } else {
             (expr_list, hanging_equal_token)
         }
