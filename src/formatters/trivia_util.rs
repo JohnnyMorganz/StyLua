@@ -2,7 +2,7 @@ use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTra
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeField, TypeInfo};
+use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
 use full_moon::ast::{Block, FunctionBody};
 use full_moon::{
     ast::{
@@ -135,7 +135,7 @@ fn indexed_type_info_trailing_trivia(indexed_type_info: &IndexedTypeInfo) -> Vec
 }
 
 #[cfg(feature = "luau")]
-fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
+pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
     match type_info {
         TypeInfo::Array { braces, .. } => {
             let (_, end_brace) = braces.tokens();
@@ -409,26 +409,6 @@ pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression
 
     (
         expression.update_trailing_trivia(
-            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-        ),
-        trailing_comments,
-    )
-}
-
-#[cfg(feature = "luau")]
-pub fn take_type_field_trailing_comments(type_field: TypeField) -> (TypeField, Vec<Token>) {
-    let trailing_comments = type_info_trailing_trivia(type_field.value())
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .flatten()
-        .collect();
-
-    (
-        type_field.update_trailing_trivia(
             FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
         ),
         trailing_comments,

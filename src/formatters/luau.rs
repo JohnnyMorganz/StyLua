@@ -8,13 +8,14 @@ use crate::{
             format_punctuated_multiline, format_symbol, format_token_reference,
             try_format_punctuated, EndTokenType,
         },
-        table::{create_table_braces, TableType},
+        table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia,
         },
         trivia_util::{
-            contains_comments, take_type_field_trailing_comments, token_trivia_contains_comments,
+            contains_comments, token_trivia_contains_comments, trivia_is_comment,
+            type_info_trailing_trivia,
         },
     },
     shape::Shape,
@@ -23,10 +24,7 @@ use full_moon::ast::types::{
     CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
     TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
-use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    span::ContainedSpan,
-};
+use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
 
@@ -197,75 +195,46 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
         TypeInfo::Table { braces, fields } => {
             let (start_brace, end_brace) = braces.tokens().to_owned();
-            let braces_range = (
-                start_brace.token().end_position().bytes(),
-                end_brace.token().start_position().bytes(),
-            );
+            let contains_comments = start_brace.trailing_trivia().any(trivia_is_comment)
+                || end_brace.leading_trivia().any(trivia_is_comment)
+                || fields.pairs().any(|field| {
+                    contains_comments(field.punctuation()) || contains_comments(field.value())
+                });
 
-            let mut current_fields = fields.to_owned().into_pairs().peekable();
-            let is_multiline = (braces_range.1 - braces_range.0) > 30; // TODO: Properly determine this arbitrary number, and see if other factors should come into play
-            let table_type = match current_fields.peek() {
-                Some(_) => match is_multiline {
-                    true => TableType::MultiLine,
-                    false => TableType::SingleLine,
-                },
-                None => TableType::Empty,
-            };
+            let table_type = match (contains_comments, fields.iter().next()) {
+                // Table contains comments, so force multiline
+                (true, _) => TableType::MultiLine,
 
-            let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
+                (false, Some(_)) => {
+                    let braces_range = (
+                        start_brace.token().end_position().bytes(),
+                        end_brace.token().start_position().bytes(),
+                    );
 
-            let shape = if is_multiline {
-                shape.increment_additional_indent()
-            } else {
-                shape
-            };
+                    let singleline_shape = shape + (braces_range.1 - braces_range.0);
 
-            let mut fields = Punctuated::new();
-
-            while let Some(pair) = current_fields.next() {
-                let (field, punctuation) = pair.into_tuple();
-
-                let leading_trivia = match is_multiline {
-                    true => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-                    false => FormatTriviaType::NoChange,
-                };
-
-                let mut formatted_field = format_type_field(ctx, &field, leading_trivia, shape);
-                let mut formatted_punctuation = None;
-
-                match is_multiline {
-                    true => {
-                        // Continue adding a comma and a new line for multiline tables
-                        // Add newline trivia to the end of the symbol
-
-                        let (field, mut trailing_comments) =
-                            take_type_field_trailing_comments(formatted_field);
-                        formatted_field = field;
-                        trailing_comments.push(create_newline_trivia(ctx));
-
-                        let symbol = match punctuation {
-                            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
-                            None => TokenReference::symbol(",").unwrap(),
-                        }
-                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
-                        formatted_punctuation = Some(symbol)
-                    }
-
-                    false => {
-                        if current_fields.peek().is_some() {
-                            // Have more elements still to go
-                            formatted_punctuation = match punctuation {
-                                Some(punctuation) => {
-                                    Some(fmt_symbol!(ctx, &punctuation, ", ", shape))
-                                }
-                                None => Some(TokenReference::symbol(", ").unwrap()),
-                            }
-                        };
+                    match singleline_shape.over_budget() {
+                        true => TableType::MultiLine,
+                        false => TableType::SingleLine,
                     }
                 }
 
-                fields.push(Pair::new(formatted_field, formatted_punctuation));
-            }
+                (false, None) => TableType::Empty,
+            };
+
+            let (braces, fields) = match table_type {
+                TableType::Empty => {
+                    let braces =
+                        create_table_braces(ctx, start_brace, end_brace, table_type, shape);
+                    (braces, Punctuated::new())
+                }
+                TableType::SingleLine => {
+                    format_singleline_table(ctx, braces, fields, format_type_field, shape)
+                }
+                TableType::MultiLine => {
+                    format_multiline_table(ctx, braces, fields, format_type_field, shape)
+                }
+            };
 
             TypeInfo::Table { braces, fields }
         }
@@ -384,21 +353,38 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
         .with_type_info(type_info)
 }
 
+/// Formats a [`TypeField`] present inside of a [`TypeInfo::Table`]
+/// Returns the new [`TypeField`] and any trailing trivia associated with its value (as this may need to later be moved).
+/// If the [`TableType`] provided is [`TableType::MultiLine`] then the trailing trivia from the value will be removed.
 pub fn format_type_field(
     ctx: &Context,
     type_field: &TypeField,
-    leading_trivia: FormatTriviaType,
+    table_type: TableType,
     shape: Shape,
-) -> TypeField {
+) -> (TypeField, Vec<Token>) {
+    let leading_trivia = match table_type {
+        TableType::MultiLine => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
+        _ => FormatTriviaType::NoChange,
+    };
+
     let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
     let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
-    let value = format_type_info(ctx, type_field.value(), shape);
+    let mut value = format_type_info(ctx, type_field.value(), shape);
 
-    type_field
-        .to_owned()
-        .with_key(key)
-        .with_colon_token(colon_token)
-        .with_value(value)
+    let trailing_trivia = type_info_trailing_trivia(&value);
+
+    if let TableType::MultiLine = table_type {
+        value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+    }
+
+    (
+        type_field
+            .to_owned()
+            .with_key(key)
+            .with_colon_token(colon_token)
+            .with_value(value),
+        trailing_trivia,
+    )
 }
 
 pub fn format_type_field_key(
