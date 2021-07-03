@@ -369,6 +369,7 @@ pub fn format_type_field(
 
     let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
     let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
+    let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
     let trailing_trivia = type_info_trailing_trivia(&value);
@@ -400,7 +401,7 @@ pub fn format_type_field_key(
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
             brackets: format_contained_span(ctx, brackets, shape)
                 .update_leading_trivia(leading_trivia),
-            inner: format_type_info(ctx, inner, shape),
+            inner: format_type_info(ctx, inner, shape + 1), // 1 = "["
         },
         other => panic!("unknown node {:?}", other),
     }
