@@ -491,8 +491,9 @@ fn format_type_declaration(
     };
 
     let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape + 3) // 3 = " = "
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+    let mut type_definition =
+        format_type_info(ctx, type_declaration.type_definition(), shape + 3) // 3 = " = "
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     let shape = shape.take_last_line(&strip_trailing_trivia(&type_definition));
 
