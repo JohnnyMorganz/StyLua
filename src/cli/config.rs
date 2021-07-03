@@ -105,3 +105,26 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
         }
     }
 }
+
+/// Handles any overrides provided by command line options
+pub fn load_overrides(config: Config, opt: &Opt) -> Config {
+    let mut new_config = config;
+
+    if let Some(column_width) = opt.format_opts.column_width {
+        new_config = new_config.with_column_width(column_width);
+    };
+    if let Some(line_endings) = opt.format_opts.line_endings {
+        new_config = new_config.with_line_endings(line_endings.into());
+    };
+    if let Some(indent_type) = opt.format_opts.indent_type {
+        new_config = new_config.with_indent_type(indent_type.into());
+    };
+    if let Some(indent_width) = opt.format_opts.indent_width {
+        new_config = new_config.with_indent_width(indent_width);
+    };
+    if let Some(quote_style) = opt.format_opts.quote_style {
+        new_config = new_config.with_quote_style(quote_style.into());
+    };
+
+    new_config
+}
