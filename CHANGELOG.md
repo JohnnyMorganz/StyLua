@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Luau type tables (`luau` feature flag) now use the same formatting strategy as normal expression tables, so that their formatting is more aligned.
-- Luau type tables and their fields now have improved checking against the current shape width to determine how to format if over column width.
+- Luau typings now have improved checking against the current shape width to determine how to format if over column width.
 - Luau callback types will now format multiline if they become over width under the `luau` feature flag.
 
 ### Fixed
