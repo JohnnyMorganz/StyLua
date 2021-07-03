@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use structopt::{clap::arg_enum, StructOpt};
+use stylua_lib::{IndentType, LineEndings, QuoteStyle};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
@@ -51,6 +52,10 @@ pub struct Opt {
     #[structopt(long)]
     pub range_end: Option<usize>,
 
+    /// Formatting options to apply when formatting code.
+    #[structopt(flatten)]
+    pub format_opts: FormatOpts,
+
     /// A list of files to format
     #[structopt(parse(from_os_str))]
     pub files: Vec<PathBuf>,
@@ -64,3 +69,73 @@ structopt::clap::arg_enum! {
         Never,
     }
 }
+
+#[derive(StructOpt, Debug)]
+pub struct FormatOpts {
+    /// The column width to use to attempt to wrap lines.
+    #[structopt(long)]
+    pub column_width: Option<usize>,
+    /// The type of line endings to use.
+    #[structopt(long, possible_values = &ArgLineEndings::variants(), case_insensitive = true, )]
+    pub line_endings: Option<ArgLineEndings>,
+    /// The type of indents to use.
+    #[structopt(long, possible_values = &ArgIndentType::variants(), case_insensitive = true, )]
+    pub indent_type: Option<ArgIndentType>,
+    /// The width of a single indentation level.
+    #[structopt(long)]
+    pub indent_width: Option<usize>,
+    /// The style of quotes to use in string literals.
+    #[structopt(long, possible_values = &ArgQuoteStyle::variants(), case_insensitive = true, )]
+    pub quote_style: Option<ArgQuoteStyle>,
+}
+
+// Convert [`stylua_lib::Config`] enums into clap-friendly enums
+macro_rules! convert_enum {
+    ($from:tt, $arg:tt, { $($enum_name:ident,)+ }) => {
+        structopt::clap::arg_enum! {
+            #[derive(Clone, Copy, Debug)]
+            pub enum $arg {
+                $(
+                    $enum_name,
+                )+
+            }
+        }
+
+        impl From<$arg> for $from {
+            fn from(other: $arg) -> $from {
+                match other {
+                    $(
+                        $arg::$enum_name => $from::$enum_name,
+                    )+
+                }
+            }
+        }
+
+        impl From<$from> for $arg {
+            fn from(other: $from) -> $arg {
+                match other {
+                    $(
+                        $from::$enum_name => $arg::$enum_name,
+                    )+
+                }
+            }
+        }
+    };
+}
+
+convert_enum!(LineEndings, ArgLineEndings, {
+    Unix,
+    Windows,
+});
+
+convert_enum!(IndentType, ArgIndentType, {
+    Tabs,
+    Spaces,
+});
+
+convert_enum!(QuoteStyle, ArgQuoteStyle, {
+    AutoPreferDouble,
+    AutoPreferSingle,
+    ForceDouble,
+    ForceSingle,
+});
