@@ -89,7 +89,14 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
             let force_multiline = token_trivia_contains_comments(start_parens.trailing_trivia())
                 || token_trivia_contains_comments(end_parens.leading_trivia())
-                || contains_comments(arguments);
+                || contains_comments(arguments)
+                || shape
+                    .add_width(
+                        2 + 4
+                            + arguments.to_string().len()
+                            + strip_trailing_trivia(&**return_type).to_string().len(),
+                    )
+                    .over_budget(); // 2 = opening/closing parens, 4 = " -> "
 
             let (parentheses, arguments, shape) = if force_multiline {
                 let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
