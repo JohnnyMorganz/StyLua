@@ -10,9 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/master/CHANGELOG.md)
 
 ## [Unreleased]
+
 ### Added
+
 - StyLua will now emit an error if the provided file path does not exist
 - StyLua will now hot reload the stylua binary if the configuration changes
+- Added StyLua version configuration.
+  - A release can be selected from a list of compatible minor versions.
+  - A target release version can be provided that overrides the selection.
+
+### Changed
+
+- Release information is now gathered directly from the GitHub REST API.
+- StyLua update prompts are now given for the configured version. If release
+  `v0.8` is selected only release versions matching it, such as `v0.8.2` will
+  be prompted for install.
 
 ## [1.2.0] - 2021-04-19
 

@@ -23,7 +23,10 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util::{self, contains_comments, get_expression_trailing_trivia},
+        trivia_util::{
+            self, contains_comments, expression_leading_comments, get_expression_trailing_trivia,
+            trivia_is_newline,
+        },
     },
     shape::Shape,
 };
@@ -48,7 +51,7 @@ enum ExpressionContext {
     Prefix,
 }
 
-pub fn format_binop<'ast>(ctx: &Context, binop: &BinOp<'ast>, shape: Shape) -> BinOp<'ast> {
+pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
     fmt_op!(ctx, BinOp, binop, shape, {
         And = " and ",
         Caret = " ^ ",
@@ -78,7 +81,17 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
         Expression::UnaryOperator { expression, .. } => check_excess_parentheses(expression),
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
         Expression::BinaryOperator { .. } => false,
-        Expression::Value { value, .. } => {
+        Expression::Value {
+            value,
+            #[cfg(feature = "luau")]
+            type_assertion,
+        } => {
+            // If we have a type assertion, we should always keep parentheses
+            #[cfg(feature = "luau")]
+            if type_assertion.is_some() {
+                return false;
+            }
+
             match &**value {
                 // Internal expression is a function call
                 // We could potentially be culling values, so we should not remove parentheses
@@ -99,21 +112,17 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
 }
 
 /// Formats an Expression node
-pub fn format_expression<'ast>(
-    ctx: &Context,
-    expression: &Expression<'ast>,
-    shape: Shape,
-) -> Expression<'ast> {
+pub fn format_expression(ctx: &Context, expression: &Expression, shape: Shape) -> Expression {
     format_expression_internal(ctx, expression, ExpressionContext::Standard, shape)
 }
 
 /// Internal expression formatter, with access to expression context
-fn format_expression_internal<'ast>(
+fn format_expression_internal(
     ctx: &Context,
-    expression: &Expression<'ast>,
+    expression: &Expression,
     context: ExpressionContext,
     shape: Shape,
-) -> Expression<'ast> {
+) -> Expression {
     match expression {
         Expression::Value {
             value,
@@ -215,7 +224,7 @@ fn format_expression_internal<'ast>(
 }
 
 /// Formats an Index Node
-pub fn format_index<'ast>(ctx: &Context, index: &Index<'ast>, shape: Shape) -> Index<'ast> {
+pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
     match index {
         Index::Brackets {
             brackets,
@@ -234,7 +243,7 @@ pub fn format_index<'ast>(ctx: &Context, index: &Index<'ast>, shape: Shape) -> I
 }
 
 /// Formats a Prefix Node
-pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -> Prefix<'ast> {
+pub fn format_prefix(ctx: &Context, prefix: &Prefix, shape: Shape) -> Prefix {
     match prefix {
         Prefix::Expression(expression) => {
             let singleline_format =
@@ -261,12 +270,12 @@ pub fn format_prefix<'ast>(ctx: &Context, prefix: &Prefix<'ast>, shape: Shape) -
 }
 
 /// Formats a Suffix Node
-pub fn format_suffix<'ast>(
+pub fn format_suffix(
     ctx: &Context,
-    suffix: &Suffix<'ast>,
+    suffix: &Suffix,
     shape: Shape,
     call_next_node: FunctionCallNextNode,
-) -> Suffix<'ast> {
+) -> Suffix {
     match suffix {
         Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape, call_next_node)),
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
@@ -275,7 +284,7 @@ pub fn format_suffix<'ast>(
 }
 
 /// Formats a Value Node
-pub fn format_value<'ast>(ctx: &Context, value: &Value<'ast>, shape: Shape) -> Value<'ast> {
+pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function(
             format_anonymous_function(ctx, token_reference, function_body, shape),
@@ -304,7 +313,7 @@ pub fn format_value<'ast>(ctx: &Context, value: &Value<'ast>, shape: Shape) -> V
 }
 
 /// Formats a Var Node
-pub fn format_var<'ast>(ctx: &Context, var: &Var<'ast>, shape: Shape) -> Var<'ast> {
+pub fn format_var(ctx: &Context, var: &Var, shape: Shape) -> Var {
     match var {
         Var::Name(token_reference) => {
             Var::Name(format_token_reference(ctx, token_reference, shape))
@@ -316,11 +325,11 @@ pub fn format_var<'ast>(ctx: &Context, var: &Var<'ast>, shape: Shape) -> Var<'as
     }
 }
 
-pub fn format_var_expression<'ast>(
+pub fn format_var_expression(
     ctx: &Context,
-    var_expression: &VarExpression<'ast>,
+    var_expression: &VarExpression,
     shape: Shape,
-) -> VarExpression<'ast> {
+) -> VarExpression {
     let formatted_prefix = format_prefix(ctx, var_expression.prefix(), shape);
     let mut shape = shape + strip_leading_trivia(&formatted_prefix).to_string().len();
 
@@ -347,7 +356,7 @@ pub fn format_var_expression<'ast>(
 }
 
 /// Formats an UnOp Node
-pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>, shape: Shape) -> UnOp<'ast> {
+pub fn format_unop(ctx: &Context, unop: &UnOp, shape: Shape) -> UnOp {
     fmt_op!(ctx, UnOp, unop, shape, {
         Minus = "-",
         Not = "not ",
@@ -359,12 +368,7 @@ pub fn format_unop<'ast>(ctx: &Context, unop: &UnOp<'ast>, shape: Shape) -> UnOp
 /// Preserves any leading comments, and moves trailing comments to before the BinOp.
 /// Also takes in the [`Expression`] present on the RHS of the BinOp - this is needed so that we can take any
 /// leading comments from the expression, and place them before the BinOp.
-fn hang_binop<'ast>(
-    ctx: &Context,
-    binop: BinOp<'ast>,
-    shape: Shape,
-    rhs: &Expression<'ast>,
-) -> BinOp<'ast> {
+fn hang_binop(ctx: &Context, binop: BinOp, shape: Shape, rhs: &Expression) -> BinOp {
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
     // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
@@ -407,7 +411,7 @@ fn hang_binop<'ast>(
 }
 
 /// Finds the length of the expression which matches the precedence level of the provided binop
-fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinOp<'ast>) -> usize {
+fn binop_expression_length(expression: &Expression, top_binop: &BinOp) -> usize {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => {
             if binop.precedence() >= top_binop.precedence()
@@ -430,6 +434,25 @@ fn binop_expression_length<'ast>(expression: &Expression<'ast>, top_binop: &BinO
     }
 }
 
+fn binop_expression_contains_comments(expression: &Expression, top_binop: &BinOp) -> bool {
+    match expression {
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            if binop.precedence() == top_binop.precedence() {
+                contains_comments(binop)
+                    || !expression_leading_comments(rhs).is_empty()
+                    || get_expression_trailing_trivia(&lhs)
+                        .iter()
+                        .any(trivia_util::trivia_is_comment)
+                    || binop_expression_contains_comments(lhs, top_binop)
+                    || binop_expression_contains_comments(rhs, top_binop)
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
 /// Converts an item to a range
 trait ToRange {
     fn to_range(&self) -> (usize, usize);
@@ -441,7 +464,7 @@ impl ToRange for (usize, usize) {
     }
 }
 
-impl ToRange for Expression<'_> {
+impl ToRange for Expression {
     fn to_range(&self) -> (usize, usize) {
         let (start, end) = self.range().unwrap();
         (start.bytes(), end.bytes())
@@ -538,18 +561,33 @@ fn binop_precedence_level(expression: &Expression) -> u8 {
     }
 }
 
+fn did_hang_expression(expression: &Expression) -> bool {
+    if let Expression::BinaryOperator { binop, .. } = expression {
+        // Examine the binop's leading trivia for a newline
+        // TODO: this works..., but is it the right solution?
+        binop
+            .surrounding_trivia()
+            .0
+            .iter()
+            .any(|x| trivia_is_newline(x))
+    } else {
+        false
+    }
+}
+
+#[derive(Debug)]
 enum ExpressionSide {
     Left,
     Right,
 }
 
-fn hang_binop_expression<'ast>(
+fn hang_binop_expression(
     ctx: &Context,
-    expression: Expression<'ast>,
-    top_binop: BinOp<'ast>,
+    expression: Expression,
+    top_binop: BinOp,
     shape: Shape,
     lhs_range: Option<LeftmostRangeHang>,
-) -> Expression<'ast> {
+) -> Expression {
     let full_expression = expression.to_owned();
 
     match expression {
@@ -558,9 +596,9 @@ fn hang_binop_expression<'ast>(
             // They should also have the same associativity
             let same_op_level = binop.precedence() == top_binop.precedence()
                 && binop.is_right_associative() == top_binop.is_right_associative();
-            let is_right_associative = top_binop.is_right_associative();
+            let is_right_associative = binop.is_right_associative();
 
-            let shape = if same_op_level {
+            let test_shape = if same_op_level {
                 shape
             } else {
                 shape.increment_additional_indent()
@@ -573,8 +611,13 @@ fn hang_binop_expression<'ast>(
             };
 
             let over_column_width =
-                is_hang_binop_over_width(shape, &full_expression, &binop, lhs_range);
-            let should_hang = same_op_level || over_column_width;
+                is_hang_binop_over_width(test_shape, &full_expression, &binop, lhs_range);
+            let should_hang = same_op_level
+                || over_column_width
+                || binop_expression_contains_comments(&full_expression, &binop);
+
+            // Only use the indented shape if we are planning to hang
+            let shape = if should_hang { test_shape } else { shape };
 
             let mut new_binop = format_binop(ctx, &binop, shape);
             if should_hang {
@@ -613,10 +656,23 @@ fn hang_binop_expression<'ast>(
                         rhs.update_leading_trivia(FormatTriviaType::Replace(Vec::new())),
                     )
                 }
-                false => (
-                    format_expression(ctx, &*lhs, shape),
-                    format_expression(ctx, &*rhs, shape),
-                ),
+                false => {
+                    // Check if the chain still has comments deeper inside of it.
+                    // If it does, we need to hang that part of the chain still, otherwise the comments will mess it up
+                    let lhs = if contains_comments(&*lhs) {
+                        hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
+                    } else {
+                        format_expression(ctx, &*lhs, shape)
+                    };
+
+                    let rhs = if contains_comments(&*rhs) {
+                        hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                    } else {
+                        format_expression(ctx, &*rhs, shape)
+                    };
+
+                    (lhs, rhs)
+                }
             };
 
             Expression::BinaryOperator {
@@ -637,13 +693,13 @@ fn hang_binop_expression<'ast>(
 }
 
 /// Internal expression formatter, where the binop is also hung
-fn format_hanging_expression_<'ast>(
+fn format_hanging_expression_(
     ctx: &Context,
-    expression: &Expression<'ast>,
+    expression: &Expression,
     shape: Shape,
     expression_context: ExpressionContext,
     lhs_range: Option<LeftmostRangeHang>,
-) -> Expression<'ast> {
+) -> Expression {
     let expression_range = expression.to_range();
 
     match expression {
@@ -780,7 +836,7 @@ fn format_hanging_expression_<'ast>(
             );
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
-            if binop_precedence_level(&lhs) >= binop.precedence()
+            if (did_hang_expression(&lhs) && binop_precedence_level(&lhs) >= binop.precedence())
                 || contains_comments(binop)
                 || get_expression_trailing_trivia(&lhs)
                     .iter()
@@ -809,12 +865,12 @@ fn format_hanging_expression_<'ast>(
     }
 }
 
-pub fn hang_expression<'ast>(
+pub fn hang_expression(
     ctx: &Context,
-    expression: &Expression<'ast>,
+    expression: &Expression,
     shape: Shape,
     hang_level: Option<usize>,
-) -> Expression<'ast> {
+) -> Expression {
     let original_additional_indent_level = shape.indent().additional_indent();
     let shape = match hang_level {
         Some(hang_level) => shape.with_indent(shape.indent().add_indent_level(hang_level)),
@@ -833,12 +889,12 @@ pub fn hang_expression<'ast>(
     )
 }
 
-pub fn hang_expression_trailing_newline<'ast>(
+pub fn hang_expression_trailing_newline(
     ctx: &Context,
-    expression: &Expression<'ast>,
+    expression: &Expression,
     shape: Shape,
     hang_level: Option<usize>,
-) -> Expression<'ast> {
+) -> Expression {
     hang_expression(ctx, expression, shape, hang_level)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
 }

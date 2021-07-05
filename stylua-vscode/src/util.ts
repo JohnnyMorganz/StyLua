@@ -7,19 +7,35 @@ import * as unzip from "unzipper";
 import fetch from "node-fetch";
 import { executeStylua } from "./stylua";
 
-const RELEASES_URL = "https://damp-breeze-6671.johnnymorganz.workers.dev/";
+const RELEASES_URL =
+  "https://api.github.com/repos/JohnnyMorganz/StyLua/releases";
 
 type GithubRelease = {
   assets: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     browser_download_url: string;
     name: string;
   }[];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   tag_name: string;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   html_url: string;
 };
 
-const getLatestRelease = async (): Promise<GithubRelease> => {
-  return await fetch(RELEASES_URL).then((r) => r.json());
+const getRelease = async (version: string): Promise<GithubRelease> => {
+  if (version === "latest") {
+    return await (await fetch(RELEASES_URL + "/latest")).json();
+  }
+
+  version = version.startsWith("v") ? version : "v" + version;
+  const releases: GithubRelease[] = await (await fetch(RELEASES_URL)).json();
+  for (const release of releases) {
+    if (release.tag_name.startsWith(version)) {
+      return release;
+    }
+  }
+
+  throw new Error(`No release version matches ${version}.`);
 };
 
 const getDownloadOutputFilename = () => {
@@ -47,6 +63,15 @@ const getAssetFilenamePattern = () => {
   }
 };
 
+const getDesiredVersion = (): string => {
+  const config = vscode.workspace.getConfiguration("stylua");
+  const targetVersion = config.get<string>("targetReleaseVersion", "").trim();
+  if (targetVersion.length === 0) {
+    return config.get<string>("releaseVersion", "latest");
+  }
+  return targetVersion;
+};
+
 export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
   const uri = path instanceof vscode.Uri ? path : vscode.Uri.file(path);
   return vscode.workspace.fs.stat(uri).then(
@@ -56,11 +81,12 @@ export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
 };
 
 const downloadStylua = async (outputDirectory: vscode.Uri) => {
-  const latestRelease = await getLatestRelease();
+  const version = getDesiredVersion();
+  const release = await getRelease(version);
   const assetFilename = getAssetFilenamePattern();
   const outputFilename = getDownloadOutputFilename();
 
-  for (const asset of latestRelease.assets) {
+  for (const asset of release.assets) {
     if (assetFilename.test(asset.name)) {
       const file = fs.createWriteStream(
         vscode.Uri.joinPath(outputDirectory, outputFilename).fsPath,
@@ -72,6 +98,7 @@ const downloadStylua = async (outputDirectory: vscode.Uri) => {
       return new Promise(async (resolve, reject) => {
         fetch(asset.browser_download_url, {
           headers: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             "User-Agent": "stylua-vscode",
           },
         })
@@ -139,10 +166,11 @@ export const ensureStyluaExists = async (
     }
 
     try {
-      const version = (await executeStylua(path, ["--version"]))?.trim();
-      const release = await getLatestRelease();
+      const currentVersion = (await executeStylua(path, ["--version"]))?.trim();
+      const desiredVersion = getDesiredVersion();
+      const release = await getRelease(desiredVersion);
       if (
-        version !==
+        currentVersion !==
         `stylua ${
           release.tag_name.startsWith("v")
             ? release.tag_name.substr(1)
@@ -153,7 +181,7 @@ export const ensureStyluaExists = async (
       }
     } catch (err) {
       vscode.window.showWarningMessage(
-        `Error checking latest StyLua version, falling back to installed version:\n${err}`
+        `Error checking the selected StyLua version, falling back to the currently installed version:\n${err}`
       );
     }
 
@@ -164,14 +192,14 @@ export const ensureStyluaExists = async (
 function openUpdatePrompt(directory: vscode.Uri, release: GithubRelease) {
   vscode.window
     .showInformationMessage(
-      `There's an update available for StyLua: ${release.tag_name}`,
-      "Install Update",
+      `StyLua ${release.tag_name} is available to install.`,
+      "Install",
       "Later",
       "Release Notes"
     )
     .then((option) => {
       switch (option) {
-        case "Install Update":
+        case "Install":
           downloadStyLuaVisual(directory);
           break;
         case "Release Notes":

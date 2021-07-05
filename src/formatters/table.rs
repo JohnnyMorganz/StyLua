@@ -27,12 +27,12 @@ pub enum TableType {
     Empty,
 }
 
-fn format_field<'ast>(
+fn format_field(
     ctx: &Context,
-    field: &Field<'ast>,
+    field: &Field,
     table_type: TableType,
     shape: Shape,
-) -> (Field<'ast>, Vec<Token<'ast>>) {
+) -> (Field, Vec<Token>) {
     let leading_trivia = match table_type {
         TableType::MultiLine => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
         _ => FormatTriviaType::NoChange,
@@ -122,13 +122,13 @@ fn format_field<'ast>(
     (field, trailing_trivia)
 }
 
-pub fn create_table_braces<'ast>(
+pub fn create_table_braces(
     ctx: &Context,
-    start_brace: &TokenReference<'ast>,
-    end_brace: &TokenReference<'ast>,
+    start_brace: &TokenReference,
+    end_brace: &TokenReference,
     table_type: TableType,
     shape: Shape,
-) -> ContainedSpan<'ast> {
+) -> ContainedSpan {
     match table_type {
         TableType::MultiLine => {
             // Format start and end brace properly with correct trivia
@@ -176,28 +176,36 @@ pub fn create_table_braces<'ast>(
     }
 }
 
-/// Formats a table constructor onto a single line.
+/// Formats a table onto a single line.
+/// Takes in a [`ContainedSpan`] representing the braces, and the fields within the table.
+/// This function is generic to support [`TableConstructor`] and [`TypeInfo::Table`] in Luau.
 /// This function does not perform any length checking, or checking whether comments are present.
-fn format_singleline_table<'ast>(
+pub fn format_singleline_table<T, U>(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    braces: &ContainedSpan,
+    fields: &Punctuated<T>,
+    formatter: U,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> (ContainedSpan, Punctuated<T>)
+where
+    T: std::fmt::Display,
+    U: Fn(&Context, &T, TableType, Shape) -> (T, Vec<Token>),
+{
     let table_type = TableType::SingleLine;
 
-    let (start_brace, end_brace) = table_constructor.braces().tokens();
+    let (start_brace, end_brace) = braces.tokens();
     let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
     let mut shape = shape + 2; // 2 = "{ "
 
+    let mut current_fields = fields.pairs().peekable();
     let mut fields = Punctuated::new();
-    let mut current_fields = table_constructor.fields().pairs().peekable();
 
     while let Some(pair) = current_fields.next() {
         let (field, punctuation) = (pair.value(), pair.punctuation());
 
         // Format the field. We will ignore the taken trailing trivia, as we do not need it.
         // (If there were any comments present, this function should never have been called)
-        let formatted_field = format_field(ctx, field, table_type, shape).0;
+        let formatted_field = formatter(ctx, field, table_type, shape).0;
 
         let formatted_punctuation = match current_fields.peek() {
             Some(_) => {
@@ -214,26 +222,32 @@ fn format_singleline_table<'ast>(
         fields.push(Pair::new(formatted_field, formatted_punctuation))
     }
 
-    TableConstructor::new()
-        .with_braces(braces)
-        .with_fields(fields)
+    (braces, fields)
 }
 
-/// Expands a table constructor to format it onto multiple lines
+/// Expands a table's fields to format it onto multiple lines
+/// Takes in a [`ContainedSpan`] representing the braces, and the fields within the table.
+/// This function is generic to support [`TableConstructor`] and [`TypeInfo::Table`] in Luau.
 /// This function does not perform any length checking.
-fn format_multiline_table<'ast>(
+pub fn format_multiline_table<T, U>(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    braces: &ContainedSpan,
+    fields: &Punctuated<T>,
+    formatter: U,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> (ContainedSpan, Punctuated<T>)
+where
+    T: std::fmt::Display,
+    U: Fn(&Context, &T, TableType, Shape) -> (T, Vec<Token>),
+{
     let table_type = TableType::MultiLine;
 
-    let (start_brace, end_brace) = table_constructor.braces().tokens();
+    let (start_brace, end_brace) = braces.tokens();
     let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
     let mut shape = shape.reset().increment_additional_indent(); // Will take new line, and additional indentation
 
+    let current_fields = fields.pairs();
     let mut fields = Punctuated::new();
-    let current_fields = table_constructor.fields().pairs();
 
     for pair in current_fields {
         let (field, punctuation) = (pair.value(), pair.punctuation());
@@ -242,7 +256,7 @@ fn format_multiline_table<'ast>(
         shape = shape.reset();
 
         // Format the field
-        let (formatted_field, mut trailing_trivia) = format_field(ctx, field, table_type, shape);
+        let (formatted_field, mut trailing_trivia) = formatter(ctx, field, table_type, shape);
 
         // If trivia is just whitespace, ignore it completely
         if trailing_trivia
@@ -273,9 +287,7 @@ fn format_multiline_table<'ast>(
         fields.push(Pair::new(formatted_field, formatted_punctuation))
     }
 
-    TableConstructor::new()
-        .with_braces(braces)
-        .with_fields(fields)
+    (braces, fields)
 }
 
 fn expression_is_multiline_function(expression: &Expression) -> bool {
@@ -322,11 +334,11 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
     }
 }
 
-pub fn format_table_constructor<'ast>(
+pub fn format_table_constructor(
     ctx: &Context,
-    table_constructor: &TableConstructor<'ast>,
+    table_constructor: &TableConstructor,
     shape: Shape,
-) -> TableConstructor<'ast> {
+) -> TableConstructor {
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
     // Determine if we need to force the table multiline
@@ -337,10 +349,18 @@ pub fn format_table_constructor<'ast>(
         (true, _) => TableType::MultiLine,
 
         (false, Some(_)) => {
-            // Format the table onto a single line, then take the shape to determine if we are over budget
-            let singleline_table =
-                format_singleline_table(ctx, table_constructor, shape.with_infinite_width());
-            let singleline_shape = shape.take_first_line(&strip_trivia(&singleline_table));
+            // Compare the difference between the position of the start brace and the end brace to
+            // guess how long the table is. This heuristic is very naiive, since it relies on the input.
+            // If the input is badly formatted (e.g. lots of spaces in the table), then it would flag this over width.
+            // However, this is currently our best solution: attempting to format the input onto a single line to
+            // see if we are over width (both completely and in a fail-fast shape.over_budget() check) leads to
+            // exponential time complexity with respect to how deep the table is.
+            // TODO: find an improved heuristic whilst comparing against benchmarks
+            let braces_range = (
+                start_brace.token().end_position().bytes(),
+                end_brace.token().start_position().bytes(),
+            );
+            let singleline_shape = shape + (braces_range.1 - braces_range.0);
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
@@ -362,12 +382,28 @@ pub fn format_table_constructor<'ast>(
         (false, None) => TableType::Empty,
     };
 
-    match table_type {
+    let (braces, fields) = match table_type {
         TableType::Empty => {
             let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
-            TableConstructor::new().with_braces(braces)
+            (braces, Punctuated::new())
         }
-        TableType::SingleLine => format_singleline_table(ctx, table_constructor, shape),
-        TableType::MultiLine => format_multiline_table(ctx, table_constructor, shape),
-    }
+        TableType::SingleLine => format_singleline_table(
+            ctx,
+            table_constructor.braces(),
+            table_constructor.fields(),
+            format_field,
+            shape,
+        ),
+        TableType::MultiLine => format_multiline_table(
+            ctx,
+            table_constructor.braces(),
+            table_constructor.fields(),
+            format_field,
+            shape,
+        ),
+    };
+
+    TableConstructor::new()
+        .with_braces(braces)
+        .with_fields(fields)
 }

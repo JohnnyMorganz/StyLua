@@ -6,3 +6,9 @@ export type IntrospectionNamedTypeRef<
   name: string,
   ofType: T -- TODO: this field is missing
 }
+
+export type ReactScopeQuery = (
+	string, -- type
+	{ [any]: any }, -- props
+	any -- instance
+) -> boolean

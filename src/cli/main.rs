@@ -3,6 +3,7 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
+use std::time::Instant;
 use structopt::StructOpt;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
@@ -11,26 +12,49 @@ mod config;
 mod opt;
 mod output_diff;
 
+#[macro_export]
+macro_rules! verbose_println {
+    ($verbosity:expr, $str:expr) => {
+        if $verbosity {
+            println!($str);
+        }
+    };
+    ($verbosity:expr, $str:expr, $($arg:tt)*) => {
+        if $verbosity {
+            println!($str, $($arg)*);
+        }
+    };
+}
+
 fn format_file(
     path: &Path,
     config: Config,
     range: Option<Range>,
-    check_only: bool,
+    opt: &opt::Opt,
     verify_output: OutputVerification,
-    color: opt::Color,
 ) -> Result<i32> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
+
+    let before_formatting = Instant::now();
     let formatted_contents = format_code(&contents, config, range, verify_output)
         .with_context(|| format!("Could not format file {}", path.display()))?;
+    let after_formatting = Instant::now();
 
-    if check_only {
+    verbose_println!(
+        opt.verbose,
+        "formatted {} in {:?}",
+        path.display(),
+        after_formatting.duration_since(before_formatting)
+    );
+
+    if opt.check {
         let is_diff = output_diff::output_diff(
             &contents,
             &formatted_contents,
             3,
             format!("Diff in {}:", path.display()),
-            color,
+            opt.color,
         );
         Ok(if is_diff { 1 } else { 0 })
     } else {
@@ -64,6 +88,10 @@ fn format(opt: opt::Opt) -> Result<i32> {
     // Load the configuration
     let config = config::load_config(&opt)?;
 
+    // Handle any configuration overrides provided by options
+    let config = config::load_overrides(config, &opt);
+    verbose_println!(opt.verbose, "config: {:#?}", config);
+
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
         Some(Range::from_values(opt.range_start, opt.range_end))
@@ -96,11 +124,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
         .add_custom_ignore_filename(".styluaignore");
 
     let use_default_glob = match opt.glob {
-        Some(globs) => {
+        Some(ref globs) => {
             // Build overriders with any patterns given
             let mut overrides = OverrideBuilder::new(cwd);
             for pattern in globs {
-                match overrides.add(&pattern) {
+                match overrides.add(pattern) {
                     Ok(_) => continue,
                     Err(err) => errors.push(format_err!(
                         "error: cannot parse glob pattern {}: {}",
@@ -144,7 +172,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     if path.is_file() {
                         // If the user didn't provide a glob pattern, we should match against our default one
                         // We should ignore the glob check if the path provided was explicitly given to the CLI
-                        if use_default_glob && opt.files.iter().find(|p| path == *p).is_none() {
+                        if use_default_glob && !opt.files.iter().any(|p| path == *p) {
                             lazy_static::lazy_static! {
                                 static ref DEFAULT_GLOB: globset::GlobMatcher = globset::Glob::new("**/*.lua").expect("cannot create default glob").compile_matcher();
                             }
@@ -152,8 +180,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                                 continue;
                             }
                         }
-                        match format_file(path, config, range, opt.check, verify_output, opt.color)
-                        {
+                        match format_file(path, config, range, &opt, verify_output) {
                             Ok(code) => {
                                 if code != 0 {
                                     error_code = code

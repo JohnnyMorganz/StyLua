@@ -42,6 +42,27 @@
     "configuration": {
       "title": "StyLua",
       "properties": {
+        "stylua.releaseVersion": {
+          "type": "string",
+          "default": "latest",
+          "enum": [
+            "latest",
+            "v0.9",
+            "v0.8",
+            "v0.7",
+            "v0.6",
+            "v0.5"
+          ],
+          "enumDescriptions": [
+            "The most recent version released. This will always keep you up to date."
+          ],
+          "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`."
+        },
+        "stylua.targetReleaseVersion": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Target a specific release version tag such as `v0.9.1` or `v0.9`. This overrides the version set by `#stylua.releaseVersion#`."
+        },
         "stylua.styluaPath": {
           "type": [
             "string",
@@ -59,6 +80,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
+    "format": "prettier --write src",
+    "check:format": "prettier --check src",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
@@ -73,6 +96,7 @@
     "eslint": "^7.20.0",
     "glob": "^7.1.6",
     "mocha": "^8.3.0",
+    "prettier": "^2.3.1",
     "typescript": "^4.2.2",
     "vscode-test": "^1.5.1"
   },

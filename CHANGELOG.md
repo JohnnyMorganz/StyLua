@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added flag `--verify` which, when enabled, attempts to verify the generated output AST with the input AST to detect any changes to code correctness. Useful for adopting StyLua into a large codebase, at the cost of slower processing. ([#199](https://github.com/JohnnyMorganz/StyLua/issues/199))
+- Added optional command line options `--column-width`, `--indent-type`, `--indent-width`, `--line-endings` and `--quote-style`, which, when provided, will override any configuration setting inferred from the default or a `stylua.toml`. ([#213](https://github.com/JohnnyMorganz/StyLua/issues/213))
+
+### Changed
+- Luau type tables (`luau` feature flag) now use the same formatting strategy as normal expression tables, so that their formatting is more aligned.
+- Luau typings now have improved checking against the current shape width to determine how to format if over column width.
+- Luau callback types will now format multiline if they become over width under the `luau` feature flag.
+- Improved the formatting of return expressions, they are now more in line with assignment expressions. ([#194](https://github.com/JohnnyMorganz/StyLua/issues/194))
+
+### Fixed
+- Fixed comments inside Luau type tables leading to malformed formatting under the `luau` feature flag. ([#219](https://github.com/JohnnyMorganz/StyLua/issues/219))
+- Fixed multiple assignment where an expression was originally hung due to comments being collapsed leading to malformed formatting. ([#222](https://github.com/JohnnyMorganz/StyLua/issues/222))
+
+## [0.9.3] - 2021-06-26
+### Added
+- Added `--verbose` to print debug information, including finding config files and time taken to format files.
+
+### Fixed
+- Fixed severe performance regression due to a change in table formatting leading to exponential blowup for nested tables. ([#205](https://github.com/JohnnyMorganz/StyLua/issues/205))
+- Fixed long binop chains with a comment deep inside not being hung, leading to a syntax error. ([#210](https://github.com/JohnnyMorganz/StyLua/issues/210))
+
+## [0.9.2] - 2021-06-20
+### Changed
+- Bumped full-moon to `0.12.1` to fix parsing bugs
+
+### Fixed
+- Fixed parentheses around type assertions being classed as unnecessary and removed under the `luau` feature flag.
+- Fixed mistransformation of function type where arguments have comments under the `luau` feature flag. ([#201](https://github.com/JohnnyMorganz/StyLua/issues/201))
+- Fixed comments in an assignment in between the equals token and the expression leading to a mistransformation. ([#200](https://github.com/JohnnyMorganz/StyLua/issues/200))
 
 ## [0.9.1] - 2021-06-17
 ### Added
