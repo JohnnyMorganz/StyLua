@@ -1,11 +1,11 @@
 use anyhow::{format_err, Result};
-use full_moon::node::Node;
 use serde::Deserialize;
 
 #[macro_use]
 mod context;
 mod formatters;
 mod shape;
+mod verify_ast;
 
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, Deserialize)]
@@ -211,7 +211,8 @@ pub fn format_code(
             }
         };
 
-        if !input_ast.to_owned().similar(&reparsed_output) {
+        let mut ast_verifier = verify_ast::AstVerifier::new();
+        if !ast_verifier.compare(input_ast, reparsed_output) {
             return Err(format_err!(
                 "INTERNAL ERROR: Output AST is different to input AST. Code correctness may have changed. Please report this at https://github.com/johnnymorganz/stylua/issues"
             ));
