@@ -113,7 +113,7 @@ impl VisitorMut for AstVerifier {
         }
     }
 
-    fn visit_expression(&mut self, node: Expression) ->Expression {
+    fn visit_expression(&mut self, node: Expression) -> Expression {
         // There are places where we remove parentheses.
         // TODO: is this too eager? will we lose out in finding differences by doing this?
         remove_parentheses(node)
@@ -155,14 +155,18 @@ impl VisitorMut for AstVerifier {
 
     fn visit_string_literal(&mut self, token: Token) -> Token {
         // We change the string quotes of our progrem.
-        // Convert all string literals to brackets quotes. This is so that we have no difference when comparing two ASTs.
+        // Convert all string literals to brackets quotes, and remove any quote escapes.
         let token_type = match token.token_type() {
             TokenType::StringLiteral {
                 literal,
                 multi_line,
                 ..
             } => TokenType::StringLiteral {
-                literal: literal.to_owned(),
+                literal: literal
+                    .to_owned()
+                    .replace("\\\"", "\"")
+                    .replace("\\'", "'")
+                    .into(),
                 multi_line: multi_line.to_owned(),
                 quote_type: StringLiteralQuoteType::Brackets,
             },
