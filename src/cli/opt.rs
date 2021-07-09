@@ -2,6 +2,10 @@ use std::path::PathBuf;
 use structopt::{clap::arg_enum, StructOpt};
 use stylua_lib::{IndentType, LineEndings, QuoteStyle};
 
+lazy_static::lazy_static! {
+    static ref NUM_CPUS: String = num_cpus::get().to_string();
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
 pub struct Opt {
@@ -41,6 +45,10 @@ pub struct Opt {
     /// To ignore a specific glob pattern, begin the glob pattern with `!`
     #[structopt(short, long)]
     pub glob: Option<Vec<String>>,
+
+    /// The number of threads to use to format files in parallel. Defaults to the number of logical cores on your system.
+    #[structopt(long, default_value = &NUM_CPUS)]
+    pub num_threads: usize,
 
     /// A starting range to format files, given as a byte offset from the beginning of the file.
     /// Any content before this value will be ignored.

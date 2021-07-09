@@ -1,9 +1,11 @@
 // Based off https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
 // Licensed under https://github.com/mitsuhiko/similar/blob/main/LICENSE
 use crate::opt;
+use anyhow::Result;
 use console::{style, Style, Term};
 use similar::{ChangeTag, TextDiff};
 use std::fmt;
+use std::io::Write;
 
 struct Line(Option<usize>);
 
@@ -22,15 +24,17 @@ pub fn output_diff(
     context_size: usize,
     title: String,
     color: opt::Color,
-) -> bool {
+) -> Result<Option<Vec<u8>>> {
     let diff = TextDiff::from_lines(old, new);
     let diff_opts = diff.grouped_ops(context_size);
     let mut iter = diff_opts.iter().enumerate().peekable();
 
     if iter.peek().is_none() {
         // There are no changes
-        return false;
+        return Ok(None);
     }
+
+    let mut buffer = Vec::new();
 
     let should_use_color = match color {
         opt::Color::Always => true,
@@ -43,11 +47,11 @@ pub fn output_diff(
     };
 
     // Print out the header title
-    println!("{}", title);
+    writeln!(&mut buffer, "{}", title)?;
 
     for (idx, group) in iter {
         if idx > 0 {
-            println!("{:-^1$}", "-", 80);
+            writeln!(&mut buffer, "{:-^1$}", "-", 80)?;
         }
         for op in group {
             for change in diff.iter_inline_changes(op) {
@@ -56,7 +60,8 @@ pub fn output_diff(
                     ChangeTag::Insert => ("+", Style::new().green()),
                     ChangeTag::Equal => (" ", Style::new().dim()),
                 };
-                print!(
+                write!(
+                    &mut buffer,
                     "{}{} |{}",
                     style(Line(change.old_index()))
                         .dim()
@@ -65,26 +70,31 @@ pub fn output_diff(
                         .dim()
                         .force_styling(should_use_color),
                     s.apply_to(sign).bold().force_styling(should_use_color),
-                );
+                )?;
                 for (emphasized, value) in change.iter_strings_lossy() {
                     if emphasized {
-                        print!(
+                        write!(
+                            &mut buffer,
                             "{}",
                             s.apply_to(value)
                                 .underlined()
                                 .on_black()
                                 .force_styling(should_use_color)
-                        );
+                        )?;
                     } else {
-                        print!("{}", s.apply_to(value).force_styling(should_use_color));
+                        write!(
+                            &mut buffer,
+                            "{}",
+                            s.apply_to(value).force_styling(should_use_color)
+                        )?;
                     }
                 }
                 if change.missing_newline() {
-                    println!();
+                    writeln!(&mut buffer)?;
                 }
             }
         }
     }
 
-    true
+    Ok(Some(buffer))
 }
