@@ -6,13 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added optional command line options `--column-width`, `--indent-type`, `--indent-width`, `--line-endings` and `--quote-style`, which, when provided, will override any configuration setting inferred from the default or a `stylua.toml`. ([#213](https://github.com/JohnnyMorganz/StyLua/issues/213))
 - Added multithreaded support for formatting file in the CLI. Now each file will be formatted in its own thread. The number of threads used defaults to the number of cores on your computer, but can be set using `--num-threads`
 
 ### Changed
+- Luau type tables (`luau` feature flag) now use the same formatting strategy as normal expression tables, so that their formatting is more aligned.
+- Luau typings now have improved checking against the current shape width to determine how to format if over column width.
+- Luau callback types will now format multiline if they become over width under the `luau` feature flag.
+- Improved the formatting of return expressions, they are now more in line with assignment expressions. ([#194](https://github.com/JohnnyMorganz/StyLua/issues/194))
 - Changed buffering of error messages in the CLI. Originally, they would be buffered till the end, but now they are output immediately when seen.
 - Allowed the use of `--check` when taking input from stdin.
 - An error when parsing provided globs will cause the program to immediately exit rather than continuing with the incorrect glob.
 - Only diff errors will exit with a status code of `1`. Other errors (e.g. parse errors or internal errors) will now exit with status code of `2`.
+
+### Fixed
+- Fixed comments inside Luau type tables leading to malformed formatting under the `luau` feature flag. ([#219](https://github.com/JohnnyMorganz/StyLua/issues/219))
+- Fixed multiple assignment where an expression was originally hung due to comments being collapsed leading to malformed formatting. ([#222](https://github.com/JohnnyMorganz/StyLua/issues/222))
 
 ## [0.9.3] - 2021-06-26
 ### Added

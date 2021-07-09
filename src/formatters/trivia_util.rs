@@ -2,7 +2,7 @@ use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTra
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeField, TypeInfo};
+use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
 use full_moon::ast::{Block, FunctionBody};
 use full_moon::{
     ast::{
@@ -33,7 +33,7 @@ pub fn trivia_is_newline(trivia: &Token) -> bool {
     false
 }
 
-pub fn trivia_contains_newline<'ast>(trivia_vec: impl Iterator<Item = &'ast Token<'ast>>) -> bool {
+pub fn trivia_contains_newline<'a>(trivia_vec: impl Iterator<Item = &'a Token>) -> bool {
     for trivia in trivia_vec {
         if trivia_is_newline(trivia) {
             return true;
@@ -82,7 +82,7 @@ pub fn is_function_empty(function_body: &FunctionBody) -> bool {
 }
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
-fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Vec<Token<'ast>> {
+fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
     match function_args {
         FunctionArgs::Parentheses { parentheses, .. } => {
             let (_, end_brace) = parentheses.tokens();
@@ -100,7 +100,7 @@ fn function_args_trailing_trivia<'ast>(function_args: &FunctionArgs<'ast>) -> Ve
     }
 }
 
-fn suffix_trailing_trivia<'ast>(suffix: &Suffix<'ast>) -> Vec<Token<'ast>> {
+fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
     match suffix {
         Suffix::Index(index) => match index {
             Index::Brackets { brackets, .. } => {
@@ -120,9 +120,7 @@ fn suffix_trailing_trivia<'ast>(suffix: &Suffix<'ast>) -> Vec<Token<'ast>> {
 }
 
 #[cfg(feature = "luau")]
-fn indexed_type_info_trailing_trivia<'ast>(
-    indexed_type_info: &IndexedTypeInfo<'ast>,
-) -> Vec<Token<'ast>> {
+fn indexed_type_info_trailing_trivia(indexed_type_info: &IndexedTypeInfo) -> Vec<Token> {
     match indexed_type_info {
         IndexedTypeInfo::Basic(token_reference) => token_reference
             .trailing_trivia()
@@ -137,7 +135,7 @@ fn indexed_type_info_trailing_trivia<'ast>(
 }
 
 #[cfg(feature = "luau")]
-fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast>> {
+pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
     match type_info {
         TypeInfo::Array { braces, .. } => {
             let (_, end_brace) = braces.tokens();
@@ -184,7 +182,7 @@ fn type_info_trailing_trivia<'ast>(type_info: &TypeInfo<'ast>) -> Vec<Token<'ast
     }
 }
 
-fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
+fn var_trailing_trivia(var: &Var) -> Vec<Token> {
     match var {
         Var::Name(token_reference) => token_reference
             .trailing_trivia()
@@ -202,7 +200,7 @@ fn var_trailing_trivia<'ast>(var: &Var<'ast>) -> Vec<Token<'ast>> {
     }
 }
 
-pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> {
+pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
     match value {
         Value::Function((_, function_body)) => function_body
             .end_token()
@@ -239,7 +237,7 @@ pub fn get_value_trailing_trivia<'ast>(value: &Value<'ast>) -> Vec<Token<'ast>> 
     }
 }
 
-pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
+pub fn get_expression_trailing_trivia(expression: &Expression) -> Vec<Token> {
     match expression {
         Expression::Parentheses { contained, .. } => {
             let (_, end_parentheses) = contained.tokens();
@@ -266,7 +264,7 @@ pub fn get_expression_trailing_trivia<'ast>(expression: &Expression<'ast>) -> Ve
     }
 }
 
-pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
+pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
     match expression {
         Expression::Parentheses { contained, .. } => contained
             .tokens()
@@ -320,7 +318,7 @@ pub fn get_expression_leading_trivia<'ast>(expression: &Expression<'ast>) -> Vec
     }
 }
 
-pub fn binop_leading_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
     match binop {
         BinOp::And(token)
         | BinOp::Caret(token)
@@ -345,7 +343,7 @@ pub fn binop_leading_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
     }
 }
 
-pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
+pub fn binop_trailing_comments(binop: &BinOp) -> Vec<Token> {
     match binop {
         BinOp::And(token)
         | BinOp::Caret(token)
@@ -375,7 +373,7 @@ pub fn binop_trailing_comments<'ast>(binop: &BinOp<'ast>) -> Vec<Token<'ast>> {
     }
 }
 
-pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<Token<'ast>> {
+pub fn expression_leading_comments(expression: &Expression) -> Vec<Token> {
     get_expression_leading_trivia(expression)
         .iter()
         .filter(|token| trivia_is_comment(token))
@@ -383,9 +381,7 @@ pub fn expression_leading_comments<'ast>(expression: &Expression<'ast>) -> Vec<T
         .collect()
 }
 
-pub fn take_expression_leading_comments<'ast>(
-    expression: &Expression<'ast>,
-) -> (Expression<'ast>, Vec<Token<'ast>>) {
+pub fn take_expression_leading_comments(expression: &Expression) -> (Expression, Vec<Token>) {
     let trailing_comments = get_expression_leading_trivia(expression)
         .iter()
         .filter(|token| trivia_is_comment(token))
@@ -400,9 +396,7 @@ pub fn take_expression_leading_comments<'ast>(
     )
 }
 
-pub fn take_expression_trailing_comments<'ast>(
-    expression: &Expression<'ast>,
-) -> (Expression<'ast>, Vec<Token<'ast>>) {
+pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression, Vec<Token>) {
     let trailing_comments = get_expression_trailing_trivia(expression)
         .iter()
         .filter(|token| trivia_is_comment(token))
@@ -415,28 +409,6 @@ pub fn take_expression_trailing_comments<'ast>(
 
     (
         expression.update_trailing_trivia(
-            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-        ),
-        trailing_comments,
-    )
-}
-
-#[cfg(feature = "luau")]
-pub fn take_type_field_trailing_comments(
-    type_field: TypeField<'_>,
-) -> (TypeField<'_>, Vec<Token<'_>>) {
-    let trailing_comments = type_info_trailing_trivia(type_field.value())
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .flatten()
-        .collect();
-
-    (
-        type_field.update_trailing_trivia(
             FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
         ),
         trailing_comments,
@@ -904,9 +876,7 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
     }
 }
 
-pub fn token_trivia_contains_comments<'ast>(
-    trivia: impl Iterator<Item = &'ast Token<'ast>>,
-) -> bool {
+pub fn token_trivia_contains_comments<'a>(trivia: impl Iterator<Item = &'a Token>) -> bool {
     for trivia in trivia {
         if trivia_is_comment(trivia) {
             return true;
@@ -928,7 +898,7 @@ pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
         || token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-pub fn contains_comments<'ast>(node: impl Node<'ast>) -> bool {
+pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().into_iter().any(token_contains_comments)
 }
 

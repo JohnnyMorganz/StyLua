@@ -130,6 +130,10 @@ fn format(opt: opt::Opt) -> Result<i32> {
     // Load the configuration
     let config = config::load_config(&opt)?;
 
+    // Handle any configuration overrides provided by options
+    let config = config::load_overrides(config, &opt);
+    verbose_println!(opt.verbose, "config: {:#?}", config);
+
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
         Some(Range::from_values(opt.range_start, opt.range_end))

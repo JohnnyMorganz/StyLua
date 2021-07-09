@@ -284,9 +284,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "full_moon"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfcfdfb0ffeea62577ebc49caca24a4043c2f933f609f856648692bb9decf084"
+checksum = "fecfdca7f965196bf56d5be8ae6775878fa8195328f33c2a0c6c9fde4e3b5636"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -295,13 +295,14 @@ dependencies = [
  "paste",
  "peg",
  "serde",
+ "smol_str",
 ]
 
 [[package]]
 name = "full_moon_derive"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcca58f0025a2a265296475b86101d16cc3e3ca284528aa39edd738e6d896449"
+checksum = "baa95cb901833d1471ca963baa39f1abffdc912798b8a64ac9b364ea98f4725c"
 dependencies = [
  "indexmap",
  "proc-macro2",
@@ -818,6 +819,15 @@ name = "similar"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad1d488a557b235fc46dae55512ffbfc429d2482b08b4d9435ab07384ca8aec"
+
+[[package]]
+name = "smol_str"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b203e79e90905594272c1c97c7af701533d42adaab0beb3859018e477d54a3b0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "strsim"

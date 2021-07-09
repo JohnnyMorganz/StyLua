@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeAssertion, TypeField, TypeInfo, TypeSpecifier};
+use full_moon::ast::types::{
+    IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+};
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
@@ -9,60 +11,60 @@ use full_moon::tokenizer::{Token, TokenReference};
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
 #[derive(Clone, Debug)]
-pub enum FormatTriviaType<'ast> {
+pub enum FormatTriviaType {
     /// Trivia will be added to the end of the current trivia
-    Append(Vec<Token<'ast>>),
+    Append(Vec<Token>),
     /// The current trivia will be replaced with the new trivia
-    Replace(Vec<Token<'ast>>),
+    Replace(Vec<Token>),
     /// Trivia will not be changed
     NoChange,
 }
 
 /// Strips all leading and trailing trivia from a specific node.
 /// This is useful if we need to use the node to calculate sizing, whilst we do not want trivia included
-pub fn strip_trivia<'ast, T>(item: &T) -> T
+pub fn strip_trivia<T>(item: &T) -> T
 where
-    T: UpdateLeadingTrivia<'ast> + UpdateTrailingTrivia<'ast>,
+    T: UpdateLeadingTrivia + UpdateTrailingTrivia,
 {
     item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
         .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
 }
 
-pub fn strip_leading_trivia<'ast, T>(item: &T) -> T
+pub fn strip_leading_trivia<T>(item: &T) -> T
 where
-    T: UpdateLeadingTrivia<'ast>,
+    T: UpdateLeadingTrivia,
 {
     item.update_leading_trivia(FormatTriviaType::Replace(vec![]))
 }
 
-pub fn strip_trailing_trivia<'ast, T>(item: &T) -> T
+pub fn strip_trailing_trivia<T>(item: &T) -> T
 where
-    T: UpdateTrailingTrivia<'ast>,
+    T: UpdateTrailingTrivia,
 {
     item.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
 }
 
-pub trait UpdateLeadingTrivia<'ast> {
-    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self;
+pub trait UpdateLeadingTrivia {
+    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType) -> Self;
 }
 
-pub trait UpdateTrailingTrivia<'ast> {
-    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self;
+pub trait UpdateTrailingTrivia {
+    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType) -> Self;
 }
 
-pub trait UpdateTrivia<'ast> {
+pub trait UpdateTrivia {
     fn update_trivia(
         &self,
-        leading_trivia: FormatTriviaType<'ast>,
-        trailing_trivia: FormatTriviaType<'ast>,
+        leading_trivia: FormatTriviaType,
+        trailing_trivia: FormatTriviaType,
     ) -> Self;
 }
 
-impl<'ast, T> UpdateLeadingTrivia<'ast> for T
+impl<T> UpdateLeadingTrivia for T
 where
-    T: UpdateTrivia<'ast>,
+    T: UpdateTrivia,
 {
-    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self
+    fn update_leading_trivia(&self, leading_trivia: FormatTriviaType) -> Self
     where
         Self: std::marker::Sized,
     {
@@ -70,11 +72,11 @@ where
     }
 }
 
-impl<'ast, T> UpdateTrailingTrivia<'ast> for T
+impl<T> UpdateTrailingTrivia for T
 where
-    T: UpdateTrivia<'ast>,
+    T: UpdateTrivia,
 {
-    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self
+    fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType) -> Self
     where
         Self: std::marker::Sized,
     {
@@ -82,11 +84,11 @@ where
     }
 }
 
-impl<'ast> UpdateTrivia<'ast> for TokenReference<'ast> {
+impl UpdateTrivia for TokenReference {
     fn update_trivia(
         &self,
-        leading_trivia: FormatTriviaType<'ast>,
-        trailing_trivia: FormatTriviaType<'ast>,
+        leading_trivia: FormatTriviaType,
+        trailing_trivia: FormatTriviaType,
     ) -> Self {
         let added_leading_trivia = match leading_trivia {
             FormatTriviaType::Append(trivia) => {
@@ -117,11 +119,11 @@ impl<'ast> UpdateTrivia<'ast> for TokenReference<'ast> {
 
 macro_rules! define_update_trivia {
     ($node:ident, |$self:ident, $leading_trivia:ident, $trailing_trivia:ident| $body:expr) => {
-        define_update_trivia! {$node, |$self:&$node<'ast>, $leading_trivia: FormatTriviaType<'ast>, $trailing_trivia: FormatTriviaType<'ast>| $body}
+        define_update_trivia! {$node, |$self:&$node, $leading_trivia: FormatTriviaType, $trailing_trivia: FormatTriviaType| $body}
     };
     ($node:ident, $body:expr) => {
-        impl<'ast> UpdateTrivia<'ast> for $node<'ast> {
-            fn update_trivia(&self, leading_trivia: FormatTriviaType<'ast>, trailing_trivia: FormatTriviaType<'ast>) -> Self {
+        impl UpdateTrivia for $node {
+            fn update_trivia(&self, leading_trivia: FormatTriviaType, trailing_trivia: FormatTriviaType) -> Self {
                 $body(&self, leading_trivia, trailing_trivia)
             }
         }
@@ -130,11 +132,11 @@ macro_rules! define_update_trivia {
 
 macro_rules! define_update_leading_trivia {
     ($node:ident, |$self:ident, $leading_trivia:ident| $body:expr) => {
-        define_update_leading_trivia! {$node, |$self:&$node<'ast>, $leading_trivia: FormatTriviaType<'ast>| $body}
+        define_update_leading_trivia! {$node, |$self:&$node, $leading_trivia: FormatTriviaType| $body}
     };
     ($node:ident, $body:expr) => {
-        impl<'ast> UpdateLeadingTrivia<'ast> for $node<'ast> {
-            fn update_leading_trivia(&self, leading_trivia: FormatTriviaType<'ast>) -> Self {
+        impl UpdateLeadingTrivia for $node {
+            fn update_leading_trivia(&self, leading_trivia: FormatTriviaType) -> Self {
                 $body(&self, leading_trivia)
             }
         }
@@ -143,11 +145,11 @@ macro_rules! define_update_leading_trivia {
 
 macro_rules! define_update_trailing_trivia {
     ($node:ident, |$self:ident, $trailing_trivia:ident| $body:expr) => {
-        define_update_trailing_trivia! {$node, |$self:&$node<'ast>, $trailing_trivia: FormatTriviaType<'ast>| $body}
+        define_update_trailing_trivia! {$node, |$self:&$node, $trailing_trivia: FormatTriviaType| $body}
     };
     ($node:ident, $body:expr) => {
-        impl<'ast> UpdateTrailingTrivia<'ast> for $node<'ast> {
-            fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType<'ast>) -> Self {
+        impl UpdateTrailingTrivia for $node {
+            fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType) -> Self {
                 $body(&self, trailing_trivia)
             }
         }
@@ -312,7 +314,7 @@ define_update_trivia!(FunctionCall, |this, leading, trailing| {
         _ => this.prefix().update_leading_trivia(leading),
     };
 
-    let mut suffixes: Vec<Suffix<'ast>> = this.suffixes().map(|x| x.to_owned()).collect();
+    let mut suffixes: Vec<Suffix> = this.suffixes().map(|x| x.to_owned()).collect();
     match trailing {
         FormatTriviaType::NoChange => (),
         _ => {
@@ -384,11 +386,11 @@ define_update_leading_trivia!(Prefix, |this, leading| {
     }
 });
 
-impl<'ast, T> UpdateLeadingTrivia<'ast> for Punctuated<'ast, T>
+impl<T> UpdateLeadingTrivia for Punctuated<T>
 where
-    T: UpdateLeadingTrivia<'ast> + Clone,
+    T: UpdateLeadingTrivia + Clone,
 {
-    fn update_leading_trivia(&self, leading: FormatTriviaType<'ast>) -> Self {
+    fn update_leading_trivia(&self, leading: FormatTriviaType) -> Self {
         let mut punctuated = Punctuated::new();
         let mut pairs = self.to_owned().into_pairs();
 
@@ -410,11 +412,11 @@ where
     }
 }
 
-impl<'ast, T> UpdateTrailingTrivia<'ast> for Punctuated<'ast, T>
+impl<T> UpdateTrailingTrivia for Punctuated<T>
 where
-    T: UpdateTrailingTrivia<'ast> + Clone,
+    T: UpdateTrailingTrivia + Clone,
 {
-    fn update_trailing_trivia(&self, trailing: FormatTriviaType<'ast>) -> Self {
+    fn update_trailing_trivia(&self, trailing: FormatTriviaType) -> Self {
         let mut punctuated = self.to_owned();
 
         // Add any trailing trivia to the end of the punctuated list
@@ -533,7 +535,7 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
         _ => this.prefix().update_leading_trivia(leading),
     };
 
-    let mut suffixes: Vec<Suffix<'ast>> = this.suffixes().map(|x| x.to_owned()).collect();
+    let mut suffixes: Vec<Suffix> = this.suffixes().map(|x| x.to_owned()).collect();
     match trailing {
         FormatTriviaType::NoChange => (),
         _ => {
@@ -667,9 +669,27 @@ define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_leading_trivia!(TypeField, |this, leading| {
+    this.to_owned()
+        .with_key(this.key().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
 define_update_trailing_trivia!(TypeField, |this, trailing| {
     this.to_owned()
         .with_value(this.value().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(TypeFieldKey, |this, leading| {
+    match this {
+        TypeFieldKey::Name(token) => TypeFieldKey::Name(token.update_leading_trivia(leading)),
+        TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
+            brackets: brackets.update_leading_trivia(leading),
+            inner: inner.to_owned(),
+        },
+        other => panic!("unknown node {:?}", other),
+    }
 });
 
 #[cfg(feature = "luau")]
