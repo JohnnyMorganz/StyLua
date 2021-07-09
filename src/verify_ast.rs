@@ -120,37 +120,35 @@ impl VisitorMut for AstVerifier {
     }
 
     fn visit_number(&mut self, token: Token) -> Token {
-        // TODO:
         // We change the formatting of number literals
         // We will normalise all numbers by running `str::parse(number).to_string()` and replacing the Token with this output.
         // This will help highlight any differences, as it would lead to a different parsed output
 
-        // let token_type = match token.token_type() {
-        //     TokenType::Number { text } => {
-        //         // Luau: cleanse number of any digit separators
-        //         #[cfg(feature = "luau")]
-        //         let text = text.replace("_", "");
+        let token_type = match token.token_type() {
+            TokenType::Number { text } => {
+                // Luau: cleanse number of any digit separators
+                #[cfg(feature = "luau")]
+                let text = text.replace("_", "");
 
-        //         let number = match i32::from_str_radix(text.as_str(), 10) {
-        //             Ok(num) => num,
-        //             Err(_) => match i32::from_str_radix(&text.as_str()[2..], 16) {
-        //                 Ok(num) => num,
-        //                 Err(_) => match i32::from_str_radix(&text.as_str()[2..], 2) {
-        //                     Ok(num) => num,
-        //                     Err(_) => unreachable!(),
-        //                 },
-        //             },
-        //         };
+                let number = match text.as_str().parse::<f64>() {
+                    Ok(num) => num,
+                    Err(_) => match i32::from_str_radix(&text.as_str()[2..], 16) {
+                        Ok(num) => num.into(),
+                        Err(_) => match i32::from_str_radix(&text.as_str()[2..], 2) {
+                            Ok(num) => num.into(),
+                            Err(_) => unreachable!(),
+                        },
+                    },
+                };
 
-        //         TokenType::Number {
-        //             text: number.to_string().into(),
-        //         }
-        //     }
-        //     _ => unreachable!(),
-        // };
+                TokenType::Number {
+                    text: number.to_string().into(),
+                }
+            }
+            _ => unreachable!(),
+        };
 
-        // Token::new(token_type)
-        token
+        Token::new(token_type)
     }
 
     fn visit_string_literal(&mut self, token: Token) -> Token {
