@@ -5,6 +5,7 @@ use serde::Deserialize;
 mod context;
 mod formatters;
 mod shape;
+mod verify_ast;
 
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, Deserialize)]
@@ -164,17 +165,59 @@ impl Default for Config {
     }
 }
 
+/// The type of verification to perform to validate that the output AST is still correct.
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub enum OutputVerification {
+    /// Reparse the generated output to detect any changes to code correctness.
+    Full,
+    /// Perform no verification of the output.
+    None,
+}
+
 /// Formats given Lua code
-pub fn format_code(code: &str, config: Config, range: Option<Range>) -> Result<String> {
-    let ast = match full_moon::parse(&code) {
+pub fn format_code(
+    code: &str,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<String> {
+    let input_ast = match full_moon::parse(&code) {
         Ok(ast) => ast,
         Err(error) => {
             return Err(format_err!("error parsing: {}", error));
         }
     };
 
-    let code_formatter = formatters::CodeFormatter::new(config, range);
-    let ast = code_formatter.format(ast);
+    // Clone the input AST only if we are verifying, to later use for checking
+    let input_ast_for_verification = if let OutputVerification::Full = verify_output {
+        Some(input_ast.to_owned())
+    } else {
+        None
+    };
 
-    Ok(full_moon::print(&ast))
+    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let ast = code_formatter.format(input_ast);
+    let output = full_moon::print(&ast);
+
+    // If we are verifying, reparse the output then check it matches the original input
+    if let Some(input_ast) = input_ast_for_verification {
+        let reparsed_output = match full_moon::parse(&output) {
+            Ok(ast) => ast,
+            Err(error) => {
+                return Err(format_err!(
+                "INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{}",
+                error
+            ))
+            }
+        };
+
+        let mut ast_verifier = verify_ast::AstVerifier::new();
+        if !ast_verifier.compare(input_ast, reparsed_output) {
+            return Err(format_err!(
+                "INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues"
+            ));
+        }
+    }
+
+    Ok(output)
 }

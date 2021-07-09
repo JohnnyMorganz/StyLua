@@ -1,7 +1,13 @@
-use stylua_lib::{format_code, Config, QuoteStyle};
+use stylua_lib::{format_code, Config, OutputVerification, QuoteStyle};
 
 fn format(input: &str, quote_style: QuoteStyle) -> String {
-    format_code(input, Config::default().with_quote_style(quote_style), None).unwrap()
+    format_code(
+        input,
+        Config::default().with_quote_style(quote_style),
+        None,
+        OutputVerification::None,
+    )
+    .unwrap()
 }
 
 #[test]

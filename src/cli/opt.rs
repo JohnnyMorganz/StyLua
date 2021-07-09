@@ -33,6 +33,11 @@ pub struct Opt {
     #[structopt(short, long)]
     pub check: bool,
 
+    /// Verify the output after formatting.
+    /// Checks the generated AST with the original AST to detect if code correctness has changed.
+    #[structopt(long)]
+    pub verify: bool,
+
     /// Whether to print out verbose output
     #[structopt(short, long)]
     pub verbose: bool,

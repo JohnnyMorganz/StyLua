@@ -9,7 +9,7 @@ use std::time::Instant;
 use structopt::StructOpt;
 use threadpool::ThreadPool;
 
-use stylua_lib::{format_code, Config, Range};
+use stylua_lib::{format_code, Config, OutputVerification, Range};
 
 mod config;
 mod opt;
@@ -53,12 +53,13 @@ fn format_file(
     config: Config,
     range: Option<Range>,
     opt: &opt::Opt,
+    verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
 
     let before_formatting = Instant::now();
-    let formatted_contents = format_code(&contents, config, range)
+    let formatted_contents = format_code(&contents, config, range, verify_output)
         .with_context(|| format!("Could not format file {}", path.display()))?;
     let after_formatting = Instant::now();
 
@@ -97,9 +98,10 @@ fn format_string(
     config: Config,
     range: Option<Range>,
     opt: &opt::Opt,
+    verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let formatted_contents =
-        format_code(&input, config, range).context("Failed to format from stdin")?;
+        format_code(&input, config, range, verify_output).context("Failed to format from stdin")?;
 
     if opt.check {
         let diff = output_diff::output_diff(
@@ -139,6 +141,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
         Some(Range::from_values(opt.range_start, opt.range_end))
     } else {
         None
+    };
+
+    // Determine if we need to verify the output
+    let verify_output = if opt.verify {
+        OutputVerification::Full
+    } else {
+        OutputVerification::None
     };
 
     let cwd = std::env::current_dir()?;
@@ -236,7 +245,9 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     pool.execute(move || {
                         let mut buf = String::new();
                         match stdin().read_to_string(&mut buf) {
-                            Ok(_) => tx.send(format_string(buf, config, range, &opt)),
+                            Ok(_) => {
+                                tx.send(format_string(buf, config, range, &opt, verify_output))
+                            }
                             Err(error) => {
                                 tx.send(Err(error).context("Could not format from stdin"))
                             }
@@ -260,7 +271,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                         let tx = tx.clone();
                         pool.execute(move || {
-                            tx.send(format_file(&path, config, range, &opt)).unwrap()
+                            tx.send(format_file(&path, config, range, &opt, verify_output))
+                                .unwrap()
                         });
                     }
                 }

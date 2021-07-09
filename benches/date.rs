@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use stylua_lib::{format_code, Config};
+use stylua_lib::{format_code, Config, OutputVerification};
 
 pub fn format_date(c: &mut Criterion) {
     c.bench_function("format date.lua", |b| {
@@ -8,6 +8,7 @@ pub fn format_date(c: &mut Criterion) {
                 black_box(include_str!("./date.lua")),
                 black_box(Config::default()),
                 black_box(None),
+                black_box(OutputVerification::None),
             )
         })
     });
