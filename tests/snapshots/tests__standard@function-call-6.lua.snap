@@ -18,3 +18,15 @@ print({
 	foo_variable = "alueeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 })
 
+-- but not if there is a comment present
+
+foo( -- test
+	{ bar }
+)
+
+foo( -- test
+	{
+		bar,
+	}
+)
+

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed comments inside Luau type tables leading to malformed formatting under the `luau` feature flag. ([#219](https://github.com/JohnnyMorganz/StyLua/issues/219))
 - Fixed multiple assignment where an expression was originally hung due to comments being collapsed leading to malformed formatting. ([#222](https://github.com/JohnnyMorganz/StyLua/issues/222))
+- Fixed an issue where a function call with a single table argument being hugged with the parentheses which contain comments leading to a syntax error. ([#224](https://github.com/JohnnyMorganz/StyLua/issues/224))
 
 ## [0.9.3] - 2021-06-26
 ### Added

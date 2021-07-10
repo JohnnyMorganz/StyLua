@@ -349,6 +349,7 @@ pub fn format_function_args(
             // In this case, we want to hug the table braces with the parentheses.
             // To do this, we format single line, but include the closing parentheses in the shape
             let hug_table_constructor = is_multiline
+                && !force_mutliline
                 && arguments.len() == 1
                 && is_table_constructor(arguments.iter().next().unwrap());
 
