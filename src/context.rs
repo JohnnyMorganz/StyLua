@@ -4,18 +4,24 @@ use full_moon::{
     tokenizer::{Token, TokenType},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Context {
     /// The configuration passed to the formatter
     config: Config,
     /// An optional range of values to format within the file.
     range: Option<FormatRange>,
+    /// Whether the formatting has currently been disabled. This should occur when we see the relevant comment.
+    formatting_disabled: bool,
 }
 
 impl Context {
     /// Creates a new Context, with the given configuration
     pub fn new(config: Config, range: Option<FormatRange>) -> Self {
-        Self { config, range }
+        Self {
+            config,
+            range,
+            formatting_disabled: false,
+        }
     }
 
     /// Get the configuration for this context
@@ -23,11 +29,51 @@ impl Context {
         self.config
     }
 
+    /// Determines whether we need to toggle whether formatting is enabled or disabled.
+    /// Formatting is toggled on/off whenever we see a `-- stylua: ignore start` or `-- stylua: ignore end` comment respectively.
+    // To preserve immutability of Context, we return a new Context with the `formatting_disabled` field toggled or left the same
+    // where necessary. Context is cheap so this is reasonable to do.
+    pub fn check_toggle_formatting(&self, node: &impl Node) -> Self {
+        // Check comments
+        let leading_trivia = node.surrounding_trivia().0;
+        for trivia in leading_trivia {
+            let comment_lines = match trivia.token_type() {
+                TokenType::SingleLineComment { comment } => comment,
+                TokenType::MultiLineComment { comment, .. } => comment,
+                _ => continue,
+            }
+            .lines()
+            .map(|line| line.trim());
+
+            for line in comment_lines {
+                if line == "stylua: ignore start" && !self.formatting_disabled {
+                    return Self {
+                        formatting_disabled: true,
+                        ..*self
+                    };
+                } else if line == "stylua: ignore end" && self.formatting_disabled {
+                    return Self {
+                        formatting_disabled: false,
+                        ..*self
+                    };
+                }
+            }
+        }
+
+        *self
+    }
+
     /// Checks whether we should format the given node.
-    /// Firstly determines whether the node has an ignore comment present.
-    /// If not, checks whether the provided node is within the formatting range.
-    /// If not, the node should not be formatted.
+    /// Firstly determine if formatting is disabled (due to the relevant comment)
+    /// If not, determine whether the node has an ignore comment present.
+    /// If not, checks whether the provided node is outside the formatting range.
+    /// If not, the node should be formatted.
     pub fn should_format_node(&self, node: &impl Node) -> bool {
+        // If formatting is disabled we should immediately bailed out.
+        if self.formatting_disabled {
+            return false;
+        }
+
         // Check comments
         let leading_trivia = node.surrounding_trivia().0;
         for trivia in leading_trivia {
