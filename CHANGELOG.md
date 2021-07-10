@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added flag `--verify` which, when enabled, attempts to verify the generated output AST with the input AST to detect any changes to code correctness. Useful for adopting StyLua into a large codebase, at the cost of slower processing. ([#199](https://github.com/JohnnyMorganz/StyLua/issues/199))
 - Added optional command line options `--column-width`, `--indent-type`, `--indent-width`, `--line-endings` and `--quote-style`, which, when provided, will override any configuration setting inferred from the default or a `stylua.toml`. ([#213](https://github.com/JohnnyMorganz/StyLua/issues/213))
 - Added multithreaded support for formatting file in the CLI. Now each file will be formatted in its own thread. The number of threads used defaults to the number of cores on your computer, but can be set using `--num-threads`
+- Added support for disabling formatting over specific ranges. Use `-- stylua: ignore start` to disable formatting and `-- stylua: ignore end` to re-enable it. The comment must be preceding a statement and disabling formatting cannot cross block scope boundaries. ([#198](https://github.com/JohnnyMorganz/StyLua/issues/198))
 
 ### Changed
 - Luau type tables (`luau` feature flag) now use the same formatting strategy as normal expression tables, so that their formatting is more aligned.

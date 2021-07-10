@@ -85,6 +85,17 @@ local matrix = {
     { 0, 0, 0 },
 }
 ```
+You can also disable formatting over a block of code by using `-- stylua: ignore start` / `-- stylua: ignore end` respectively.
+```lua
+local foo = true
+-- stylua: ignore start
+local   bar   =   false
+local  baz      = 0
+-- stylua: ignore end
+local foobar = false
+```
+Note: this comment must be preceding a statement (same as `-- stylua: ignore`), and cannot cross block scope boundaries
+(i.e. if formatting is disabled, and we exit a block, formatting is automatically re-enabled).
 
 ### Formatting Ranges
 If you only want to format a specific range within a file, you can pass the `--range-start <num>` and/or `--range-end <num>` arguments,

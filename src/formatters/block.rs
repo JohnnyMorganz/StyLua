@@ -362,13 +362,16 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
+    let mut ctx = *ctx;
     let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
 
     while let Some((stmt, semi)) = stmt_iterator.next() {
+        ctx = ctx.check_toggle_formatting(stmt);
+
         let shape = shape.reset();
-        let mut stmt = format_stmt(ctx, stmt, shape);
+        let mut stmt = format_stmt(&ctx, stmt, shape);
 
         // If this is the first stmt, then remove any leading newlines
         if !found_first_stmt {
@@ -417,7 +420,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                 stmt = updated_stmt;
                 Some(
                     match semi {
-                        Some(semi) => crate::fmt_symbol!(ctx, semi, ";", shape),
+                        Some(semi) => crate::fmt_symbol!(&ctx, semi, ";", shape),
                         None => TokenReference::symbol(";").expect("could not make semicolon"),
                     }
                     .update_trailing_trivia(FormatTriviaType::Append(trivia)),
@@ -432,7 +435,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                     // We will do a hack here, where we insert an empty token, and add all the remaining trivia onto it
                     Some(
                         format_symbol(
-                            ctx,
+                            &ctx,
                             semi,
                             &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
                             shape,
@@ -452,8 +455,10 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
 
     let formatted_last_stmt = match block.last_stmt_with_semicolon() {
         Some((last_stmt, semi)) => {
+            ctx = ctx.check_toggle_formatting(last_stmt);
+
             let shape = shape.reset();
-            let mut last_stmt = format_last_stmt(ctx, last_stmt, shape);
+            let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
             // If this is the first stmt, then remove any leading newlines
             if !found_first_stmt && ctx.should_format_node(&last_stmt) {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
@@ -469,7 +474,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                     // We want to keep any old comments on the semicolon token, otherwise we will lose it
                     // We will do a hack here, where we replace the semicolon with an empty symbol
                     let semicolon_token = format_symbol(
-                        ctx,
+                        &ctx,
                         semi,
                         &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
                         shape,
