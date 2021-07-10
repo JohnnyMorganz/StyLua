@@ -15,7 +15,11 @@ local foo     =      bar
 local bar   =     baz
             "###
         ),
-        @r###""###
+        @r###"
+    local foo = bar
+    -- stylua: ignore
+    local bar   =     baz
+    "###
     );
 }
 
@@ -31,7 +35,12 @@ local bar   =     baz
 local bar   =     baz
             "###
         ),
-        @r###""###
+        @r###"
+    local foo = bar
+    -- stylua: ignore
+    local bar   =     baz
+    local bar = baz
+    "###
     );
 }
 
@@ -49,6 +58,11 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    -- stylua: ignore start
+    local bar   =     baz
+    -- stylua: ignore end
+    local bar = baz
     "###);
 }
 
@@ -67,6 +81,12 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    -- stylua: ignore start
+    local bar   =     baz
+    local bar   =     baz
+    -- stylua: ignore end
+    local bar = baz
     "###);
 }
 
@@ -84,6 +104,11 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    -- stylua: ignore start
+    local bar   =     baz
+    local bar   =     baz
+    local bar   =     baz
     "###);
 }
 
@@ -101,6 +126,11 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    local bar = baz
+    local bar = baz
+    -- stylua: ignore end
+    local bar = baz
     "###);
 }
 
@@ -121,6 +151,14 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    do
+        -- stylua: ignore start
+        local bar   =     baz
+    	-- stylua: ignore end
+    	local bar = baz
+    end
+    local bar = baz
     "###);
 }
 
@@ -140,5 +178,12 @@ local bar   =     baz
 "###
         ),
     @r###"
+    local foo = bar
+    do
+        -- stylua: ignore start
+        local bar   =     baz
+        local bar   =     baz
+    end
+    local bar = baz
     "###);
 }
