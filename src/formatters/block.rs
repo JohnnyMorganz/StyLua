@@ -82,7 +82,9 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                 let mut output_returns = Punctuated::new();
 
                 // Look through each punctuated sequence to see if we need to hang the item further
-                for (idx, pair) in multiline_returns.into_pairs().enumerate() {
+                for (idx, (formatted, original)) in
+                    multiline_returns.into_pairs().zip(returns).enumerate()
+                {
                     // Recreate the shape
                     let shape = if idx == 0 {
                         shape
@@ -92,15 +94,15 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                             .with_indent(shape.indent().add_indent_level(hang_level.unwrap()))
                     };
 
-                    if trivia_util::contains_comments(&pair)
-                        || shape.take_first_line(&pair).over_budget()
+                    if trivia_util::contains_comments(&formatted)
+                        || shape.take_first_line(&formatted).over_budget()
                     {
-                        // Hang the pair
+                        // Hang the pair, using the original expression for formatting
                         output_returns
-                            .push(pair.map(|value| hang_expression(ctx, &value, shape, Some(1))))
+                            .push(formatted.map(|_| hang_expression(ctx, original, shape, Some(1))))
                     } else {
                         // Add the pair as it is
-                        output_returns.push(pair);
+                        output_returns.push(formatted);
                     }
                 }
 
