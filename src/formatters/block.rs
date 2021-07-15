@@ -82,10 +82,8 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                 let mut output_returns = Punctuated::new();
 
                 // Look through each punctuated sequence to see if we need to hang the item further
-                for (idx, (formatted, original)) in multiline_returns
-                    .into_pairs()
-                    .zip(returns)
-                    .enumerate()
+                for (idx, (formatted, original)) in
+                    multiline_returns.into_pairs().zip(returns).enumerate()
                 {
                     // Recreate the shape
                     let shape = if idx == 0 {
@@ -100,10 +98,8 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                         || shape.take_first_line(&formatted).over_budget()
                     {
                         // Hang the pair, using the original expression for formatting
-                        output_returns.push(
-                            formatted
-                                .map(|_| hang_expression(ctx, original, shape, Some(1))),
-                        )
+                        output_returns
+                            .push(formatted.map(|_| hang_expression(ctx, original, shape, Some(1))))
                     } else {
                         // Add the pair as it is
                         output_returns.push(formatted);
