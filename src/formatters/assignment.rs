@@ -137,18 +137,21 @@ fn attempt_assignment_tactics(
             // Look through each punctuated expression to see if we need to hang the item further
             let mut output_expr = Punctuated::new();
 
-            for (idx, pair) in multiline_expr.into_pairs().enumerate() {
+            for (idx, (formatted, original)) in
+                multiline_expr.into_pairs().zip(expressions).enumerate()
+            {
                 // Recreate the shape
                 let shape = if idx == 0 { shape } else { shape.reset() };
 
-                if trivia_util::contains_comments(&pair)
-                    || shape.take_first_line(&pair).over_budget()
+                if trivia_util::contains_comments(&formatted)
+                    || shape.take_first_line(&formatted).over_budget()
                 {
-                    // Hang the pair
-                    output_expr.push(pair.map(|value| hang_expression(ctx, &value, shape, Some(1))))
+                    // Hang the pair, using the original expression for formatting
+                    output_expr
+                        .push(formatted.map(|_| hang_expression(ctx, original, shape, Some(1))))
                 } else {
                     // Add the pair as it is
-                    output_expr.push(pair);
+                    output_expr.push(formatted);
                 }
             }
 
