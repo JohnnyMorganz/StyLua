@@ -7,6 +7,7 @@ use full_moon::ast::{
     FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
     TableConstructor, UnOp, Value, Var, VarExpression,
 };
+use full_moon::ast::{If, Return};
 use full_moon::tokenizer::{Token, TokenReference};
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
@@ -343,6 +344,12 @@ define_update_trivia!(FunctionName, |this, leading, trailing| {
     }
 });
 
+define_update_trivia!(If, |this, leading, trailing| {
+    this.to_owned()
+        .with_if_token(this.if_token().update_leading_trivia(leading))
+        .with_end_token(this.end_token().update_trailing_trivia(trailing))
+});
+
 define_update_trivia!(Index, |this, leading, trailing| {
     match this {
         Index::Brackets {
@@ -428,6 +435,17 @@ where
         punctuated
     }
 }
+
+define_update_trivia!(Return, |this, leading, trailing| {
+    if this.returns().is_empty() {
+        this.to_owned()
+            .with_token(this.token().update_trivia(leading, trailing))
+    } else {
+        this.to_owned()
+            .with_token(this.token().update_leading_trivia(leading))
+            .with_returns(this.returns().update_trailing_trivia(trailing))
+    }
+});
 
 define_update_trivia!(Suffix, |this, leading, trailing| {
     match this {
