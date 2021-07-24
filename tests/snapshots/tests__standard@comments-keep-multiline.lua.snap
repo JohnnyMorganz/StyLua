@@ -49,6 +49,6 @@ end
 
 local x =
 	foo -- comment
-	or bar, -- comment
+		or bar, -- comment
 	baz and foo
 

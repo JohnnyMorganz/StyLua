@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed an incorrect trailing comma being added to function args as part of a multiline expression list leading to a syntax error. ([#227](https://github.com/JohnnyMorganz/StyLua/issues/227))
+- Fixed the first expression in a multiple assignment prematurely hanging even if its below the column width. ([#233](https://github.com/JohnnyMorganz/StyLua/issues/233))
 
 ## [0.10.0] - 2021-07-11
 ### Added

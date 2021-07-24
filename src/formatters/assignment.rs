@@ -137,11 +137,9 @@ fn attempt_assignment_tactics(
             // Look through each punctuated expression to see if we need to hang the item further
             let mut output_expr = Punctuated::new();
 
-            for (idx, (formatted, original)) in
-                multiline_expr.into_pairs().zip(expressions).enumerate()
-            {
+            for (formatted, original) in multiline_expr.into_pairs().zip(expressions) {
                 // Recreate the shape
-                let shape = if idx == 0 { shape } else { shape.reset() };
+                let shape = hanging_shape.reset();
 
                 if trivia_util::contains_comments(&formatted)
                     || shape.take_first_line(&formatted).over_budget()
