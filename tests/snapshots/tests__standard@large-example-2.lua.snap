@@ -286,9 +286,7 @@ function findplayer(name, speaker)
 		while true do
 			local c = game.Players:GetChildren()
 			local r = math.random(1, #c)
-			if c[r].className == "Player" then
-				return { c[r] }
-			end
+			if c[r].className == "Player" then return { c[r] } end
 		end
 	elseif string.sub(string.lower(name), 1, 6) == "guests" then
 		local gnum = 0
@@ -469,9 +467,7 @@ end
 
 function PERSON299(name)
 	for i = 1, #adminlist do
-		if adminlist[i] == name then
-			return true
-		end
+		if adminlist[i] == name then return true end
 	end
 	return false
 end
@@ -515,9 +511,7 @@ function oc(msg, speaker)
 				break
 			end
 		end
-		if danumber1 == nil then
-			return
-		end
+		if danumber1 == nil then return end
 		local it = nil
 		local all = true
 		if string.sub(string.lower(msg), danumber1 + 1, danumber1 + 4) ~= "all" then
@@ -530,9 +524,7 @@ function oc(msg, speaker)
 					itnum = itnum + 1
 				end
 			end
-			if itnum ~= 1 then
-				return
-			end
+			if itnum ~= 1 then return end
 		else
 			all = true
 		end
@@ -567,9 +559,7 @@ function oc(msg, speaker)
 				break
 			end
 		end
-		if danumber1 == nil then
-			return
-		end
+		if danumber1 == nil then return end
 		for i = danumber1 + 1, danumber1 + 100 do
 			if string.sub(msg, i, i) == "/" then
 				danumber2 = i
@@ -578,9 +568,7 @@ function oc(msg, speaker)
 				break
 			end
 		end
-		if danumber2 == nil then
-			return
-		end
+		if danumber2 == nil then return end
 		local player = findplayer(string.sub(msg, 8, danumber1 - 1), speaker)
 		if player ~= 0 then
 			for i = 1, #player do
@@ -1463,9 +1451,7 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber1 == nil then
-			return
-		end
+		if danumber1 == nil then return end
 		for i = danumber1 + 1, danumber1 + 100 do
 			if string.sub(msg, i, i) == "/" then
 				danumber2 = i
@@ -1474,9 +1460,7 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber2 == nil then
-			return
-		end
+		if danumber2 == nil then return end
 		game.Lighting.Ambient = Color3.new(
 			-string.sub(msg, 9, danumber1 - 1),
 			-string.sub(msg, danumber1 + 1, danumber2 - 1),
@@ -1497,9 +1481,7 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber1 == nil then
-			return
-		end
+		if danumber1 == nil then return end
 		for i = danumber1 + 1, danumber1 + 100 do
 			if string.sub(msg, i, i) == "/" then
 				danumber2 = i
@@ -1508,9 +1490,7 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber2 == nil then
-			return
-		end
+		if danumber2 == nil then return end
 		if speaker.Character ~= nil then
 			local head = speaker.Character:FindFirstChild("Head")
 			if head ~= nil then
@@ -1532,9 +1512,7 @@ script.Parent.Parent.Humanoid.Health = 0
 	if string.sub(msg, 1, 8) == "control/" then
 		local player = findplayer(string.sub(msg, 9), speaker)
 		if player ~= 0 then
-			if #player > 1 then
-				return
-			end
+			if #player > 1 then return end
 			for i = 1, #player do
 				if player[i].Character ~= nil then
 					speaker.Character = player[i].Character
@@ -1582,13 +1560,9 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player = findplayer(string.sub(msg, 9, danumber - 1), speaker)
-		if player == 0 then
-			return
-		end
+		if player == 0 then return end
 		for i = 1, #player do
 			if player[i].Character ~= nil then
 				local torso = player[i].Character:FindFirstChild("Torso")
@@ -1622,13 +1596,9 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player = findplayer(string.sub(msg, 11, danumber - 1), speaker)
-		if player == 0 then
-			return
-		end
+		if player == 0 then return end
 		for i = 1, #player do
 			if player[i].Character ~= nil then
 				humanoid = player[i].Character:FindFirstChild("Humanoid")
@@ -1647,13 +1617,9 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player = findplayer(string.sub(msg, 8, danumber - 1), speaker)
-		if player == 0 then
-			return
-		end
+		if player == 0 then return end
 		for i = 1, #player do
 			if player[i].Character ~= nil then
 				humanoid = player[i].Character:FindFirstChild("Humanoid")
@@ -1672,13 +1638,9 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player = findplayer(string.sub(msg, 8, danumber - 1), speaker)
-		if player == 0 then
-			return
-		end
+		if player == 0 then return end
 		for i = 1, #player do
 			if player[i].Character ~= nil then
 				humanoid = player[i].Character:FindFirstChild("Humanoid")
@@ -1705,20 +1667,12 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player1 = findplayer(string.sub(msg, 10, danumber - 1), speaker)
-		if player1 == 0 then
-			return
-		end
+		if player1 == 0 then return end
 		local player2 = findplayer(string.sub(msg, danumber + 1), speaker)
-		if player2 == 0 then
-			return
-		end
-		if #player2 > 1 then
-			return
-		end
+		if player2 == 0 then return end
+		if #player2 > 1 then return end
 		torso = nil
 		for i = 1, #player2 do
 			if player2[i].Character ~= nil then
@@ -1745,20 +1699,12 @@ script.Parent.Parent.Humanoid.Health = 0
 				break
 			end
 		end
-		if danumber == nil then
-			return
-		end
+		if danumber == nil then return end
 		local player1 = findplayer(string.sub(msg, 7, danumber - 1), speaker)
-		if player1 == 0 then
-			return
-		end
+		if player1 == 0 then return end
 		local player2 = findplayer(string.sub(msg, danumber + 1), speaker)
-		if player2 == 0 then
-			return
-		end
-		if #player2 > 1 then
-			return
-		end
+		if player2 == 0 then return end
+		if #player2 > 1 then return end
 		for i = 1, #player2 do
 			if player2[i].Character ~= nil then
 				player2 = player2[i].Character
@@ -2138,9 +2084,7 @@ if youcaughtme == 0 then
 end
 function oe(ack)
 	local adminned = false
-	if ack.className ~= "Player" then
-		return
-	end
+	if ack.className ~= "Player" then return end
 	for i = 1, #bannedlist do
 		if string.lower(bannedlist[i]) == string.lower(ack.Name) then
 			ack:remove()
@@ -2164,9 +2108,7 @@ function oe(ack)
 	local danumber = 0
 	while true do
 		wait(1)
-		if ack.Parent == nil then
-			return
-		end
+		if ack.Parent == nil then return end
 		if ack.Character ~= nil then
 			if adminned == true then
 				text("You're an admin.", 5, "Message", ack)
@@ -2194,9 +2136,7 @@ function oe(ack)
 						end
 					else
 						danumber = danumber + 1
-						if danumber >= 10 then
-							return
-						end
+						if danumber >= 10 then return end
 					end
 				end
 			end

@@ -126,13 +126,9 @@ end end end end end
     			break
     		end
     	end
-    	if danumber == nil then
-    		return
-    	end
+    	if danumber == nil then return end
     	local player = findplayer(string.sub(msg, 9, danumber - 1), speaker)
-    	if player == 0 then
-    		return
-    	end
+    	if player == 0 then return end
     	for i = 1, #player do
     		if player[i].Character ~= nil then
     			local torso = player[i].Character:FindFirstChild("Torso")

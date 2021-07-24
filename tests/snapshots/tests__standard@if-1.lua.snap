@@ -3,7 +3,5 @@ source: tests/tests.rs
 expression: format(&contents)
 
 ---
-if x == true then
-	return
-end
+if x == true then return end
 

@@ -164,9 +164,7 @@ local function makeErrorHandler(traceback)
 		-- If the error object is already a table, forward it directly.
 		-- Should we extend the error here and add our own trace?
 
-		if type(err) == "table" then
-			return err
-		end
+		if type(err) == "table" then return err end
 
 		return Error.new({
 			error = err,
@@ -391,9 +389,7 @@ function Promise._all(traceback, promises, amount)
 	end
 
 	-- If there are no values then return an already resolved promise.
-	if #promises == 0 or amount == 0 then
-		return Promise.resolve({})
-	end
+	if #promises == 0 or amount == 0 then return Promise.resolve({}) end
 
 	return Promise._new(traceback, function(resolve, reject, onCancel)
 		-- An array to contain our resolved values from the given promises.
@@ -414,9 +410,7 @@ function Promise._all(traceback, promises, amount)
 
 		-- Called when a single value is resolved and resolves if all are done.
 		local function resolveOne(i, ...)
-			if done then
-				return
-			end
+			if done then return end
 
 			resolvedCount = resolvedCount + 1
 
@@ -500,9 +494,7 @@ function Promise.allSettled(promises)
 	end
 
 	-- If there are no values then return an already resolved promise.
-	if #promises == 0 then
-		return Promise.resolve({})
-	end
+	if #promises == 0 then return Promise.resolve({}) end
 
 	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
 		-- An array to contain our resolved values from the given promises.
@@ -569,9 +561,7 @@ function Promise.race(promises)
 			end
 		end
 
-		if onCancel(finalize(reject)) then
-			return
-		end
+		if onCancel(finalize(reject)) then return end
 
 		for i, promise in ipairs(promises) do
 			newPromises[i] = promise:andThen(finalize(resolve), finalize(reject))
@@ -662,9 +652,7 @@ function Promise.each(list, predicate)
 				end
 			end
 
-			if cancelled then
-				return
-			end
+			if cancelled then return end
 
 			local predicatePromise = Promise.resolve(predicate(value, index))
 
@@ -688,9 +676,7 @@ end
 	Is the given object a Promise instance?
 ]]
 function Promise.is(object)
-	if type(object) ~= "table" then
-		return false
-	end
+	if type(object) ~= "table" then return false end
 
 	local objectMetatable = getmetatable(object)
 
@@ -963,9 +949,7 @@ end
 	the cancellation hook if provided.
 ]]
 function Promise.prototype:cancel()
-	if self._status ~= Promise.Status.Started then
-		return
-	end
+	if self._status ~= Promise.Status.Started then return end
 
 	self._status = Promise.Status.Cancelled
 
@@ -989,9 +973,7 @@ end
 	cancel this promise.
 ]]
 function Promise.prototype:_consumerCancelled(consumer)
-	if self._status ~= Promise.Status.Started then
-		return
-	end
+	if self._status ~= Promise.Status.Started then return end
 
 	self._consumers[consumer] = nil
 
@@ -1019,9 +1001,7 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 		if onlyOk then
 			local callback = finallyCallback
 			finallyCallback = function(...)
-				if self._status == Promise.Status.Rejected then
-					return resolve(self)
-				end
+				if self._status == Promise.Status.Rejected then return resolve(self) end
 
 				return callback(...)
 			end
@@ -1245,9 +1225,7 @@ function Promise.prototype:_resolve(...)
 end
 
 function Promise.prototype:_reject(...)
-	if self._status ~= Promise.Status.Started then
-		return
-	end
+	if self._status ~= Promise.Status.Started then return end
 
 	self._status = Promise.Status.Rejected
 	self._valuesLength, self._values = pack(...)
@@ -1270,9 +1248,7 @@ function Promise.prototype:_reject(...)
 			Promise._timeEvent:Wait()
 
 			-- Someone observed the error, hooray!
-			if not self._unhandledRejection then
-				return
-			end
+			if not self._unhandledRejection then return end
 
 			-- Build a reasonable message
 			local message = string.format("Unhandled Promise rejection:\n\n%s\n\n%s", err, self._source)
@@ -1387,9 +1363,7 @@ function Promise.fromEvent(event, predicate)
 			end
 		end)
 
-		if shouldDisconnect and connection then
-			return disconnect()
-		end
+		if shouldDisconnect and connection then return disconnect() end
 
 		onCancel(function()
 			disconnect()
