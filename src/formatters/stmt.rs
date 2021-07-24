@@ -219,13 +219,13 @@ fn is_if_guard(if_node: &If) -> bool {
 
 /// Formats an if statement onto a single line.
 /// This function performs no checking to see if we *should* do this - it will just return a singleline if statement.
-fn format_singeline_if<'ast>(ctx: &Context, if_node: &If, shape: Shape) -> If {
+fn format_singeline_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
 
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
@@ -260,7 +260,7 @@ fn format_singeline_if<'ast>(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let block = Block::new().with_last_stmt(Some((last_stmt, None)));
 
     let end_token = format_end_token(ctx, if_node.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     if_node
         .to_owned()
