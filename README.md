@@ -139,6 +139,6 @@ Default `stylua.toml`, note you do not need to explicitly specify each option if
 column_width = 120
 line_endings = "Unix"
 indent_type = "Tabs"
-indent_width = 2
+indent_width = 4
 quote_style = "AutoPreferDouble"
 ```
