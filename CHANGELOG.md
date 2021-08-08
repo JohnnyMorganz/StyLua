@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.10.1] - 2021-08-08
 ### Fixed
 - Fixed an incorrect trailing comma being added to function args as part of a multiline expression list leading to a syntax error. ([#227](https://github.com/JohnnyMorganz/StyLua/issues/227))
 - Fixed the first expression in a multiple assignment prematurely hanging even if its below the column width. ([#233](https://github.com/JohnnyMorganz/StyLua/issues/233))
