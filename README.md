@@ -41,6 +41,9 @@ This action will use GitHub releases, rather than running cargo install, to spee
 ```toml
 stylua = { source = "JohnnyMorganz/stylua", version = "0.10.0" }
 ```
+- A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
+
+[![Community Packages](https://repology.org/badge/vertical-allrepos/stylua.svg?header=Community%20Packages)](https://repology.org/project/stylua/versions)
 
 ## Usage
 Once installed, pass the files to format to the CLI:
