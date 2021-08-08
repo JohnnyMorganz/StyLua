@@ -125,7 +125,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
                 (parentheses, arguments, shape)
             } else {
-                let parentheses = format_contained_span(ctx, &parentheses, shape);
+                let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
                 let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
 

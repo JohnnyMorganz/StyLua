@@ -430,7 +430,7 @@ pub fn format_function_args(
                 // parentheses aswell. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
-                let parentheses = format_contained_span(ctx, &parentheses, shape);
+                let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments =
                     format_punctuated(ctx, arguments, shape + shape_increment, format_expression);
 

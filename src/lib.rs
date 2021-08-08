@@ -181,7 +181,7 @@ pub fn format_code(
     range: Option<Range>,
     verify_output: OutputVerification,
 ) -> Result<String> {
-    let input_ast = match full_moon::parse(&code) {
+    let input_ast = match full_moon::parse(code) {
         Ok(ast) => ast,
         Err(error) => {
             return Err(format_err!("error parsing: {}", error));

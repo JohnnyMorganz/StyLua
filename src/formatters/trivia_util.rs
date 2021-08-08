@@ -227,7 +227,7 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
-        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(&expr),
+        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(expr),
         Value::Symbol(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
@@ -298,7 +298,7 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
                 .map(|x| x.to_owned())
                 .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(&expr),
+            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Var(var) => match var {

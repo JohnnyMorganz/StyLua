@@ -160,7 +160,7 @@ fn format_expression_internal(
                     .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 Expression::Parentheses {
-                    contained: format_contained_span(ctx, &contained, shape),
+                    contained: format_contained_span(ctx, contained, shape),
                     expression: Box::new(format_expression(ctx, expression, shape + 1)), // 1 = opening parentheses
                 }
             }
@@ -230,7 +230,7 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: format_contained_span(ctx, &brackets, shape),
+            brackets: format_contained_span(ctx, brackets, shape),
             expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
         },
 
@@ -440,7 +440,7 @@ fn binop_expression_contains_comments(expression: &Expression, top_binop: &BinOp
             if binop.precedence() == top_binop.precedence() {
                 contains_comments(binop)
                     || !expression_leading_comments(rhs).is_empty()
-                    || get_expression_trailing_trivia(&lhs)
+                    || get_expression_trailing_trivia(lhs)
                         .iter()
                         .any(trivia_util::trivia_is_comment)
                     || binop_expression_contains_comments(lhs, top_binop)
@@ -759,7 +759,7 @@ fn format_hanging_expression_(
                     lhs_range,
                 )
             } else {
-                let contained = format_contained_span(ctx, &contained, lhs_shape);
+                let contained = format_contained_span(ctx, contained, lhs_shape);
 
                 // Provide a sample formatting to see how large it is
                 // Examine the expression itself to see if needs to be split onto multiple lines
@@ -799,7 +799,7 @@ fn format_hanging_expression_(
                     contained,
                     expression: Box::new(format_hanging_expression_(
                         ctx,
-                        &expression,
+                        expression,
                         expression_shape,
                         ExpressionContext::Standard,
                         None,
@@ -811,7 +811,7 @@ fn format_hanging_expression_(
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
             let expression =
-                format_hanging_expression_(ctx, &expression, shape, expression_context, lhs_range);
+                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range);
 
             Expression::UnaryOperator {
                 unop,

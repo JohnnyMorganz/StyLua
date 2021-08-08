@@ -212,7 +212,7 @@ where
                 // Have more elements still to go
                 shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
                 match punctuation {
-                    Some(punctuation) => Some(fmt_symbol!(ctx, &punctuation, ", ", shape)),
+                    Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ", ", shape)),
                     None => Some(TokenReference::symbol(", ").unwrap()),
                 }
             }
@@ -278,7 +278,7 @@ where
         trailing_trivia.push(create_newline_trivia(ctx));
 
         let symbol = match punctuation {
-            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
+            Some(punctuation) => fmt_symbol!(ctx, punctuation, ",", shape),
             None => TokenReference::symbol(",").unwrap(),
         }
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
