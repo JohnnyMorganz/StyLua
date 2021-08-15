@@ -19,13 +19,25 @@ async function fetchJson(url: string): Promise<any> {
 }
 
 function releaseFromJson(json: any): GithubRelease {
+  if (typeof json !== "object") {
+    return {
+      assets: [],
+      tagName: "",
+      htmlUrl: "",
+    };
+  }
   return {
-    assets: json.assets.map((asset: any) => ({
-      downloadUrl: asset.browser_download_url,
-      name: asset.name,
-    })),
-    tagName: json.tag_name,
-    htmlUrl: json.html_url,
+    assets: Array.isArray(json.assets)
+      ? json.assets.map((asset: any) => ({
+          downloadUrl:
+            typeof asset.browser_download_url === "string"
+              ? asset.browser_download_url
+              : "",
+          name: typeof asset.name === "string" ? asset.name : "",
+        }))
+      : [],
+    tagName: typeof json.tag_name === "string" ? json.tag_name : "",
+    htmlUrl: typeof json.html_url === "string" ? json.html_url : "",
   };
 }
 
@@ -37,9 +49,9 @@ export const getRelease = async (version: string): Promise<GithubRelease> => {
 
   version = version.startsWith("v") ? version : "v" + version;
   const json = await fetchJson(RELEASES_URL);
-  const releases: GithubRelease[] = json.map((release: any) =>
-    releaseFromJson(release)
-  );
+  const releases: GithubRelease[] = Array.isArray(json)
+    ? json.map(releaseFromJson)
+    : [];
   for (const release of releases) {
     if (release.tagName.startsWith(version)) {
       return release;
