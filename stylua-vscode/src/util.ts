@@ -6,37 +6,7 @@ import * as fs from "fs";
 import * as unzip from "unzipper";
 import fetch from "node-fetch";
 import { executeStylua } from "./stylua";
-
-const RELEASES_URL =
-  "https://api.github.com/repos/JohnnyMorganz/StyLua/releases";
-
-type GithubRelease = {
-  assets: {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    browser_download_url: string;
-    name: string;
-  }[];
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  tag_name: string;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  html_url: string;
-};
-
-const getRelease = async (version: string): Promise<GithubRelease> => {
-  if (version === "latest") {
-    return await (await fetch(RELEASES_URL + "/latest")).json();
-  }
-
-  version = version.startsWith("v") ? version : "v" + version;
-  const releases: GithubRelease[] = await (await fetch(RELEASES_URL)).json();
-  for (const release of releases) {
-    if (release.tag_name.startsWith(version)) {
-      return release;
-    }
-  }
-
-  throw new Error(`No release version matches ${version}.`);
-};
+import { GithubRelease, getRelease } from "./github";
 
 const getDownloadOutputFilename = () => {
   switch (os.platform()) {
@@ -96,7 +66,7 @@ const downloadStylua = async (outputDirectory: vscode.Uri) => {
       );
 
       return new Promise(async (resolve, reject) => {
-        fetch(asset.browser_download_url, {
+        fetch(asset.downloadUrl, {
           headers: {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "User-Agent": "stylua-vscode",
@@ -172,9 +142,9 @@ export const ensureStyluaExists = async (
       if (
         currentVersion !==
         `stylua ${
-          release.tag_name.startsWith("v")
-            ? release.tag_name.substr(1)
-            : release.tag_name
+          release.tagName.startsWith("v")
+            ? release.tagName.substr(1)
+            : release.tagName
         }`
       ) {
         openUpdatePrompt(storageDirectory, release);
@@ -192,7 +162,7 @@ export const ensureStyluaExists = async (
 function openUpdatePrompt(directory: vscode.Uri, release: GithubRelease) {
   vscode.window
     .showInformationMessage(
-      `StyLua ${release.tag_name} is available to install.`,
+      `StyLua ${release.tagName} is available to install.`,
       "Install",
       "Later",
       "Release Notes"
@@ -203,7 +173,7 @@ function openUpdatePrompt(directory: vscode.Uri, release: GithubRelease) {
           downloadStyLuaVisual(directory);
           break;
         case "Release Notes":
-          vscode.env.openExternal(vscode.Uri.parse(release.html_url));
+          vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));
           openUpdatePrompt(directory, release);
           break;
       }
