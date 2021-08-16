@@ -1,10 +1,17 @@
-import fetch from "node-fetch";
+import {
+  authentication,
+  Disposable,
+  AuthenticationSession,
+  AuthenticationSessionsChangeEvent,
+} from "vscode";
+import fetch, { Headers } from "node-fetch";
 
 const RELEASES_URL =
   "https://api.github.com/repos/JohnnyMorganz/StyLua/releases";
 const RELEASES_URL_LATEST = RELEASES_URL + "/latest";
+const SCOPES: string[] = [];
 
-export interface GithubRelease {
+export interface GitHubRelease {
   assets: {
     downloadUrl: string;
     name: string;
@@ -13,12 +20,19 @@ export interface GithubRelease {
   htmlUrl: string;
 }
 
-async function fetchJson(url: string): Promise<any> {
-  const response = await fetch(url);
+async function fetchJson(
+  url: string,
+  token: string | undefined = undefined
+): Promise<any> {
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `token ${token}`);
+  }
+  const response = await fetch(url, { headers: headers });
   return response.json();
 }
 
-function releaseFromJson(json: any): GithubRelease {
+function releaseFromJson(json: any): GitHubRelease {
   if (typeof json !== "object") {
     return {
       assets: [],
@@ -41,22 +55,88 @@ function releaseFromJson(json: any): GithubRelease {
   };
 }
 
-export const getRelease = async (version: string): Promise<GithubRelease> => {
-  if (version === "latest") {
-    const json = await fetchJson(RELEASES_URL_LATEST);
-    return releaseFromJson(json);
+class Credential {
+  private _session: string | undefined;
+  private _token: string | undefined;
+
+  constructor() {
+    this.set();
   }
 
-  version = version.startsWith("v") ? version : "v" + version;
-  const json = await fetchJson(RELEASES_URL);
-  const releases: GithubRelease[] = Array.isArray(json)
-    ? json.map(releaseFromJson)
-    : [];
-  for (const release of releases) {
-    if (release.tagName.startsWith(version)) {
-      return release;
+  public get authenticated(): boolean {
+    return !!this._session;
+  }
+
+  public get token(): string | undefined {
+    return this._token;
+  }
+
+  public get session(): string | undefined {
+    return this._session;
+  }
+
+  public set(session: AuthenticationSession | undefined = undefined) {
+    if (session) {
+      this._session = session.id;
+      this._token = session.accessToken;
+    } else {
+      this._session = undefined;
+      this._token = undefined;
     }
   }
+}
 
-  throw new Error(`No release version matches ${version}.`);
-};
+export class GitHub implements Disposable {
+  private _disposables: Disposable[] = [];
+  private _credential: Credential = new Credential();
+
+  constructor() {
+    this._disposables.push(
+      authentication.onDidChangeSessions(
+        (event: AuthenticationSessionsChangeEvent) =>
+          this.authenticate(this._credential.authenticated)
+      )
+    );
+  }
+
+  dispose() {
+    this._disposables.forEach((d) => d.dispose());
+  }
+
+  public async authenticate(create: boolean = true): Promise<boolean> {
+    try {
+      const token = await authentication.getSession("github", SCOPES, {
+        createIfNone: create,
+      });
+      this._credential.set(token);
+    } catch (e) {
+      if (e.message === "User did not consent to login.") {
+        this._credential.set();
+        return false;
+      } else {
+        throw e;
+      }
+    }
+    return this._credential.authenticated;
+  }
+
+  public async getRelease(version: string): Promise<GitHubRelease> {
+    if (version === "latest") {
+      const json = await fetchJson(RELEASES_URL_LATEST, this._credential.token);
+      return releaseFromJson(json);
+    }
+
+    version = version.startsWith("v") ? version : "v" + version;
+    const json = await fetchJson(RELEASES_URL, this._credential.token);
+    const releases: GitHubRelease[] = Array.isArray(json)
+      ? json.map(releaseFromJson)
+      : [];
+    for (const release of releases) {
+      if (release.tagName.startsWith(version)) {
+        return release;
+      }
+    }
+
+    throw new Error(`No release version matches ${version}.`);
+  }
+}

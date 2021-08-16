@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as unzip from "unzipper";
 import fetch from "node-fetch";
 import { executeStylua } from "./stylua";
-import { GithubRelease, getRelease } from "./github";
+import { GitHubRelease } from "./github";
 
 const getDownloadOutputFilename = () => {
   switch (os.platform()) {
@@ -159,7 +159,7 @@ export const ensureStyluaExists = async (
   }
 };
 
-function openUpdatePrompt(directory: vscode.Uri, release: GithubRelease) {
+function openUpdatePrompt(directory: vscode.Uri, release: GitHubRelease) {
   vscode.window
     .showInformationMessage(
       `StyLua ${release.tagName} is available to install.`,

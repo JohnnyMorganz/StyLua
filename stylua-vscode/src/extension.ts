@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as util from "./util";
 import { formatCode, checkIgnored } from "./stylua";
+import { GitHub } from "./github";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -22,6 +23,9 @@ const byteOffset = (
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("stylua activated");
+
+  const github = new GitHub();
+  context.subscriptions.push(github);
 
   let styluaBinaryPath: string | undefined = await util.ensureStyluaExists(
     context.globalStorageUri
