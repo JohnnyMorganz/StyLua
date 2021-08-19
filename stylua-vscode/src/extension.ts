@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as util from "./util";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
+import { StyluaDownloader } from "./download";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -27,22 +28,21 @@ export async function activate(context: vscode.ExtensionContext) {
   const github = new GitHub();
   context.subscriptions.push(github);
 
-  let styluaBinaryPath: string | undefined = await util.ensureStyluaExists(
-    context.globalStorageUri
-  );
+  const downloader = new StyluaDownloader(context.globalStorageUri, github);
+
+  let styluaBinaryPath: string | undefined =
+    await downloader.ensureStyluaExists();
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
-      await util.downloadStyLuaVisual(context.globalStorageUri);
-      styluaBinaryPath = await util.getStyluaPath(context.globalStorageUri);
+      await downloader.downloadStyLuaVisual();
+      styluaBinaryPath = await downloader.getStyluaPath();
     })
   );
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("stylua")) {
-        styluaBinaryPath = await util.ensureStyluaExists(
-          context.globalStorageUri
-        );
+        styluaBinaryPath = await downloader.ensureStyluaExists();
       }
     })
   );
@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
             )
             .then((option) => {
               if (option === "Install") {
-                util.downloadStyLuaVisual(context.globalStorageUri);
+                downloader.downloadStyLuaVisual();
               }
             });
           return [];
