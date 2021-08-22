@@ -1,4 +1,3 @@
-use anyhow::{format_err, Result};
 use serde::Deserialize;
 
 #[macro_use]
@@ -174,17 +173,42 @@ pub enum OutputVerification {
     None,
 }
 
+#[derive(Clone, Debug)]
+pub enum Error {
+    /// The input AST has a parsing error.
+    ParseError(full_moon::Error),
+    /// The output AST after formatting generated a parse error. This is a definite error.
+    VerificationAstError(full_moon::Error),
+    /// The output AST after formatting differs from the input AST.
+    VerificationAstDifference,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::ParseError(error) => match error {
+                full_moon::Error::AstError(error) => write!(formatter, "error parsing: {}", error),
+                full_moon::Error::TokenizerError(error) => write!(formatter, "error parsing: {}", error),
+            },
+            Error::VerificationAstError(error) => write!(formatter, "INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{}", error),
+            Error::VerificationAstDifference => write!(formatter, "INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 /// Formats given Lua code
 pub fn format_code(
     code: &str,
     config: Config,
     range: Option<Range>,
     verify_output: OutputVerification,
-) -> Result<String> {
+) -> Result<String, Error> {
     let input_ast = match full_moon::parse(code) {
         Ok(ast) => ast,
         Err(error) => {
-            return Err(format_err!("error parsing: {}", error));
+            return Err(Error::ParseError(error));
         }
     };
 
@@ -204,18 +228,13 @@ pub fn format_code(
         let reparsed_output = match full_moon::parse(&output) {
             Ok(ast) => ast,
             Err(error) => {
-                return Err(format_err!(
-                "INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{}",
-                error
-            ))
+                return Err(Error::VerificationAstError(error));
             }
         };
 
         let mut ast_verifier = verify_ast::AstVerifier::new();
         if !ast_verifier.compare(input_ast, reparsed_output) {
-            return Err(format_err!(
-                "INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues"
-            ));
+            return Err(Error::VerificationAstDifference);
         }
     }
 
