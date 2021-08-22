@@ -56,11 +56,11 @@ fn format_file(
     verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let contents =
-        fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
+        fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
 
     let before_formatting = Instant::now();
     let formatted_contents = format_code(&contents, config, range, verify_output)
-        .with_context(|| format!("Could not format file {}", path.display()))?;
+        .with_context(|| format!("could not format file {}", path.display()))?;
     let after_formatting = Instant::now();
 
     verbose_println!(
@@ -78,7 +78,7 @@ fn format_file(
             format!("Diff in {}:", path.display()),
             opt.color,
         )
-        .context("Failed to create diff")?;
+        .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
@@ -86,7 +86,7 @@ fn format_file(
         }
     } else {
         fs::write(path, formatted_contents)
-            .with_context(|| format!("Could not write to {}", path.display()))?;
+            .with_context(|| format!("could not write to {}", path.display()))?;
         Ok(FormatResult::Complete)
     }
 }
@@ -101,7 +101,7 @@ fn format_string(
     verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let formatted_contents =
-        format_code(&input, config, range, verify_output).context("Failed to format from stdin")?;
+        format_code(&input, config, range, verify_output).context("failed to format from stdin")?;
 
     if opt.check {
         let diff = output_diff::output_diff(
@@ -111,7 +111,7 @@ fn format_string(
             "Diff from stdin:".into(),
             opt.color,
         )
-        .context("Failed to create diff")?;
+        .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
@@ -228,7 +228,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         }
                     }
                 },
-                Err(err) => error!(read_error_code, 2, "{:#}", err),
+                Err(err) => error!(read_error_code, 2, "error: {:#}", err),
             }
         }
     });
@@ -277,12 +277,23 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     }
                 }
             }
-            Err(error) => error!(
-                error_code,
-                2,
-                "{:#}",
-                format_err!("error: could not walk: {}", error)
-            ),
+            Err(error) => match error {
+                ignore::Error::WithPath { path, err } => match *err {
+                    ignore::Error::Io(error) => match error.kind() {
+                        std::io::ErrorKind::NotFound => {
+                            error!(
+                                error_code,
+                                2,
+                                "error: no file or directory found matching '{:#}'",
+                                path.display()
+                            )
+                        }
+                        _ => error!(error_code, 2, "error: {:#}", error),
+                    },
+                    _ => error!(error_code, 2, "error: {:#}", err),
+                },
+                _ => error!(error_code, 2, "error: {:#}", error),
+            },
         }
     }
 
