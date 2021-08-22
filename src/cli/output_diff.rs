@@ -36,15 +36,7 @@ pub fn output_diff(
 
     let mut buffer = Vec::new();
 
-    let should_use_color = match color {
-        opt::Color::Always => true,
-        opt::Color::Never => false,
-        opt::Color::Auto => {
-            let terminal = Term::stdout();
-            let features = terminal.features();
-            features.is_attended() && features.colors_supported()
-        }
-    };
+    let should_use_color = color.should_use_color();
 
     // Print out the header title
     writeln!(&mut buffer, "{}", title)?;
