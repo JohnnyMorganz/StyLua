@@ -466,13 +466,6 @@ pub fn format_function_call_stmt(
 /// Functions which are used to only format a block within a statement
 /// These are used for range formatting
 pub(crate) mod stmt_block {
-    #[cfg(feature = "lua52")]
-    use crate::formatters::lua52::{format_goto, format_label};
-    #[cfg(feature = "luau")]
-    use crate::formatters::luau::{
-        format_compound_assignment, format_exported_type_declaration, format_type_declaration_stmt,
-        format_type_specifier,
-    };
     use crate::{context::Context, formatters::block::format_block, shape::Shape};
     use full_moon::ast::{
         Call, Expression, Field, FunctionArgs, FunctionCall, Index, Prefix, Stmt, Suffix,
