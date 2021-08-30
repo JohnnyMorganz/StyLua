@@ -15,7 +15,7 @@ use crate::{
         },
         trivia_util::{
             contains_comments, token_trivia_contains_comments, trivia_is_comment,
-            type_info_trailing_trivia,
+            trivia_is_newline, type_info_trailing_trivia,
         },
     },
     shape::Shape,
@@ -232,7 +232,15 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
                     match singleline_shape.over_budget() {
                         true => TableType::MultiLine,
-                        false => TableType::SingleLine,
+                        false => {
+                            // Determine if there was a new line at the end of the start brace
+                            // If so, then we should always be multiline
+                            if start_brace.trailing_trivia().any(trivia_is_newline) {
+                                TableType::MultiLine
+                            } else {
+                                TableType::SingleLine
+                            }
+                        }
                     }
                 }
 

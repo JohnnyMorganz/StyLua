@@ -8,3 +8,6 @@ type PromptSettings = {
     lineOfSight: boolean,
     offset: Vector2,
 }
+
+export type Sprite = {
+	Image: string, ImageRectOffset: Vector2, ImageRectSize: Vector2 }
