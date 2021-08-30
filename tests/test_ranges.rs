@@ -16,15 +16,15 @@ fn test_default() {
     insta::assert_snapshot!(
         format(
             r###"
-local foo     =      bar      
-local bar   =     baz    
+local foo     =      bar
+local bar   =     baz
             "###,
             Range::from_values(Some(0), Some(30))
         ),
         @r###"
     local foo = bar
-    local bar   =     baz    
-                
+    local bar   =     baz
+
     "###
     );
 }
@@ -34,13 +34,13 @@ local bar   =     baz
 fn test_ignore_last_stmt() {
     insta::assert_snapshot!(
         format(
-            r###"function foo() 
+            r###"function foo()
     return bar
 end"###,
             Range::from_values(Some(0), Some(1))
         ),
     @r###"
-    function foo() 
+    function foo()
         return bar
     end
     "###);
@@ -52,8 +52,8 @@ fn test_dont_modify_eof() {
     insta::assert_snapshot!(
         format(
             r###"
-local foo     =      bar      
-local bar   =     baz    
+local foo     =      bar
+local bar   =     baz
 
 
 
@@ -63,12 +63,12 @@ local bar   =     baz
         ),
     @r###"
     local foo = bar
-    local bar   =     baz    
+    local bar   =     baz
 
 
 
 
-                
+
     "###);
 }
 
@@ -83,7 +83,7 @@ fn test_incomplete_range() {
     @r###"
 
     local    fooo =    bar
-                
+
     "###);
 }
 
@@ -106,7 +106,7 @@ bf.Parent = torso end local c2 = player[i].Character:GetChildren()
 for i = 1, #c2 do if c2[i].className == "Part" then
 torso.BF.force = torso.BF.force
 + Vector3.new(0, c2[i]:getMass() * -string.sub(msg, danumber + 1), 0)
-end end end end end end 
+end end end end end end
 
 if string.sub(msg, 1, 5) == "trip/" then local player = findplayer(string.sub(msg, 6), speaker)
 if player ~= 0 then for i = 1, #player do
@@ -164,6 +164,25 @@ end end end end end
     local torso = player[i].Character:FindFirstChild("Torso")
     if torso ~= nil then torso.CFrame = CFrame.new(torso.Position.x, torso.Position.y, torso.Position.z, 0, 0, 1, 0, -1, 0, 1, 0, 0) --math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
     end end end end end
-                
+
+    "###);
+}
+
+#[test]
+#[cfg_attr(feature = "luau", ignore)]
+fn test_nested_range() {
+    insta::assert_snapshot!(
+        format(
+            r###"local my_function  =  function()
+    local nested_statement    =  "foobar"
+end
+"###,
+            Range::from_values(Some(33), Some(76))
+        ),
+    @r###"
+
+    local my_function  =  function()
+    	local nested_statement = "foobar"
+    end
     "###);
 }
