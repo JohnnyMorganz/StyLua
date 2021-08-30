@@ -480,14 +480,14 @@ fn format_table_constructor_block(
                     equal,
                     value,
                 } => Field::ExpressionKey {
-                    brackets: brackets.to_owned(),
+                    brackets,
                     key: format_expression_block(ctx, &key, shape),
-                    equal: equal.to_owned(),
+                    equal,
                     value: format_expression_block(ctx, &value, shape),
                 },
                 Field::NameKey { key, equal, value } => Field::NameKey {
-                    key: key.to_owned(),
-                    equal: equal.to_owned(),
+                    key,
+                    equal,
                     value: format_expression_block(ctx, &value, shape),
                 },
                 Field::NoKey(expression) => {
@@ -603,13 +603,13 @@ fn format_expression_block(ctx: &Context, expression: &Expression, shape: Shape)
                     Value::Function((function_token.to_owned(), body.to_owned().with_block(block)))
                 }
                 Value::FunctionCall(function_call) => {
-                    Value::FunctionCall(format_function_call_block(ctx, &function_call, shape))
+                    Value::FunctionCall(format_function_call_block(ctx, function_call, shape))
                 }
                 Value::TableConstructor(table_constructor) => Value::TableConstructor(
-                    format_table_constructor_block(ctx, &table_constructor, shape),
+                    format_table_constructor_block(ctx, table_constructor, shape),
                 ),
                 Value::ParenthesesExpression(expression) => {
-                    Value::ParenthesesExpression(format_expression_block(ctx, &expression, shape))
+                    Value::ParenthesesExpression(format_expression_block(ctx, expression, shape))
                 }
                 // TODO: var?
                 value => value.to_owned(),
