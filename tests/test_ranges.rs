@@ -173,8 +173,7 @@ end end end end end
 fn test_nested_range() {
     insta::assert_snapshot!(
         format(
-            r###"
-local my_function  =  function()
+            r###"local my_function  =  function()
     local nested_statement    =  "foobar"
 end
 "###,
