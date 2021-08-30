@@ -574,7 +574,7 @@ fn format_function_call_block(
 }
 
 /// Only formats a block within an expression
-fn format_expression_block(ctx: &Context, expression: &Expression, shape: Shape) -> Expression {
+pub fn format_expression_block(ctx: &Context, expression: &Expression, shape: Shape) -> Expression {
     match expression {
         Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
             lhs: Box::new(format_expression_block(ctx, lhs, shape)),

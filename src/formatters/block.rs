@@ -1,5 +1,4 @@
 use crate::{
-    check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
@@ -139,8 +138,31 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
     }
 }
 
+// Only formats a block within the last stmt
+fn format_last_stmt_block(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
+    match last_stmt {
+        LastStmt::Return(return_node) => {
+            let returns = return_node
+                .returns()
+                .pairs()
+                .map(|pair| {
+                    pair.to_owned().map(|expression| {
+                        let shape = shape.reset().increment_block_indent();
+                        super::stmt::format_expression_block(ctx, &expression, shape)
+                    })
+                })
+                .collect();
+
+            LastStmt::Return(return_node.to_owned().with_returns(returns))
+        }
+        other => other.to_owned(),
+    }
+}
+
 pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
-    check_should_format!(ctx, last_stmt);
+    if !ctx.should_format_node(last_stmt) {
+        return format_last_stmt_block(ctx, last_stmt, shape);
+    }
 
     match last_stmt {
         LastStmt::Break(token) => {
