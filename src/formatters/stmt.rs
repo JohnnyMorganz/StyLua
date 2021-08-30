@@ -592,7 +592,11 @@ fn format_expression_block(ctx: &Context, expression: &Expression, shape: Shape)
             unop: unop.to_owned(),
             expression: Box::new(format_expression_block(ctx, expression, shape)),
         },
-        Expression::Value { value } => Expression::Value {
+        Expression::Value {
+            value,
+            #[cfg(feature = "luau")]
+            type_assertion,
+        } => Expression::Value {
             value: Box::new(match &**value {
                 Value::Function((function_token, body)) => {
                     let block = format_block(ctx, body.block(), shape);
@@ -610,6 +614,8 @@ fn format_expression_block(ctx: &Context, expression: &Expression, shape: Shape)
                 // TODO: var?
                 value => value.to_owned(),
             }),
+            #[cfg(feature = "luau")]
+            type_assertion: type_assertion.to_owned(),
         },
         other => panic!("unknown node {:?}", other),
     }
@@ -705,6 +711,19 @@ fn format_stmt_block(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
             let block = format_block(ctx, while_block.block(), block_shape);
             Stmt::While(while_block.to_owned().with_block(block))
         }
+        #[cfg(feature = "luau")]
+        Stmt::CompoundAssignment(compound_assignment) => {
+            let rhs = format_expression_block(ctx, compound_assignment.rhs(), block_shape);
+            Stmt::CompoundAssignment(compound_assignment.to_owned().with_rhs(rhs))
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
+        #[cfg(feature = "luau")]
+        Stmt::TypeDeclaration(node) => Stmt::TypeDeclaration(node.to_owned()),
+        #[cfg(feature = "lua52")]
+        Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
+        #[cfg(feature = "lua52")]
+        Stmt::Label(node) => Stmt::Label(node.to_owned()),
         other => panic!("unknown node {:?}", other),
     }
 }
