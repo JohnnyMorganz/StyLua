@@ -148,7 +148,7 @@ fn format_last_stmt_block(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> 
                 .map(|pair| {
                     pair.to_owned().map(|expression| {
                         let shape = shape.reset().increment_block_indent();
-                        super::stmt::format_expression_block(ctx, &expression, shape)
+                        super::stmt::stmt_block::format_expression_block(ctx, &expression, shape)
                     })
                 })
                 .collect();
