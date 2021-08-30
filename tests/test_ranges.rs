@@ -183,7 +183,7 @@ end
     @r###"
 
     local my_function  =  function()
-        local nested_statement    =  "foobar"
+    	local nested_statement = "foobar"
     end
     "###);
 }
