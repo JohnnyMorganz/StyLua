@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed range formatting no longer working when setting the range to statements inside nested blocks. ([#239](https://github.com/JohnnyMorganz/StyLua/issues/239))
+- Fixed ignore file present in cwd not taken into account if cwd not included in file paths to format. ([#249](https://github.com/JohnnyMorganz/StyLua/issues/249))
 
 ## [0.10.1] - 2021-08-08
 ### Fixed
