@@ -649,9 +649,15 @@ pub fn format_function_body(
 
     #[cfg(feature = "luau")]
     {
+        let parameters_shape = if multiline_params {
+            shape.increment_additional_indent()
+        } else {
+            shape
+        };
+
         type_specifiers = function_body
             .type_specifiers()
-            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
+            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
             .collect();
 
         return_type = function_body.return_type().map(|return_type| {
