@@ -144,4 +144,5 @@ line_endings = "Unix"
 indent_type = "Tabs"
 indent_width = 4
 quote_style = "AutoPreferDouble"
+no_call_parentheses = false
 ```
