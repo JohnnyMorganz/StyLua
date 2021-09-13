@@ -87,20 +87,20 @@ class Credential {
 }
 
 export class GitHub implements Disposable {
-  private _disposables: Disposable[] = [];
-  private _credential: Credential = new Credential();
+  private disposables: Disposable[] = [];
+  private credential: Credential = new Credential();
 
   constructor() {
-    this._disposables.push(
+    this.disposables.push(
       authentication.onDidChangeSessions(
         (event: AuthenticationSessionsChangeEvent) =>
-          this.authenticate(this._credential.authenticated)
+          this.authenticate(this.credential.authenticated)
       )
     );
   }
 
   dispose() {
-    this._disposables.forEach((d) => d.dispose());
+    this.disposables.forEach((d) => d.dispose());
   }
 
   public async authenticate(create: boolean = true): Promise<boolean> {
@@ -108,26 +108,29 @@ export class GitHub implements Disposable {
       const token = await authentication.getSession("github", SCOPES, {
         createIfNone: create,
       });
-      this._credential.set(token);
+      this.credential.set(token);
     } catch (e) {
-      if (e.message === "User did not consent to login.") {
-        this._credential.set();
+      if (
+        e instanceof Error &&
+        e.message === "User did not consent to login."
+      ) {
+        this.credential.set();
         return false;
       } else {
         throw e;
       }
     }
-    return this._credential.authenticated;
+    return this.credential.authenticated;
   }
 
   public async getRelease(version: string): Promise<GitHubRelease> {
     if (version === "latest") {
-      const json = await fetchJson(RELEASES_URL_LATEST, this._credential.token);
+      const json = await fetchJson(RELEASES_URL_LATEST, this.credential.token);
       return releaseFromJson(json);
     }
 
     version = version.startsWith("v") ? version : "v" + version;
-    const json = await fetchJson(RELEASES_URL, this._credential.token);
+    const json = await fetchJson(RELEASES_URL, this.credential.token);
     const releases: GitHubRelease[] = Array.isArray(json)
       ? json.map(releaseFromJson)
       : [];

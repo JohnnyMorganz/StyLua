@@ -32,10 +32,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
   let styluaBinaryPath: string | undefined =
     await downloader.ensureStyluaExists();
+
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
       await downloader.downloadStyLuaVisual();
       styluaBinaryPath = await downloader.getStyluaPath();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("stylua.authenticate", async () => {
+      try {
+        await github.authenticate();
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to authenticate with GitHub: ${error}`
+        );
+      }
     })
   );
 
