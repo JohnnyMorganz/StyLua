@@ -360,7 +360,7 @@ pub fn format_table_constructor(
                 start_brace.token().end_position().bytes(),
                 end_brace.token().start_position().bytes(),
             );
-            let singleline_shape = shape + (braces_range.1 - braces_range.0);
+            let singleline_shape = shape + (braces_range.1 - braces_range.0) + 4; // 4 = two braces + single space before/after them
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
