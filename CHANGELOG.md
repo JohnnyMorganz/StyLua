@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed config locations (`$XDG_CONFIG_HOME` and `$HOME/.config`) not being looked into correctly on macOS when `--search-parent-directories` is used. ([#260](https://github.com/JohnnyMorganz/StyLua/issues/260))
 - Fixed incorrect indentation of multiline type specifiers for function parameters under the `luau` feature flag. ([#256](https://github.com/JohnnyMorganz/StyLua/issues/256))
 - Fixed unstable formatting caused by a singleline table which just reaches the column width. ([#261](https://github.com/JohnnyMorganz/StyLua/issues/261))
+- Fixed misformatting of a binop expression as precedence of the RHS expression was not taken into account. ([#257](https://github.com/JohnnyMorganz/StyLua/issues/257), [#261](https://github.com/JohnnyMorganz/StyLua/issues/261)) 
 
 ## [0.10.1] - 2021-08-08
 ### Fixed
