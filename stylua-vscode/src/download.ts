@@ -47,6 +47,18 @@ export class StyluaDownloader {
         vscode.window.showWarningMessage(
           `Error checking the selected StyLua version, falling back to the currently installed version:\n${err}`
         );
+        if (!this.github.authenticated) {
+          const option = await vscode.window.showInformationMessage(
+            "Authenticating with GitHub can fix rate limits.",
+            "Authenticate with GitHub"
+          );
+          switch (option) {
+            case "Authenticate with GitHub":
+              if (await this.github.authenticate()) {
+                return this.ensureStyluaExists();
+              }
+          }
+        }
       }
 
       return path;

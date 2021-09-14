@@ -93,14 +93,23 @@ export class GitHub implements Disposable {
   constructor() {
     this.disposables.push(
       authentication.onDidChangeSessions(
-        (event: AuthenticationSessionsChangeEvent) =>
-          this.authenticate(this.credential.authenticated)
+        (event: AuthenticationSessionsChangeEvent) => {
+          if (event.provider.id === "github") {
+            this.credential.set();
+            this.authenticate(false);
+          }
+        }
       )
     );
+    this.authenticate(false);
   }
 
   dispose() {
     this.disposables.forEach((d) => d.dispose());
+  }
+
+  public get authenticated(): boolean {
+    return this.credential.authenticated;
   }
 
   public async authenticate(create: boolean = true): Promise<boolean> {
