@@ -85,8 +85,7 @@ fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
         if home_config_path.exists() {
             verbose_println!(verbose, "config: looking in $HOME/.config");
 
-            if let Some(config) = find_config_file(home_config_path.to_path_buf(), false, verbose)?
-            {
+            if let Some(config) = find_config_file(home_config_path.to_owned(), false, verbose)? {
                 return Ok(Some(config));
             }
 
