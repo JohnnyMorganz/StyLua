@@ -28,7 +28,6 @@ lua52 = ["full_moon/lua52"]
 anyhow = "1.0.41"
 console = "0.14.1"
 crossbeam-channel = "0.5.1"
-directories = "3.0.2"
 full_moon = { version = "0.13.1" }
 globset = "0.4.8"
 ignore = "0.4.18"
