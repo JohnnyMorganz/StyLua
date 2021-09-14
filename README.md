@@ -57,8 +57,8 @@ StyLua can also read from stdin, by using `-` as the file name.
 By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` to format.
 You can also specify an explicit glob pattern to match against when searching:
 ```bash
-stylua --glob **/*.luau -- src # format all files in src matching **/*.luau
-stylua -g *.lua -g !*.spec.lua -- . # format all Lua files except test files ending with `.spec.lua`
+stylua --glob '**/*.luau' -- src # format all files in src matching **/*.luau
+stylua -g '*.lua' -g '!*.spec.lua' -- . # format all Lua files except test files ending with `.spec.lua`
 ```
 Note, if you are using the glob argument, it can take in multiple strings, so `--` is required to break between the glob pattern and the files to format.
 If you explicitly pass a file to StyLua to format, but it doesn't match the glob, it will still be formatted (e.g. `stylua foo` for file `foo` containing Lua code)
@@ -144,4 +144,5 @@ line_endings = "Unix"
 indent_type = "Tabs"
 indent_width = 4
 quote_style = "AutoPreferDouble"
+no_call_parentheses = false
 ```
