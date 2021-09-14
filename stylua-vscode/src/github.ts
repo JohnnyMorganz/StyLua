@@ -3,6 +3,7 @@ import {
   Disposable,
   AuthenticationSession,
   AuthenticationSessionsChangeEvent,
+  window,
 } from "vscode";
 import fetch, { Headers } from "node-fetch";
 
@@ -126,7 +127,7 @@ export class GitHub implements Disposable {
         this.credential.set();
         return false;
       } else {
-        throw e;
+        window.showErrorMessage(`Failed to authenticate with GitHub: ${e}`);
       }
     }
     return this.credential.authenticated;

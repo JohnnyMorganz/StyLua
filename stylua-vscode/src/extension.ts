@@ -42,13 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.authenticate", async () => {
-      try {
-        await github.authenticate();
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          `Failed to authenticate with GitHub: ${error}`
-        );
-      }
+      await github.authenticate();
     })
   );
 
