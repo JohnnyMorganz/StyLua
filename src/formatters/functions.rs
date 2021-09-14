@@ -528,6 +528,61 @@ pub fn format_function_args(
     }
 }
 
+fn should_parameters_format_multiline(
+    ctx: &Context,
+    function_body: &FunctionBody,
+    shape: Shape,
+    block_empty: bool,
+) -> bool {
+    // Check the length of the parameters. We need to format them first onto a single line to check if required
+    let mut line_length = format_singleline_parameters(ctx, function_body, shape)
+        .to_string()
+        .len()
+        + 2; // Account for the parentheses around the parameters
+
+    // If we are in Luau mode, take into account the types
+    // If a type specifier is multiline, the whole parameters should be formatted multiline UNLESS there is only a single parameter.
+    // Otherwise, include them in the total length
+    #[cfg(feature = "luau")]
+    {
+        let (extra_line_length, multiline_specifier_present) = function_body
+            .type_specifiers()
+            .chain(std::iter::once(function_body.return_type())) // Include optional return type
+            .map(|x| {
+                x.map_or((0, false), |specifier| {
+                    let formatted = format_type_specifier(ctx, specifier, shape).to_string();
+
+                    (formatted.len(), formatted.lines().count() > 1)
+                })
+            })
+            .fold(
+                (0, false),
+                |(acc_length, acc_multiline), (length, multiline)| {
+                    (
+                        acc_length + length,
+                        if multiline { true } else { acc_multiline },
+                    )
+                },
+            );
+
+        // One of the type specifiers is multiline, and we have more than one parameter
+        if multiline_specifier_present && function_body.parameters().len() > 1 {
+            return true;
+        }
+
+        // Add the extra length
+        line_length += extra_line_length
+    }
+
+    // If the block is empty, then the `end` will be inlined. We should include this in our line length check
+    if block_empty {
+        line_length += 4 // 4 = " end"
+    }
+
+    let singleline_shape = shape + line_length;
+    singleline_shape.over_budget()
+}
+
 /// Formats a FunctionBody node
 pub fn format_function_body(
     ctx: &Context,
@@ -566,42 +621,8 @@ pub fn format_function_body(
             contains_comments || type_specifier_comments
         });
 
-        contains_comments || {
-            // Check the length of the parameters. We need to format them first onto a single line to check if required
-            let types_length: usize;
-            #[cfg(feature = "luau")]
-            {
-                types_length = function_body
-                    .type_specifiers()
-                    .chain(std::iter::once(function_body.return_type())) // Include optional return type
-                    .map(|x| {
-                        x.map_or(0, |specifier| {
-                            format_type_specifier(ctx, specifier, shape)
-                                .to_string()
-                                .len()
-                        })
-                    })
-                    .sum::<usize>()
-            }
-            #[cfg(not(feature = "luau"))]
-            {
-                types_length = 0
-            }
-
-            let mut line_length = format_singleline_parameters(ctx, function_body, shape)
-                    .to_string()
-                    .len()
-                        + 2 // Account for the parentheses around the parameters
-                        + types_length; // Account for type specifiers and return type
-
-            // If the block is empty, then the `end` will be inlined. We should include this in our line length check
-            if block_empty {
-                line_length += 4 // 4 = " end"
-            }
-
-            let singleline_shape = shape + line_length;
-            singleline_shape.over_budget()
-        }
+        contains_comments
+            || should_parameters_format_multiline(ctx, function_body, shape, block_empty)
     };
 
     let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
@@ -649,9 +670,15 @@ pub fn format_function_body(
 
     #[cfg(feature = "luau")]
     {
+        let parameters_shape = if multiline_params {
+            shape.increment_additional_indent()
+        } else {
+            shape
+        };
+
         type_specifiers = function_body
             .type_specifiers()
-            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, shape)))
+            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
             .collect();
 
         return_type = function_body.return_type().map(|return_type| {
