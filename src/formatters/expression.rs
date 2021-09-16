@@ -419,11 +419,11 @@ fn binop_expression_length(expression: &Expression, top_binop: &BinOp) -> usize 
             {
                 if binop.is_right_associative() {
                     binop_expression_length(rhs, top_binop)
-                        + binop.to_string().len()
+                        + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
                         + lhs.to_string().len()
                 } else {
                     binop_expression_length(lhs, top_binop)
-                        + binop.to_string().len()
+                        + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
                         + rhs.to_string().len()
                 }
             } else {
@@ -610,6 +610,7 @@ fn hang_binop_expression(
                 ExpressionSide::Left
             };
 
+            // TODO/FIXME: using test_shape here leads to too high of an indent level, causing the expression to hang unnecessarily
             let over_column_width =
                 is_hang_binop_over_width(test_shape, &full_expression, &binop, lhs_range);
             let should_hang = same_op_level
@@ -823,9 +824,10 @@ fn format_hanging_expression_(
             let lhs =
                 hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, lhs_range);
 
-            let mut new_binop = format_binop(ctx, binop, shape);
-            let singleline_shape =
-                shape.take_last_line(&lhs) + strip_trivia(binop).to_string().len() + 1;
+            let current_shape = shape.take_last_line(&lhs) + 1; // 1 = space before binop
+            let mut new_binop = format_binop(ctx, binop, current_shape);
+
+            let singleline_shape = current_shape + strip_trivia(binop).to_string().len() + 1; // 1 = space after binop
 
             let mut new_rhs = hang_binop_expression(
                 ctx,
@@ -837,6 +839,8 @@ fn format_hanging_expression_(
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
             if (did_hang_expression(&lhs) && binop_precedence_level(&lhs) >= binop.precedence())
+                || (did_hang_expression(&new_rhs)
+                    && binop_precedence_level(&new_rhs) >= binop.precedence())
                 || contains_comments(binop)
                 || get_expression_trailing_trivia(&lhs)
                     .iter()

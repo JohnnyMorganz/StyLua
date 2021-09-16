@@ -164,6 +164,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
         .parents(true)
         .add_custom_ignore_filename(".styluaignore");
 
+    // Look for an ignore file in the current working directory
+    let ignore_path = cwd.join(".styluaignore");
+    if ignore_path.is_file() {
+        walker_builder.add_ignore(ignore_path);
+    }
+
     let use_default_glob = match opt.glob {
         Some(ref globs) => {
             // Build overriders with any patterns given
