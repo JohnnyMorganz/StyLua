@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - In Luau type tables, a newline after the opening brace will now force the type table multiline. This is the same procedure as standard tables. ([#226](https://github.com/JohnnyMorganz/StyLua/issues/226))
 - In Luau, type specifiers for function parameters will now force the parameters to be formatted multiline if a specifier is multiline (and there is more than one parameter).
+- Improved error messages to make them easier to understand.
 
 ### Fixed
 - Fixed range formatting no longer working when setting the range to statements inside nested blocks. ([#239](https://github.com/JohnnyMorganz/StyLua/issues/239))
