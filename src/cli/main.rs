@@ -1,4 +1,4 @@
-use anyhow::{bail, format_err, Context, Result};
+use anyhow::{bail, Context, Result};
 use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
@@ -185,16 +185,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
             // Build overriders with any patterns given
             let mut overrides = OverrideBuilder::new(cwd);
             for pattern in globs {
-                match overrides.add(pattern) {
-                    Ok(_) => continue,
-                    Err(err) => {
-                        return Err(format_err!(
-                            "cannot parse glob pattern {}: {}",
-                            pattern,
-                            err
-                        ));
-                    }
-                }
+                overrides.add(pattern)?;
             }
             let overrides = overrides.build()?;
             walker_builder.overrides(overrides);
