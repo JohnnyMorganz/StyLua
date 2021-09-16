@@ -33,19 +33,19 @@ macro_rules! verbose_println {
 }
 
 macro_rules! error {
-    ($error_code:expr, $fmt:expr, $($args:tt)*) => {
-        error(std::fmt::format(format_args!($fmt, $($args)*)), $error_code);
+    ($opt:expr, $fmt:expr, $($args:tt)*) => {
+        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color());
     };
 }
 
-fn error(text: String, error_code: i32) {
+fn error(text: String, should_use_color: bool) {
     eprintln!(
         "{}{} {}",
-        style("error").bold().red().force_styling(true), // TODO: should_use_color
-        style(":").bold(),
+        style("error").bold().red().force_styling(should_use_color),
+        style(":").bold().force_styling(should_use_color),
         text
     );
-    EXIT_CODE.store(error_code, Ordering::SeqCst);
+    EXIT_CODE.store(2, Ordering::SeqCst);
 }
 
 enum FormatResult {
@@ -214,6 +214,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
     let opt = Arc::new(opt);
 
     // Create a thread to handle the formatting output
+    let read_opt = opt.clone();
     pool.execute(move || {
         for output in rx {
             match output {
@@ -225,7 +226,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!(2, "could not output to stdout: {:#}", err)
+                                error!(&read_opt, "could not output to stdout: {:#}", err)
                             }
                         };
                     }
@@ -238,11 +239,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => error!(2, "{:#}", err),
+                            Err(err) => error!(&read_opt, "{:#}", err),
                         }
                     }
                 },
-                Err(err) => error!(2, "{:#}", err),
+                Err(err) => error!(&read_opt, "{:#}", err),
             }
         }
     });
@@ -296,16 +297,16 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     ignore::Error::Io(error) => match error.kind() {
                         std::io::ErrorKind::NotFound => {
                             error!(
-                                2,
+                                &opt,
                                 "no file or directory found matching '{:#}'",
                                 path.display()
                             )
                         }
-                        _ => error!(2, "{:#}", error),
+                        _ => error!(&opt, "{:#}", error),
                     },
-                    _ => error!(2, "{:#}", err),
+                    _ => error!(&opt, "{:#}", err),
                 },
-                _ => error!(2, "{:#}", error),
+                _ => error!(&opt, "{:#}", error),
             },
         }
     }
@@ -324,11 +325,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
 fn main() {
     let opt = opt::Opt::from_args();
+    let should_use_color = opt.color.should_use_color();
 
     let exit_code = match format(opt) {
         Ok(code) => code,
         Err(e) => {
-            error!(2, "{:#}", e);
+            error(format!("{:#}", e), should_use_color);
             2
         }
     };
