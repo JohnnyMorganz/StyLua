@@ -217,7 +217,10 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!(read_error_code, 2, "Could not output to stdout: {:#}", err)
+                                error!(
+                                    read_error_code,
+                                    2, "error: could not output to stdout: {:#}", err
+                                )
                             }
                         };
                     }
