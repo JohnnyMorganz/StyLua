@@ -39,7 +39,7 @@ This action will use GitHub releases, rather than running cargo install, to spee
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.10.1" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.11.0" }
 ```
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
 
