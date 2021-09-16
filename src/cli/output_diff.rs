@@ -2,7 +2,7 @@
 // Licensed under https://github.com/mitsuhiko/similar/blob/main/LICENSE
 use crate::opt;
 use anyhow::Result;
-use console::{style, Style, Term};
+use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
 use std::fmt;
 use std::io::Write;
