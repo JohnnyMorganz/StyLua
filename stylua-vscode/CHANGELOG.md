@@ -18,6 +18,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 - Added StyLua version configuration.
   - A release can be selected from a list of compatible minor versions.
   - A target release version can be provided that overrides the selection.
+- Added authentication with GitHub.
+  - Authorizing StyLua with GitHub can avoid rate limits.
 
 ### Changed
 
