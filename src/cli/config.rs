@@ -122,7 +122,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
             };
             verbose_println!(
                 opt.verbose,
-                "config: starting config search from {} - recurisvely searching parents: {}",
+                "config: starting config search from {} - recursively searching parents: {}",
                 current_dir.display(),
                 opt.search_parent_directories
             );
