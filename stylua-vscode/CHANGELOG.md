@@ -18,10 +18,15 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 - Added StyLua version configuration.
   - A release can be selected from a list of compatible minor versions.
   - A target release version can be provided that overrides the selection.
+- Added authentication with GitHub.
+  - Authorizing StyLua with GitHub can avoid rate limits.
 
 ### Changed
 
 - Release information is now gathered directly from the GitHub REST API.
+  - Unauthenticated connections are now subject to GitHub rate limits as a
+    result. Optional GitHub authentication has been added for interaction with
+    the API.
 - StyLua update prompts are now given for the configured version. If release
   `v0.8` is selected only release versions matching it, such as `v0.8.2` will
   be prompted for install.
