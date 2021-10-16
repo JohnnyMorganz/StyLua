@@ -1,7 +1,7 @@
 [package]
 name = "stylua"
 version = "0.11.0"
-authors = ["JohnnyMorganz <therobloxbot@gmail.com>"]
+authors = ["JohnnyMorganz <johnnymorganz@outlook.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
 repository = "https://github.com/johnnymorganz/stylua"
