@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed indentation of type callback specifier parameters when parameters have leading comment trivia. ([#278](https://github.com/JohnnyMorganz/StyLua/issues/278))
 
 ## [0.11.0] - 2021-09-16
 ### Changed
