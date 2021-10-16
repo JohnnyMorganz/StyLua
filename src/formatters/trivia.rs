@@ -665,8 +665,10 @@ define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
 #[cfg(feature = "luau")]
 define_update_leading_trivia!(TypeArgument, |this, leading| {
     if let Some((name, colon)) = this.name() {
-        this.to_owned()
-            .with_name(Some((name.update_leading_trivia(leading), colon.to_owned())))
+        this.to_owned().with_name(Some((
+            name.update_leading_trivia(leading),
+            colon.to_owned(),
+        )))
     } else {
         this.to_owned()
             .with_type_info(this.type_info().update_leading_trivia(leading))
