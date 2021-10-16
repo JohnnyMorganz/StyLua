@@ -1,6 +1,6 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
-    IndexedTypeInfo, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -549,14 +549,14 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
 });
 
 #[cfg(feature = "luau")]
-define_update_trailing_trivia!(TypeInfo, |this, trailing| {
+define_update_trivia!(TypeInfo, |this, leading, trailing| {
     match this {
         TypeInfo::Array { braces, type_info } => TypeInfo::Array {
-            braces: braces.update_trailing_trivia(trailing),
+            braces: braces.update_trivia(leading, trailing),
             type_info: type_info.to_owned(),
         },
         TypeInfo::Basic(token_reference) => {
-            TypeInfo::Basic(token_reference.update_trailing_trivia(trailing))
+            TypeInfo::Basic(token_reference.update_trivia(leading, trailing))
         }
         TypeInfo::Callback {
             parentheses,
@@ -564,7 +564,7 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             arrow,
             return_type,
         } => TypeInfo::Callback {
-            parentheses: parentheses.to_owned(),
+            parentheses: parentheses.update_leading_trivia(leading),
             arguments: arguments.to_owned(),
             arrow: arrow.to_owned(),
             return_type: Box::new(return_type.update_trailing_trivia(trailing)),
@@ -574,7 +574,7 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             arrows,
             generics,
         } => TypeInfo::Generic {
-            base: base.to_owned(),
+            base: base.update_leading_trivia(leading),
             arrows: arrows.update_trailing_trivia(trailing),
             generics: generics.to_owned(),
         },
@@ -584,7 +584,7 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             ampersand,
             right,
         } => TypeInfo::Intersection {
-            left: left.to_owned(),
+            left: Box::new(left.update_leading_trivia(leading)),
             ampersand: ampersand.to_owned(),
             right: Box::new(right.update_trailing_trivia(trailing)),
         },
@@ -594,7 +594,7 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             punctuation,
             type_info,
         } => TypeInfo::Module {
-            module: module.to_owned(),
+            module: module.update_leading_trivia(leading),
             punctuation: punctuation.to_owned(),
             type_info: Box::new(type_info.update_trailing_trivia(trailing)),
         },
@@ -603,12 +603,12 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             base,
             question_mark,
         } => TypeInfo::Optional {
-            base: base.to_owned(),
+            base: Box::new(base.update_leading_trivia(leading)),
             question_mark: question_mark.update_trailing_trivia(trailing),
         },
 
         TypeInfo::Table { braces, fields } => TypeInfo::Table {
-            braces: braces.update_trailing_trivia(trailing),
+            braces: braces.update_trivia(leading, trailing),
             fields: fields.to_owned(),
         },
 
@@ -617,24 +617,24 @@ define_update_trailing_trivia!(TypeInfo, |this, trailing| {
             parentheses,
             inner,
         } => TypeInfo::Typeof {
-            typeof_token: typeof_token.to_owned(),
+            typeof_token: typeof_token.update_leading_trivia(leading),
             parentheses: parentheses.update_trailing_trivia(trailing),
             inner: inner.to_owned(),
         },
 
         TypeInfo::Tuple { parentheses, types } => TypeInfo::Tuple {
-            parentheses: parentheses.update_trailing_trivia(trailing),
+            parentheses: parentheses.update_trivia(leading, trailing),
             types: types.to_owned(),
         },
 
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: left.to_owned(),
+            left: Box::new(left.update_leading_trivia(leading)),
             pipe: pipe.to_owned(),
             right: Box::new(right.update_trailing_trivia(trailing)),
         },
 
         TypeInfo::Variadic { ellipse, type_info } => TypeInfo::Variadic {
-            ellipse: ellipse.to_owned(),
+            ellipse: ellipse.update_leading_trivia(leading),
             type_info: Box::new(type_info.update_trailing_trivia(trailing)),
         },
 
@@ -659,6 +659,17 @@ define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
         },
 
         other => panic!("unknown node {:?}", other),
+    }
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(TypeArgument, |this, leading| {
+    if let Some((name, colon)) = this.name() {
+        this.to_owned()
+            .with_name(Some((name.update_leading_trivia(leading), colon.to_owned())))
+    } else {
+        this.to_owned()
+            .with_type_info(this.type_info().update_leading_trivia(leading))
     }
 });
 
