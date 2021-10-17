@@ -253,7 +253,7 @@ where
         let (field, punctuation) = (pair.value(), pair.punctuation());
 
         // Reset the shape onto a new line, as we are a new field
-        shape = shape.reset();
+        shape = shape.reset().add_width(1); // Add 1 to include the trailing comma at the end
 
         // Format the field
         let (formatted_field, mut trailing_trivia) = formatter(ctx, field, table_type, shape);

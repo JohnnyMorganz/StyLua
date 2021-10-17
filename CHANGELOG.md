@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed indentation of type callback specifier parameters when parameters have leading comment trivia. ([#278](https://github.com/JohnnyMorganz/StyLua/issues/278))
+- Fixed trailing comma not being taken into account when determining the width of a field in a multiline table. ([#282](https://github.com/JohnnyMorganz/StyLua/issues/282))
 
 ## [0.11.0] - 2021-09-16
 ### Changed
