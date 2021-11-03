@@ -1,4 +1,4 @@
-use full_moon::ast::types::GenericDeclaration;
+use full_moon::ast::types::{GenericDeclaration, GenericDeclarationParameter};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
@@ -565,13 +565,23 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             arguments,
             arrow,
             return_type,
-        } => TypeInfo::Callback {
-            generics: generics.map(|generics| generics.update_leading_trivia(leading)),
-            parentheses: if generics.is_none() { parentheses.update_leading_trivia(leading) } else { parentheses.to_owned() },
-            arguments: arguments.to_owned(),
-            arrow: arrow.to_owned(),
-            return_type: Box::new(return_type.update_trailing_trivia(trailing)),
-        },
+        } => {
+            let (generics, parentheses) = if let Some(generics) = generics {
+                (
+                    Some(generics.update_leading_trivia(leading)),
+                    parentheses.to_owned(),
+                )
+            } else {
+                (generics.to_owned(), parentheses.update_leading_trivia(leading))
+            };
+            TypeInfo::Callback {
+                generics,
+                parentheses,
+                arguments: arguments.to_owned(),
+                arrow: arrow.to_owned(),
+                return_type: Box::new(return_type.update_trailing_trivia(trailing)),
+            }
+        }
         TypeInfo::Generic {
             base,
             arrows,
@@ -718,4 +728,20 @@ define_update_trailing_trivia!(TypeSpecifier, |this, trailing| {
 define_update_leading_trivia!(GenericDeclaration, |this, leading| {
     this.to_owned()
         .with_arrows(this.arrows().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
+    match this {
+        GenericDeclarationParameter::Name(token) => {
+            GenericDeclarationParameter::Name(token.update_leading_trivia(leading))
+        }
+        GenericDeclarationParameter::Variadic { name, ellipse } => {
+            GenericDeclarationParameter::Variadic {
+                name: name.update_leading_trivia(leading),
+                ellipse: ellipse.to_owned(),
+            }
+        }
+        other => panic!("unknown node {:?}", other),
+    }
 });
