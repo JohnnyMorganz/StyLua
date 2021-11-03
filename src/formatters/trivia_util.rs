@@ -483,6 +483,7 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             (TypeInfo::Basic(token), trailing_trivia)
         }
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
@@ -491,6 +492,7 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             let (return_type, trailing_trivia) = get_type_info_trailing_trivia(*return_type);
             (
                 TypeInfo::Callback {
+                    generics,
                     parentheses,
                     arguments,
                     arrow,

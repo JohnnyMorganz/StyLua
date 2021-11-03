@@ -1,3 +1,4 @@
+use full_moon::ast::types::GenericDeclaration;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
@@ -559,12 +560,14 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             TypeInfo::Basic(token_reference.update_trivia(leading, trailing))
         }
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
             return_type,
         } => TypeInfo::Callback {
-            parentheses: parentheses.update_leading_trivia(leading),
+            generics: generics.map(|generics| generics.update_leading_trivia(leading)),
+            parentheses: if generics.is_none() { parentheses.update_leading_trivia(leading) } else { parentheses.to_owned() },
             arguments: arguments.to_owned(),
             arrow: arrow.to_owned(),
             return_type: Box::new(return_type.update_trailing_trivia(trailing)),
@@ -709,4 +712,10 @@ define_update_leading_trivia!(TypeFieldKey, |this, leading| {
 define_update_trailing_trivia!(TypeSpecifier, |this, trailing| {
     this.to_owned()
         .with_type_info(this.type_info().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(GenericDeclaration, |this, leading| {
+    this.to_owned()
+        .with_arrows(this.arrows().update_leading_trivia(leading))
 });
