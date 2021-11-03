@@ -200,7 +200,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
         "creating a pool with {} threads",
         opt.num_threads
     );
-    let pool = ThreadPool::new(opt.num_threads);
+    let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need atleast one output reader as well as a formatter
     let (tx, rx) = crossbeam_channel::unbounded();
     let opt = Arc::new(opt);
 
