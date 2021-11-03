@@ -905,11 +905,9 @@ pub fn format_function_declaration(
     let shape = shape + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
     let function_body = format_function_body(ctx, function_declaration.body(), true, shape);
 
-    let function_declaration = FunctionDeclaration::new(formatted_function_name)
+    FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
-        .with_body(function_body);
-
-    function_declaration
+        .with_body(function_body)
 }
 
 /// Formats a LocalFunction node
@@ -929,12 +927,10 @@ pub fn format_local_function(
     let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
     let function_body = format_function_body(ctx, local_function.body(), true, shape);
 
-    let local_function = LocalFunction::new(formatted_name)
+    LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_body(function_body);
-
-    local_function
+        .with_body(function_body)
 }
 
 /// Formats a MethodCall node
