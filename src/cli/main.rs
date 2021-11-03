@@ -34,7 +34,7 @@ macro_rules! verbose_println {
 
 macro_rules! error {
     ($opt:expr, $fmt:expr, $($args:tt)*) => {
-        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color());
+        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color())
     };
 }
 
