@@ -420,17 +420,17 @@ fn binop_expression_length(expression: &Expression, top_binop: &BinOp) -> usize 
                 if binop.is_right_associative() {
                     binop_expression_length(rhs, top_binop)
                         + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
-                        + lhs.to_string().len()
+                        + strip_trivia(&**lhs).to_string().len()
                 } else {
                     binop_expression_length(lhs, top_binop)
                         + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
-                        + rhs.to_string().len()
+                        + strip_trivia(&**rhs).to_string().len()
                 }
             } else {
                 0
             }
         }
-        _ => expression.to_string().len(),
+        _ => strip_trivia(expression).to_string().len(),
     }
 }
 
