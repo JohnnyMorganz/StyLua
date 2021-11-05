@@ -1,7 +1,7 @@
-use full_moon::ast::types::{GenericDeclaration, GenericDeclarationParameter};
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    GenericDeclaration, GenericDeclarationParameter
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
