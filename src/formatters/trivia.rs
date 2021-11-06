@@ -1,7 +1,7 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
-    IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
-    GenericDeclaration, GenericDeclarationParameter
+    GenericDeclaration, GenericDeclarationParameter, IfExpression, IndexedTypeInfo, TypeArgument,
+    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -477,6 +477,10 @@ define_update_leading_trivia!(Value, |this, leading| {
             Value::TableConstructor(table_constructor.update_leading_trivia(leading))
         }
         Value::Var(var) => Value::Var(var.update_leading_trivia(leading)),
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(if_expression.update_leading_trivia(leading))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -506,6 +510,10 @@ define_update_trailing_trivia!(Value, |this, trailing| {
             Value::TableConstructor(table_constructor.update_trailing_trivia(trailing))
         }
         Value::Var(var) => Value::Var(var.update_trailing_trivia(trailing)),
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(if_expression.update_trailing_trivia(trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -572,7 +580,10 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
                     parentheses.to_owned(),
                 )
             } else {
-                (generics.to_owned(), parentheses.update_leading_trivia(leading))
+                (
+                    generics.to_owned(),
+                    parentheses.update_leading_trivia(leading),
+                )
             };
             TypeInfo::Callback {
                 generics,
@@ -744,4 +755,16 @@ define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
         }
         other => panic!("unknown node {:?}", other),
     }
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(IfExpression, |this, leading| {
+    this.to_owned()
+        .with_if_token(this.if_token().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
+define_update_trailing_trivia!(IfExpression, |this, trailing| {
+    this.to_owned()
+        .with_else(this.else_expression().update_trailing_trivia(trailing))
 });
