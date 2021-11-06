@@ -293,7 +293,7 @@ fn format_if_expression(
     _shape: Shape,
 ) -> IfExpression {
     // TODO: Apply actual formatting here
-    return if_expression.to_owned();
+    if_expression.to_owned()
 }
 
 /// Formats a Value Node
