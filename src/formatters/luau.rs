@@ -19,7 +19,14 @@ use crate::{
     },
     shape::Shape,
 };
-use full_moon::ast::{punctuated::Pair, types::{CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier}};
+use full_moon::ast::{
+    punctuated::Pair,
+    types::{
+        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
+        GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration,
+        TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    },
+};
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -84,7 +91,8 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
 
-            let generics = generics.as_ref()
+            let generics = generics
+                .as_ref()
                 .map(|generics| format_generic_declaration(ctx, generics, shape));
 
             let shape = match generics {
@@ -549,16 +557,18 @@ pub fn format_type_declaration_stmt(
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
-fn format_generic_parameter(ctx: &Context, generic_parameter: &GenericDeclarationParameter, shape: Shape) -> GenericDeclarationParameter {
+fn format_generic_parameter(
+    ctx: &Context,
+    generic_parameter: &GenericDeclarationParameter,
+    shape: Shape,
+) -> GenericDeclarationParameter {
     match generic_parameter {
-        GenericDeclarationParameter::Name(token_reference) => GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape)),
-        GenericDeclarationParameter::Variadic {
-            name,
-            ellipse
-        } => {
+        GenericDeclarationParameter::Name(token_reference) => {
+            GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape))
+        }
+        GenericDeclarationParameter::Variadic { name, ellipse } => {
             let name = format_token_reference(ctx, name, shape);
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
-
 
             GenericDeclarationParameter::Variadic { name, ellipse }
         }
