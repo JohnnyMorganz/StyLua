@@ -1,6 +1,7 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
-    IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    GenericDeclaration, GenericDeclarationParameter, IfExpression, IndexedTypeInfo, TypeArgument,
+    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -476,6 +477,10 @@ define_update_leading_trivia!(Value, |this, leading| {
             Value::TableConstructor(table_constructor.update_leading_trivia(leading))
         }
         Value::Var(var) => Value::Var(var.update_leading_trivia(leading)),
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(if_expression.update_leading_trivia(leading))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -505,6 +510,10 @@ define_update_trailing_trivia!(Value, |this, trailing| {
             Value::TableConstructor(table_constructor.update_trailing_trivia(trailing))
         }
         Value::Var(var) => Value::Var(var.update_trailing_trivia(trailing)),
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(if_expression.update_trailing_trivia(trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -559,16 +568,31 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             TypeInfo::Basic(token_reference.update_trivia(leading, trailing))
         }
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
             return_type,
-        } => TypeInfo::Callback {
-            parentheses: parentheses.update_leading_trivia(leading),
-            arguments: arguments.to_owned(),
-            arrow: arrow.to_owned(),
-            return_type: Box::new(return_type.update_trailing_trivia(trailing)),
-        },
+        } => {
+            let (generics, parentheses) = if let Some(generics) = generics {
+                (
+                    Some(generics.update_leading_trivia(leading)),
+                    parentheses.to_owned(),
+                )
+            } else {
+                (
+                    generics.to_owned(),
+                    parentheses.update_leading_trivia(leading),
+                )
+            };
+            TypeInfo::Callback {
+                generics,
+                parentheses,
+                arguments: arguments.to_owned(),
+                arrow: arrow.to_owned(),
+                return_type: Box::new(return_type.update_trailing_trivia(trailing)),
+            }
+        }
         TypeInfo::Generic {
             base,
             arrows,
@@ -709,4 +733,38 @@ define_update_leading_trivia!(TypeFieldKey, |this, leading| {
 define_update_trailing_trivia!(TypeSpecifier, |this, trailing| {
     this.to_owned()
         .with_type_info(this.type_info().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(GenericDeclaration, |this, leading| {
+    this.to_owned()
+        .with_arrows(this.arrows().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
+    match this {
+        GenericDeclarationParameter::Name(token) => {
+            GenericDeclarationParameter::Name(token.update_leading_trivia(leading))
+        }
+        GenericDeclarationParameter::Variadic { name, ellipse } => {
+            GenericDeclarationParameter::Variadic {
+                name: name.update_leading_trivia(leading),
+                ellipse: ellipse.to_owned(),
+            }
+        }
+        other => panic!("unknown node {:?}", other),
+    }
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(IfExpression, |this, leading| {
+    this.to_owned()
+        .with_if_token(this.if_token().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
+define_update_trailing_trivia!(IfExpression, |this, trailing| {
+    this.to_owned()
+        .with_else(this.else_expression().update_trailing_trivia(trailing))
 });

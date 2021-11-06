@@ -1,3 +1,5 @@
+#[cfg(feature = "luau")]
+use full_moon::ast::types::IfExpression;
 use full_moon::{
     ast::{
         span::ContainedSpan, BinOp, Call, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
@@ -283,6 +285,17 @@ pub fn format_suffix(
     }
 }
 
+/// Formats an [`IfExpression`] node
+#[cfg(feature = "luau")]
+fn format_if_expression(
+    _ctx: &Context,
+    if_expression: &IfExpression,
+    _shape: Shape,
+) -> IfExpression {
+    // TODO: Apply actual formatting here
+    if_expression.to_owned()
+}
+
 /// Formats a Value Node
 pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
     match value {
@@ -291,6 +304,10 @@ pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
         ),
         Value::FunctionCall(function_call) => {
             Value::FunctionCall(format_function_call(ctx, function_call, shape))
+        }
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(format_if_expression(ctx, if_expression, shape))
         }
         Value::Number(token_reference) => {
             Value::Number(format_token_reference(ctx, token_reference, shape))

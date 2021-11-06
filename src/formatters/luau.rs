@@ -23,8 +23,8 @@ use full_moon::ast::{
     punctuated::Pair,
     types::{
         CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-        IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey,
-        TypeInfo, TypeSpecifier,
+        GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration,
+        TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
     },
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
@@ -83,12 +83,22 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         }
 
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
             return_type,
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
+
+            let generics = generics
+                .as_ref()
+                .map(|generics| format_generic_declaration(ctx, generics, shape));
+
+            let shape = match generics {
+                Some(ref generics) => shape.take_last_line(&generics),
+                None => shape,
+            };
 
             let force_multiline = token_trivia_contains_comments(start_parens.trailing_trivia())
                 || token_trivia_contains_comments(end_parens.leading_trivia())
@@ -149,6 +159,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
 
             TypeInfo::Callback {
+                generics,
                 parentheses,
                 arguments,
                 arrow,
@@ -546,6 +557,26 @@ pub fn format_type_declaration_stmt(
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
+fn format_generic_parameter(
+    ctx: &Context,
+    generic_parameter: &GenericDeclarationParameter,
+    shape: Shape,
+) -> GenericDeclarationParameter {
+    match generic_parameter {
+        GenericDeclarationParameter::Name(token_reference) => {
+            GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape))
+        }
+        GenericDeclarationParameter::Variadic { name, ellipse } => {
+            let name = format_token_reference(ctx, name, shape);
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+
+            GenericDeclarationParameter::Variadic { name, ellipse }
+        }
+
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn format_generic_declaration(
     ctx: &Context,
     generic_declaration: &GenericDeclaration,
@@ -573,7 +604,7 @@ pub fn format_generic_declaration(
             ctx,
             generic_declaration.generics(),
             shape,
-            format_token_reference,
+            format_generic_parameter,
             None,
         )
         .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
@@ -588,7 +619,7 @@ pub fn format_generic_declaration(
                 ctx,
                 generic_declaration.generics(),
                 shape,
-                format_token_reference,
+                format_generic_parameter,
                 None,
             ),
         )

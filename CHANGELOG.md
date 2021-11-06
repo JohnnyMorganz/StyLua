@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Updated internal parser to fix parsing issues and update `luau` parsing. ([#229](https://github.com/JohnnyMorganz/StyLua/issues/229), [#231](https://github.com/JohnnyMorganz/StyLua/issues/231))
+
 ### Fixed
 - Fixed indentation of type callback specifier parameters when parameters have leading comment trivia. ([#278](https://github.com/JohnnyMorganz/StyLua/issues/278))
 - Fixed trailing comma not being taken into account when determining the width of a field in a multiline table. ([#282](https://github.com/JohnnyMorganz/StyLua/issues/282))
