@@ -1,4 +1,5 @@
-use anyhow::{bail, format_err, Context, Result};
+use anyhow::{bail, Context, Result};
+use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
@@ -15,6 +16,8 @@ mod config;
 mod opt;
 mod output_diff;
 
+static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
+
 #[macro_export]
 macro_rules! verbose_println {
     ($verbosity:expr, $str:expr) => {
@@ -30,12 +33,19 @@ macro_rules! verbose_println {
 }
 
 macro_rules! error {
-    ($code_store:expr, $error_code:expr, $str:expr, $($arg:tt)*) => {
-        {
-            eprintln!($str, $($arg)*);
-            $code_store.store($error_code, Ordering::SeqCst);
-        }
+    ($opt:expr, $fmt:expr, $($args:tt)*) => {
+        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color())
     };
+}
+
+fn error(text: String, should_use_color: bool) {
+    eprintln!(
+        "{}{} {}",
+        style("error").bold().red().force_styling(should_use_color),
+        style(":").bold().force_styling(should_use_color),
+        text
+    );
+    EXIT_CODE.store(2, Ordering::SeqCst);
 }
 
 enum FormatResult {
@@ -56,11 +66,11 @@ fn format_file(
     verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let contents =
-        fs::read_to_string(path).with_context(|| format!("Failed to read {}", path.display()))?;
+        fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
 
     let before_formatting = Instant::now();
     let formatted_contents = format_code(&contents, config, range, verify_output)
-        .with_context(|| format!("Could not format file {}", path.display()))?;
+        .with_context(|| format!("could not format file {}", path.display()))?;
     let after_formatting = Instant::now();
 
     verbose_println!(
@@ -78,7 +88,7 @@ fn format_file(
             format!("Diff in {}:", path.display()),
             opt.color,
         )
-        .context("Failed to create diff")?;
+        .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
@@ -86,7 +96,7 @@ fn format_file(
         }
     } else {
         fs::write(path, formatted_contents)
-            .with_context(|| format!("Could not write to {}", path.display()))?;
+            .with_context(|| format!("could not write to {}", path.display()))?;
         Ok(FormatResult::Complete)
     }
 }
@@ -101,7 +111,7 @@ fn format_string(
     verify_output: OutputVerification,
 ) -> Result<FormatResult> {
     let formatted_contents =
-        format_code(&input, config, range, verify_output).context("Failed to format from stdin")?;
+        format_code(&input, config, range, verify_output).context("failed to format from stdin")?;
 
     if opt.check {
         let diff = output_diff::output_diff(
@@ -111,7 +121,7 @@ fn format_string(
             "Diff from stdin:".into(),
             opt.color,
         )
-        .context("Failed to create diff")?;
+        .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
@@ -126,7 +136,7 @@ fn format_string(
 
 fn format(opt: opt::Opt) -> Result<i32> {
     if opt.files.is_empty() {
-        bail!("error: no files provided");
+        bail!("no files provided");
     }
 
     // Load the configuration
@@ -164,21 +174,18 @@ fn format(opt: opt::Opt) -> Result<i32> {
         .parents(true)
         .add_custom_ignore_filename(".styluaignore");
 
+    // Look for an ignore file in the current working directory
+    let ignore_path = cwd.join(".styluaignore");
+    if ignore_path.is_file() {
+        walker_builder.add_ignore(ignore_path);
+    }
+
     let use_default_glob = match opt.glob {
         Some(ref globs) => {
             // Build overriders with any patterns given
             let mut overrides = OverrideBuilder::new(cwd);
             for pattern in globs {
-                match overrides.add(pattern) {
-                    Ok(_) => continue,
-                    Err(err) => {
-                        return Err(format_err!(
-                            "error: cannot parse glob pattern {}: {}",
-                            pattern,
-                            err
-                        ));
-                    }
-                }
+                overrides.add(pattern)?;
             }
             let overrides = overrides.build()?;
             walker_builder.overrides(overrides);
@@ -193,13 +200,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
         "creating a pool with {} threads",
         opt.num_threads
     );
-    let pool = ThreadPool::new(opt.num_threads);
+    let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need atleast one output reader as well as a formatter
     let (tx, rx) = crossbeam_channel::unbounded();
-    let error_code = Arc::new(AtomicI32::new(0));
     let opt = Arc::new(opt);
 
     // Create a thread to handle the formatting output
-    let read_error_code = error_code.clone();
+    let read_opt = opt.clone();
     pool.execute(move || {
         for output in rx {
             match output {
@@ -211,24 +217,24 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!(read_error_code, 2, "Could not output to stdout: {:#}", err)
+                                error!(&read_opt, "could not output to stdout: {:#}", err)
                             }
                         };
                     }
                     FormatResult::Diff(diff) => {
-                        if read_error_code.load(Ordering::SeqCst) != 2 {
-                            read_error_code.store(1, Ordering::SeqCst);
+                        if EXIT_CODE.load(Ordering::SeqCst) != 2 {
+                            EXIT_CODE.store(1, Ordering::SeqCst);
                         }
 
                         let stdout = stdout();
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => error!(read_error_code, 2, "{:#}", err),
+                            Err(err) => error!(&read_opt, "{:#}", err),
                         }
                     }
                 },
-                Err(err) => error!(read_error_code, 2, "{:#}", err),
+                Err(err) => error!(&read_opt, "{:#}", err),
             }
         }
     });
@@ -249,7 +255,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                                 tx.send(format_string(buf, config, range, &opt, verify_output))
                             }
                             Err(error) => {
-                                tx.send(Err(error).context("Could not format from stdin"))
+                                tx.send(Err(error).context("could not format from stdin"))
                             }
                         }
                         .unwrap();
@@ -277,12 +283,22 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     }
                 }
             }
-            Err(error) => error!(
-                error_code,
-                2,
-                "{:#}",
-                format_err!("error: could not walk: {}", error)
-            ),
+            Err(error) => match error {
+                ignore::Error::WithPath { path, err } => match *err {
+                    ignore::Error::Io(error) => match error.kind() {
+                        std::io::ErrorKind::NotFound => {
+                            error!(
+                                &opt,
+                                "no file or directory found matching '{:#}'",
+                                path.display()
+                            )
+                        }
+                        _ => error!(&opt, "{:#}", error),
+                    },
+                    _ => error!(&opt, "{:#}", err),
+                },
+                _ => error!(&opt, "{:#}", error),
+            },
         }
     }
 
@@ -293,18 +309,19 @@ fn format(opt: opt::Opt) -> Result<i32> {
     let output_code = if pool.panic_count() > 0 {
         2
     } else {
-        error_code.load(Ordering::SeqCst)
+        EXIT_CODE.load(Ordering::SeqCst)
     };
     Ok(output_code)
 }
 
 fn main() {
     let opt = opt::Opt::from_args();
+    let should_use_color = opt.color.should_use_color();
 
     let exit_code = match format(opt) {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("{:#}", e);
+            error(format!("{:#}", e), should_use_color);
             2
         }
     };

@@ -227,12 +227,16 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
-        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(&expr),
+        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(expr),
         Value::Symbol(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
         Value::Var(var) => var_trailing_trivia(var),
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            get_expression_trailing_trivia(if_expression.else_expression())
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -290,6 +294,12 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
                 Prefix::Expression(expr) => get_expression_leading_trivia(expr),
                 other => panic!("unknown node {:?}", other),
             },
+            #[cfg(feature = "luau")]
+            Value::IfExpression(if_expression) => if_expression
+                .if_token()
+                .leading_trivia()
+                .map(|x| x.to_owned())
+                .collect(),
             Value::TableConstructor(table) => table
                 .braces()
                 .tokens()
@@ -298,7 +308,7 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
                 .map(|x| x.to_owned())
                 .collect(),
             Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(&expr),
+            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(expr),
             Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
             Value::Var(var) => match var {
@@ -483,6 +493,7 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             (TypeInfo::Basic(token), trailing_trivia)
         }
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
@@ -491,6 +502,7 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             let (return_type, trailing_trivia) = get_type_info_trailing_trivia(*return_type);
             (
                 TypeInfo::Callback {
+                    generics,
                     parentheses,
                     arguments,
                     arrow,

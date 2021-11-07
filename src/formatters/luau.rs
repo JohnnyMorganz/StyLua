@@ -4,9 +4,8 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_end_token, format_punctuated,
-            format_punctuated_multiline, format_symbol, format_token_reference,
-            try_format_punctuated, EndTokenType,
+            format_contained_span, format_end_token, format_punctuated, format_symbol,
+            format_token_reference, try_format_punctuated, EndTokenType,
         },
         table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
@@ -15,14 +14,18 @@ use crate::{
         },
         trivia_util::{
             contains_comments, token_trivia_contains_comments, trivia_is_comment,
-            type_info_trailing_trivia,
+            trivia_is_newline, type_info_trailing_trivia,
         },
     },
     shape::Shape,
 };
-use full_moon::ast::types::{
-    CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration, IndexedTypeInfo,
-    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+use full_moon::ast::{
+    punctuated::Pair,
+    types::{
+        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
+        GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration,
+        TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    },
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -80,12 +83,22 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         }
 
         TypeInfo::Callback {
+            generics,
             parentheses,
             arguments,
             arrow,
             return_type,
         } => {
             let (start_parens, end_parens) = parentheses.tokens();
+
+            let generics = generics
+                .as_ref()
+                .map(|generics| format_generic_declaration(ctx, generics, shape));
+
+            let shape = match generics {
+                Some(ref generics) => shape.take_last_line(&generics),
+                None => shape,
+            };
 
             let force_multiline = token_trivia_contains_comments(start_parens.trailing_trivia())
                 || token_trivia_contains_comments(end_parens.leading_trivia())
@@ -100,10 +113,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
             let (parentheses, arguments, shape) = if force_multiline {
                 let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![
-                        create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape.increment_additional_indent()),
-                    ]));
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
+                        ctx,
+                    )]));
                 let end_parens =
                     format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
                         .update_leading_trivia(FormatTriviaType::Append(vec![
@@ -112,20 +124,31 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                         ]));
 
                 let parentheses = ContainedSpan::new(start_parens, end_parens);
+                let mut formatted_arguments = Punctuated::new();
 
-                let arguments = format_punctuated_multiline(
-                    ctx,
-                    arguments,
-                    shape.reset(),
-                    format_type_argument,
-                    Some(1),
-                );
+                for pair in arguments.pairs() {
+                    // Reset the shape (as the parameter is on a newline), and increment the additional indent level
+                    let shape = shape.reset().increment_additional_indent();
+
+                    let parameter = format_type_argument(ctx, pair.value(), shape)
+                        .update_leading_trivia(FormatTriviaType::Append(vec![
+                            create_indent_trivia(ctx, shape),
+                        ]));
+
+                    let punctuation = pair.punctuation().map(|punctuation| {
+                        fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
+                            FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
+                        )
+                    });
+
+                    formatted_arguments.push(Pair::new(parameter, punctuation))
+                }
 
                 let shape = shape.reset() + 1; // 1 = ")"
 
-                (parentheses, arguments, shape)
+                (parentheses, formatted_arguments, shape)
             } else {
-                let parentheses = format_contained_span(ctx, &parentheses, shape);
+                let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
                 let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
 
@@ -136,6 +159,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             let return_type = Box::new(format_type_info(ctx, return_type, shape));
 
             TypeInfo::Callback {
+                generics,
                 parentheses,
                 arguments,
                 arrow,
@@ -232,7 +256,15 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
                     match singleline_shape.over_budget() {
                         true => TableType::MultiLine,
-                        false => TableType::SingleLine,
+                        false => {
+                            // Determine if there was a new line at the end of the start brace
+                            // If so, then we should always be multiline
+                            if start_brace.trailing_trivia().any(trivia_is_newline) {
+                                TableType::MultiLine
+                            } else {
+                                TableType::SingleLine
+                            }
+                        }
                     }
                 }
 
@@ -525,6 +557,26 @@ pub fn format_type_declaration_stmt(
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
+fn format_generic_parameter(
+    ctx: &Context,
+    generic_parameter: &GenericDeclarationParameter,
+    shape: Shape,
+) -> GenericDeclarationParameter {
+    match generic_parameter {
+        GenericDeclarationParameter::Name(token_reference) => {
+            GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape))
+        }
+        GenericDeclarationParameter::Variadic { name, ellipse } => {
+            let name = format_token_reference(ctx, name, shape);
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+
+            GenericDeclarationParameter::Variadic { name, ellipse }
+        }
+
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn format_generic_declaration(
     ctx: &Context,
     generic_declaration: &GenericDeclaration,
@@ -552,7 +604,7 @@ pub fn format_generic_declaration(
             ctx,
             generic_declaration.generics(),
             shape,
-            format_token_reference,
+            format_generic_parameter,
             None,
         )
         .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
@@ -567,7 +619,7 @@ pub fn format_generic_declaration(
                 ctx,
                 generic_declaration.generics(),
                 shape,
-                format_token_reference,
+                format_generic_parameter,
                 None,
             ),
         )

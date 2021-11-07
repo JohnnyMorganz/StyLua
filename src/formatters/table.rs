@@ -212,7 +212,7 @@ where
                 // Have more elements still to go
                 shape = shape + (formatted_field.to_string().len() + 2); // 2 = ", "
                 match punctuation {
-                    Some(punctuation) => Some(fmt_symbol!(ctx, &punctuation, ", ", shape)),
+                    Some(punctuation) => Some(fmt_symbol!(ctx, punctuation, ", ", shape)),
                     None => Some(TokenReference::symbol(", ").unwrap()),
                 }
             }
@@ -253,7 +253,7 @@ where
         let (field, punctuation) = (pair.value(), pair.punctuation());
 
         // Reset the shape onto a new line, as we are a new field
-        shape = shape.reset();
+        shape = shape.reset().add_width(1); // Add 1 to include the trailing comma at the end
 
         // Format the field
         let (formatted_field, mut trailing_trivia) = formatter(ctx, field, table_type, shape);
@@ -278,7 +278,7 @@ where
         trailing_trivia.push(create_newline_trivia(ctx));
 
         let symbol = match punctuation {
-            Some(punctuation) => fmt_symbol!(ctx, &punctuation, ",", shape),
+            Some(punctuation) => fmt_symbol!(ctx, punctuation, ",", shape),
             None => TokenReference::symbol(",").unwrap(),
         }
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
@@ -360,7 +360,7 @@ pub fn format_table_constructor(
                 start_brace.token().end_position().bytes(),
                 end_brace.token().start_position().bytes(),
             );
-            let singleline_shape = shape + (braces_range.1 - braces_range.0);
+            let singleline_shape = shape + (braces_range.1 - braces_range.0) + 4; // 4 = two braces + single space before/after them
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,

@@ -6,7 +6,6 @@ use crate::formatters::luau::{
     format_type_specifier,
 };
 use crate::{
-    check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
@@ -552,8 +551,293 @@ pub fn format_function_call_stmt(
     )
 }
 
+/// Functions which are used to only format a block within a statement
+/// These are used for range formatting
+pub(crate) mod stmt_block {
+    use crate::{context::Context, formatters::block::format_block, shape::Shape};
+    use full_moon::ast::{
+        Call, Expression, Field, FunctionArgs, FunctionCall, Index, Prefix, Stmt, Suffix,
+        TableConstructor, Value,
+    };
+
+    fn format_table_constructor_block(
+        ctx: &Context,
+        table_constructor: &TableConstructor,
+        shape: Shape,
+    ) -> TableConstructor {
+        let fields = table_constructor
+            .fields()
+            .pairs()
+            .map(|pair| {
+                pair.to_owned().map(|field| match field {
+                    Field::ExpressionKey {
+                        brackets,
+                        key,
+                        equal,
+                        value,
+                    } => Field::ExpressionKey {
+                        brackets,
+                        key: format_expression_block(ctx, &key, shape),
+                        equal,
+                        value: format_expression_block(ctx, &value, shape),
+                    },
+                    Field::NameKey { key, equal, value } => Field::NameKey {
+                        key,
+                        equal,
+                        value: format_expression_block(ctx, &value, shape),
+                    },
+                    Field::NoKey(expression) => {
+                        Field::NoKey(format_expression_block(ctx, &expression, shape))
+                    }
+                    other => panic!("unknown node {:?}", other),
+                })
+            })
+            .collect();
+
+        table_constructor.to_owned().with_fields(fields)
+    }
+
+    fn format_function_args_block(
+        ctx: &Context,
+        function_args: &FunctionArgs,
+        shape: Shape,
+    ) -> FunctionArgs {
+        match function_args {
+            FunctionArgs::Parentheses {
+                parentheses,
+                arguments,
+            } => FunctionArgs::Parentheses {
+                parentheses: parentheses.to_owned(),
+                arguments: arguments
+                    .pairs()
+                    .map(|pair| {
+                        pair.to_owned()
+                            .map(|expression| format_expression_block(ctx, &expression, shape))
+                    })
+                    .collect(),
+            },
+            FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
+                format_table_constructor_block(ctx, table_constructor, shape),
+            ),
+            _ => function_args.to_owned(),
+        }
+    }
+
+    fn format_function_call_block(
+        ctx: &Context,
+        function_call: &FunctionCall,
+        shape: Shape,
+    ) -> FunctionCall {
+        let prefix = match function_call.prefix() {
+            Prefix::Expression(expression) => {
+                Prefix::Expression(format_expression_block(ctx, expression, shape))
+            }
+            Prefix::Name(name) => Prefix::Name(name.to_owned()),
+            other => panic!("unknown node {:?}", other),
+        };
+
+        let suffixes = function_call
+            .suffixes()
+            .map(|suffix| match suffix {
+                Suffix::Call(call) => Suffix::Call(match call {
+                    Call::AnonymousCall(function_args) => {
+                        Call::AnonymousCall(format_function_args_block(ctx, function_args, shape))
+                    }
+                    Call::MethodCall(method_call) => {
+                        let args = format_function_args_block(ctx, method_call.args(), shape);
+                        Call::MethodCall(method_call.to_owned().with_args(args))
+                    }
+                    other => panic!("unknown node {:?}", other),
+                }),
+                Suffix::Index(index) => Suffix::Index(match index {
+                    Index::Brackets {
+                        brackets,
+                        expression,
+                    } => Index::Brackets {
+                        brackets: brackets.to_owned(),
+                        expression: format_expression_block(ctx, expression, shape),
+                    },
+                    _ => index.to_owned(),
+                }),
+                other => panic!("unknown node {:?}", other),
+            })
+            .collect();
+
+        function_call
+            .to_owned()
+            .with_prefix(prefix)
+            .with_suffixes(suffixes)
+    }
+
+    /// Only formats a block within an expression
+    pub fn format_expression_block(
+        ctx: &Context,
+        expression: &Expression,
+        shape: Shape,
+    ) -> Expression {
+        match expression {
+            Expression::BinaryOperator { lhs, binop, rhs } => Expression::BinaryOperator {
+                lhs: Box::new(format_expression_block(ctx, lhs, shape)),
+                binop: binop.to_owned(),
+                rhs: Box::new(format_expression_block(ctx, rhs, shape)),
+            },
+            Expression::Parentheses {
+                contained,
+                expression,
+            } => Expression::Parentheses {
+                contained: contained.to_owned(),
+                expression: Box::new(format_expression_block(ctx, expression, shape)),
+            },
+            Expression::UnaryOperator { unop, expression } => Expression::UnaryOperator {
+                unop: unop.to_owned(),
+                expression: Box::new(format_expression_block(ctx, expression, shape)),
+            },
+            Expression::Value {
+                value,
+                #[cfg(feature = "luau")]
+                type_assertion,
+            } => Expression::Value {
+                value: Box::new(match &**value {
+                    Value::Function((function_token, body)) => {
+                        let block = format_block(ctx, body.block(), shape);
+                        Value::Function((
+                            function_token.to_owned(),
+                            body.to_owned().with_block(block),
+                        ))
+                    }
+                    Value::FunctionCall(function_call) => {
+                        Value::FunctionCall(format_function_call_block(ctx, function_call, shape))
+                    }
+                    Value::TableConstructor(table_constructor) => Value::TableConstructor(
+                        format_table_constructor_block(ctx, table_constructor, shape),
+                    ),
+                    Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+                        format_expression_block(ctx, expression, shape),
+                    ),
+                    // TODO: var?
+                    value => value.to_owned(),
+                }),
+                #[cfg(feature = "luau")]
+                type_assertion: type_assertion.to_owned(),
+            },
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+
+    /// Only formats a block within the statement
+    pub(crate) fn format_stmt_block(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
+        let block_shape = shape.reset().increment_block_indent();
+
+        // TODO: Assignment, FunctionCall, LocalAssignment is funky
+        match stmt {
+            Stmt::Assignment(assignment) => {
+                // TODO: var?
+                let expressions = assignment
+                    .expressions()
+                    .pairs()
+                    .map(|pair| {
+                        pair.to_owned().map(|expression| {
+                            format_expression_block(ctx, &expression, block_shape)
+                        })
+                    })
+                    .collect();
+
+                Stmt::Assignment(assignment.to_owned().with_expressions(expressions))
+            }
+            Stmt::Do(do_block) => {
+                let block = format_block(ctx, do_block.block(), block_shape);
+                Stmt::Do(do_block.to_owned().with_block(block))
+            }
+            Stmt::FunctionCall(function_call) => {
+                Stmt::FunctionCall(format_function_call_block(ctx, function_call, block_shape))
+            }
+            Stmt::FunctionDeclaration(function_declaration) => {
+                let block = format_block(ctx, function_declaration.body().block(), block_shape);
+                let body = function_declaration.body().to_owned().with_block(block);
+                Stmt::FunctionDeclaration(function_declaration.to_owned().with_body(body))
+            }
+            Stmt::GenericFor(generic_for) => {
+                let block = format_block(ctx, generic_for.block(), block_shape);
+                Stmt::GenericFor(generic_for.to_owned().with_block(block))
+            }
+            Stmt::If(if_block) => {
+                let block = format_block(ctx, if_block.block(), block_shape);
+                let else_if = if_block.else_if().map(|else_ifs| {
+                    else_ifs
+                        .iter()
+                        .map(|else_if| {
+                            else_if.to_owned().with_block(format_block(
+                                ctx,
+                                else_if.block(),
+                                block_shape,
+                            ))
+                        })
+                        .collect()
+                });
+                let else_block = if_block
+                    .else_block()
+                    .map(|block| format_block(ctx, block, block_shape));
+
+                Stmt::If(
+                    if_block
+                        .to_owned()
+                        .with_block(block)
+                        .with_else_if(else_if)
+                        .with_else(else_block),
+                )
+            }
+            Stmt::LocalAssignment(assignment) => {
+                let expressions = assignment
+                    .expressions()
+                    .pairs()
+                    .map(|pair| {
+                        pair.to_owned().map(|expression| {
+                            format_expression_block(ctx, &expression, block_shape)
+                        })
+                    })
+                    .collect();
+
+                Stmt::LocalAssignment(assignment.to_owned().with_expressions(expressions))
+            }
+            Stmt::LocalFunction(local_function) => {
+                let block = format_block(ctx, local_function.body().block(), block_shape);
+                let body = local_function.body().to_owned().with_block(block);
+                Stmt::LocalFunction(local_function.to_owned().with_body(body))
+            }
+            Stmt::NumericFor(numeric_for) => {
+                let block = format_block(ctx, numeric_for.block(), block_shape);
+                Stmt::NumericFor(numeric_for.to_owned().with_block(block))
+            }
+            Stmt::Repeat(repeat) => {
+                let block = format_block(ctx, repeat.block(), block_shape);
+                Stmt::Repeat(repeat.to_owned().with_block(block))
+            }
+            Stmt::While(while_block) => {
+                let block = format_block(ctx, while_block.block(), block_shape);
+                Stmt::While(while_block.to_owned().with_block(block))
+            }
+            #[cfg(feature = "luau")]
+            Stmt::CompoundAssignment(compound_assignment) => {
+                let rhs = format_expression_block(ctx, compound_assignment.rhs(), block_shape);
+                Stmt::CompoundAssignment(compound_assignment.to_owned().with_rhs(rhs))
+            }
+            #[cfg(feature = "luau")]
+            Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
+            #[cfg(feature = "luau")]
+            Stmt::TypeDeclaration(node) => Stmt::TypeDeclaration(node.to_owned()),
+            #[cfg(feature = "lua52")]
+            Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
+            #[cfg(feature = "lua52")]
+            Stmt::Label(node) => Stmt::Label(node.to_owned()),
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
 pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
-    check_should_format!(ctx, stmt);
+    if !ctx.should_format_node(stmt) {
+        return stmt_block::format_stmt_block(ctx, stmt, shape);
+    }
 
     fmt_stmt!(ctx, stmt, shape, {
         Assignment = format_assignment,

@@ -37,6 +37,11 @@
         "command": "stylua.reinstall",
         "title": "Reinstall StyLua",
         "category": "StyLua"
+      },
+      {
+        "command": "stylua.authenticate",
+        "title": "Authorize StyLua to use GitHub API",
+        "category": "StyLua"
       }
     ],
     "configuration": {
@@ -47,6 +52,8 @@
           "default": "latest",
           "enum": [
             "latest",
+            "v0.11",
+            "v0.10",
             "v0.9",
             "v0.8",
             "v0.7",

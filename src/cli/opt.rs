@@ -83,6 +83,20 @@ structopt::clap::arg_enum! {
     }
 }
 
+impl Color {
+    pub fn should_use_color(&self) -> bool {
+        match self {
+            Color::Always => true,
+            Color::Never => false,
+            Color::Auto => {
+                let terminal = console::Term::stdout();
+                let features = terminal.features();
+                features.is_attended() && features.colors_supported()
+            }
+        }
+    }
+}
+
 #[derive(StructOpt, Debug)]
 pub struct FormatOpts {
     /// The column width to use to attempt to wrap lines.

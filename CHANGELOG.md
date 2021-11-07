@@ -5,8 +5,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Updated internal parser to fix parsing issues and update `luau` parsing. ([#229](https://github.com/JohnnyMorganz/StyLua/issues/229), [#231](https://github.com/JohnnyMorganz/StyLua/issues/231))
+
+### Fixed
+- Fixed indentation of type callback specifier parameters when parameters have leading comment trivia. ([#278](https://github.com/JohnnyMorganz/StyLua/issues/278))
+- Fixed trailing comma not being taken into account when determining the width of a field in a multiline table. ([#282](https://github.com/JohnnyMorganz/StyLua/issues/282))
+- Fixed `--num-threads 1` causing a deadlock. ([#281](https://github.com/JohnnyMorganz/StyLua/issues/281))
+- Fixed whitespace around parts of a binary expression causing it to over-hang in first pass, leading to unstable formatting. ([#287](https://github.com/JohnnyMorganz/StyLua/issues/287))
+
+## [0.11.0] - 2021-09-16
+### Changed
+- In Luau type tables, a newline after the opening brace will now force the type table multiline. This is the same procedure as standard tables. ([#226](https://github.com/JohnnyMorganz/StyLua/issues/226))
+- In Luau, type specifiers for function parameters will now force the parameters to be formatted multiline if a specifier is multiline (and there is more than one parameter).
+- Improved error messages to make them easier to understand.
+
+### Fixed
+- Fixed range formatting no longer working when setting the range to statements inside nested blocks. ([#239](https://github.com/JohnnyMorganz/StyLua/issues/239))
+- Fixed ignore file present in cwd not taken into account if cwd not included in file paths to format. ([#249](https://github.com/JohnnyMorganz/StyLua/issues/249))
+- Fixed config locations (`$XDG_CONFIG_HOME` and `$HOME/.config`) not being looked into correctly on macOS when `--search-parent-directories` is used. ([#260](https://github.com/JohnnyMorganz/StyLua/issues/260))
+- Fixed incorrect indentation of multiline type specifiers for function parameters under the `luau` feature flag. ([#256](https://github.com/JohnnyMorganz/StyLua/issues/256))
+- Fixed unstable formatting caused by a singleline table which just reaches the column width. ([#261](https://github.com/JohnnyMorganz/StyLua/issues/261))
+- Fixed misformatting of a binop expression as precedence of the RHS expression was not taken into account. ([#257](https://github.com/JohnnyMorganz/StyLua/issues/257), [#261](https://github.com/JohnnyMorganz/StyLua/issues/261)) 
+
+## [0.10.1] - 2021-08-08
 ### Fixed
 - Fixed an incorrect trailing comma being added to function args as part of a multiline expression list leading to a syntax error. ([#227](https://github.com/JohnnyMorganz/StyLua/issues/227))
+- Fixed the first expression in a multiple assignment prematurely hanging even if its below the column width. ([#233](https://github.com/JohnnyMorganz/StyLua/issues/233))
+- Updated internal parser to fix parsing issues for Luau code under the `luau` feature flag.
 
 ## [0.10.0] - 2021-07-11
 ### Added

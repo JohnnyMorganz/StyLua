@@ -1,3 +1,5 @@
+#[cfg(feature = "luau")]
+use full_moon::ast::types::IfExpression;
 use full_moon::{
     ast::{
         span::ContainedSpan, BinOp, Call, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
@@ -160,7 +162,7 @@ fn format_expression_internal(
                     .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 Expression::Parentheses {
-                    contained: format_contained_span(ctx, &contained, shape),
+                    contained: format_contained_span(ctx, contained, shape),
                     expression: Box::new(format_expression(ctx, expression, shape + 1)), // 1 = opening parentheses
                 }
             }
@@ -230,7 +232,7 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             brackets,
             expression,
         } => Index::Brackets {
-            brackets: format_contained_span(ctx, &brackets, shape),
+            brackets: format_contained_span(ctx, brackets, shape),
             expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
         },
 
@@ -283,6 +285,17 @@ pub fn format_suffix(
     }
 }
 
+/// Formats an [`IfExpression`] node
+#[cfg(feature = "luau")]
+fn format_if_expression(
+    _ctx: &Context,
+    if_expression: &IfExpression,
+    _shape: Shape,
+) -> IfExpression {
+    // TODO: Apply actual formatting here
+    if_expression.to_owned()
+}
+
 /// Formats a Value Node
 pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
     match value {
@@ -291,6 +304,10 @@ pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
         ),
         Value::FunctionCall(function_call) => {
             Value::FunctionCall(format_function_call(ctx, function_call, shape))
+        }
+        #[cfg(feature = "luau")]
+        Value::IfExpression(if_expression) => {
+            Value::IfExpression(format_if_expression(ctx, if_expression, shape))
         }
         Value::Number(token_reference) => {
             Value::Number(format_token_reference(ctx, token_reference, shape))
@@ -419,18 +436,18 @@ fn binop_expression_length(expression: &Expression, top_binop: &BinOp) -> usize 
             {
                 if binop.is_right_associative() {
                     binop_expression_length(rhs, top_binop)
-                        + binop.to_string().len()
-                        + lhs.to_string().len()
+                        + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
+                        + strip_trivia(&**lhs).to_string().len()
                 } else {
                     binop_expression_length(lhs, top_binop)
-                        + binop.to_string().len()
-                        + rhs.to_string().len()
+                        + strip_trivia(binop).to_string().len() + 2 // 2 = space before and after binop
+                        + strip_trivia(&**rhs).to_string().len()
                 }
             } else {
                 0
             }
         }
-        _ => expression.to_string().len(),
+        _ => strip_trivia(expression).to_string().len(),
     }
 }
 
@@ -440,7 +457,7 @@ fn binop_expression_contains_comments(expression: &Expression, top_binop: &BinOp
             if binop.precedence() == top_binop.precedence() {
                 contains_comments(binop)
                     || !expression_leading_comments(rhs).is_empty()
-                    || get_expression_trailing_trivia(&lhs)
+                    || get_expression_trailing_trivia(lhs)
                         .iter()
                         .any(trivia_util::trivia_is_comment)
                     || binop_expression_contains_comments(lhs, top_binop)
@@ -610,6 +627,7 @@ fn hang_binop_expression(
                 ExpressionSide::Left
             };
 
+            // TODO/FIXME: using test_shape here leads to too high of an indent level, causing the expression to hang unnecessarily
             let over_column_width =
                 is_hang_binop_over_width(test_shape, &full_expression, &binop, lhs_range);
             let should_hang = same_op_level
@@ -759,7 +777,7 @@ fn format_hanging_expression_(
                     lhs_range,
                 )
             } else {
-                let contained = format_contained_span(ctx, &contained, lhs_shape);
+                let contained = format_contained_span(ctx, contained, lhs_shape);
 
                 // Provide a sample formatting to see how large it is
                 // Examine the expression itself to see if needs to be split onto multiple lines
@@ -799,7 +817,7 @@ fn format_hanging_expression_(
                     contained,
                     expression: Box::new(format_hanging_expression_(
                         ctx,
-                        &expression,
+                        expression,
                         expression_shape,
                         ExpressionContext::Standard,
                         None,
@@ -811,7 +829,7 @@ fn format_hanging_expression_(
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
             let expression =
-                format_hanging_expression_(ctx, &expression, shape, expression_context, lhs_range);
+                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range);
 
             Expression::UnaryOperator {
                 unop,
@@ -823,9 +841,10 @@ fn format_hanging_expression_(
             let lhs =
                 hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, lhs_range);
 
-            let mut new_binop = format_binop(ctx, binop, shape);
-            let singleline_shape =
-                shape.take_last_line(&lhs) + strip_trivia(binop).to_string().len() + 1;
+            let current_shape = shape.take_last_line(&lhs) + 1; // 1 = space before binop
+            let mut new_binop = format_binop(ctx, binop, current_shape);
+
+            let singleline_shape = current_shape + strip_trivia(binop).to_string().len() + 1; // 1 = space after binop
 
             let mut new_rhs = hang_binop_expression(
                 ctx,
@@ -837,6 +856,8 @@ fn format_hanging_expression_(
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
             if (did_hang_expression(&lhs) && binop_precedence_level(&lhs) >= binop.precedence())
+                || (did_hang_expression(&new_rhs)
+                    && binop_precedence_level(&new_rhs) >= binop.precedence())
                 || contains_comments(binop)
                 || get_expression_trailing_trivia(&lhs)
                     .iter()

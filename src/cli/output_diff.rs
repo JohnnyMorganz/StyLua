@@ -2,7 +2,7 @@
 // Licensed under https://github.com/mitsuhiko/similar/blob/main/LICENSE
 use crate::opt;
 use anyhow::Result;
-use console::{style, Style, Term};
+use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
 use std::fmt;
 use std::io::Write;
@@ -36,15 +36,7 @@ pub fn output_diff(
 
     let mut buffer = Vec::new();
 
-    let should_use_color = match color {
-        opt::Color::Always => true,
-        opt::Color::Never => false,
-        opt::Color::Auto => {
-            let terminal = Term::stdout();
-            let features = terminal.features();
-            features.is_attended() && features.colors_supported()
-        }
-    };
+    let should_use_color = color.should_use_color();
 
     // Print out the header title
     writeln!(&mut buffer, "{}", title)?;

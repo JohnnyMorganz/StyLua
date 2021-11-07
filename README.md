@@ -39,8 +39,11 @@ This action will use GitHub releases, rather than running cargo install, to spee
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.10.0" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.11.0" }
 ```
+- A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
+
+[![Community Packages](https://repology.org/badge/vertical-allrepos/stylua.svg?header=Community%20Packages)](https://repology.org/project/stylua/versions)
 
 ## Usage
 Once installed, pass the files to format to the CLI:
@@ -54,8 +57,8 @@ StyLua can also read from stdin, by using `-` as the file name.
 By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` to format.
 You can also specify an explicit glob pattern to match against when searching:
 ```bash
-stylua --glob **/*.luau -- src # format all files in src matching **/*.luau
-stylua -g *.lua -g !*.spec.lua -- . # format all Lua files except test files ending with `.spec.lua`
+stylua --glob '**/*.luau' -- src # format all files in src matching **/*.luau
+stylua -g '*.lua' -g '!*.spec.lua' -- . # format all Lua files except test files ending with `.spec.lua`
 ```
 Note, if you are using the glob argument, it can take in multiple strings, so `--` is required to break between the glob pattern and the files to format.
 If you explicitly pass a file to StyLua to format, but it doesn't match the glob, it will still be formatted (e.g. `stylua foo` for file `foo` containing Lua code)
@@ -139,6 +142,7 @@ Default `stylua.toml`, note you do not need to explicitly specify each option if
 column_width = 120
 line_endings = "Unix"
 indent_type = "Tabs"
-indent_width = 2
+indent_width = 4
 quote_style = "AutoPreferDouble"
+no_call_parentheses = false
 ```
