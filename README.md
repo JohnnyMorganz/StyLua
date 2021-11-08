@@ -54,7 +54,7 @@ This command will format the `foo.lua` and `bar.lua` file, and search down the `
 StyLua can also read from stdin, by using `-` as the file name.
 
 ### Glob Filtering
-By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` to format.
+By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` (or `**/*.luau` when `luau` is enabled) to format.
 You can also specify an explicit glob pattern to match against when searching:
 ```bash
 stylua --glob '**/*.luau' -- src # format all files in src matching **/*.luau
