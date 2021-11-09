@@ -6,7 +6,7 @@ use full_moon::{
         VarExpression,
     },
     node::Node,
-    tokenizer::{Symbol, Token, TokenReference, TokenType},
+    tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
 };
 use std::boxed::Box;
 
@@ -225,16 +225,47 @@ fn format_expression_internal(
     }
 }
 
+/// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
+pub fn is_brackets_string(expression: &Expression) -> bool {
+    if let Expression::Value { value, .. } = expression {
+        if let Value::String(token_reference) = &**value {
+            return matches!(
+                token_reference.token_type(),
+                TokenType::StringLiteral {
+                    quote_type: StringLiteralQuoteType::Brackets,
+                    ..
+                }
+            );
+        }
+    }
+    false
+}
+
 /// Formats an Index Node
 pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
     match index {
         Index::Brackets {
             brackets,
             expression,
-        } => Index::Brackets {
-            brackets: format_contained_span(ctx, brackets, shape),
-            expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
-        },
+        } => {
+            if is_brackets_string(expression) {
+                Index::Brackets {
+                    brackets: format_contained_span(ctx, brackets, shape),
+                    expression: format_expression(ctx, expression, shape + 2) // 2 = "[ "
+                        .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                            TokenType::spaces(1),
+                        )]))
+                        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                            TokenType::spaces(1),
+                        )])),
+                }
+            } else {
+                Index::Brackets {
+                    brackets: format_contained_span(ctx, brackets, shape),
+                    expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
+                }
+            }
+        }
 
         Index::Dot { dot, name } => Index::Dot {
             dot: format_token_reference(ctx, dot, shape),

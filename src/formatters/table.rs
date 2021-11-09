@@ -2,19 +2,22 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{format_expression, hang_expression},
+        expression::{format_expression, hang_expression, is_brackets_string},
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
     },
     shape::Shape,
 };
-use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    span::ContainedSpan,
-    Expression, Field, TableConstructor, Value,
-};
 use full_moon::tokenizer::{Token, TokenReference};
+use full_moon::{
+    ast::{
+        punctuated::{Pair, Punctuated},
+        span::ContainedSpan,
+        Expression, Field, TableConstructor, Value,
+    },
+    tokenizer::TokenType,
+};
 
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]
@@ -49,9 +52,22 @@ fn format_field(
             trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
             let brackets =
                 format_contained_span(ctx, brackets, shape).update_leading_trivia(leading_trivia);
-            let key = format_expression(ctx, key, shape + 1); // 1 = opening bracket
+
+            let space_brackets = is_brackets_string(key);
+            let key = if space_brackets {
+                format_expression(ctx, key, shape + 2) // 2 = "[ "
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]))
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]))
+            } else {
+                format_expression(ctx, key, shape + 1) // 1 = "["
+            };
+
             let equal = fmt_symbol!(ctx, equal, " = ", shape);
-            let shape = shape.take_last_line(&key) + (2 + 3); // 2 = brackets, 3 = " = "
+            let shape = shape.take_last_line(&key) + (2 + 3 + if space_brackets { 2 } else { 0 }); // 2 = brackets, 3 = " = ", 2 = spaces around brackets if necessary
 
             let singleline_value = format_expression(ctx, value, shape)
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![])); // We will remove all the trivia from this value, and place it after the comma
