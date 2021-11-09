@@ -441,7 +441,7 @@ pub fn format_function_args(
                 // this can be removed.
                 for argument in arguments.pairs_mut() {
                     let expression = argument.value_mut();
-                    let trivia = trivia_util::get_expression_leading_trivia(&expression)
+                    let trivia = trivia_util::get_expression_leading_trivia(expression)
                         .iter()
                         .skip_while(|trivia| trivia_util::trivia_is_whitespace(trivia))
                         .map(|x| x.to_owned())
