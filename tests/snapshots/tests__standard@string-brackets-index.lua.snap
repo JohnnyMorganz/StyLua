@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local foo = {
+	[ [[test]] ] = true,
+}
+
+foo[ [[test]] ] = false
+
