@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Fixed spaces around brackets string (`[[string]]`) used as an index or table key (i.e. `[ [[string]] ]`) being removed, leading to a syntax error. ([#293](https://github.com/JohnnyMorganz/StyLua/issues/293))
 
 ## [0.11.1] - 2021-11-08
 ### Changed
