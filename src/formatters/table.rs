@@ -373,10 +373,18 @@ pub fn format_table_constructor(
             // exponential time complexity with respect to how deep the table is.
             // TODO: find an improved heuristic whilst comparing against benchmarks
             let braces_range = (
-                start_brace.token().end_position().bytes(),
+                // Use the position of the last trivia in case there is some present (e.g. whitespace)
+                // So that we don't include an extra space
+                if let Some(token) = start_brace.leading_trivia().last() {
+                    token.end_position().bytes()
+                } else {
+                    start_brace.token().end_position().bytes()
+                },
                 end_brace.token().start_position().bytes(),
             );
-            let singleline_shape = shape + (braces_range.1 - braces_range.0) + 4; // 4 = two braces + single space before/after them
+            let singleline_shape = shape + (braces_range.1 - braces_range.0) + 3; // 4 = two braces + single space before last brace
+
+            println!("{:?} {}", singleline_shape, singleline_shape.over_budget());
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
