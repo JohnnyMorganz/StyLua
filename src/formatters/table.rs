@@ -384,8 +384,6 @@ pub fn format_table_constructor(
             );
             let singleline_shape = shape + (braces_range.1 - braces_range.0) + 3; // 4 = two braces + single space before last brace
 
-            println!("{:?} {}", singleline_shape, singleline_shape.over_budget());
-
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
                 false => {
