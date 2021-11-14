@@ -19,7 +19,7 @@ use crate::{
         functions::{
             format_anonymous_function, format_call, format_function_call, FunctionCallNextNode,
         },
-        general::{format_contained_span, format_token_reference},
+        general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -27,7 +27,7 @@ use crate::{
         },
         trivia_util::{
             self, contains_comments, expression_leading_comments, get_expression_trailing_trivia,
-            trivia_is_newline,
+            token_contains_leading_comments, token_contains_trailing_comments, trivia_is_newline,
         },
     },
     shape::Shape,
@@ -248,7 +248,38 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             brackets,
             expression,
         } => {
-            if is_brackets_string(expression) {
+            if token_contains_trailing_comments(brackets.tokens().0)
+                || contains_comments(expression)
+                || token_contains_leading_comments(brackets.tokens().1)
+            {
+                let (start_bracket, end_bracket) = brackets.tokens();
+
+                let indent_shape = shape.reset().increment_additional_indent();
+
+                // Format the brackets multiline
+                let brackets = ContainedSpan::new(
+                    fmt_symbol!(ctx, start_bracket, "[", shape).update_trailing_trivia(
+                        FormatTriviaType::Append(vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, indent_shape),
+                        ]),
+                    ),
+                    format_end_token(ctx, end_bracket, EndTokenType::ClosingBrace, shape)
+                        .update_leading_trivia(FormatTriviaType::Append(vec![
+                            create_indent_trivia(ctx, shape),
+                        ])),
+                );
+
+                let expression = format_expression(ctx, expression, indent_shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
+                        ctx,
+                    )]));
+
+                Index::Brackets {
+                    brackets,
+                    expression,
+                }
+            } else if is_brackets_string(expression) {
                 Index::Brackets {
                     brackets: format_contained_span(ctx, brackets, shape),
                     expression: format_expression(ctx, expression, shape + 2) // 2 = "[ "
@@ -405,7 +436,7 @@ pub fn format_var_expression(
         };
 
         let suffix = format_suffix(ctx, suffix, shape, ambiguous_next_suffix);
-        shape = shape + suffix.to_string().len();
+        shape = shape.take_last_line(&suffix);
         formatted_suffixes.push(suffix);
     }
 
