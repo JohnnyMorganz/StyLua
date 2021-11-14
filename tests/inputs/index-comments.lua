@@ -11,3 +11,6 @@ local x = foo[
 ][y][z][p
 -- string
 ]
+
+
+local x = foo[index --[[comment]]]
