@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Fixed spaces around brackets string (`[[string]]`) used as an index or table key (i.e. `[ [[string]] ]`) being removed, leading to a syntax error. ([#293](https://github.com/JohnnyMorganz/StyLua/issues/293))
+- Fixed incorrect shape calculation leading to arguments incorrectly expanding when under column width. ([#298](https://github.com/JohnnyMorganz/StyLua/issues/298))
+- Fixed incorrect shape calculation for singleline table at the column width boundary. ([#296](https://github.com/JohnnyMorganz/StyLua/issues/296))
+- Fixed IfExpression syntax containing extra/abnormal trailing whitespace when currently formatting as-is under the `luau` feature flag. ([#297](https://github.com/JohnnyMorganz/StyLua/issues/297))
 - Fixed newlines before arguments in a function call which is later formatted on a single line being preserved, leading to inconsistent formatting. ([#290](https://github.com/JohnnyMorganz/StyLua/issues/290))
 
 ## [0.11.1] - 2021-11-08
