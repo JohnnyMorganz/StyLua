@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed IfExpression syntax containing extra/abnormal trailing whitespace when currently formatting as-is under the `luau` feature flag. ([#297](https://github.com/JohnnyMorganz/StyLua/issues/297))
 - Fixed newlines before arguments in a function call which is later formatted on a single line being preserved, leading to inconsistent formatting. ([#290](https://github.com/JohnnyMorganz/StyLua/issues/290))
 - Fixed odd formatting when returning multiple tables or functions only. ([#302](https://github.com/JohnnyMorganz/StyLua/issues/302))
+- Fixed comments within an index expression (`foo[index]`) incorrectly handled leading to malformed formatting. ([#304](https://github.com/JohnnyMorganz/StyLua/issues/304))
 
 ## [0.11.1] - 2021-11-08
 ### Changed
