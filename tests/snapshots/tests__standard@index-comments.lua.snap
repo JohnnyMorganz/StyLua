@@ -18,3 +18,7 @@ local x = foo[
 	-- string
 ]
 
+local x = foo[
+	index --[[comment]]
+]
+
