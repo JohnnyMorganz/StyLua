@@ -409,7 +409,7 @@ where
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
                 let punctuation = fmt_symbol!(ctx, punctuation, ", ", shape);
-                shape = shape + (value.to_string().len() + 2); // 2 = ", "
+                shape = shape.take_last_line(&value) + 2; // 2 = ", "
 
                 list.push(Pair::new(value, Some(punctuation)));
             }

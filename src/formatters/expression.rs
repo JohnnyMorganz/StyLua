@@ -6,7 +6,7 @@ use full_moon::{
         VarExpression,
     },
     node::Node,
-    tokenizer::{Symbol, Token, TokenReference, TokenType},
+    tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
 };
 use std::boxed::Box;
 
@@ -19,7 +19,7 @@ use crate::{
         functions::{
             format_anonymous_function, format_call, format_function_call, FunctionCallNextNode,
         },
-        general::{format_contained_span, format_token_reference},
+        general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -27,7 +27,7 @@ use crate::{
         },
         trivia_util::{
             self, contains_comments, expression_leading_comments, get_expression_trailing_trivia,
-            trivia_is_newline,
+            token_contains_leading_comments, token_contains_trailing_comments, trivia_is_newline,
         },
     },
     shape::Shape,
@@ -225,16 +225,78 @@ fn format_expression_internal(
     }
 }
 
+/// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
+pub fn is_brackets_string(expression: &Expression) -> bool {
+    if let Expression::Value { value, .. } = expression {
+        if let Value::String(token_reference) = &**value {
+            return matches!(
+                token_reference.token_type(),
+                TokenType::StringLiteral {
+                    quote_type: StringLiteralQuoteType::Brackets,
+                    ..
+                }
+            );
+        }
+    }
+    false
+}
+
 /// Formats an Index Node
 pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
     match index {
         Index::Brackets {
             brackets,
             expression,
-        } => Index::Brackets {
-            brackets: format_contained_span(ctx, brackets, shape),
-            expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
-        },
+        } => {
+            if token_contains_trailing_comments(brackets.tokens().0)
+                || contains_comments(expression)
+                || token_contains_leading_comments(brackets.tokens().1)
+            {
+                let (start_bracket, end_bracket) = brackets.tokens();
+
+                let indent_shape = shape.reset().increment_additional_indent();
+
+                // Format the brackets multiline
+                let brackets = ContainedSpan::new(
+                    fmt_symbol!(ctx, start_bracket, "[", shape).update_trailing_trivia(
+                        FormatTriviaType::Append(vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, indent_shape),
+                        ]),
+                    ),
+                    format_end_token(ctx, end_bracket, EndTokenType::ClosingBrace, shape)
+                        .update_leading_trivia(FormatTriviaType::Append(vec![
+                            create_indent_trivia(ctx, shape),
+                        ])),
+                );
+
+                let expression = format_expression(ctx, expression, indent_shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
+                        ctx,
+                    )]));
+
+                Index::Brackets {
+                    brackets,
+                    expression,
+                }
+            } else if is_brackets_string(expression) {
+                Index::Brackets {
+                    brackets: format_contained_span(ctx, brackets, shape),
+                    expression: format_expression(ctx, expression, shape + 2) // 2 = "[ "
+                        .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                            TokenType::spaces(1),
+                        )]))
+                        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                            TokenType::spaces(1),
+                        )])),
+                }
+            } else {
+                Index::Brackets {
+                    brackets: format_contained_span(ctx, brackets, shape),
+                    expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
+                }
+            }
+        }
 
         Index::Dot { dot, name } => Index::Dot {
             dot: format_token_reference(ctx, dot, shape),
@@ -293,7 +355,16 @@ fn format_if_expression(
     _shape: Shape,
 ) -> IfExpression {
     // TODO: Apply actual formatting here
-    if_expression.to_owned()
+    // because we are just returning as-is, we need to remove the trailing whitespace trivia if present, otherwise stuff
+    // gets weird (https://github.com/JohnnyMorganz/StyLua/issues/297)
+
+    let (else_expression, trailing_comments) =
+        trivia_util::take_expression_trailing_comments(if_expression.else_expression());
+
+    let else_expression =
+        else_expression.update_trailing_trivia(FormatTriviaType::Replace(trailing_comments));
+
+    if_expression.to_owned().with_else(else_expression)
 }
 
 /// Formats a Value Node
@@ -365,7 +436,7 @@ pub fn format_var_expression(
         };
 
         let suffix = format_suffix(ctx, suffix, shape, ambiguous_next_suffix);
-        shape = shape + suffix.to_string().len();
+        shape = shape.take_last_line(&suffix);
         formatted_suffixes.push(suffix);
     }
 

@@ -431,8 +431,24 @@ pub fn format_function_args(
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
                 let parentheses = format_contained_span(ctx, parentheses, shape);
-                let arguments =
+                let mut arguments =
                     format_punctuated(ctx, arguments, shape + shape_increment, format_expression);
+
+                // HACK: if there was more than one newline before each argument, then it will be incorrectly preserved
+                // leading to weird formatting (https://github.com/JohnnyMorganz/StyLua/issues/290#issuecomment-964428535)
+                // We get around this (badly) by reformatting each argument to remove leading newlines from them.
+                // TODO(#169): once a proper fix to https://github.com/JohnnyMorganz/StyLua/issues/169 is solved
+                // this can be removed.
+                for argument in arguments.pairs_mut() {
+                    let expression = argument.value_mut();
+                    let trivia = trivia_util::get_expression_leading_trivia(expression)
+                        .iter()
+                        .skip_while(|trivia| trivia_util::trivia_is_whitespace(trivia))
+                        .map(|x| x.to_owned())
+                        .collect();
+                    *expression =
+                        expression.update_leading_trivia(FormatTriviaType::Replace(trivia));
+                }
 
                 FunctionArgs::Parentheses {
                     parentheses,

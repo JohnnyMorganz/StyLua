@@ -39,7 +39,7 @@ This action will use GitHub releases, rather than running cargo install, to spee
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.11.0" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.11.2" }
 ```
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
 
@@ -54,7 +54,7 @@ This command will format the `foo.lua` and `bar.lua` file, and search down the `
 StyLua can also read from stdin, by using `-` as the file name.
 
 ### Glob Filtering
-By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` to format.
+By default, when searching through a directory, StyLua looks for all files matching the glob `**/*.lua` (or `**/*.luau` when `luau` is enabled) to format.
 You can also specify an explicit glob pattern to match against when searching:
 ```bash
 stylua --glob '**/*.luau' -- src # format all files in src matching **/*.luau

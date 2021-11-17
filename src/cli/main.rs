@@ -268,7 +268,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         // We should ignore the glob check if the path provided was explicitly given to the CLI
                         if use_default_glob && !opt.files.iter().any(|p| path == *p) {
                             lazy_static::lazy_static! {
-                                static ref DEFAULT_GLOB: globset::GlobMatcher = globset::Glob::new("**/*.lua").expect("cannot create default glob").compile_matcher();
+                                static ref DEFAULT_GLOB: globset::GlobSet = {
+                                    let mut builder = globset::GlobSetBuilder::new();
+                                    builder.add(globset::Glob::new("**/*.lua").expect("cannot create default glob"));
+                                    #[cfg(feature = "luau")]
+                                    builder.add(globset::Glob::new("**/*.luau").expect("cannot create default luau glob"));
+                                    builder.build().expect("cannot build default globset")
+                                };
                             }
                             if !DEFAULT_GLOB.is_match(&path) {
                                 continue;

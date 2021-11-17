@@ -15,7 +15,7 @@ use crate::{
     shape::Shape,
 };
 use full_moon::ast::{
-    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
+    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Value, Var,
 };
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -26,6 +26,15 @@ macro_rules! update_first_token {
         let new_token = $token.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
         Stmt::$enum($var.$update_method(new_token))
     }};
+}
+
+fn is_function_or_table_constructor(expression: &Expression) -> bool {
+    match expression {
+        Expression::Value { value, .. } => {
+            matches!(&**value, Value::TableConstructor(_) | Value::Function(_))
+        }
+        _ => false,
+    }
 }
 
 pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Return {
@@ -51,14 +60,24 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         let (should_format_multiline, singleline_returns) = if contains_comments {
             (true, Punctuated::new())
         } else {
-            // Firstly attempt to format the returns onto a single line, using an infinite column width shape
-            let singleline_returns =
-                format_punctuated(ctx, returns, shape.with_infinite_width(), format_expression);
+            // Special case:
+            // The singleline returns is full of multiline tables or anonymous functions
+            // If so, we should just format inline, normally.
+            if returns.iter().all(is_function_or_table_constructor) {
+                (
+                    false,
+                    format_punctuated(ctx, returns, shape, format_expression),
+                )
+            } else {
+                // Firstly attempt to format the returns onto a single line, using an infinite column width shape
+                let singleline_returns =
+                    format_punctuated(ctx, returns, shape.with_infinite_width(), format_expression);
 
-            // Test the return to see if its over width
-            let singleline_shape =
-                shape + strip_trailing_trivia(&singleline_returns).to_string().len();
-            (singleline_shape.over_budget(), singleline_returns)
+                // Test the return to see if its over width
+                let singleline_shape =
+                    shape + strip_trailing_trivia(&singleline_returns).to_string().len();
+                (singleline_shape.over_budget(), singleline_returns)
+            }
         };
 
         // TODO: this is similar to assignment tactics - can we abstract them into a common function?
