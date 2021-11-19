@@ -102,7 +102,6 @@ export class GitHub implements Disposable {
         }
       )
     );
-    this.authenticate(false);
   }
 
   dispose() {

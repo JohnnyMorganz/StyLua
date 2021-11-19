@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed unnecessary quiet request for authorisation with GitHub on extension activation. Authorisation is only necessary when hitting GitHub rate limit requests.
+
 ## [1.3.0] - 2021-11-19
 
 ### Added
