@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.3.0] - 2021-11-19
+
 ### Added
 
 - StyLua will now emit an error if the provided file path does not exist
