@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed comments preceding a comma within a function call or parameter list for a function definition being mistransformed leading to a syntax error. ([#307](https://github.com/JohnnyMorganz/StyLua/issues/307))
 
 ## [0.11.2] - 2021-11-15
 ### Fixed
