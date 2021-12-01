@@ -398,18 +398,24 @@ pub fn format_function_args(
                         ctx, shape,
                     )]));
 
+                    // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
+                    let (formatted_argument, mut trailing_comments) =
+                        trivia_util::take_expression_trailing_comments(&formatted_argument);
+
                     let punctuation = match argument.punctuation() {
                         Some(punctuation) => {
                             // Continue adding a comma and a new line for multiline function args
+                            // Also add any trailing comments we have taken from the expression
+                            trailing_comments.push(create_newline_trivia(ctx));
                             let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                                .update_trailing_trivia(FormatTriviaType::Append(vec![
-                                    create_newline_trivia(ctx),
-                                ]));
+                                .update_trailing_trivia(FormatTriviaType::Append(
+                                    trailing_comments,
+                                ));
 
                             Some(symbol)
                         }
                         None => Some(TokenReference::new(
-                            vec![],
+                            trailing_comments,
                             create_newline_trivia(ctx),
                             vec![],
                         )),
@@ -1009,14 +1015,36 @@ fn format_multiline_parameters(
         // Reset the shape (as the parameter is on a newline), and increment the additional indent level
         let shape = shape.reset().increment_additional_indent();
 
-        let parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
+        let mut parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
             FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
         );
 
-        let punctuation = pair.punctuation().map(|punctuation| {
-            fmt_symbol!(ctx, punctuation, ",", shape)
-                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
-        });
+        let punctuation = match pair.punctuation() {
+            Some(punctuation) => {
+                // Remove any trailing comments from the parameter if present
+                let mut trailing_comments: Vec<Token> = match &parameter {
+                    Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
+                    other => panic!("unknown node {:?}", other),
+                }
+                .filter(|token| trivia_util::trivia_is_comment(token))
+                .map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .flatten()
+                .collect();
+
+                parameter = parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
+                // Add a newline to the end of the trailing comments, then append them all to the end of the comma
+                trailing_comments.push(create_newline_trivia(ctx));
+                Some(
+                    fmt_symbol!(ctx, punctuation, ",", shape)
+                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
+                )
+            }
+            None => None,
+        };
 
         formatted_parameters.push(Pair::new(parameter, punctuation))
     }
