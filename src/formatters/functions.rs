@@ -398,18 +398,24 @@ pub fn format_function_args(
                         ctx, shape,
                     )]));
 
+                    // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
+                    let (formatted_argument, mut trailing_comments) =
+                        trivia_util::take_expression_trailing_comments(&formatted_argument);
+
                     let punctuation = match argument.punctuation() {
                         Some(punctuation) => {
                             // Continue adding a comma and a new line for multiline function args
+                            // Also add any trailing comments we have taken from the expression
+                            trailing_comments.push(create_newline_trivia(ctx));
                             let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                                .update_trailing_trivia(FormatTriviaType::Append(vec![
-                                    create_newline_trivia(ctx),
-                                ]));
+                                .update_trailing_trivia(FormatTriviaType::Append(
+                                    trailing_comments,
+                                ));
 
                             Some(symbol)
                         }
                         None => Some(TokenReference::new(
-                            vec![],
+                            trailing_comments,
                             create_newline_trivia(ctx),
                             vec![],
                         )),
