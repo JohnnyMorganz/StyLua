@@ -1,0 +1,8 @@
+---
+- id: stylua
+  name: StyLua
+  description: An opinionated Lua code formatter
+  entry: stylua
+  language: system
+  types:
+    - lua
