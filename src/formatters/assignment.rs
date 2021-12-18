@@ -118,7 +118,7 @@ fn attempt_assignment_tactics(
 
         if expressions.pairs().any(|pair| {
             pair.punctuation()
-                .map_or(false, |x| trivia_util::token_contains_comments(x))
+                .map_or(false, trivia_util::token_contains_comments)
                 || trivia_util::expression_contains_inline_comments(pair.value())
         }) || hanging_shape
             .take_first_line(&strip_trivia(&expr_list))
@@ -238,7 +238,7 @@ pub fn format_assignment(ctx: &Context, assignment: &Assignment, shape: Shape) -
     let contains_comments = trivia_util::token_contains_comments(assignment.equal_token())
         || assignment.expressions().pairs().any(|pair| {
             pair.punctuation()
-                .map_or(false, |x| trivia_util::token_contains_comments(x))
+                .map_or(false, trivia_util::token_contains_comments)
                 || trivia_util::expression_contains_inline_comments(pair.value())
         });
 
@@ -349,10 +349,10 @@ pub fn format_local_assignment(
         // and format multiline
         let contains_comments = assignment
             .equal_token()
-            .map_or(false, |x| trivia_util::token_contains_comments(x))
+            .map_or(false, trivia_util::token_contains_comments)
             || assignment.expressions().pairs().any(|pair| {
                 pair.punctuation()
-                    .map_or(false, |x| trivia_util::token_contains_comments(x))
+                    .map_or(false, trivia_util::token_contains_comments)
                     || trivia_util::expression_contains_inline_comments(pair.value())
             });
 
