@@ -355,16 +355,17 @@ fn format_if_expression(
     _shape: Shape,
 ) -> IfExpression {
     // TODO: Apply actual formatting here
-    // because we are just returning as-is, we need to remove the trailing whitespace trivia if present, otherwise stuff
-    // gets weird (https://github.com/JohnnyMorganz/StyLua/issues/297)
+    // because we are just returning as-is, we need to remove leading/trailing whitespace trivia if present, otherwise stuff
+    // gets weird (https://github.com/JohnnyMorganz/StyLua/issues/297, https://github.com/JohnnyMorganz/StyLua/issues/315)
 
+    let if_token = strip_leading_trivia(if_expression.if_token());
     let (else_expression, trailing_comments) =
         trivia_util::take_expression_trailing_comments(if_expression.else_expression());
 
     let else_expression =
         else_expression.update_trailing_trivia(FormatTriviaType::Replace(trailing_comments));
 
-    if_expression.to_owned().with_else(else_expression)
+    if_expression.to_owned().with_if_token(if_token).with_else(else_expression)
 }
 
 /// Formats a Value Node
