@@ -9,3 +9,9 @@ end)
 Autocomplete = function(player)
     return { if player then player.Name else nil }
 end
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/315
+Function:Function(
+	if self.props.True:FindFirstChild("Testttttttttttttttttttt") then self.props.True else self.props.False,
+	0
+)
