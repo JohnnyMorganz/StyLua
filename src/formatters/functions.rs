@@ -636,7 +636,7 @@ pub fn format_function_body(
         let contains_comments = function_body.parameters().pairs().any(|pair| {
             let contains_comments = pair
                 .punctuation()
-                .map_or(false, |punc| trivia_util::token_contains_comments(punc))
+                .map_or(false, trivia_util::token_contains_comments)
                 || trivia_util::contains_comments(pair.value());
             #[cfg(feature = "luau")]
             let type_specifier_comments = type_specifiers
