@@ -9,7 +9,7 @@ do
 			do
 				console.error(
 					"guitarFuzz design functions accept exactly two parameters: guiter and fuzz. %s",
-								if argumentCount == 1 then "Did you forget to use the fuzz parameter?" else "Any additional parameter will be undefined."
+					if argumentCount == 1 then "Did you forget to use the fuzz parameter?" else "Any additional parameter will be undefined."
 				)
 			end
 		end
