@@ -365,7 +365,10 @@ fn format_if_expression(
     let else_expression =
         else_expression.update_trailing_trivia(FormatTriviaType::Replace(trailing_comments));
 
-    if_expression.to_owned().with_if_token(if_token).with_else(else_expression)
+    if_expression
+        .to_owned()
+        .with_if_token(if_token)
+        .with_else(else_expression)
 }
 
 /// Formats a Value Node
