@@ -85,7 +85,9 @@ fn handle_field_key_equals_comments<T: Node>(
         });
 
     // Join the new leading comments with the existing leading comments, and collect into into a Vec
-    let key_leading_comments = key_leading_trivia.iter().map(|x| x.to_owned().to_owned())
+    let key_leading_comments = key_leading_trivia
+        .iter()
+        .map(|x| x.to_owned().to_owned())
         .chain(key_leading_comments)
         .collect::<Vec<_>>();
 
