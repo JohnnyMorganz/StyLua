@@ -96,7 +96,7 @@ fn handle_field_key_equals_comments<T: Node>(
         // Prepend an indent before the comment, and append a newline after the comments
         vec![
             create_indent_trivia(ctx, shape),
-            comment.to_owned(),
+            comment,
             create_newline_trivia(ctx),
         ]
     });
