@@ -12,6 +12,7 @@ local a = {
 	= -- equals trailing comment
 	baz(),
 
+
 	["f"] = -- equals trailing comment
 		foo(),
 	["g"] -- key trailing comment
