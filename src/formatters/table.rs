@@ -9,14 +9,14 @@ use crate::{
     },
     shape::Shape,
 };
-use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
         span::ContainedSpan,
         Expression, Field, TableConstructor, Value,
     },
-    tokenizer::TokenType,
+    node::Node,
+    tokenizer::{Token, TokenReference, TokenType},
 };
 
 /// Used to provide information about the table
@@ -47,6 +47,69 @@ fn format_field_expression_value(
     } else {
         singleline_value
     }
+}
+
+/// Handles the formatting of the comments around a key and the equals sign in a field of a table.
+/// Takes in the key as a node (so that we can handle both expression key brackets and name keys)
+/// as well as the equals sign, then outputs the new leading trivia of the key + new equals token. The trailing trivia of the key should be emptied.
+fn handle_field_key_equals_comments<T: Node>(
+    ctx: &Context,
+    key: &T,
+    equal: &TokenReference,
+    shape: Shape,
+) -> (Vec<Token>, TokenReference) {
+    // Get the current leading and trailing trivia around the key
+    let (key_leading_trivia, key_trailing_trivia) = key.surrounding_trivia();
+
+    let key_leading_trivia_iter = key_leading_trivia.iter();
+
+    // Preverse any leading whitespace from the key, so that we can keep it
+    let key_leading_whitespace = key_leading_trivia_iter
+        .take_while(|token| trivia_util::trivia_is_whitespace(token))
+        .map(|x| x.to_owned().to_owned());
+
+    // Retrieve the old leading comments from the key, so that we can append onto them
+    // We also chain on any trailing comments of the key, so that we can move them to before the key
+    let key_comments = key_leading_trivia
+        .iter() // We recreate the iterator since the previous one was consumed
+        .chain(key_trailing_trivia.iter())
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .map(|x| x.to_owned().to_owned());
+
+    // Take leading and trailing comments from the equal sign, and put it before the key
+    let equal_sign_comments = equal
+        .leading_trivia()
+        .chain(equal.trailing_trivia())
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .collect::<Vec<_>>();
+
+    // Join together the comments, and intersperse a newline between them
+    let key_leading_comments = key_comments.chain(equal_sign_comments).flat_map(|comment| {
+        // Prepend an indent before the comment, and append a newline after the comments
+        vec![
+            create_indent_trivia(ctx, shape),
+            comment.to_owned(),
+            create_newline_trivia(ctx),
+        ]
+    });
+
+    // Join together the leading whitespace and the comments, and collect into into a Vec
+    let key_leading_comments = key_leading_whitespace
+        .chain(key_leading_comments)
+        .collect::<Vec<_>>();
+
+    // Create the new equals token
+    let equal = TokenReference::symbol("=")
+        .unwrap()
+        .update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+            TokenType::spaces(1),
+        )]))
+        .update_trailing_trivia(FormatTriviaType::Replace(vec![Token::new(
+            TokenType::spaces(1),
+        )]));
+
+    (key_leading_comments, equal)
 }
 
 fn format_field(
@@ -84,36 +147,9 @@ fn format_field(
                 format_expression(ctx, key, shape + 1) // 1 = "["
             };
 
-            let (open_bracket, close_bracket) = brackets.tokens();
-
-            // Retrieve the old leading comments from the brackets, so that we can append onto them
-            // We also chain on any trailing comments of the brackets, so that we can move them to before the key
-            let brackets_comments = open_bracket
-                .leading_trivia()
-                .chain(close_bracket.trailing_trivia())
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| x.to_owned());
-
-            // Take leading and trailing comments from the equal sign, and put it before the key
-            let equal_sign_comments = equal
-                .leading_trivia()
-                .chain(equal.trailing_trivia())
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| x.to_owned())
-                .collect::<Vec<_>>();
-
-            // Join together the comments, and intersperse a newline between them
-            let key_leading_comments = brackets_comments
-                .chain(equal_sign_comments)
-                .flat_map(|comment| {
-                    // Prepend an indent before the comment, and append a newline after the comments
-                    vec![
-                        create_indent_trivia(ctx, shape),
-                        comment.to_owned(),
-                        create_newline_trivia(ctx),
-                    ]
-                })
-                .collect();
+            // Get the new leading comments to add before the key, and the equal token
+            let (key_leading_comments, equal) =
+                handle_field_key_equals_comments(ctx, &brackets, equal, shape);
 
             // Update the key to contain the leading comments, remove the trailing comments,
             // and also add the extra leading_trivia we add in general to all fields
@@ -121,15 +157,6 @@ fn format_field(
                 .update_leading_trivia(FormatTriviaType::Replace(key_leading_comments))
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 .update_leading_trivia(leading_trivia);
-
-            let equal = TokenReference::symbol("=")
-                .unwrap()
-                .update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
-                    TokenType::spaces(1),
-                )]))
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![Token::new(
-                    TokenType::spaces(1),
-                )]));
 
             let shape = shape.take_last_line(&key) + (2 + 3 + if space_brackets { 2 } else { 0 }); // 2 = brackets, 3 = " = ", 2 = spaces around brackets if necessary
             let value = format_field_expression_value(ctx, value, shape);
@@ -145,34 +172,9 @@ fn format_field(
             trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
             let key = format_token_reference(ctx, key, shape);
 
-            // Retrieve the old leading comments from the key, so that we can append onto them
-            // We also chain on any trailing comments of the key, so that we can move them to before the key
-            let key_comments = key
-                .leading_trivia()
-                .chain(key.trailing_trivia())
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| x.to_owned());
-
-            // Take leading and trailing comments from the equal sign, and put it before the key
-            let equal_sign_comments = equal
-                .leading_trivia()
-                .chain(equal.trailing_trivia())
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| x.to_owned())
-                .collect::<Vec<_>>();
-
-            // Join together the comments, and intersperse a newline between them
-            let key_leading_comments = key_comments
-                .chain(equal_sign_comments)
-                .flat_map(|comment| {
-                    // Prepend an indent before the comment, and append a newline after the comments
-                    vec![
-                        create_indent_trivia(ctx, shape),
-                        comment.to_owned(),
-                        create_newline_trivia(ctx),
-                    ]
-                })
-                .collect();
+            // Get the new leading comments to add before the key, and the equal token
+            let (key_leading_comments, equal) =
+                handle_field_key_equals_comments(ctx, &key, equal, shape);
 
             // Update the key to contain the leading comments, remove the trailing comments,
             // and also add the extra leading_trivia we add in general to all fields
@@ -180,15 +182,6 @@ fn format_field(
                 .update_leading_trivia(FormatTriviaType::Replace(key_leading_comments))
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 .update_leading_trivia(leading_trivia);
-
-            let equal = TokenReference::symbol("=")
-                .unwrap()
-                .update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
-                    TokenType::spaces(1),
-                )]))
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![Token::new(
-                    TokenType::spaces(1),
-                )]));
 
             let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
             let value = format_field_expression_value(ctx, value, shape);
