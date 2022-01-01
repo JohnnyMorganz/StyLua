@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed comments preceding a comma within a function call or parameter list for a function definition being mistransformed leading to a syntax error. ([#307](https://github.com/JohnnyMorganz/StyLua/issues/307))
 - Fixed IfExpression having abnormal leading whitespace under the `luau` feature flag. ([#315](https://github.com/JohnnyMorganz/StyLua/issues/315))
+- Fixed incorrect handling of comments in unusual places within a table causing mistransformations leading to syntax errors. ([#318](https://github.com/JohnnyMorganz/StyLua/issues/318))
 
 ## [0.11.2] - 2021-11-15
 ### Fixed
