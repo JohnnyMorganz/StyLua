@@ -1,0 +1,35 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/318
+local a = {
+	-- equals trailing comment
+	b = foo(),
+	c = bar(),
+	-- expression leading comment
+	"d",
+	-- key leading comment
+	-- equals leading comment
+	-- equals trailing comment
+	e = baz(),
+
+	-- equals trailing comment
+	["f"] = foo(),
+	-- key trailing comment
+	["g"] = bar(),
+	-- key leading comment
+	-- key trailing comment
+	-- equals leading comment
+	-- equals trailing comment
+	["h"] = baz(),
+}
+
+local b = {
+	-- a comment breaks it
+	b = {
+		c = "d",
+	},
+}
+
