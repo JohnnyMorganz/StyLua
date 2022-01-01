@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.11.3] - 2022-01-01
 ### Fixed
 - Fixed comments preceding a comma within a function call or parameter list for a function definition being mistransformed leading to a syntax error. ([#307](https://github.com/JohnnyMorganz/StyLua/issues/307))
 - Fixed IfExpression having abnormal leading whitespace under the `luau` feature flag. ([#315](https://github.com/JohnnyMorganz/StyLua/issues/315))
