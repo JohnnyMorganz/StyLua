@@ -60,49 +60,34 @@ fn handle_field_key_equals_comments<T: Node>(
 ) -> (Vec<Token>, TokenReference) {
     // Get the current leading and trailing trivia around the key
     let (key_leading_trivia, key_trailing_trivia) = key.surrounding_trivia();
-    let mut key_leading_trivia_iter = key_leading_trivia.iter().peekable();
-
-    // If there is a leading newline on the key, then preserve it.
-    // Note that we recreate the single newline rather than preserving all leading whitespace, since if there is also an
-    // indentation present (e.g. for a leading comment), then that would be preserved, leading to a double indentation.
-    let key_leading_newline = if let Some(token) = key_leading_trivia_iter.peek() {
-        if trivia_util::trivia_is_newline(token) {
-            // can't use iter::once() and iter::empty() since they are incompatible types
-            Some(create_newline_trivia(ctx)).into_iter()
-        } else {
-            None.into_iter()
-        }
-    } else {
-        None.into_iter()
-    };
-
-    // Retrieve the old leading comments from the key, so that we can append onto them
-    // We also chain on any trailing comments of the key, so that we can move them to before the key
-    let key_comments = key_leading_trivia_iter
-        .chain(key_trailing_trivia.iter())
-        .filter(|token| trivia_util::trivia_is_comment(token))
-        .map(|x| x.to_owned().to_owned());
 
     // Take leading and trailing comments from the equal sign, and put it before the key
     let equal_sign_comments = equal
         .leading_trivia()
         .chain(equal.trailing_trivia())
+        .filter(|token| trivia_util::trivia_is_comment(token));
+
+    // Join the key trailing comments with the equal sign comments, as we will move them to before the key.
+    // Also adds in the necessary whitespace trivia
+    let key_leading_comments = key_trailing_trivia
+        .iter()
         .filter(|token| trivia_util::trivia_is_comment(token))
         .map(|x| x.to_owned())
-        .collect::<Vec<_>>();
+        .chain(equal_sign_comments)
+        .map(|x| x.to_owned())
+        .flat_map(|trivia| {
+            // Prepend an indent before the comment, and append a newline after the comments
+            vec![
+                create_indent_trivia(ctx, shape),
+                trivia,
+                create_newline_trivia(ctx),
+            ]
+        });
 
-    // Join together the comments, and intersperse a newline between them
-    let key_leading_comments = key_comments.chain(equal_sign_comments).flat_map(|comment| {
-        // Prepend an indent before the comment, and append a newline after the comments
-        vec![
-            create_indent_trivia(ctx, shape),
-            comment,
-            create_newline_trivia(ctx),
-        ]
-    });
-
-    // Join together the leading whitespace and the comments, and collect into into a Vec
-    let key_leading_comments = key_leading_newline
+    // Join the new leading comments with the existing leading comments, and collect into into a Vec
+    let key_leading_comments = key_leading_trivia
+        .iter()
+        .map(|x| x.to_owned().to_owned())
         .chain(key_leading_comments)
         .collect::<Vec<_>>();
 

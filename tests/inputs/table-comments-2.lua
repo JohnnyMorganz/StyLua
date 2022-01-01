@@ -30,3 +30,12 @@ local b = {
         c = "d",
     },
 }
+
+local c = {
+	-- comment group 1
+	-- part of this group
+
+	-- another comment group
+	-- dont group with the above comment group
+	x = y
+}
