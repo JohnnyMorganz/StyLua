@@ -60,18 +60,25 @@ fn handle_field_key_equals_comments<T: Node>(
 ) -> (Vec<Token>, TokenReference) {
     // Get the current leading and trailing trivia around the key
     let (key_leading_trivia, key_trailing_trivia) = key.surrounding_trivia();
+    let mut key_leading_trivia_iter = key_leading_trivia.iter().peekable();
 
-    let key_leading_trivia_iter = key_leading_trivia.iter();
-
-    // Preverse any leading whitespace from the key, so that we can keep it
-    let key_leading_whitespace = key_leading_trivia_iter
-        .take_while(|token| trivia_util::trivia_is_whitespace(token))
-        .map(|x| x.to_owned().to_owned());
+    // If there is a leading newline on the key, then preserve it.
+    // Note that we recreate the single newline rather than preserving all leading whitespace, since if there is also an
+    // indentation present (e.g. for a leading comment), then that would be preserved, leading to a double indentation.
+    let key_leading_newline = if let Some(token) = key_leading_trivia_iter.peek() {
+        if trivia_util::trivia_is_newline(token) {
+            // can't use iter::once() and iter::empty() since they are incompatible types
+            Some(create_newline_trivia(ctx)).into_iter()
+        } else {
+            None.into_iter()
+        }
+    } else {
+        None.into_iter()
+    };
 
     // Retrieve the old leading comments from the key, so that we can append onto them
     // We also chain on any trailing comments of the key, so that we can move them to before the key
-    let key_comments = key_leading_trivia
-        .iter() // We recreate the iterator since the previous one was consumed
+    let key_comments = key_leading_trivia_iter
         .chain(key_trailing_trivia.iter())
         .filter(|token| trivia_util::trivia_is_comment(token))
         .map(|x| x.to_owned().to_owned());
@@ -95,7 +102,7 @@ fn handle_field_key_equals_comments<T: Node>(
     });
 
     // Join together the leading whitespace and the comments, and collect into into a Vec
-    let key_leading_comments = key_leading_whitespace
+    let key_leading_comments = key_leading_newline
         .chain(key_leading_comments)
         .collect::<Vec<_>>();
 
