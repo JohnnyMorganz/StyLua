@@ -3,6 +3,6 @@
   name: StyLua
   description: An opinionated Lua code formatter
   entry: stylua
-  language: system
+  language: rust
   types:
     - lua
