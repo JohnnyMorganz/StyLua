@@ -35,6 +35,15 @@ cargo install stylua --features luau
 You can use the [stylua-action](https://github.com/marketplace/actions/stylua) GitHub Action in your CI to install and run StyLua.
 This action will use GitHub releases, rather than running cargo install, to speed up your workflow.
 
+### pre-commit
+You can use StyLua with [pre-commit](https://pre-commit.com/) by adding the following to your `.pre-commit-config.yaml` file:
+```yaml
+- repo: https://github.com/JohnnyMorganz/StyLua
+  rev: v0.11.3
+  hooks:
+    - id: stylua
+```
+
 ### Other Installation Methods
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
