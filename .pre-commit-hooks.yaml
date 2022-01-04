@@ -11,6 +11,6 @@
   name: StyLua (system)
   description: An opinionated Lua code formatter
   entry: stylua
-  language: rust
+  language: system
   types:
     - lua
