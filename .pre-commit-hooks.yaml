@@ -1,8 +1,16 @@
 ---
 - id: stylua
-  name: StyLua
+  name: StyLua (cargo)
   description: An opinionated Lua code formatter
   entry: stylua
   language: rust
+  types:
+    - lua
+
+- id: stylua-system
+  name: StyLua (system)
+  description: An opinionated Lua code formatter
+  entry: stylua
+  language: system
   types:
     - lua
