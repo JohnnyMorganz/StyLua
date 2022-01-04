@@ -10,7 +10,7 @@ lazy_static::lazy_static! {
 #[structopt(name = "stylua", about = "A utility to format Lua code")]
 pub struct Opt {
     /// Specify path to stylua.toml configuration file
-    #[structopt(long = "config-path", parse(from_os_str))]
+    #[structopt(long = "config-path", short = "f", parse(from_os_str))]
     pub config_path: Option<PathBuf>,
 
     /// Specify the location of the file that is being passed into stdin.
