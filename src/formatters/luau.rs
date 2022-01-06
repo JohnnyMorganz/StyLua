@@ -188,6 +188,13 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             }
         }
 
+        TypeInfo::GenericVariadic { name, ellipse } => {
+            let name = format_token_reference(ctx, name, shape);
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+
+            TypeInfo::GenericVariadic { name, ellipse }
+        }
+
         TypeInfo::Intersection {
             left,
             ampersand,
