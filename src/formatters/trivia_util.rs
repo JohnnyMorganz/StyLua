@@ -532,6 +532,11 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 trailing_trivia,
             )
         }
+        TypeInfo::GenericVariadic { name, ellipse } => {
+            let trailing_trivia = ellipse.trailing_trivia().map(|x| x.to_owned()).collect();
+            let ellipse = ellipse.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::GenericVariadic { name, ellipse }, trailing_trivia)
+        }
         TypeInfo::Intersection {
             left,
             ampersand,

@@ -603,6 +603,11 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             generics: generics.to_owned(),
         },
 
+        TypeInfo::GenericVariadic { name, ellipse } => TypeInfo::GenericVariadic {
+            name: name.update_leading_trivia(leading),
+            ellipse: ellipse.update_trailing_trivia(trailing),
+        },
+
         TypeInfo::Intersection {
             left,
             ampersand,

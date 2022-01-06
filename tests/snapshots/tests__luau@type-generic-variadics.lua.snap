@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local function mergeDeep<T...>(...: T...) -- : TupleToIntersection<...T>
+	return mergeDeepArray({ ... })
+end
+
