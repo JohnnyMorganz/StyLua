@@ -1,3 +1,32 @@
+local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName() then foo else bar
+
+local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName() then foooooooooooooBarrrrrrrrr else barrrrrrrrrBazzzzzz
+
+local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName() then Vector2.new(1, 1) + someVectorOffset + someOtherVector else Vector2.new(1, 1) + someNewVectorOffset + someNewOtherVector
+
+local scale = if someReallyReallyLongFunctionNameThatForcesTheConditionToSpanMultipleLines() and someOtherReallyLongFunctionNameThatForcesTheConditionToSpanMultipleLines() then 1 else 2
+
+local thing = makeSomething("Foo", {
+	OneChild = if someFlag() then
+		makeSomething("Bar", {
+			scale = 1,
+		})
+	else
+		makeSomething("Bar", {
+			scale = 2,
+		}),
+	TwoChild = makeSomething("Baz"),
+})
+
+local thing = makeSomething("Foo", {
+	OneChild = if someFlag() then makeSomething("Bar", {
+		scale = 1,
+	}) else makeSomething("Bar", {
+		scale = 2,
+	}),
+	TwoChild = makeSomething("Baz"),
+})
+
 do
 	do
 	  do
@@ -9,23 +38,4 @@ do
 		end
 	  end
   end
-end
-
-do
-    local state: S = if hook ~= nil
-        then hook.memoizedState
-        elseif typeof(initialState) == "function"
-            then
-                -- Luau needs a little help, even with the generic function
-                (initialState :: (() -> S))()
-            else initialState
-
-	local state: S = if hook ~= nil then hook.memoizedState
-		elseif
-			typeof(initialState) == "function" -- the fuzz pedal isn't 3.3V
-			or _G.__DEV__                      -- in DEV mode, undervolt anyway
-		then
-			-- Luau needs a little help, even with the generic function
-			(initialState :: (() -> S))()
-		else initialState
 end
