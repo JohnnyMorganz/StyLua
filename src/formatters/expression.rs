@@ -2,8 +2,8 @@
 use full_moon::ast::types::IfExpression;
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
-        VarExpression,
+        span::ContainedSpan, types::ElseIfExpression, BinOp, Call, Expression, Index, Prefix,
+        Suffix, UnOp, Value, Var, VarExpression,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
@@ -20,6 +20,7 @@ use crate::{
             format_anonymous_function, format_call, format_function_call, FunctionCallNextNode,
         },
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
+        stmt::remove_condition_parentheses,
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -347,28 +348,92 @@ pub fn format_suffix(
     }
 }
 
+/// Determines whether a particular node spans over multiple lines
+pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
+    let string = format!("{}", item);
+    string.lines().count() > 1
+}
+
 /// Formats an [`IfExpression`] node
 #[cfg(feature = "luau")]
-fn format_if_expression(
-    _ctx: &Context,
-    if_expression: &IfExpression,
-    _shape: Shape,
-) -> IfExpression {
-    // TODO: Apply actual formatting here
-    // because we are just returning as-is, we need to remove leading/trailing whitespace trivia if present, otherwise stuff
-    // gets weird (https://github.com/JohnnyMorganz/StyLua/issues/297, https://github.com/JohnnyMorganz/StyLua/issues/315)
+fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shape) -> IfExpression {
+    // Remove parentheses around the condition
+    let condition = remove_condition_parentheses(if_expression.condition().to_owned());
+    let if_token = fmt_symbol!(ctx, if_expression.if_token(), "if ", shape);
 
-    let if_token = strip_leading_trivia(if_expression.if_token());
-    let (else_expression, trailing_comments) =
-        trivia_util::take_expression_trailing_comments(if_expression.else_expression());
+    // Initially format the remainder on a single line
+    let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
+    let then_token = fmt_symbol!(ctx, if_expression.then_token(), " then ", shape);
+    let singleline_expression = format_expression(
+        ctx,
+        if_expression.if_expression(),
+        shape.with_infinite_width(),
+    );
+    // TODO: handle elseifs?
+    let else_token = fmt_symbol!(ctx, if_expression.else_token(), " else ", shape);
+    let singleline_else_expression = format_expression(
+        ctx,
+        if_expression.else_expression(),
+        shape.with_infinite_width(),
+    );
 
-    let else_expression =
-        else_expression.update_trailing_trivia(FormatTriviaType::Replace(trailing_comments));
+    // Determine if we need to hang the expression
+    let singleline_shape = (shape + 3 + 5)
+        .take_first_line(&strip_trivia(&singleline_condition))
+        .take_first_line(&strip_trivia(&singleline_expression))
+        .take_first_line(&strip_trivia(&singleline_else_expression));
+    let require_multiline_expression = singleline_shape.over_budget()
+        || trivia_util::token_contains_trailing_comments(if_expression.if_token())
+        || trivia_util::contains_comments(if_expression.condition())
+        || spans_multiple_lines(&singleline_condition)
+        || trivia_util::contains_comments(if_expression.then_token())
+        || trivia_util::contains_comments(if_expression.if_expression())
+        || spans_multiple_lines(&singleline_expression)
+        || trivia_util::contains_comments(if_expression.else_token())
+        || if_expression
+            .else_if_expressions()
+            .map_or(false, |else_ifs| {
+                else_ifs.iter().any(trivia_util::contains_comments)
+            })
+        || trivia_util::expression_contains_inline_comments(if_expression.else_expression())
+        || spans_multiple_lines(&singleline_else_expression);
 
-    if_expression
-        .to_owned()
-        .with_if_token(if_token)
-        .with_else(else_expression)
+    if require_multiline_expression {
+        let condition = hang_expression(
+            ctx,
+            if_expression.condition(),
+            shape.increment_additional_indent(),
+            Some(1),
+        );
+        let hanging_shape = shape.reset().increment_additional_indent();
+
+        // then <expr>
+        let then_token = fmt_symbol!(ctx, if_expression.then_token(), "then ", hanging_shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, hanging_shape),
+            ]));
+        let expression = format_expression(ctx, if_expression.if_expression(), hanging_shape + 5); // 5 = "then "
+
+        // else <expr>
+        let else_token = fmt_symbol!(ctx, if_expression.else_token(), "else ", hanging_shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, hanging_shape),
+            ]));
+        let else_expression =
+            format_expression(ctx, if_expression.else_expression(), hanging_shape + 5); // 5 = "else "
+
+        IfExpression::new(condition, expression, else_expression)
+            .with_if_token(if_token)
+            .with_then_token(then_token)
+            .with_else_token(else_token)
+    } else {
+        IfExpression::new(condition, singleline_expression, singleline_else_expression)
+            .with_if_token(if_token)
+            .with_then_token(then_token)
+            .with_else_token(else_token)
+    }
 }
 
 /// Formats a Value Node
