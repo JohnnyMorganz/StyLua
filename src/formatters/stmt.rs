@@ -112,18 +112,17 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
             FormatTriviaType::Append(vec![create_newline_trivia(ctx)]), // trailing_trivia was emptied when it was appended to names_comment_buf
         );
 
-    let generic_for = generic_for
-        .to_owned()
+    let generic_for = generic_for.to_owned();
+    #[cfg(feature = "luau")]
+    let generic_for = generic_for.with_type_specifiers(type_specifiers);
+    generic_for
         .with_for_token(for_token)
         .with_names(formatted_names)
         .with_in_token(in_token)
         .with_expressions(formatted_expr_list)
         .with_do_token(do_token)
         .with_block(block)
-        .with_end_token(end_token);
-    #[cfg(feature = "luau")]
-    let generic_for = generic_for.with_type_specifiers(type_specifiers);
-    generic_for
+        .with_end_token(end_token)
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
@@ -322,8 +321,11 @@ pub fn format_numeric_for(ctx: &Context, numeric_for: &NumericFor, shape: Shape)
             FormatTriviaType::Append(trailing_trivia),
         );
 
-    let numeric_for = numeric_for
-        .to_owned()
+    let numeric_for = numeric_for.to_owned();
+    #[cfg(feature = "luau")]
+    let numeric_for = numeric_for.with_type_specifier(type_specifier);
+
+    numeric_for
         .with_for_token(for_token)
         .with_index_variable(index_variable)
         .with_equal_token(equal_token)
@@ -334,11 +336,7 @@ pub fn format_numeric_for(ctx: &Context, numeric_for: &NumericFor, shape: Shape)
         .with_step(step)
         .with_do_token(do_token)
         .with_block(block)
-        .with_end_token(end_token);
-    #[cfg(feature = "luau")]
-    let numeric_for = numeric_for.with_type_specifier(type_specifier);
-
-    numeric_for
+        .with_end_token(end_token)
 }
 
 /// Format a Repeat node

@@ -754,13 +754,7 @@ pub fn format_function_body(
     )
     .update_trivia(end_token_leading_trivia, end_token_trailing_trivia);
 
-    let function_body = function_body
-        .to_owned()
-        .with_parameters_parentheses(parameters_parentheses)
-        .with_parameters(formatted_parameters)
-        .with_block(block)
-        .with_end_token(end_token);
-
+    let function_body = function_body.to_owned();
     #[cfg(feature = "luau")]
     let function_body = function_body
         .with_generics(generics)
@@ -768,6 +762,10 @@ pub fn format_function_body(
         .with_return_type(return_type);
 
     function_body
+        .with_parameters_parentheses(parameters_parentheses)
+        .with_parameters(formatted_parameters)
+        .with_block(block)
+        .with_end_token(end_token)
 }
 
 /// Formats a FunctionCall node

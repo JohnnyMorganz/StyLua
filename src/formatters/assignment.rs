@@ -322,14 +322,14 @@ fn format_local_no_assignment(
         name_list = name_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
     }
 
-    let local_assignment = LocalAssignment::new(name_list)
-        .with_local_token(local_token)
-        .with_equal_token(None)
-        .with_expressions(Punctuated::new());
-
+    let local_assignment = LocalAssignment::new(name_list);
     #[cfg(feature = "luau")]
     let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
+
     local_assignment
+        .with_local_token(local_token)
+        .with_equal_token(None)
+        .with_expressions(Punctuated::new())
 }
 
 pub fn format_local_assignment(
@@ -421,12 +421,12 @@ pub fn format_local_assignment(
         // Add necessary trivia
         let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-        let local_assignment = LocalAssignment::new(name_list)
-            .with_local_token(local_token)
-            .with_equal_token(Some(equal_token))
-            .with_expressions(expr_list);
+        let local_assignment = LocalAssignment::new(name_list);
         #[cfg(feature = "luau")]
         let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
         local_assignment
+            .with_local_token(local_token)
+            .with_equal_token(Some(equal_token))
+            .with_expressions(expr_list)
     }
 }
