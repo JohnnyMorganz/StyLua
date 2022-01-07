@@ -27,6 +27,23 @@ local thing = makeSomething("Foo", {
 	TwoChild = makeSomething("Baz"),
 })
 
+local state = if hook ~= nil then hook.memoizedState elseif typeof(initialState) == "function" then (initialState :: (() -> S))() else initialState
+
+local scale = if someFlag() then 1 elseif someOtherFlag() then 0.5 else 2
+
+local thing = makeSomething("Foo", {
+	OneChild = if someFlag()
+		then makeSomething("Bar", {
+			scale = 1,
+		})
+		elseif someOtherFlag() then makeSomething("Bar", {
+			scale = 0.5,
+		})
+		else makeSomething("Bar", {
+			scale = 2,
+		}),
+	TwoChild = makeSomething("Baz"),
+})
 do
 	do
 	  do
