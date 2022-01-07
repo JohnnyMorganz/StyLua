@@ -15,8 +15,8 @@
   types:
     - lua
 
-- id: stylua-release
-  name: StyLua Release
+- id: stylua-github
+  name: StyLua (Github)
   description: An opinionated Lua code formatter. Downloads Github release
   entry: stylua
   language: python
