@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use structopt::{clap::arg_enum, StructOpt};
-use stylua_lib::{IndentType, LineEndings, QuoteStyle};
+use stylua_lib::{CallParenType, IndentType, LineEndings, QuoteStyle};
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
@@ -114,6 +114,9 @@ pub struct FormatOpts {
     /// The style of quotes to use in string literals.
     #[structopt(long, possible_values = &ArgQuoteStyle::variants(), case_insensitive = true, )]
     pub quote_style: Option<ArgQuoteStyle>,
+    /// Specify whether to apply parentheses on function calls with signle string or table arg.
+    #[structopt(long, possible_values = &ArgCallParenType::variants(), case_insensitive = true, )]
+    pub call_parentheses: Option<ArgCallParenType>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -165,4 +168,11 @@ convert_enum!(QuoteStyle, ArgQuoteStyle, {
     AutoPreferSingle,
     ForceDouble,
     ForceSingle,
+});
+
+convert_enum!(CallParenType, ArgCallParenType, {
+    Always,
+    NoString,
+    NoTable,
+    None,
 });

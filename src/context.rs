@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Config, IndentType, LineEndings, Range as FormatRange};
+use crate::{shape::Shape, CallParenType, Config, IndentType, LineEndings, Range as FormatRange};
 use full_moon::{
     node::Node,
     tokenizer::{Token, TokenType},
@@ -116,6 +116,18 @@ impl Context {
             // No range provided, therefore always in formatting range
             true
         }
+    }
+
+    pub fn should_omit_string_parens(&self) -> bool {
+        self.config().no_call_parentheses
+            || self.config().call_parentheses == CallParenType::None
+            || self.config().call_parentheses == CallParenType::NoString
+    }
+
+    pub fn should_omit_table_parens(&self) -> bool {
+        self.config().no_call_parentheses
+            || self.config().call_parentheses == CallParenType::None
+            || self.config().call_parentheses == CallParenType::NoTable
     }
 }
 
