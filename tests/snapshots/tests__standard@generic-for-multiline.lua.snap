@@ -4,17 +4,15 @@ expression: format(&contents)
 
 ---
 local function system(world)
-	for id, model, lasering, transform in world:query(
-		Components.Model,
-		Components.Lasering,
-		Components.Transform,
-		Components.Mothership
-	) do
+	for id, model, lasering, transform in
+		world:query(Components.Model, Components.Lasering, Components.Transform, Components.Mothership)
+	do
 	end
 end
 
 local function system(world)
-	for id,
+	for
+		id,
 		model,
 		lasering,
 		transform,
@@ -35,7 +33,8 @@ local function system(world)
 end
 
 local function system(world)
-	for id,
+	for
+		id,
 		model,
 		lasering,
 		transform,
@@ -51,13 +50,15 @@ local function system(world)
 		model,
 		lasering,
 		transform
-	in world:query(
-		Components.Model,
-		Components.Lasering,
-		Components.Transform,
-		Components.Mothership,
-		Components.Mothership
-	) do
+	in
+		world:query(
+			Components.Model,
+			Components.Lasering,
+			Components.Transform,
+			Components.Mothership,
+			Components.Mothership
+		)
+	do
 	end
 end
 
