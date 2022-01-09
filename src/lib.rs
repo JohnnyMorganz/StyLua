@@ -62,9 +62,9 @@ pub enum CallParenType {
     /// Use call parentheses all the time
     Always,
     /// Skip call parentheses when only a string argument is used.
-    NoString,
+    NoSingleString,
     /// Skip call parentheses when only a table argument is used.
-    NoTable,
+    NoSingleTable,
     /// Skip call parentheses when only a table or string argument is used.
     None,
 }
@@ -115,9 +115,9 @@ pub struct Config {
     no_call_parentheses: bool,
     /// When to use call parentheses.
     /// if call_parentheses is set to [`CallParenType::Always`] call parentheses is always applied.
-    /// if call_parentheses is set to [`CallParenType::NoTable`] call parentheses is omitted when
+    /// if call_parentheses is set to [`CallParenType::NoSingleTable`] call parentheses is omitted when
     /// function is called with only one string argument.
-    /// if call_parentheses is set to [`CallParenType::NoTable`] call parentheses is omitted when
+    /// if call_parentheses is set to [`CallParenType::NoSingleTable`] call parentheses is omitted when
     /// function is called with only one table argument.
     /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
     /// function is called with only one table or string argument (same as no_call_parentheses).

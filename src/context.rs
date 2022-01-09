@@ -121,13 +121,13 @@ impl Context {
     pub fn should_omit_string_parens(&self) -> bool {
         self.config().no_call_parentheses
             || self.config().call_parentheses == CallParenType::None
-            || self.config().call_parentheses == CallParenType::NoString
+            || self.config().call_parentheses == CallParenType::NoSingleString
     }
 
     pub fn should_omit_table_parens(&self) -> bool {
         self.config().no_call_parentheses
             || self.config().call_parentheses == CallParenType::None
-            || self.config().call_parentheses == CallParenType::NoTable
+            || self.config().call_parentheses == CallParenType::NoSingleTable
     }
 }
 

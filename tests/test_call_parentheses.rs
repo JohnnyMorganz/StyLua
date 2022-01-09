@@ -72,9 +72,9 @@ local still_got_em = my_function({
 
 #[test]
 #[cfg_attr(feature = "luau", ignore)]
-fn test_call_parens_no_string_handles_string_correctly() {
+fn test_call_parens_no_single_string_handles_string_correctly() {
     insta::assert_snapshot!(
-        format(CallParenType::NoString,
+        format(CallParenType::NoSingleString,
             r###"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
@@ -103,9 +103,9 @@ string
 
 #[test]
 #[cfg_attr(feature = "luau", ignore)]
-fn test_call_parens_no_string_handles_table_correctly() {
+fn test_call_parens_no_single_string_handles_table_correctly() {
     insta::assert_snapshot!(
-        format(CallParenType::NoString,
+        format(CallParenType::NoSingleString,
             r###"
 local opt = my_function {
     hello = true,
@@ -132,9 +132,9 @@ local still_got_em = my_function({
 
 #[test]
 #[cfg_attr(feature = "luau", ignore)]
-fn test_call_parens_no_table_handles_string_correctly() {
+fn test_call_parens_no_single_table_handles_string_correctly() {
     insta::assert_snapshot!(
-        format(CallParenType::NoTable,
+        format(CallParenType::NoSingleTable,
             r###"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
@@ -163,9 +163,9 @@ string
 
 #[test]
 #[cfg_attr(feature = "luau", ignore)]
-fn test_call_parens_no_table_handles_table_correctly() {
+fn test_call_parens_no_single_table_handles_table_correctly() {
     insta::assert_snapshot!(
-        format(CallParenType::NoTable,
+        format(CallParenType::NoSingleTable,
             r###"
 local opt = my_function {
     hello = true,
@@ -268,7 +268,7 @@ local opt = my_function({
     "###
     );
     insta::assert_snapshot!(
-        format(CallParenType::NoTable,
+        format(CallParenType::NoSingleTable,
             r###"
 local opt = my_function({
     hello = true,

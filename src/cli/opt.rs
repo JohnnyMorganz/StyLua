@@ -172,7 +172,7 @@ convert_enum!(QuoteStyle, ArgQuoteStyle, {
 
 convert_enum!(CallParenType, ArgCallParenType, {
     Always,
-    NoString,
-    NoTable,
+    NoSingleString,
+    NoSingleTable,
     None,
 });
