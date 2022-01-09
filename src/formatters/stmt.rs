@@ -15,7 +15,7 @@ use crate::{
         functions::{format_function_call, format_function_declaration, format_local_function},
         general::{
             format_end_token, format_punctuated, format_punctuated_multiline,
-            format_token_reference, try_format_punctuated, EndTokenType,
+            format_token_reference, EndTokenType,
         },
         trivia::{
             strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
@@ -90,26 +90,32 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         format_punctuated(ctx, generic_for.names(), shape, format_token_reference);
     let singleline_shape = shape.take_first_line(&singleline_names);
 
-    let require_names_multiline =
-        trivia_util::contains_comments(generic_for.names()) || singleline_shape.over_budget();
-    let names = match require_names_multiline {
-        true => format_punctuated_multiline(
-            ctx,
-            generic_for.names(),
-            shape,
-            format_token_reference,
-            Some(1),
-        ),
-        false => singleline_names,
+    let require_names_multiline = trivia_util::contains_comments(generic_for.names())
+        || trivia_util::spans_multiple_lines(&singleline_names)
+        || singleline_shape.over_budget();
+
+    let for_token = match require_names_multiline {
+        true => fmt_symbol!(ctx, generic_for.for_token(), "for", shape)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        false => for_token,
     };
-    let in_token = match require_names_multiline {
-        true => fmt_symbol!(ctx, generic_for.in_token(), "in ", shape).update_leading_trivia(
-            FormatTriviaType::Append(vec![
+
+    let names = match require_names_multiline {
+        true => {
+            let shape = shape.reset().increment_additional_indent();
+            format_punctuated_multiline(
+                ctx,
+                generic_for.names(),
+                shape,
+                format_token_reference,
+                None,
+            )
+            .update_leading_trivia(FormatTriviaType::Append(vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
-            ]),
-        ),
-        false => fmt_symbol!(ctx, generic_for.in_token(), " in ", shape),
+            ]))
+        }
+        false => singleline_names,
     };
 
     let shape = match require_names_multiline {
@@ -123,17 +129,58 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
 
-    // Format the expression list, attempting to format multiple lines if it doesn't fit
-    let expr_list = try_format_punctuated(
-        ctx,
-        generic_for.expressions(),
-        shape,
-        format_expression,
-        Some(1),
-    );
+    // Format the expression list on a single line, and see if it needs expanding
+    let singleline_expr =
+        format_punctuated(ctx, generic_for.expressions(), shape, format_expression);
+    let singleline_expr_shape = shape.take_first_line(&singleline_expr);
+    let requires_expr_multiline = trivia_util::contains_comments(generic_for.expressions())
+        || trivia_util::spans_multiple_lines(&singleline_expr)
+        || singleline_expr_shape.over_budget();
 
-    let do_token = fmt_symbol!(ctx, generic_for.do_token(), " do", shape)
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+    let in_token = match (require_names_multiline, requires_expr_multiline) {
+        (true, true) => fmt_symbol!(ctx, generic_for.in_token(), "in", shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ])),
+        (true, false) => fmt_symbol!(ctx, generic_for.in_token(), "in ", shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ])),
+        (false, true) => fmt_symbol!(ctx, generic_for.in_token(), " in", shape),
+        (false, false) => fmt_symbol!(ctx, generic_for.in_token(), " in ", shape),
+    };
+
+    // Expand the expression list if necessary
+    let expr_list = match requires_expr_multiline {
+        true => {
+            let shape = shape.reset().increment_additional_indent();
+            format_punctuated_multiline(
+                ctx,
+                generic_for.expressions(),
+                shape,
+                format_expression,
+                None,
+            )
+            .update_leading_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ]))
+        }
+        false => singleline_expr,
+    };
+
+    let do_token = match requires_expr_multiline {
+        true => fmt_symbol!(ctx, generic_for.in_token(), "do", shape).update_leading_trivia(
+            FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ]),
+        ),
+        false => fmt_symbol!(ctx, generic_for.do_token(), " do", shape),
+    }
+    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, generic_for.block(), block_shape);
