@@ -348,10 +348,25 @@ pub fn format_suffix(
     }
 }
 
-/// Determines whether a particular node spans over multiple lines
-pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
-    let string = format!("{}", item);
-    string.lines().count() > 1
+/// Formats and else if expression onto a single line.
+/// This function does not take into account for comments
+fn format_else_if_expression_singleline(
+    ctx: &Context,
+    else_if_expression: &ElseIfExpression,
+    shape: Shape,
+) -> ElseIfExpression {
+    let else_if_token = fmt_symbol!(ctx, else_if_expression.else_if_token(), "elseif ", shape);
+    let else_if_condition = remove_condition_parentheses(else_if_expression.condition().to_owned());
+    let else_if_condition = format_expression(ctx, &else_if_condition, shape + 7); // 7 = "elseif "
+    let then_token = fmt_symbol!(ctx, else_if_expression.then_token(), " then ", shape);
+    let else_if_expression = format_expression(
+        ctx,
+        else_if_expression.expression(),
+        shape.take_first_line(&else_if_condition) + 13, // 13 = "elseif " + " then "
+    );
+    ElseIfExpression::new(else_if_condition, else_if_expression)
+        .with_else_if_token(else_if_token)
+        .with_then_token(then_token)
 }
 
 /// Formats an [`IfExpression`] node
@@ -375,22 +390,11 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
             else_if_expressions
                 .iter()
                 .map(|else_if_expression| {
-                    let else_if_token =
-                        fmt_symbol!(ctx, else_if_expression.else_if_token(), " elseif ", shape);
-                    let else_if_condition =
-                        remove_condition_parentheses(else_if_expression.condition().to_owned());
-                    let else_if_condition =
-                        format_expression(ctx, &else_if_condition, shape.with_infinite_width());
-                    let then_token =
-                        fmt_symbol!(ctx, else_if_expression.then_token(), " then ", shape);
-                    let else_if_expression = format_expression(
+                    format_else_if_expression_singleline(
                         ctx,
-                        else_if_expression.expression(),
+                        else_if_expression,
                         shape.with_infinite_width(),
-                    );
-                    ElseIfExpression::new(else_if_condition, else_if_expression)
-                        .with_else_if_token(else_if_token)
-                        .with_then_token(then_token)
+                    )
                 })
                 .collect::<Vec<_>>()
         });
@@ -402,7 +406,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     );
 
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + 3 + 5)
+    let singleline_shape = (shape + 3 + 5) // 3 = "if " + 5 = " then"
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
@@ -422,12 +426,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                 else_ifs.iter().any(trivia_util::contains_comments)
             })
         || trivia_util::expression_contains_inline_comments(if_expression.else_expression())
-        || spans_multiple_lines(&singleline_condition)
-        || spans_multiple_lines(&singleline_expression)
-        || else_ifs
-            .as_ref()
-            .map_or(false, |else_ifs| else_ifs.iter().any(spans_multiple_lines))
-        || spans_multiple_lines(&singleline_else_expression);
+        || trivia_util::spans_multiple_lines(&singleline_condition)
+        || trivia_util::spans_multiple_lines(&singleline_expression)
+        || else_ifs.as_ref().map_or(false, |else_ifs| {
+            else_ifs.iter().any(trivia_util::spans_multiple_lines)
+        })
+        || trivia_util::spans_multiple_lines(&singleline_else_expression);
 
     if require_multiline_expression {
         let condition = hang_expression(
@@ -453,30 +457,75 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                 else_if_expressions
                     .iter()
                     .map(|else_if_expression| {
-                        let else_if_token =
-                            fmt_symbol!(ctx, if_expression.then_token(), "elseif ", hanging_shape)
-                                .update_leading_trivia(FormatTriviaType::Append(vec![
+                        let singleline_else_if = format_else_if_expression_singleline(
+                            ctx,
+                            else_if_expression,
+                            hanging_shape,
+                        );
+                        let singleline_shape = hanging_shape.take_first_line(&singleline_else_if);
+
+                        if singleline_shape.over_budget()
+                            || trivia_util::token_contains_trailing_comments(
+                                else_if_expression.else_if_token(),
+                            )
+                            || trivia_util::contains_comments(else_if_expression.condition())
+                            || trivia_util::contains_comments(else_if_expression.then_token())
+                        {
+                            let else_if_token = fmt_symbol!(
+                                ctx,
+                                else_if_expression.else_if_token(),
+                                "elseif",
+                                shape
+                            )
+                            .update_leading_trivia(FormatTriviaType::Append(vec![
+                                create_newline_trivia(ctx),
+                                create_indent_trivia(ctx, hanging_shape),
+                            ]));
+
+                            let condiiton_shape =
+                                hanging_shape.reset().increment_additional_indent();
+                            let else_if_condition = hang_expression(
+                                ctx,
+                                &remove_condition_parentheses(
+                                    else_if_expression.condition().to_owned(),
+                                ),
+                                condiiton_shape,
+                                None,
+                            )
+                            .update_leading_trivia(FormatTriviaType::Append(vec![
+                                create_newline_trivia(ctx),
+                                create_indent_trivia(ctx, condiiton_shape),
+                            ]));
+
+                            let then_token = fmt_symbol!(
+                                ctx,
+                                else_if_expression.then_token(),
+                                "then ",
+                                hanging_shape
+                            )
+                            .update_leading_trivia(
+                                FormatTriviaType::Append(vec![
                                     create_newline_trivia(ctx),
                                     create_indent_trivia(ctx, hanging_shape),
-                                ]));
-                        let else_if_condition =
-                            remove_condition_parentheses(else_if_expression.condition().to_owned());
-                        let else_if_condition =
-                            format_expression(ctx, &else_if_condition, hanging_shape + 7); // 7 = "elseif "
-                        let then_token = fmt_symbol!(
-                            ctx,
-                            else_if_expression.then_token(),
-                            " then ",
-                            hanging_shape
-                        );
-                        let else_if_expression = format_expression(
-                            ctx,
-                            else_if_expression.expression(),
-                            hanging_shape.take_first_line(&else_if_condition) + 13, // 13 = "elseif " + " then "
-                        );
-                        ElseIfExpression::new(else_if_condition, else_if_expression)
-                            .with_else_if_token(else_if_token)
-                            .with_then_token(then_token)
+                                ]),
+                            );
+
+                            let else_if_expression = format_expression(
+                                ctx,
+                                else_if_expression.expression(),
+                                hanging_shape.take_first_line(&else_if_condition) + 13, // 13 = "elseif " + " then "
+                            );
+                            ElseIfExpression::new(else_if_condition, else_if_expression)
+                                .with_else_if_token(else_if_token)
+                                .with_then_token(then_token)
+                        } else {
+                            singleline_else_if.update_leading_trivia(FormatTriviaType::Append(
+                                vec![
+                                    create_newline_trivia(ctx),
+                                    create_indent_trivia(ctx, hanging_shape),
+                                ],
+                            ))
+                        }
                     })
                     .collect::<Vec<_>>()
             });
@@ -496,6 +545,17 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
             .with_else_if(else_ifs)
             .with_else_token(else_token)
     } else {
+        // Prepend a space before each else if
+        let else_ifs = else_ifs.map(|x| {
+            x.iter()
+                .map(|x| {
+                    x.update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]))
+                })
+                .collect()
+        });
+
         IfExpression::new(condition, singleline_expression, singleline_else_expression)
             .with_if_token(if_token)
             .with_then_token(then_token)
