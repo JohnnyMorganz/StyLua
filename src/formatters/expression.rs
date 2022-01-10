@@ -11,7 +11,7 @@ use full_moon::{
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
-use crate::formatters::luau::format_type_assertion;
+use crate::formatters::{luau::format_type_assertion, stmt::remove_condition_parentheses};
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
@@ -20,7 +20,6 @@ use crate::{
             format_anonymous_function, format_call, format_function_call, FunctionCallNextNode,
         },
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
-        stmt::remove_condition_parentheses,
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -350,6 +349,7 @@ pub fn format_suffix(
 
 /// Formats and else if expression onto a single line.
 /// This function does not take into account for comments
+#[cfg(feature = "luau")]
 fn format_else_if_expression_singleline(
     ctx: &Context,
     else_if_expression: &ElseIfExpression,
@@ -377,6 +377,7 @@ fn format_else_if_expression_singleline(
 
 /// Formats a `<token> <expr>` sequence, such as `then <expr>` or `else <expr>`.
 /// In particular, this handles when the <expr> has to be formatted onto multiple lines (either due to comments, or going over width)
+#[cfg(feature = "luau")]
 fn format_token_expression_sequence(
     ctx: &Context,
     token: &TokenReference,
@@ -494,9 +495,11 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         );
 
         // Indent the then token
-        let then_token = then_token.update_leading_trivia(FormatTriviaType::Append(vec![
-            create_indent_trivia(ctx, hanging_shape),
-        ]));
+        let then_token =
+            then_token.update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx,
+                hanging_shape,
+            )]));
 
         // elseif <condition> then <expr>
         let else_ifs = if_expression
