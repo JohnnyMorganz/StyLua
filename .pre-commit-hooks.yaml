@@ -14,3 +14,11 @@
   language: system
   types:
     - lua
+
+- id: stylua-github
+  name: StyLua (Github)
+  description: An opinionated Lua code formatter. Downloads Github release
+  entry: stylua
+  language: python
+  types:
+    - lua
