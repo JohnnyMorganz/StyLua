@@ -477,7 +477,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         || trivia_util::spans_multiple_lines(&singleline_else_expression);
 
     if require_multiline_expression {
-        let condition = hang_expression(
+        let condition = hang_expression_trailing_newline(
             ctx,
             if_expression.condition(),
             shape.increment_additional_indent(),
@@ -493,9 +493,8 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
             hanging_shape,
         );
 
-        // Put the then on a new line
+        // Indent the then token
         let then_token = then_token.update_leading_trivia(FormatTriviaType::Append(vec![
-            create_newline_trivia(ctx),
             create_indent_trivia(ctx, hanging_shape),
         ]));
 
