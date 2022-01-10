@@ -22,3 +22,19 @@ do
 			(initialState :: (() -> S))()
 		else initialState
 end
+
+local foo = if true then
+	-- comment here
+	bar
+else baz
+
+local x = if true
+	then -- comment
+		bar
+	else -- comment
+		baz
+
+local p = if true then bar
+else
+	-- comment
+	baz
