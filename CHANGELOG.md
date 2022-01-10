@@ -6,8 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added option `call_parentheses`
-Specify whether to apply parentheses on function calls with single string or table arg. Possible options:`Always`, `NoSingleString`, `NoSingleTable`, `None`.
+- Added option `call_parentheses`:
+Specify whether to apply parentheses on function calls with single string or table arg. Possible options: `Always` (default), `NoSingleString`, `NoSingleTable`, `None`. ([#329](https://github.com/JohnnyMorganz/StyLua/issues/329))
+- Added proper multiline hanging of generic for syntax. ([#322](https://github.com/JohnnyMorganz/StyLua/issues/322))
 
 ### Fixed
 - Fixed generic variadics not being handled under the `luau` feature flag. ([#333](https://github.com/JohnnyMorganz/StyLua/issues/333))

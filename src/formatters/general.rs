@@ -327,66 +327,6 @@ pub fn format_token_reference(
 
     TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
 }
-// Formats a punctuation for a Punctuated sequence
-// Removes any trailing comments to be stored in a comments buffer
-pub fn format_punctuation(punctuation: &TokenReference) -> (TokenReference, Vec<Token>) {
-    let trailing_comments = punctuation
-        .trailing_trivia()
-        .filter(|x| trivia_util::trivia_is_comment(x))
-        .map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .flatten()
-        .collect();
-
-    (
-        TokenReference::new(
-            Vec::new(),
-            punctuation.token().to_owned(),
-            vec![Token::new(TokenType::spaces(1))], // Single space whitespace
-        ),
-        trailing_comments,
-    )
-}
-
-// Formats a Punctuated sequence with correct punctuated values
-// If there are any comments in between tied to the punctuation, they will be removed and stored in a returned comments buffer
-pub fn format_punctuated_buffer<T, F>(
-    ctx: &Context,
-    old: &Punctuated<T>,
-    shape: Shape,
-    value_formatter: F,
-) -> (Punctuated<T>, Vec<Token>)
-where
-    T: std::fmt::Display,
-    F: Fn(&Context, &T, Shape) -> T,
-{
-    let mut formatted: Punctuated<T> = Punctuated::new();
-    let mut comments_buffer = Vec::new();
-    let mut shape = shape;
-
-    for pair in old.pairs() {
-        match pair {
-            Pair::Punctuated(value, punctuation) => {
-                // Format punctuation and store any comments into buffer
-                let (formatted_punctuation, mut comments) = format_punctuation(punctuation);
-                comments_buffer.append(&mut comments);
-
-                let formatted_value = value_formatter(ctx, value, shape);
-                shape = shape + (formatted_value.to_string().len() + 2); // 2 = ", "
-
-                formatted.push(Pair::new(formatted_value, Some(formatted_punctuation)));
-            }
-            Pair::End(value) => {
-                let formatted_value = value_formatter(ctx, value, shape);
-                formatted.push(Pair::new(formatted_value, None));
-            }
-        }
-    }
-
-    (formatted, comments_buffer)
-}
 
 /// Formats a Punctuated sequence with correct punctuated values.
 /// This function assumes that there are no comments present which would lead to a syntax error if the list was collapsed.

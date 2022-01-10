@@ -19,7 +19,13 @@ local expr_result = 1
 print("text") --a comment
 foo({ bar = baz }) -- comment
 
-for foo, bar in next, value do -- test -- comment
+for
+	foo, -- test
+	bar
+in
+	next, -- comment
+	value
+do
 	print(
 		"test", -- comment
 		"foo"
