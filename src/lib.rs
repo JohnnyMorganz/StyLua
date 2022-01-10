@@ -56,6 +56,25 @@ impl Default for QuoteStyle {
     }
 }
 
+/// When to use call parentheses
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+pub enum CallParenType {
+    /// Use call parentheses all the time
+    Always,
+    /// Skip call parentheses when only a string argument is used.
+    NoSingleString,
+    /// Skip call parentheses when only a table argument is used.
+    NoSingleTable,
+    /// Skip call parentheses when only a table or string argument is used.
+    None,
+}
+
+impl Default for CallParenType {
+    fn default() -> Self {
+        CallParenType::Always
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -94,6 +113,15 @@ pub struct Config {
     /// Whether to omit parentheses around function calls which take a single string literal or table.
     /// This is added for adoption reasons only, and is not recommended for new work.
     no_call_parentheses: bool,
+    /// When to use call parentheses.
+    /// if call_parentheses is set to [`CallParenType::Always`] call parentheses is always applied.
+    /// if call_parentheses is set to [`CallParenType::NoSingleTable`] call parentheses is omitted when
+    /// function is called with only one string argument.
+    /// if call_parentheses is set to [`CallParenType::NoSingleTable`] call parentheses is omitted when
+    /// function is called with only one table argument.
+    /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
+    /// function is called with only one table or string argument (same as no_call_parentheses).
+    call_parentheses: CallParenType,
 }
 
 impl Config {
@@ -149,6 +177,13 @@ impl Config {
             ..self
         }
     }
+    /// Returns a new config with the given call parentheses type
+    pub fn with_call_parentheses(self, call_parentheses: CallParenType) -> Self {
+        Self {
+            call_parentheses,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -160,6 +195,7 @@ impl Default for Config {
             indent_width: 4,
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
+            call_parentheses: CallParenType::default(),
         }
     }
 }

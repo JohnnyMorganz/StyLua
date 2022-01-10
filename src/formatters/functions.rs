@@ -107,7 +107,7 @@ pub fn format_function_args(
             arguments,
         } => {
             // Handle config where parentheses are omitted, and there is only one argument
-            if ctx.config().no_call_parentheses
+            if (ctx.should_omit_string_parens() || ctx.should_omit_table_parens())
                 && arguments.len() == 1
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
@@ -115,20 +115,24 @@ pub fn format_function_args(
                 if let Expression::Value { value, .. } = argument {
                     match &**value {
                         Value::String(token_reference) => {
-                            return format_function_args(
-                                ctx,
-                                &FunctionArgs::String(token_reference.to_owned()),
-                                shape,
-                                call_next_node,
-                            );
+                            if ctx.should_omit_string_parens() {
+                                return format_function_args(
+                                    ctx,
+                                    &FunctionArgs::String(token_reference.to_owned()),
+                                    shape,
+                                    call_next_node,
+                                );
+                            }
                         }
                         Value::TableConstructor(table_constructor) => {
-                            return format_function_args(
-                                ctx,
-                                &FunctionArgs::TableConstructor(table_constructor.to_owned()),
-                                shape,
-                                call_next_node,
-                            );
+                            if ctx.should_omit_table_parens() {
+                                return format_function_args(
+                                    ctx,
+                                    &FunctionArgs::TableConstructor(table_constructor.to_owned()),
+                                    shape,
+                                    call_next_node,
+                                );
+                            }
                         }
                         _ => (),
                     }
@@ -464,7 +468,7 @@ pub fn format_function_args(
         }
 
         FunctionArgs::String(token_reference) => {
-            if ctx.config().no_call_parentheses
+            if ctx.should_omit_string_parens()
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
                 let token_reference = format_token_reference(ctx, token_reference, shape)
@@ -506,7 +510,7 @@ pub fn format_function_args(
         }
 
         FunctionArgs::TableConstructor(table_constructor) => {
-            if ctx.config().no_call_parentheses
+            if ctx.should_omit_table_parens()
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
                 let table_constructor = format_table_constructor(ctx, table_constructor, shape)

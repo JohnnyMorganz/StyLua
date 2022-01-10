@@ -42,6 +42,12 @@ pub fn trivia_contains_newline<'a>(trivia_vec: impl Iterator<Item = &'a Token>) 
     false
 }
 
+/// Determines whether a particular node spans over multiple lines
+pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
+    let string = format!("{}", item);
+    string.lines().count() > 1
+}
+
 pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses { expression, .. } => can_hang_expression(expression),
