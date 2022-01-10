@@ -167,6 +167,9 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
     if let Some(quote_style) = opt.format_opts.quote_style {
         new_config = new_config.with_quote_style(quote_style.into());
     };
+    if let Some(call_parentheses) = opt.format_opts.call_parentheses {
+        new_config = new_config.with_call_parentheses(call_parentheses.into());
+    };
 
     new_config
 }

@@ -5,8 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added option `call_parentheses`
+Specify whether to apply parentheses on function calls with single string or table arg. Possible options:`Always`, `NoSingleString`, `NoSingleTable`, `None`.
+
 ### Fixed
 - Fixed generic variadics not being handled under the `luau` feature flag. ([#333](https://github.com/JohnnyMorganz/StyLua/issues/333))
+
+### Deprecated
+- Option `no_call_parentheses` has been deprecated. Use `call_parentheses = "None"` instead.
 
 ## [0.11.3] - 2022-01-01
 ### Fixed
