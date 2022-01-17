@@ -181,7 +181,7 @@ impl Shape {
     pub fn take_first_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{}", item);
         let mut lines = string.lines();
-        let width = lines.next().expect("no lines").len();
+        let width = lines.next().unwrap_or("").len();
         self.add_width(width)
     }
 
@@ -191,7 +191,7 @@ impl Shape {
     pub fn take_last_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{}", item);
         let mut lines = string.lines();
-        let last_item = lines.next_back().expect("no lines");
+        let last_item = lines.next_back().unwrap_or("");
 
         // Check if we have any more lines remaining
         if lines.count() > 0 {

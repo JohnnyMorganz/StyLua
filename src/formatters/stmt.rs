@@ -43,7 +43,7 @@ macro_rules! fmt_stmt {
 
 /// Removes parentheses around a condition, if present.
 /// Called only for condition expression (if ... then, while ... do, etc.)
-fn remove_condition_parentheses(expression: Expression) -> Expression {
+pub fn remove_condition_parentheses(expression: Expression) -> Expression {
     match expression.to_owned() {
         Expression::Parentheses { expression, .. } => *expression,
         Expression::Value { value, .. } => match *value {

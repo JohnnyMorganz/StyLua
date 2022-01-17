@@ -1,7 +1,7 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
-    GenericDeclaration, GenericDeclarationParameter, IfExpression, IndexedTypeInfo, TypeArgument,
-    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, IfExpression,
+    IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -772,4 +772,10 @@ define_update_leading_trivia!(IfExpression, |this, leading| {
 define_update_trailing_trivia!(IfExpression, |this, trailing| {
     this.to_owned()
         .with_else(this.else_expression().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(ElseIfExpression, |this, leading| {
+    this.to_owned()
+        .with_else_if_token(this.else_if_token().update_leading_trivia(leading))
 });
