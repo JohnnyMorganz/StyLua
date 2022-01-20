@@ -172,11 +172,14 @@ fn attempt_assignment_tactics(
 
             // As we know that there is only a single element in the list, we can extract it to work with it
             // Format the expression given - if it contains comments, make sure to hang the expression
-            let expression = if trivia_util::expression_contains_inline_comments(expression) {
-                hang_expression(ctx, expression, shape, None)
-            } else {
-                format_expression(ctx, expression, shape)
-            };
+            // Ignore the leading comments though (as they are solved by hanging at the equals), and the
+            // trailing comments, as they don't affect anything
+            let expression =
+                if trivia_util::expression_contains_inline_comments(&strip_trivia(expression)) {
+                    hang_expression(ctx, expression, shape, None)
+                } else {
+                    format_expression(ctx, expression, shape)
+                };
 
             // We need to take all the leading trivia from the expr_list
             let (expression, leading_comments) =
