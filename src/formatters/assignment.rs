@@ -73,7 +73,7 @@ pub fn hang_punctuated_list(
 /// Returns the new equal token [`TokenReference`]
 fn hang_equal_token(
     ctx: &Context,
-    equal_token: TokenReference,
+    equal_token: &TokenReference,
     shape: Shape,
     indent_first_item: bool,
 ) -> TokenReference {
@@ -107,7 +107,7 @@ fn attempt_assignment_tactics(
     // If there is, we should put it on multiple lines
     if expressions.len() > 1 {
         // First try hanging at the equal token, using an infinite width, to see if its enough
-        let hanging_equal_token = hang_equal_token(ctx, equal_token, shape, true);
+        let hanging_equal_token = hang_equal_token(ctx, &equal_token, shape, true);
         let hanging_shape = shape.reset().increment_additional_indent();
         let expr_list = format_punctuated(
             ctx,
@@ -166,7 +166,7 @@ fn attempt_assignment_tactics(
             || !trivia_util::expression_leading_comments(expression).is_empty()
         {
             // We will hang at the equals token, and then format the expression as necessary
-            let equal_token = hang_equal_token(ctx, equal_token, shape, false);
+            let equal_token = hang_equal_token(ctx, &equal_token, shape, false);
 
             let shape = shape.reset().increment_additional_indent();
 
@@ -207,27 +207,38 @@ fn attempt_assignment_tactics(
             return (expr_list, equal_token);
         }
 
-        // Create an example hanging the expression - we need to create a new context so that we don't overwrite it
-        let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
-        let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
-
-        // Create an example formatting the expression normally
         let expr_list = format_punctuated(ctx, expressions, shape, format_expression);
         let formatting_shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
 
-        // Find the better format out of the hanging shape or the normal formatting
-        if hanging_shape.used_width() < formatting_shape.used_width() {
-            // Hanging version is better
-            (hanging_expr_list, equal_token)
-        } else {
-            // Normal format is better: but check to see if the formatting is still over budget
-            if formatting_shape.over_budget() {
-                // Hang at the equal token
-                let equal_token = hang_equal_token(ctx, equal_token, shape, true);
-                // Add the expression list into the indent range, as it will be indented by one
-                let shape = shape.increment_additional_indent();
-                let expr_list = format_punctuated(ctx, expressions, shape, format_expression);
+        // See if we can hang the expression, and if we can, check whether hanging or formatting normally is nicer
+        if trivia_util::can_hang_expression(expression) {
+            // Create an example hanging the expression - we need to create a new context so that we don't overwrite it
+            let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
+            let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
+
+            if hanging_shape.used_width() < formatting_shape.used_width() {
+                (hanging_expr_list, equal_token)
+            } else {
+                // TODO: should we hang at equals token?
                 (expr_list, equal_token)
+            }
+        } else {
+            // Try both formatting normally, and hanging at the equals token
+            let hanging_equal_token = hang_equal_token(ctx, &equal_token, shape, true);
+            let equal_token_shape = shape.reset().increment_additional_indent();
+            let hanging_equal_token_expr_list =
+                format_punctuated(ctx, expressions, equal_token_shape, format_expression);
+            let equal_token_shape =
+                shape.take_first_line(&strip_trailing_trivia(&hanging_equal_token_expr_list));
+
+            // If hanging at the equal token doesn't go over budget, and it produces less lines than hanging normally
+            // then go for that instead
+            if !equal_token_shape.over_budget()
+                && format!("{}", hanging_equal_token_expr_list).lines().count()
+                    < format!("{}", expr_list).lines().count()
+                || formatting_shape.over_budget()
+            {
+                (hanging_equal_token_expr_list, hanging_equal_token)
             } else {
                 (expr_list, equal_token)
             }
