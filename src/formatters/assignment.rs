@@ -228,8 +228,8 @@ fn attempt_assignment_tactics(
             let equal_token_shape = shape.reset().increment_additional_indent();
             let hanging_equal_token_expr_list =
                 format_punctuated(ctx, expressions, equal_token_shape, format_expression);
-            let equal_token_shape =
-                shape.take_first_line(&strip_trailing_trivia(&hanging_equal_token_expr_list));
+            let equal_token_shape = equal_token_shape
+                .take_first_line(&strip_trailing_trivia(&hanging_equal_token_expr_list));
 
             // If hanging at the equal token doesn't go over budget, and it produces less lines than hanging normally
             // then go for that instead
