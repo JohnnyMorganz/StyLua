@@ -144,7 +144,7 @@ StyLua only offers the following options:
 | `indent_type` | `Tabs` | Type of indents to use. Possible options: `Tabs` or `Spaces`
 | `indent_width` | `4` | The number of characters a single indent takes. If `indent_type` is set to `Tabs`, this option is used as a heuristic to determine column width only.
 | `quote_style` | `AutoPreferDouble` | Types of quotes to use for string literals. Possible options: `AutoPreferDouble`, `AutoPreferSingle`, `ForceDouble`, `ForceSingle`. In `AutoPrefer` styles, we prefer the quote type specified, but fall back to the opposite if it leads to fewer escapes in the string. `Force` styles always use the style specified regardless of escapes.
-| `call_parentheses` | `Always` | Specify whether to apply parentheses on function calls with a single string or table argument. Possible options: [`Always`, `NoSingleString`, `NoSingleTable`, `None`]. When `call_parentheses` is set to `Always`, StyLua applies call parentheses all the time.When it's set to `NoSingleString` it omits parentheses on function calls with single string argument. Similarly when set to `NoSingleTable` it omits parentheses on function calls with a single table argument. And when it's `None` StyLua omits parentheses on function call with single table or string argument (originally as `no_call_parentheses`). Note: parentheses are still kept in some situations if removing them will make the syntax become obscure (e.g. `foo "bar".setup -> foo("bar").setup`, as we are indexing the call result, not the string).
+| `no_call_parentheses` | `Always` | Specify whether to apply parentheses on function calls with a single string or table argument. Possible options: [`Always`, `NoSingleString`, `NoSingleTable`, `None`]. When `call_parentheses` is set to `Always`, StyLua applies call parentheses all the time.When it's set to `NoSingleString` it omits parentheses on function calls with single string argument. Similarly when set to `NoSingleTable` it omits parentheses on function calls with a single table argument. And when it's `None` StyLua omits parentheses on function call with single table or string argument (originally as `no_call_parentheses`). Note: parentheses are still kept in some situations if removing them will make the syntax become obscure (e.g. `foo "bar".setup -> foo("bar").setup`, as we are indexing the call result, not the string).
 
 Default `stylua.toml`, note you do not need to explicitly specify each option if you want to use the defaults:
 ```toml
@@ -153,5 +153,5 @@ line_endings = "Unix"
 indent_type = "Tabs"
 indent_width = 4
 quote_style = "AutoPreferDouble"
-call_parentheses = "Always"
+no_call_parentheses = "Always"
 ```
