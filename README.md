@@ -36,12 +36,16 @@ You can use the [stylua-action](https://github.com/marketplace/actions/stylua) G
 This action will use GitHub releases, rather than running cargo install, to speed up your workflow.
 
 ### pre-commit
-You can use StyLua with [pre-commit](https://pre-commit.com/) by adding the following to your `.pre-commit-config.yaml` file:
+You can use StyLua with [pre-commit](https://pre-commit.com/).
+There are 3 possible pre-commit hooks available: `stylua` (which installs via Cargo, requiring the Rust toolchain to be installed),
+`stylua-system` (which runs the `stylua` binary available on the PATH), and `stylua-github` (which automatically installs the relevant
+StyLua prebuilt binary from GitHub Actions).
+Add the following to your `.pre-commit-config.yaml` file:
 ```yaml
 - repo: https://github.com/JohnnyMorganz/StyLua
   rev: v0.11.3
   hooks:
-    - id: stylua
+    - id: stylua # or stylua-system / stylua-github
 ```
 
 ### Other Installation Methods
@@ -84,6 +88,12 @@ running `stylua .` will ignore the `vendor/` directory.
 If you want to check that files have been formatted, but not overwrite them, you can pass the `--check` argument to StyLua.
 StyLua will search through files as normal, but instead of writing the formatted code back to the file, StyLua will output a diff to stdout.
 If there are files which haven't been fully formatted, StyLua will exit with status code 1.
+
+### `--verify`: Verifying formatting output
+As a safety measure, the `--verify` flag can be passed to StyLua, and StyLua will verify the output of all formatting
+before saving it to a file. This re-parses the output following formatting to verify that the AST is still valid and similar to the input
+AST, flagging any syntax errors or possible code semantics changes. This flag may be useful when adopting StyLua on a large codebase,
+where not every file can be examined for spurious formatting.
 
 ### Ignoring parts of a file
 If there is a specific statement within your file which you wish to skip formatting on, you can precede it with `-- stylua: ignore`,
