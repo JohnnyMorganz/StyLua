@@ -14,6 +14,7 @@ Specify whether to apply parentheses on function calls with single string or tab
 ### Fixed
 - Fixed generic variadics not being handled under the `luau` feature flag. ([#333](https://github.com/JohnnyMorganz/StyLua/issues/333))
 - Fixed issue with comments within an assignment not being correctly handled, leading to a syntax error. ([#340](https://github.com/JohnnyMorganz/StyLua/issues/340))
+- Fixed parentheses around an IfExpression being removed, leading to incorrect semantics, under the `luau` feature flag. ([#345](https://github.com/JohnnyMorganz/StyLua/issues/345))
 
 ### Deprecated
 - Option `no_call_parentheses` has been deprecated. Use `call_parentheses = "None"` instead.
