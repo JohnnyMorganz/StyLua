@@ -106,6 +106,10 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
                         _ => true,
                     }
                 }
+                // If the internal expression is an if expression, we need to keep the parentheses
+                // as modifying it can lead to issues [e.g. (if <x> then <expr> else <expr>) + 1 is different without parens]
+                #[cfg(feature = "luau")]
+                Value::IfExpression(_) => false,
                 _ => true,
             }
         }
