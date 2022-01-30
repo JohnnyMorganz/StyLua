@@ -265,8 +265,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "full_moon"
-version = "0.14.0"
-source = "git+https://github.com/Kampfkarren/full-moon#25b515d603b31b506bb5b64f6eacd7153b148f96"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b94b52242995145c98172209910b41718172bf7d093d6b6b37a29cedbbd3dd9c"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -280,8 +281,9 @@ dependencies = [
 
 [[package]]
 name = "full_moon_derive"
-version = "0.9.0"
-source = "git+https://github.com/Kampfkarren/full-moon#25b515d603b31b506bb5b64f6eacd7153b148f96"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87826a47a649663aa287e57ea9f31450a56fabcd553a2fe17b2f669f1b5e855b"
 dependencies = [
  "indexmap",
  "proc-macro2",
