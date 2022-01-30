@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Specify whether to apply parentheses on function calls with single string or table arg. Possible options: `Always` (default), `NoSingleString`, `NoSingleTable`, `None`. ([#329](https://github.com/JohnnyMorganz/StyLua/issues/329))
 - Added proper multiline hanging of generic for syntax. ([#322](https://github.com/JohnnyMorganz/StyLua/issues/322))
 - Added proper formatting for if-expression syntax under the `luau` feature flag. ([#289](https://github.com/JohnnyMorganz/StyLua/issues/289))
+- Updated parser to add support for generic/variadic type packs, singleton types and default types under the `luau` feature flag.
 
 ### Fixed
 - Fixed generic variadics not being handled under the `luau` feature flag. ([#333](https://github.com/JohnnyMorganz/StyLua/issues/333))
