@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+type Foo = {
+	bar: number,
+	baz: number,
+}
+
