@@ -23,6 +23,15 @@ fn test_luau() {
 }
 
 #[test]
+#[cfg(feature = "luau")]
+fn test_luau_full_moon() {
+    insta::glob!("inputs-luau-full_moon/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format(&contents));
+    })
+}
+
+#[test]
 #[cfg(feature = "lua52")]
 fn test_lua52() {
     insta::glob!("inputs-lua52/*.lua", |path| {
