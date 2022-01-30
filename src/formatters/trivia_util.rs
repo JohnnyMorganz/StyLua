@@ -498,6 +498,16 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (TypeInfo::Basic(token), trailing_trivia)
         }
+        TypeInfo::String(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::String(token), trailing_trivia)
+        }
+        TypeInfo::Boolean(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::Boolean(token), trailing_trivia)
+        }
         TypeInfo::Callback {
             generics,
             parentheses,
@@ -538,10 +548,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 trailing_trivia,
             )
         }
-        TypeInfo::GenericVariadic { name, ellipse } => {
+        TypeInfo::GenericPack { name, ellipse } => {
             let trailing_trivia = ellipse.trailing_trivia().map(|x| x.to_owned()).collect();
             let ellipse = ellipse.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::GenericVariadic { name, ellipse }, trailing_trivia)
+            (TypeInfo::GenericPack { name, ellipse }, trailing_trivia)
         }
         TypeInfo::Intersection {
             left,
@@ -658,6 +668,11 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 },
                 trailing_trivia,
             )
+        }
+        TypeInfo::VariadicPack { ellipse, name } => {
+            let trailing_trivia = name.trailing_trivia().map(|x| x.to_owned()).collect();
+            let name = name.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::VariadicPack { ellipse, name }, trailing_trivia)
         }
         other => panic!("unknown node {:?}", other),
     }
