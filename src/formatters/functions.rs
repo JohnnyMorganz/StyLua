@@ -1029,11 +1029,10 @@ fn format_multiline_parameters(
                     other => panic!("unknown node {:?}", other),
                 }
                 .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| {
+                .flat_map(|x| {
                     // Prepend a single space beforehand
                     vec![Token::new(TokenType::spaces(1)), x.to_owned()]
                 })
-                .flatten()
                 .collect();
 
                 parameter = parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
