@@ -426,7 +426,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
 
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
-    let then_token = fmt_symbol!(ctx, if_expression.then_token(), "then ", shape);
+    let then_token = fmt_symbol!(ctx, if_expression.then_token(), " then ", shape);
     let singleline_expression = format_expression(
         ctx,
         if_expression.if_expression(),
@@ -453,8 +453,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         shape.with_infinite_width(),
     );
 
+    const IF_LENGTH: usize = 3; // "if "
+    const THEN_LENGTH: usize = 6; // " then "
+    const ELSE_LENGTH: usize = 6; // " else "
+
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + 3 + 5) // 3 = "if " + 5 = " then"
+    let singleline_shape = (shape + IF_LENGTH + THEN_LENGTH + ELSE_LENGTH)
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
@@ -614,11 +618,15 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                 .collect()
         });
 
-        IfExpression::new(condition, singleline_expression, singleline_else_expression)
-            .with_if_token(if_token)
-            .with_then_token(then_token)
-            .with_else_if(else_ifs)
-            .with_else_token(else_token)
+        IfExpression::new(
+            singleline_condition,
+            singleline_expression,
+            singleline_else_expression,
+        )
+        .with_if_token(if_token)
+        .with_then_token(then_token)
+        .with_else_if(else_ifs)
+        .with_else_token(else_token)
     }
 }
 
