@@ -454,7 +454,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     );
 
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + 3 + 5) // 3 = "if " + 5 = " then"
+    let singleline_shape = (shape + 3 + 6 + 6) // 3 = "if " + 6 = " then " + 6 " else "
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
