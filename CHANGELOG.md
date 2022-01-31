@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed misformatting of conditions in if-expression syntax leading to spurious whitespace under the `luau` feature flag. ([#349](https://github.com/JohnnyMorganz/StyLua/issues/349))
 - Fixed incorrect shape calculation in if-expression syntax: if-expression will now go multiline when only slightly over column width (`luau` feature flag).
+- Fixed incorrect handling of comments at the end of a callback type's arguments under the `luau` feature flag. ([#352](https://github.com/JohnnyMorganz/StyLua/issues/352))
 
 ## [0.12.0] - 2022-01-31
 ### Added
