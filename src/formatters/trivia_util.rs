@@ -416,11 +416,10 @@ pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression
     let trailing_comments = get_expression_trailing_trivia(expression)
         .iter()
         .filter(|token| trivia_is_comment(token))
-        .map(|x| {
+        .flat_map(|x| {
             // Prepend a single space beforehand
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
-        .flatten()
         .collect();
 
     (

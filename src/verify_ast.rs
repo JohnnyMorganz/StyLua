@@ -128,7 +128,7 @@ impl VisitorMut for AstVerifier {
             TokenType::Number { text } => {
                 // Luau: cleanse number of any digit separators
                 #[cfg(feature = "luau")]
-                let text = text.replace("_", "");
+                let text = text.replace('_', "");
 
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num,
@@ -160,7 +160,7 @@ impl VisitorMut for AstVerifier {
                 multi_line,
                 ..
             } => TokenType::StringLiteral {
-                literal: literal.to_owned().replace("\\", "").into(),
+                literal: literal.to_owned().replace('\\', "").into(),
                 multi_line: multi_line.to_owned(),
                 quote_type: StringLiteralQuoteType::Brackets,
             },
