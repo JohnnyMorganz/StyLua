@@ -426,7 +426,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
 
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
-    let then_token = fmt_symbol!(ctx, if_expression.then_token(), "then ", shape);
+    let then_token = fmt_symbol!(ctx, if_expression.then_token(), " then ", shape);
     let singleline_expression = format_expression(
         ctx,
         if_expression.if_expression(),
@@ -614,11 +614,15 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                 .collect()
         });
 
-        IfExpression::new(condition, singleline_expression, singleline_else_expression)
-            .with_if_token(if_token)
-            .with_then_token(then_token)
-            .with_else_if(else_ifs)
-            .with_else_token(else_token)
+        IfExpression::new(
+            singleline_condition,
+            singleline_expression,
+            singleline_else_expression,
+        )
+        .with_if_token(if_token)
+        .with_then_token(then_token)
+        .with_else_if(else_ifs)
+        .with_else_token(else_token)
     }
 }
 
