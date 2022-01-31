@@ -818,7 +818,7 @@ dependencies = [
 
 [[package]]
 name = "stylua"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "console",
