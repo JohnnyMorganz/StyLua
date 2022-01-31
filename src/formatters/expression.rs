@@ -453,8 +453,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         shape.with_infinite_width(),
     );
 
+    const IF_LENGTH: usize = 3; // "if "
+    const THEN_LENGTH: usize = 6; // " then "
+    const ELSE_LENGTH: usize = 6; // " else "
+
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + 3 + 6 + 6) // 3 = "if " + 6 = " then " + 6 " else "
+    let singleline_shape = (shape + IF_LENGTH + THEN_LENGTH + ELSE_LENGTH)
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
