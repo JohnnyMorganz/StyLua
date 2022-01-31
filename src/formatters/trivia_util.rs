@@ -431,14 +431,17 @@ pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression
 }
 
 pub fn take_parameter_trailing_comments(parameter: &Parameter) -> (Parameter, Vec<Token>) {
+    let trailing_trivia = match parameter {
+        Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
+        other => panic!("unknown node {:?}", other),
+    };
+
     // Remove any trailing comments from the parameter if present
-    let trailing_comments: Vec<Token> = Node::surrounding_trivia(parameter)
-        .1
-        .iter()
+    let trailing_comments: Vec<Token> = trailing_trivia
         .filter(|token| trivia_is_comment(token))
         .flat_map(|x| {
             // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned().to_owned()]
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .collect();
 
