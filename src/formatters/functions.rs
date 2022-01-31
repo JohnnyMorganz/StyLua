@@ -4,7 +4,7 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -17,7 +17,7 @@ use crate::{
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
-            format_punctuated, format_symbol, format_token_reference, EndTokenType,
+            format_punctuated, format_token_reference, EndTokenType,
         },
         table::format_table_constructor,
         trivia::{
@@ -618,39 +618,18 @@ pub fn format_function_body(
             || should_parameters_format_multiline(ctx, function_body, shape, block_empty)
     };
 
-    let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
-        true => {
-            // TODO: This is similar to multiline in FunctionArgs, can we resolve?
-            // Format start and end brace properly with correct trivia
-            let (start_parens, end_parens) = function_body.parameters_parentheses().tokens();
-
-            // Calculate to see if the end parentheses requires any additional indentation
-            let end_parens_leading_trivia =
-                vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
-
-            // Add new_line trivia to start_parens
-            let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
-
-            let end_parens_token = TokenReference::new(
-                end_parens_leading_trivia,
-                Token::new(TokenType::Symbol {
-                    symbol: Symbol::RightParen,
-                }),
-                vec![],
-            );
-
-            (
-                format_multiline_parameters(ctx, function_body, shape),
-                ContainedSpan::new(
-                    start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token, shape),
-                ),
-            )
-        }
+    let (mut parameters_parentheses, formatted_parameters) = match multiline_params {
+        true => format_contained_punctuated_multiline(
+            ctx,
+            function_body.parameters_parentheses(),
+            function_body.parameters(),
+            format_parameter,
+            trivia_util::take_parameter_trailing_comments,
+            shape,
+        ),
         false => (
-            format_singleline_parameters(ctx, function_body, shape),
             format_contained_span(ctx, function_body.parameters_parentheses(), shape),
+            format_singleline_parameters(ctx, function_body, shape),
         ),
     };
 
@@ -962,52 +941,5 @@ fn format_singleline_parameters(
         formatted_parameters.push(Pair::new(parameter, punctuation));
     }
 
-    formatted_parameters
-}
-
-/// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
-fn format_multiline_parameters(
-    ctx: &Context,
-    function_body: &FunctionBody,
-    shape: Shape,
-) -> Punctuated<Parameter> {
-    let mut formatted_parameters = Punctuated::new();
-
-    for pair in function_body.parameters().pairs() {
-        // Reset the shape (as the parameter is on a newline), and increment the additional indent level
-        let shape = shape.reset().increment_additional_indent();
-
-        let mut parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-        );
-
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => {
-                // Remove any trailing comments from the parameter if present
-                let mut trailing_comments: Vec<Token> = match &parameter {
-                    Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
-                    other => panic!("unknown node {:?}", other),
-                }
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
-
-                parameter = parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-                // Add a newline to the end of the trailing comments, then append them all to the end of the comma
-                trailing_comments.push(create_newline_trivia(ctx));
-                Some(
-                    fmt_symbol!(ctx, punctuation, ",", shape)
-                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
-                )
-            }
-            None => None,
-        };
-
-        formatted_parameters.push(Pair::new(parameter, punctuation))
-    }
     formatted_parameters
 }
