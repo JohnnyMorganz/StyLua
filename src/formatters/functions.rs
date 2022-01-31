@@ -16,8 +16,8 @@ use crate::{
         block::format_block,
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
-            format_contained_span, format_end_token, format_punctuated, format_symbol,
-            format_token_reference, EndTokenType,
+            format_contained_punctuated_multiline, format_contained_span, format_end_token,
+            format_punctuated, format_symbol, format_token_reference, EndTokenType,
         },
         table::format_table_constructor,
         trivia::{
@@ -91,6 +91,27 @@ fn is_table_constructor(expression: &Expression) -> bool {
 
 fn is_complex_arg(value: &Value) -> bool {
     value.to_string().trim().contains('\n')
+}
+
+/// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion
+fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape) -> Expression {
+    // First format the argument assuming infinite width
+    let infinite_width_argument = format_expression(ctx, argument, shape.with_infinite_width());
+
+    // If the argument fits, great! Otherwise, see if we can hang the expression
+    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
+    if shape
+        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+        .over_budget()
+    {
+        if trivia_util::can_hang_expression(argument) {
+            hang_expression(ctx, argument, shape, Some(1))
+        } else {
+            format_expression(ctx, argument, shape)
+        }
+    } else {
+        infinite_width_argument
+    }
 }
 
 /// Formats a FunctionArgs node.
@@ -358,79 +379,18 @@ pub fn format_function_args(
                 && is_table_constructor(arguments.iter().next().unwrap());
 
             if is_multiline && !hug_table_constructor {
-                // Format start and end brace properly with correct trivia
-                // Calculate to see if the end parentheses requires any additional indentation
-                let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
-
-                // Add new_line trivia to start_parens
-                let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
-                        ctx,
-                    )]));
-
-                let end_parens_token =
-                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
-                        .update_leading_trivia(FormatTriviaType::Append(end_parens_leading_trivia));
-
-                let parentheses = ContainedSpan::new(start_parens_token, end_parens_token);
-
-                let mut formatted_arguments = Punctuated::new();
-                let shape = shape.increment_additional_indent();
-
-                for argument in arguments.pairs() {
-                    let shape = shape.reset(); // Argument is on a new line, so reset the shape
-
-                    // First format the argument assuming infinite width
-                    let infinite_width_argument =
-                        format_expression(ctx, argument.value(), shape.with_infinite_width());
-
-                    // If the argument fits, great! Otherwise, see if we can hang the expression
-                    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
-                    let formatted_argument = if shape
-                        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
-                        .over_budget()
-                    {
-                        if trivia_util::can_hang_expression(argument.value()) {
-                            hang_expression(ctx, argument.value(), shape, Some(1))
-                        } else {
-                            format_expression(ctx, argument.value(), shape)
-                        }
-                    } else {
-                        infinite_width_argument
-                    }
-                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-                        ctx, shape,
-                    )]));
-
-                    // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
-                    let (formatted_argument, mut trailing_comments) =
-                        trivia_util::take_expression_trailing_comments(&formatted_argument);
-
-                    let punctuation = match argument.punctuation() {
-                        Some(punctuation) => {
-                            // Continue adding a comma and a new line for multiline function args
-                            // Also add any trailing comments we have taken from the expression
-                            trailing_comments.push(create_newline_trivia(ctx));
-                            let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                                .update_trailing_trivia(FormatTriviaType::Append(
-                                    trailing_comments,
-                                ));
-
-                            Some(symbol)
-                        }
-                        None => Some(TokenReference::new(
-                            trailing_comments,
-                            create_newline_trivia(ctx),
-                            vec![],
-                        )),
-                    };
-
-                    formatted_arguments.push(Pair::new(formatted_argument, punctuation))
-                }
+                let (parentheses, arguments) = format_contained_punctuated_multiline(
+                    ctx,
+                    parentheses,
+                    arguments,
+                    format_argument_multiline,
+                    trivia_util::take_expression_trailing_comments,
+                    shape,
+                );
 
                 FunctionArgs::Parentheses {
                     parentheses,
-                    arguments: formatted_arguments,
+                    arguments,
                 }
             } else {
                 // We don't need to worry about comments here, as if there were comments present, we would have

@@ -2,7 +2,7 @@ use crate::{
     check_should_format,
     context::{create_indent_trivia, create_newline_trivia, Context},
     formatters::{
-        trivia::{FormatTriviaType, UpdateTrailingTrivia},
+        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
     },
     shape::Shape,
@@ -441,6 +441,71 @@ where
     } else {
         format_punctuated(ctx, old, shape, value_formatter)
     }
+}
+
+/// Formats a Punctuated sequence contained within parentheses onto multiple lines
+/// In particular, it handles the indentation of the sequence within the parentheses, and comments
+pub fn format_contained_punctuated_multiline<T, F1, F2>(
+    ctx: &Context,
+    parentheses: &ContainedSpan,
+    arguments: &Punctuated<T>,
+    argument_formatter: F1,              // Function to format the argument
+    argument_take_trailing_comments: F2, // Function to separate trailing comments from the argument - so they can be placed after the comma
+    shape: Shape,
+) -> (ContainedSpan, Punctuated<T>)
+where
+    T: UpdateLeadingTrivia,
+    F1: Fn(&Context, &T, Shape) -> T,
+    F2: Fn(&T) -> (T, Vec<Token>),
+{
+    // Format start and end brace properly with correct trivia
+    let (start_parens, end_parens) = parentheses.tokens();
+    let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
+        .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+
+    let end_parens = format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
+        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+            ctx, shape,
+        )]));
+
+    let parentheses = ContainedSpan::new(start_parens, end_parens);
+
+    let mut formatted_arguments = Punctuated::new();
+    let shape = shape.increment_additional_indent();
+
+    for argument in arguments.pairs() {
+        let shape = shape.reset(); // Argument is on a new line, so reset the shape
+
+        let formatted_argument = argument_formatter(ctx, argument.value(), shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx, shape,
+            )]));
+
+        // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
+        let (formatted_argument, mut trailing_comments) =
+            argument_take_trailing_comments(&formatted_argument);
+
+        let punctuation = match argument.punctuation() {
+            Some(punctuation) => {
+                // Continue adding a comma and a new line for multiline function args
+                // Also add any trailing comments we have taken from the expression
+                trailing_comments.push(create_newline_trivia(ctx));
+                let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
+
+                Some(symbol)
+            }
+            None => Some(TokenReference::new(
+                trailing_comments,
+                create_newline_trivia(ctx),
+                vec![],
+            )),
+        };
+
+        formatted_arguments.push(Pair::new(formatted_argument, punctuation))
+    }
+
+    (parentheses, formatted_arguments)
 }
 
 pub fn format_contained_span(
