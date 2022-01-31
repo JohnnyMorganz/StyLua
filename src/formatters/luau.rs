@@ -23,8 +23,8 @@ use full_moon::ast::{
     punctuated::Pair,
     types::{
         CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-        GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration,
-        TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
     },
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
@@ -80,6 +80,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         TypeInfo::Basic(token_reference) => {
             let token_reference = format_token_reference(ctx, token_reference, shape);
             TypeInfo::Basic(token_reference)
+        }
+
+        // Special cases for singleton types
+        TypeInfo::String(string) => TypeInfo::String(format_token_reference(ctx, string, shape)),
+        TypeInfo::Boolean(boolean) => {
+            TypeInfo::Boolean(format_token_reference(ctx, boolean, shape))
         }
 
         TypeInfo::Callback {
@@ -188,11 +194,11 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             }
         }
 
-        TypeInfo::GenericVariadic { name, ellipse } => {
+        TypeInfo::GenericPack { name, ellipse } => {
             let name = format_token_reference(ctx, name, shape);
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
 
-            TypeInfo::GenericVariadic { name, ellipse }
+            TypeInfo::GenericPack { name, ellipse }
         }
 
         TypeInfo::Intersection {
@@ -342,6 +348,13 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             let type_info = Box::new(format_type_info(ctx, type_info, shape + 3)); // 3 = "..."
 
             TypeInfo::Variadic { ellipse, type_info }
+        }
+
+        TypeInfo::VariadicPack { ellipse, name } => {
+            let name = format_token_reference(ctx, name, shape);
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+
+            TypeInfo::VariadicPack { ellipse, name }
         }
 
         other => panic!("unknown node {:?}", other),
@@ -569,19 +582,34 @@ fn format_generic_parameter(
     generic_parameter: &GenericDeclarationParameter,
     shape: Shape,
 ) -> GenericDeclarationParameter {
-    match generic_parameter {
-        GenericDeclarationParameter::Name(token_reference) => {
-            GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape))
+    let parameter_info = match generic_parameter.parameter() {
+        GenericParameterInfo::Name(token_reference) => {
+            GenericParameterInfo::Name(format_token_reference(ctx, token_reference, shape))
         }
-        GenericDeclarationParameter::Variadic { name, ellipse } => {
+        GenericParameterInfo::Variadic { name, ellipse } => {
             let name = format_token_reference(ctx, name, shape);
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
 
-            GenericDeclarationParameter::Variadic { name, ellipse }
+            GenericParameterInfo::Variadic { name, ellipse }
         }
 
         other => panic!("unknown node {:?}", other),
-    }
+    };
+
+    let default_type = match (generic_parameter.equals(), generic_parameter.default_type()) {
+        (Some(equals), Some(default_type)) => {
+            let equals = fmt_symbol!(ctx, equals, " = ", shape);
+            let default_type = format_type_info(ctx, default_type, shape);
+            Some((equals, default_type))
+        }
+        (None, None) => None,
+        _ => unreachable!("have generic parameter default type with no equals or vice versa"),
+    };
+
+    generic_parameter
+        .to_owned()
+        .with_parameter(parameter_info)
+        .with_default(default_type)
 }
 
 pub fn format_generic_declaration(

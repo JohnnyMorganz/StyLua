@@ -1,7 +1,8 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
-    ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, IfExpression,
-    IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
+    IfExpression, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo,
+    TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -567,6 +568,9 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
         TypeInfo::Basic(token_reference) => {
             TypeInfo::Basic(token_reference.update_trivia(leading, trailing))
         }
+        TypeInfo::String(string) => TypeInfo::String(string.update_trivia(leading, trailing)),
+        TypeInfo::Boolean(boolean) => TypeInfo::Boolean(boolean.update_trivia(leading, trailing)),
+
         TypeInfo::Callback {
             generics,
             parentheses,
@@ -603,7 +607,7 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             generics: generics.to_owned(),
         },
 
-        TypeInfo::GenericVariadic { name, ellipse } => TypeInfo::GenericVariadic {
+        TypeInfo::GenericPack { name, ellipse } => TypeInfo::GenericPack {
             name: name.update_leading_trivia(leading),
             ellipse: ellipse.update_trailing_trivia(trailing),
         },
@@ -665,6 +669,11 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
         TypeInfo::Variadic { ellipse, type_info } => TypeInfo::Variadic {
             ellipse: ellipse.update_leading_trivia(leading),
             type_info: Box::new(type_info.update_trailing_trivia(trailing)),
+        },
+
+        TypeInfo::VariadicPack { ellipse, name } => TypeInfo::VariadicPack {
+            ellipse: ellipse.update_leading_trivia(leading),
+            name: name.update_trailing_trivia(trailing),
         },
 
         other => panic!("unknown node {:?}", other),
@@ -748,18 +757,18 @@ define_update_leading_trivia!(GenericDeclaration, |this, leading| {
 
 #[cfg(feature = "luau")]
 define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
-    match this {
-        GenericDeclarationParameter::Name(token) => {
-            GenericDeclarationParameter::Name(token.update_leading_trivia(leading))
+    let parameter_info = match this.parameter() {
+        GenericParameterInfo::Name(token) => {
+            GenericParameterInfo::Name(token.update_leading_trivia(leading))
         }
-        GenericDeclarationParameter::Variadic { name, ellipse } => {
-            GenericDeclarationParameter::Variadic {
-                name: name.update_leading_trivia(leading),
-                ellipse: ellipse.to_owned(),
-            }
-        }
+        GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+            name: name.update_leading_trivia(leading),
+            ellipse: ellipse.to_owned(),
+        },
         other => panic!("unknown node {:?}", other),
-    }
+    };
+
+    this.to_owned().with_parameter(parameter_info)
 });
 
 #[cfg(feature = "luau")]
