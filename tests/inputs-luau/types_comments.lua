@@ -12,3 +12,12 @@ export type ReactScopeQuery = (
 	{ [any]: any }, -- props
 	any -- instance
 ) -> boolean
+
+export type Thenable<R> = {
+	andThen: <U>(
+		self: Thenable<R>,
+		onFulfill: (R) -> () | _Thenable<U> | U,
+		onReject: (error: any) -> () | _Thenable<U> | U
+	-- note: need union type packs to parse () | Thenable<U>
+	) -> nil | _Thenable<U>,
+}
