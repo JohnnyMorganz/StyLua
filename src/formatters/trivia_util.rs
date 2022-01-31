@@ -2,7 +2,7 @@ use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTra
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
+use full_moon::ast::types::{IndexedTypeInfo, TypeArgument, TypeDeclaration, TypeInfo};
 use full_moon::ast::{Block, FunctionBody, Parameter};
 use full_moon::{
     ast::{
@@ -696,6 +696,28 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
         }
         other => panic!("unknown node {:?}", other),
     }
+}
+
+#[cfg(feature = "luau")]
+pub fn take_type_argument_trailing_comments(
+    type_argument: &TypeArgument,
+) -> (TypeArgument, Vec<Token>) {
+    let (type_info, trailing_trivia) =
+        get_type_info_trailing_trivia(type_argument.type_info().to_owned());
+
+    let trailing_comments = trailing_trivia
+        .iter()
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+
+    (
+        type_argument.to_owned().with_type_info(type_info),
+        trailing_comments,
+    )
 }
 
 #[cfg(feature = "luau")]
