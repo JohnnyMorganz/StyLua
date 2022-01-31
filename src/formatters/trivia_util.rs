@@ -3,7 +3,7 @@ use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTra
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
-use full_moon::ast::{Block, FunctionBody};
+use full_moon::ast::{Block, FunctionBody, Parameter};
 use full_moon::{
     ast::{
         BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix, Stmt, Suffix,
@@ -426,6 +426,27 @@ pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression
         expression.update_trailing_trivia(
             FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
         ),
+        trailing_comments,
+    )
+}
+
+pub fn take_parameter_trailing_comments(parameter: &Parameter) -> (Parameter, Vec<Token>) {
+    let trailing_trivia = match parameter {
+        Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
+        other => panic!("unknown node {:?}", other),
+    };
+
+    // Remove any trailing comments from the parameter if present
+    let trailing_comments: Vec<Token> = trailing_trivia
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+
+    (
+        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         trailing_comments,
     )
 }

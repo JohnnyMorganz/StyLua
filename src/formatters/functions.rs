@@ -4,7 +4,7 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -16,8 +16,8 @@ use crate::{
         block::format_block,
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
-            format_contained_span, format_end_token, format_punctuated, format_symbol,
-            format_token_reference, EndTokenType,
+            format_contained_punctuated_multiline, format_contained_span, format_end_token,
+            format_punctuated, format_token_reference, EndTokenType,
         },
         table::format_table_constructor,
         trivia::{
@@ -91,6 +91,27 @@ fn is_table_constructor(expression: &Expression) -> bool {
 
 fn is_complex_arg(value: &Value) -> bool {
     value.to_string().trim().contains('\n')
+}
+
+/// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion
+fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape) -> Expression {
+    // First format the argument assuming infinite width
+    let infinite_width_argument = format_expression(ctx, argument, shape.with_infinite_width());
+
+    // If the argument fits, great! Otherwise, see if we can hang the expression
+    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
+    if shape
+        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+        .over_budget()
+    {
+        if trivia_util::can_hang_expression(argument) {
+            hang_expression(ctx, argument, shape, Some(1))
+        } else {
+            format_expression(ctx, argument, shape)
+        }
+    } else {
+        infinite_width_argument
+    }
 }
 
 /// Formats a FunctionArgs node.
@@ -358,79 +379,18 @@ pub fn format_function_args(
                 && is_table_constructor(arguments.iter().next().unwrap());
 
             if is_multiline && !hug_table_constructor {
-                // Format start and end brace properly with correct trivia
-                // Calculate to see if the end parentheses requires any additional indentation
-                let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
-
-                // Add new_line trivia to start_parens
-                let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
-                        ctx,
-                    )]));
-
-                let end_parens_token =
-                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
-                        .update_leading_trivia(FormatTriviaType::Append(end_parens_leading_trivia));
-
-                let parentheses = ContainedSpan::new(start_parens_token, end_parens_token);
-
-                let mut formatted_arguments = Punctuated::new();
-                let shape = shape.increment_additional_indent();
-
-                for argument in arguments.pairs() {
-                    let shape = shape.reset(); // Argument is on a new line, so reset the shape
-
-                    // First format the argument assuming infinite width
-                    let infinite_width_argument =
-                        format_expression(ctx, argument.value(), shape.with_infinite_width());
-
-                    // If the argument fits, great! Otherwise, see if we can hang the expression
-                    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
-                    let formatted_argument = if shape
-                        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
-                        .over_budget()
-                    {
-                        if trivia_util::can_hang_expression(argument.value()) {
-                            hang_expression(ctx, argument.value(), shape, Some(1))
-                        } else {
-                            format_expression(ctx, argument.value(), shape)
-                        }
-                    } else {
-                        infinite_width_argument
-                    }
-                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-                        ctx, shape,
-                    )]));
-
-                    // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
-                    let (formatted_argument, mut trailing_comments) =
-                        trivia_util::take_expression_trailing_comments(&formatted_argument);
-
-                    let punctuation = match argument.punctuation() {
-                        Some(punctuation) => {
-                            // Continue adding a comma and a new line for multiline function args
-                            // Also add any trailing comments we have taken from the expression
-                            trailing_comments.push(create_newline_trivia(ctx));
-                            let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                                .update_trailing_trivia(FormatTriviaType::Append(
-                                    trailing_comments,
-                                ));
-
-                            Some(symbol)
-                        }
-                        None => Some(TokenReference::new(
-                            trailing_comments,
-                            create_newline_trivia(ctx),
-                            vec![],
-                        )),
-                    };
-
-                    formatted_arguments.push(Pair::new(formatted_argument, punctuation))
-                }
+                let (parentheses, arguments) = format_contained_punctuated_multiline(
+                    ctx,
+                    parentheses,
+                    arguments,
+                    format_argument_multiline,
+                    trivia_util::take_expression_trailing_comments,
+                    shape,
+                );
 
                 FunctionArgs::Parentheses {
                     parentheses,
-                    arguments: formatted_arguments,
+                    arguments,
                 }
             } else {
                 // We don't need to worry about comments here, as if there were comments present, we would have
@@ -658,39 +618,18 @@ pub fn format_function_body(
             || should_parameters_format_multiline(ctx, function_body, shape, block_empty)
     };
 
-    let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
-        true => {
-            // TODO: This is similar to multiline in FunctionArgs, can we resolve?
-            // Format start and end brace properly with correct trivia
-            let (start_parens, end_parens) = function_body.parameters_parentheses().tokens();
-
-            // Calculate to see if the end parentheses requires any additional indentation
-            let end_parens_leading_trivia =
-                vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
-
-            // Add new_line trivia to start_parens
-            let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
-
-            let end_parens_token = TokenReference::new(
-                end_parens_leading_trivia,
-                Token::new(TokenType::Symbol {
-                    symbol: Symbol::RightParen,
-                }),
-                vec![],
-            );
-
-            (
-                format_multiline_parameters(ctx, function_body, shape),
-                ContainedSpan::new(
-                    start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token, shape),
-                ),
-            )
-        }
+    let (mut parameters_parentheses, formatted_parameters) = match multiline_params {
+        true => format_contained_punctuated_multiline(
+            ctx,
+            function_body.parameters_parentheses(),
+            function_body.parameters(),
+            format_parameter,
+            trivia_util::take_parameter_trailing_comments,
+            shape,
+        ),
         false => (
-            format_singleline_parameters(ctx, function_body, shape),
             format_contained_span(ctx, function_body.parameters_parentheses(), shape),
+            format_singleline_parameters(ctx, function_body, shape),
         ),
     };
 
@@ -1002,52 +941,5 @@ fn format_singleline_parameters(
         formatted_parameters.push(Pair::new(parameter, punctuation));
     }
 
-    formatted_parameters
-}
-
-/// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
-fn format_multiline_parameters(
-    ctx: &Context,
-    function_body: &FunctionBody,
-    shape: Shape,
-) -> Punctuated<Parameter> {
-    let mut formatted_parameters = Punctuated::new();
-
-    for pair in function_body.parameters().pairs() {
-        // Reset the shape (as the parameter is on a newline), and increment the additional indent level
-        let shape = shape.reset().increment_additional_indent();
-
-        let mut parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-        );
-
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => {
-                // Remove any trailing comments from the parameter if present
-                let mut trailing_comments: Vec<Token> = match &parameter {
-                    Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
-                    other => panic!("unknown node {:?}", other),
-                }
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
-
-                parameter = parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-                // Add a newline to the end of the trailing comments, then append them all to the end of the comma
-                trailing_comments.push(create_newline_trivia(ctx));
-                Some(
-                    fmt_symbol!(ctx, punctuation, ",", shape)
-                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
-                )
-            }
-            None => None,
-        };
-
-        formatted_parameters.push(Pair::new(parameter, punctuation))
-    }
     formatted_parameters
 }
