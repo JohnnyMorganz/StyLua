@@ -14,8 +14,9 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
         trivia_util::{
-            contains_comments, token_trivia_contains_comments, trivia_is_comment,
-            trivia_is_newline, type_info_trailing_trivia,
+            contains_comments, take_type_argument_trailing_comments,
+            token_trivia_contains_comments, trivia_is_comment, trivia_is_newline,
+            type_info_trailing_trivia,
         },
     },
     shape::Shape,
@@ -116,15 +117,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     .over_budget(); // 2 = opening/closing parens, 4 = " -> "
 
             let (parentheses, arguments, shape) = if force_multiline {
-                let argument_take_trailing_comments =
-                    |type_argument: &TypeArgument| (type_argument.to_owned(), Vec::new()); // TODO
-
                 let (parentheses, formatted_arguments) = format_contained_punctuated_multiline(
                     ctx,
                     parentheses,
                     arguments,
                     format_type_argument,
-                    argument_take_trailing_comments,
+                    take_type_argument_trailing_comments,
                     shape,
                 );
                 let shape = shape.reset() + 1; // 1 = ")"
