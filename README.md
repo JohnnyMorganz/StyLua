@@ -43,7 +43,7 @@ StyLua prebuilt binary from GitHub Actions).
 Add the following to your `.pre-commit-config.yaml` file:
 ```yaml
 - repo: https://github.com/JohnnyMorganz/StyLua
-  rev: v0.12.0
+  rev: v0.12.1
   hooks:
     - id: stylua # or stylua-system / stylua-github
 ```
@@ -52,7 +52,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
-stylua = { source = "JohnnyMorganz/stylua", version = "0.12.0" }
+stylua = { source = "JohnnyMorganz/stylua", version = "0.12.1" }
 ```
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
 
