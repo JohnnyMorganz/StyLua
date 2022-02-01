@@ -477,6 +477,25 @@ pub fn format_type_assertion(
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
+fn should_hang_type(type_info: &TypeInfo) -> bool {
+    // Only hang if its a binary type info, since it doesn't matter for unary types
+    match type_info {
+        TypeInfo::Union { left, pipe, right } => {
+            type_info_trailing_trivia(left)
+                .iter()
+                .any(trivia_is_comment)
+                || should_hang_type(left)
+                || contains_comments(pipe)
+                || full_moon::node::Node::surrounding_trivia(right)
+                    .0
+                    .iter()
+                    .any(|trivia| trivia_is_comment(trivia))
+                || should_hang_type(right)
+        }
+        _ => false,
+    }
+}
+
 fn format_type_declaration(
     ctx: &Context,
     type_declaration: &TypeDeclaration,
@@ -524,7 +543,7 @@ fn format_type_declaration(
 
     let shape = shape.take_last_line(&strip_trailing_trivia(&type_definition));
 
-    if shape.over_budget() {
+    if should_hang_type(type_declaration.type_definition()) || shape.over_budget() {
         let shape = shape.increment_additional_indent();
         equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
             create_newline_trivia(ctx),
