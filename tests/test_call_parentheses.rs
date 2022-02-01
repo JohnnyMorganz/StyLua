@@ -307,6 +307,6 @@ foo("hello") -- comment
 "###
         ),
         @r###"foo "hello" -- comment
-"###
+    "###
     );
 }
