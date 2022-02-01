@@ -296,3 +296,17 @@ local opt = my_function({
     "###
     );
 }
+
+#[test]
+#[cfg_attr(feature = "luau", ignore)]
+fn test_call_parens_comments() {
+    insta::assert_snapshot!(
+        format(CallParenType::None,
+            r###"
+foo("hello") -- comment
+"###
+        ),
+        @r###"foo "hello" -- comment
+"###
+    );
+}
