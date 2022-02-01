@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed incorrect handling of comments at the end of a callback type's arguments under the `luau` feature flag. ([#352](https://github.com/JohnnyMorganz/StyLua/issues/352))
 - Fixed mistransformation of type declaration when the type info is a union which must be multiline due to comments under the `luau` feature flag. ([#351](https://github.com/JohnnyMorganz/StyLua/issues/351))
 - Fixed leading comments on a `|` symbol in a type info being lost when hanging the type under the `luau` feature flag.
+- Fixed trailing comments of a function call being lost as parentheses are removed around a single argument when `call_parentheses` is set to not `Always`. ([#356](https://github.com/JohnnyMorganz/StyLua/issues/356))
 
 ## [0.12.0] - 2022-01-31
 ### Added

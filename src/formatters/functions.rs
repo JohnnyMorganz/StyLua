@@ -133,13 +133,24 @@ pub fn format_function_args(
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
                 let argument = arguments.iter().next().unwrap();
+
+                // Take any trailing trivia from the end parentheses, in case we need to keep it
+                let trailing_comments = parentheses
+                    .tokens()
+                    .1
+                    .trailing_trivia()
+                    .map(|x| x.to_owned())
+                    .collect();
+
                 if let Expression::Value { value, .. } = argument {
                     match &**value {
                         Value::String(token_reference) => {
                             if ctx.should_omit_string_parens() {
                                 return format_function_args(
                                     ctx,
-                                    &FunctionArgs::String(token_reference.to_owned()),
+                                    &FunctionArgs::String(token_reference.update_trailing_trivia(
+                                        FormatTriviaType::Append(trailing_comments),
+                                    )),
                                     shape,
                                     call_next_node,
                                 );
@@ -149,7 +160,11 @@ pub fn format_function_args(
                             if ctx.should_omit_table_parens() {
                                 return format_function_args(
                                     ctx,
-                                    &FunctionArgs::TableConstructor(table_constructor.to_owned()),
+                                    &FunctionArgs::TableConstructor(
+                                        table_constructor.update_trailing_trivia(
+                                            FormatTriviaType::Append(trailing_comments),
+                                        ),
+                                    ),
                                     shape,
                                     call_next_node,
                                 );
