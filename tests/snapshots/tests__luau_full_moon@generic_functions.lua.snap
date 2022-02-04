@@ -3,17 +3,20 @@ source: tests/tests.rs
 expression: format(&contents)
 
 ---
-function foo<x, y>() end
+--!strict
+function _foo<x, y>() end
 
-local function bar<x>() end
+local function _bar<x>() end
 
-export type Foo = {
+export type Foo0 = {
 	bar: <T>(a: T, b: nil | number | boolean) -> T,
 }
-
-export type Foo = {
+local _baz
+export type Foo1 = {
 	bar: <T>(a: T, b: nil | number | boolean) -> ((arg0: T) -> ())?,
 }
 
-baz = function<T>(a: T, b: number | boolean | nil): T end
+_baz = function<T>(a: T, b: number | boolean | nil): nil | T
+	return nil
+end
 
