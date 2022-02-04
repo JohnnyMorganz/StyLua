@@ -1,22 +1,24 @@
-function foo<x, y>()
+--!strict
+function _foo<x, y>()
 end
 
-local function bar<x>()
+local function _bar<x>()
 end
 
-export type Foo = {
+export type Foo0 = {
 	bar: <T>(
 		a: T,
 		b: nil | number | boolean
 	) -> T,
 }
-
-export type Foo = {
+local _baz
+export type Foo1 = {
 	bar: <T>(
 		a: T,
 		b: nil | number | boolean
 	) -> ((arg0: T) -> ())?,
 }
 
-baz = function<T>(a: T, b: number | boolean | nil): T
+_baz = function<T>(a: T, b: number | boolean | nil): nil | T
+    return nil
 end

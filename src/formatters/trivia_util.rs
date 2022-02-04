@@ -147,10 +147,13 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
             let (_, end_brace) = braces.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
-        TypeInfo::Basic(token_reference) => token_reference
+        TypeInfo::Basic(token_reference)
+        | TypeInfo::String(token_reference)
+        | TypeInfo::Boolean(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
+
         TypeInfo::Callback { return_type, .. } => type_info_trailing_trivia(return_type),
         TypeInfo::Generic { arrows, .. } => {
             let (_, end_brace) = arrows.tokens();
