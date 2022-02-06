@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed crash due to unhandled singleton type formatting under the `luau` feature flag. ([#358](https://github.com/JohnnyMorganz/StyLua/issues/358))
+- Includes types in shape calculation for causing a generic for to go multiline under the `luau` feature flag. ([#360](https://github.com/JohnnyMorganz/StyLua/issues/360)s)
 
 ## [0.12.1] - 2022-02-01
 ### Fixed
