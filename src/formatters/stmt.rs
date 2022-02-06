@@ -90,6 +90,21 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         format_punctuated(ctx, generic_for.names(), shape, format_token_reference);
     let singleline_shape = shape.take_first_line(&singleline_names);
 
+    // Format the type specifiers, if present, and add them to the shape
+    #[cfg(feature = "luau")]
+    let type_specifiers: Vec<_> = generic_for
+        .type_specifiers()
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
+        .collect();
+
+    #[cfg(feature = "luau")]
+    let singleline_shape = singleline_shape
+        + type_specifiers.iter().fold(0, |acc, x| {
+            acc + x
+                .as_ref()
+                .map_or(0, |type_specifier| type_specifier.to_string().len())
+        });
+
     let require_names_multiline = trivia_util::contains_comments(generic_for.names())
         || trivia_util::spans_multiple_lines(&singleline_names)
         || singleline_shape.over_budget();
@@ -122,12 +137,6 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         true => shape.reset() + 3,     // 3 = "in "
         false => singleline_shape + 4, // 4 = " in "
     };
-
-    #[cfg(feature = "luau")]
-    let type_specifiers = generic_for
-        .type_specifiers()
-        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
-        .collect();
 
     // Format the expression list on a single line, and see if it needs expanding
     let singleline_expr =
