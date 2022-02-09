@@ -50,6 +50,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 
 ### Other Installation Methods
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
+- [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
 stylua = { source = "JohnnyMorganz/stylua", version = "0.12.2" }
