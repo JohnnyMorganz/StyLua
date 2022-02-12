@@ -170,3 +170,120 @@ impl VisitorMut for AstVerifier {
         Token::new(token_type)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_equivalent_asts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 1")?;
+        let output_ast = full_moon::parse("local x = 1")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_different_asts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 1")?;
+        let output_ast = full_moon::parse("local x = 2")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_stmt_semicolons() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 1;")?;
+        let output_ast = full_moon::parse("local x = 1")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_string_quote_types() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        // Should not flag different quotes as incorrect
+        let input_ast = full_moon::parse("local x = '1'")?;
+        let output_ast = full_moon::parse("local x = \"1\"")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_string_escapes() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        // Should not flag cleansed escapes as incorrect
+        let input_ast = full_moon::parse("local x = '\\q'")?;
+        let output_ast = full_moon::parse("local x = 'q'")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = .1")?;
+        let output_ast = full_moon::parse("local x = 0.1")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_numbers_2() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = -.1")?;
+        let output_ast = full_moon::parse("local x = -0.1")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_table_separators() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = {'a'; 'b'; 'c';}")?;
+        let output_ast = full_moon::parse("local x = {'a', 'b', 'c'}")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_function_calls() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = call'foo'")?;
+        let output_ast = full_moon::parse("local x = call('foo')")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_function_calls_2() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = call{'foo'}")?;
+        let output_ast = full_moon::parse("local x = call({'foo'})")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_conditions() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("if (true) then return end")?;
+        let output_ast = full_moon::parse("if true then return end")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+}

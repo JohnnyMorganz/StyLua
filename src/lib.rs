@@ -7,7 +7,7 @@ mod shape;
 mod verify_ast;
 
 /// The type of indents to use when indenting
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
     Tabs,
@@ -22,7 +22,7 @@ impl Default for IndentType {
 }
 
 /// The type of line endings to use at the end of a line
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
 pub enum LineEndings {
     // Auto,
     /// Unix Line Endings (LF) - `\n`
@@ -38,7 +38,7 @@ impl Default for LineEndings {
 }
 
 /// The style of quotes to use within string literals
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
     AutoPreferDouble,
@@ -130,6 +130,36 @@ impl Config {
         Config::default()
     }
 
+    /// Returns the current configured column width
+    pub fn column_width(&self) -> usize {
+        self.column_width
+    }
+
+    /// Returns the current configured line endings
+    pub fn line_endings(&self) -> LineEndings {
+        self.line_endings
+    }
+
+    /// Returns the current configured indent type
+    pub fn indent_type(&self) -> IndentType {
+        self.indent_type
+    }
+
+    /// Returns the current configured indent width
+    pub fn indent_width(&self) -> usize {
+        self.indent_width
+    }
+
+    /// Returns the current configured quote style
+    pub fn quote_style(&self) -> QuoteStyle {
+        self.quote_style
+    }
+
+    /// Returns the current configured call parentheses style
+    pub fn call_parentheses(&self) -> CallParenType {
+        self.call_parentheses
+    }
+
     /// Returns a new config with the given column width
     pub fn with_column_width(self, column_width: usize) -> Self {
         Self {
@@ -190,8 +220,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             column_width: 120,
-            line_endings: LineEndings::Unix,
-            indent_type: IndentType::Tabs,
+            line_endings: LineEndings::default(),
+            indent_type: IndentType::default(),
             indent_width: 4,
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
@@ -275,4 +305,75 @@ pub fn format_code(
     }
 
     Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_entry_point() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let output = format_code(
+            "local   x   =    1",
+            Config::default(),
+            None,
+            OutputVerification::None,
+        )?;
+        assert_eq!(output, "local x = 1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_with_ast_verification() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let output = format_code(
+            "local   x   =    1",
+            Config::default(),
+            None,
+            OutputVerification::Full,
+        )?;
+        assert_eq!(output, "local x = 1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_column_width() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_column_width(80);
+        assert_eq!(new_config.column_width(), 80);
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_line_endings() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_line_endings(LineEndings::Windows);
+        assert_eq!(new_config.line_endings(), LineEndings::Windows);
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_indent_type() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_indent_type(IndentType::Spaces);
+        assert_eq!(new_config.indent_type(), IndentType::Spaces);
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_indent_width() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_indent_width(2);
+        assert_eq!(new_config.indent_width(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_quote_style() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_quote_style(QuoteStyle::ForceDouble);
+        assert_eq!(new_config.quote_style(), QuoteStyle::ForceDouble);
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_call_parentheses() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let new_config = Config::new().with_call_parentheses(CallParenType::None);
+        assert_eq!(new_config.call_parentheses(), CallParenType::None);
+        Ok(())
+    }
 }
