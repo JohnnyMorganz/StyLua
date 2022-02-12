@@ -132,12 +132,17 @@ impl VisitorMut for AstVerifier {
 
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num,
+                    // Try parsing as Hex (0x)
                     Err(_) => match i32::from_str_radix(&text.as_str()[2..], 16) {
                         Ok(num) => num.into(),
+                        // If in Luau, try parsing as binary (0b)
+                        #[cfg(feature = "luau")]
                         Err(_) => match i32::from_str_radix(&text.as_str()[2..], 2) {
                             Ok(num) => num.into(),
                             Err(_) => unreachable!(),
                         },
+                        #[cfg(not(feature = "luau"))]
+                        Err(_) => unreachable!(),
                     },
                 };
 
@@ -244,6 +249,48 @@ mod tests {
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equivalent_hex_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 0XFFFF")?;
+        let output_ast = full_moon::parse("local x = 0xFFFF")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    fn test_different_hex_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 0xFFAA")?;
+        let output_ast = full_moon::parse("local x = 0xFFFF")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_equivalent_binary_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 0B10101")?;
+        let output_ast = full_moon::parse("local x = 0b10101")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_different_binary_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+        let input_ast = full_moon::parse("local x = 0b1111")?;
+        let output_ast = full_moon::parse("local x = 0b1110")?;
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
         Ok(())
     }
 
