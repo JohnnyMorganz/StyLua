@@ -85,7 +85,7 @@ fn format_file(
             &contents,
             &formatted_contents,
             3,
-            format!("Diff in {}:", path.display()),
+            &format!("Diff in {}:", path.display()),
             opt.color,
         )
         .context("failed to create diff")?;
@@ -118,7 +118,7 @@ fn format_string(
             &input,
             &formatted_contents,
             3,
-            "Diff from stdin:".into(),
+            "Diff from stdin:",
             opt.color,
         )
         .context("failed to create diff")?;

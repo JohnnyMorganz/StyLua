@@ -22,7 +22,7 @@ pub fn output_diff(
     old: &str,
     new: &str,
     context_size: usize,
-    title: String,
+    title: &str,
     color: opt::Color,
 ) -> Result<Option<Vec<u8>>> {
     let diff = TextDiff::from_lines(old, new);
@@ -89,4 +89,58 @@ pub fn output_diff(
     }
 
     Ok(Some(buffer))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::opt::Color;
+
+    use super::*;
+
+    #[test]
+    fn test_no_diff() {
+        let output = output_diff("local x = 1", "local x = 1", 0, "", Color::Auto).unwrap();
+        assert!(output.is_none())
+    }
+
+    #[test]
+    fn test_deletion_diff() {
+        let output = output_diff("local x = 1", "", 0, "", Color::Never)
+            .unwrap()
+            .expect("expected change, found no diff");
+        println!("{}", String::from_utf8(output.to_owned()).unwrap());
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            r#"
+1        |-local x = 1
+"#
+        );
+    }
+
+    #[test]
+    fn test_addition_diff() {
+        let output = output_diff("", "local x = 1", 0, "", Color::Never)
+            .unwrap()
+            .expect("expected change, found no diff");
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            r#"
+    1    |+local x = 1
+"#
+        );
+    }
+
+    #[test]
+    fn test_change_diff() {
+        let output = output_diff("local  x = 1", "local x = 1", 0, "", Color::Never)
+            .unwrap()
+            .expect("expected change, found no diff");
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            r#"
+1        |-local  x = 1
+    1    |+local x = 1
+"#
+        );
+    }
 }
