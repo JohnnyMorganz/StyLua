@@ -5,7 +5,6 @@ fn format(input: &str) -> String {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_singleline_ignore() {
     insta::assert_snapshot!(
         format(
@@ -24,7 +23,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_singleline_ignore_2() {
     insta::assert_snapshot!(
         format(
@@ -45,7 +43,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore() {
     insta::assert_snapshot!(
         format(
@@ -67,7 +64,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore_2() {
     insta::assert_snapshot!(
         format(
@@ -91,7 +87,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore_no_ending() {
     insta::assert_snapshot!(
         format(
@@ -113,7 +108,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore_no_starting() {
     insta::assert_snapshot!(
         format(
@@ -135,7 +129,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore_block_scope() {
     insta::assert_snapshot!(
         format(
@@ -163,7 +156,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_multiline_block_ignore_block_scope_no_ending() {
     insta::assert_snapshot!(
         format(

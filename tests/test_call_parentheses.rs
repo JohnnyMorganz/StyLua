@@ -11,7 +11,6 @@ fn format(paren_type: CallParenType, input: &str) -> String {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_always_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
@@ -42,7 +41,6 @@ string
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_always_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
@@ -71,7 +69,6 @@ local still_got_em = my_function({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_no_single_string_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleString,
@@ -102,7 +99,6 @@ string
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_no_single_string_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleString,
@@ -131,7 +127,6 @@ local still_got_em = my_function({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_no_single_table_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleTable,
@@ -162,7 +157,6 @@ string
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_no_single_table_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleTable,
@@ -191,7 +185,6 @@ local still_got_em = my_function({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_none_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::None,
@@ -222,7 +215,6 @@ string
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_none_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::None,
@@ -251,7 +243,6 @@ local still_got_em = my_function({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_has_no_affect_on_multi_arg_fn_calls_() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
@@ -298,7 +289,6 @@ local opt = my_function({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_call_parens_comments() {
     insta::assert_snapshot!(
         format(CallParenType::None,
