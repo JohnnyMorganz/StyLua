@@ -181,156 +181,141 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_equivalent_asts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 1")?;
-        let output_ast = full_moon::parse("local x = 1")?;
+    fn test_equivalent_asts() {
+        let input_ast = full_moon::parse("local x = 1").unwrap();
+        let output_ast = full_moon::parse("local x = 1").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_different_asts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 1")?;
-        let output_ast = full_moon::parse("local x = 2")?;
+    fn test_different_asts() {
+        let input_ast = full_moon::parse("local x = 1").unwrap();
+        let output_ast = full_moon::parse("local x = 2").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_stmt_semicolons() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 1;")?;
-        let output_ast = full_moon::parse("local x = 1")?;
+    fn test_equivalent_stmt_semicolons() {
+        let input_ast = full_moon::parse("local x = 1;").unwrap();
+        let output_ast = full_moon::parse("local x = 1").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_string_quote_types() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_equivalent_string_quote_types() {
         // Should not flag different quotes as incorrect
-        let input_ast = full_moon::parse("local x = '1'")?;
-        let output_ast = full_moon::parse("local x = \"1\"")?;
+        let input_ast = full_moon::parse("local x = '1'").unwrap();
+        let output_ast = full_moon::parse("local x = \"1\"").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_string_escapes() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_equivalent_string_escapes() {
         // Should not flag cleansed escapes as incorrect
-        let input_ast = full_moon::parse("local x = '\\q'")?;
-        let output_ast = full_moon::parse("local x = 'q'")?;
+        let input_ast = full_moon::parse("local x = '\\q'").unwrap();
+        let output_ast = full_moon::parse("local x = 'q'").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = .1")?;
-        let output_ast = full_moon::parse("local x = 0.1")?;
+    fn test_equivalent_numbers() {
+        let input_ast = full_moon::parse("local x = .1").unwrap();
+        let output_ast = full_moon::parse("local x = 0.1").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_numbers_2() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = -.1")?;
-        let output_ast = full_moon::parse("local x = -0.1")?;
+    fn test_equivalent_numbers_2() {
+        let input_ast = full_moon::parse("local x = -.1").unwrap();
+        let output_ast = full_moon::parse("local x = -0.1").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_hex_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 0XFFFF")?;
-        let output_ast = full_moon::parse("local x = 0xFFFF")?;
+    fn test_equivalent_hex_numbers() {
+        let input_ast = full_moon::parse("local x = 0XFFFF").unwrap();
+        let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_different_hex_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 0xFFAA")?;
-        let output_ast = full_moon::parse("local x = 0xFFFF")?;
+    fn test_different_hex_numbers() {
+        let input_ast = full_moon::parse("local x = 0xFFAA").unwrap();
+        let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
     #[cfg(feature = "luau")]
-    fn test_equivalent_binary_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 0B10101")?;
-        let output_ast = full_moon::parse("local x = 0b10101")?;
+    fn test_equivalent_binary_numbers() {
+        let input_ast = full_moon::parse("local x = 0B10101").unwrap();
+        let output_ast = full_moon::parse("local x = 0b10101").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
     #[cfg(feature = "luau")]
-    fn test_different_binary_numbers() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = 0b1111")?;
-        let output_ast = full_moon::parse("local x = 0b1110")?;
+    fn test_different_binary_numbers() {
+        let input_ast = full_moon::parse("local x = 0b1111").unwrap();
+        let output_ast = full_moon::parse("local x = 0b1110").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_table_separators() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = {'a'; 'b'; 'c';}")?;
-        let output_ast = full_moon::parse("local x = {'a', 'b', 'c'}")?;
+    fn test_equivalent_table_separators() {
+        let input_ast = full_moon::parse("local x = {'a'; 'b'; 'c';}").unwrap();
+        let output_ast = full_moon::parse("local x = {'a', 'b', 'c'}").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_function_calls() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = call'foo'")?;
-        let output_ast = full_moon::parse("local x = call('foo')")?;
+    fn test_equivalent_function_calls() {
+        let input_ast = full_moon::parse("local x = call'foo'").unwrap();
+        let output_ast = full_moon::parse("local x = call('foo')").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_function_calls_2() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("local x = call{'foo'}")?;
-        let output_ast = full_moon::parse("local x = call({'foo'})")?;
+    fn test_equivalent_function_calls_2() {
+        let input_ast = full_moon::parse("local x = call{'foo'}").unwrap();
+        let output_ast = full_moon::parse("local x = call({'foo'})").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 
     #[test]
-    fn test_equivalent_conditions() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
-        let input_ast = full_moon::parse("if (true) then return end")?;
-        let output_ast = full_moon::parse("if true then return end")?;
+    fn test_equivalent_conditions() {
+        let input_ast = full_moon::parse("if (true) then return end").unwrap();
+        let output_ast = full_moon::parse("if true then return end").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
-        Ok(())
     }
 }

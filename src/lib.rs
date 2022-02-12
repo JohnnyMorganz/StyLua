@@ -312,68 +312,73 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_entry_point() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_entry_point() {
         let output = format_code(
             "local   x   =    1",
             Config::default(),
             None,
             OutputVerification::None,
-        )?;
+        )
+        .unwrap();
         assert_eq!(output, "local x = 1\n");
-        Ok(())
     }
 
     #[test]
-    fn test_with_ast_verification() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_invalid_input() {
+        let output = format_code(
+            "local   x   = ",
+            Config::default(),
+            None,
+            OutputVerification::None,
+        );
+        assert!(matches!(output, Err(Error::ParseError(_))))
+    }
+
+    #[test]
+    fn test_with_ast_verification() {
         let output = format_code(
             "local   x   =    1",
             Config::default(),
             None,
             OutputVerification::Full,
-        )?;
+        )
+        .unwrap();
         assert_eq!(output, "local x = 1\n");
-        Ok(())
     }
 
     #[test]
-    fn test_config_column_width() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_column_width() {
         let new_config = Config::new().with_column_width(80);
         assert_eq!(new_config.column_width(), 80);
-        Ok(())
     }
 
     #[test]
-    fn test_config_line_endings() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_line_endings() {
         let new_config = Config::new().with_line_endings(LineEndings::Windows);
         assert_eq!(new_config.line_endings(), LineEndings::Windows);
-        Ok(())
     }
 
     #[test]
-    fn test_config_indent_type() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_indent_type() {
         let new_config = Config::new().with_indent_type(IndentType::Spaces);
         assert_eq!(new_config.indent_type(), IndentType::Spaces);
-        Ok(())
     }
 
     #[test]
-    fn test_config_indent_width() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_indent_width() {
         let new_config = Config::new().with_indent_width(2);
         assert_eq!(new_config.indent_width(), 2);
-        Ok(())
     }
 
     #[test]
-    fn test_config_quote_style() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_quote_style() {
         let new_config = Config::new().with_quote_style(QuoteStyle::ForceDouble);
         assert_eq!(new_config.quote_style(), QuoteStyle::ForceDouble);
-        Ok(())
     }
 
     #[test]
-    fn test_config_call_parentheses() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+    fn test_config_call_parentheses() {
         let new_config = Config::new().with_call_parentheses(CallParenType::None);
         assert_eq!(new_config.call_parentheses(), CallParenType::None);
-        Ok(())
     }
 }
