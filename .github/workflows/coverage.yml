@@ -1,0 +1,37 @@
+name: Code Coverage
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: llvm-tools-preview
+
+      - name: Install grcov
+        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
+
+      - name: Run tests
+        run: cargo test
+        env:
+          RUSTFLAGS: "-Zinstrument-coverage"
+          LLVM_PROFILE_FILE: "report-%p-%m.profraw"
+
+      - name: Run grcov
+        run: ./grcov . -s . --binary-path ./target/debug/ -t lcov --branch --ignore-not-existing -o coverage.lcov
+
+      - name: Upload
+        uses: codecov/codecov-action@v2
+        with:
+          files: coverage.lcov
