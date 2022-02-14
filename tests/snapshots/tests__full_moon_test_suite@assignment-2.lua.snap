@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+a, b = 1, true
+

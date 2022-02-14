@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+--[=====[
+	lua be like
+]====]
+	still going
+]=====]
+

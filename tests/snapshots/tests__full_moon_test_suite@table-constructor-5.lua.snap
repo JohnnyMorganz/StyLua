@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local x = {
+	[call()] = 1,
+	2,
+}
+

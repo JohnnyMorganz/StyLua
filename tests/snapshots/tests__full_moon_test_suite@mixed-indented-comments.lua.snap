@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+-- Indented single line
+--[[
+		Indented multi line
+	]]
+

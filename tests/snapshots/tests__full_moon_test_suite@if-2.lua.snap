@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+if x then
+	foo()
+else
+	bar()
+end
+

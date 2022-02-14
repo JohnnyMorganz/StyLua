@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+call("double")
+call("single")
+call("foo\nbar")
+call("")
+
