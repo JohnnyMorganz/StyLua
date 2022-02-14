@@ -106,7 +106,32 @@ fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
     }
 }
 
-fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
+pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
+    match suffix {
+        Suffix::Index(index) => match index {
+            Index::Brackets { brackets, .. } => brackets.tokens().0.leading_trivia(),
+            Index::Dot { dot, .. } => dot.leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        Suffix::Call(call) => match call {
+            Call::AnonymousCall(function_args) => match function_args {
+                FunctionArgs::Parentheses { parentheses, .. } => {
+                    parentheses.tokens().0.leading_trivia()
+                }
+                FunctionArgs::String(string) => string.leading_trivia(),
+                FunctionArgs::TableConstructor(table_constructor) => {
+                    table_constructor.braces().tokens().0.leading_trivia()
+                }
+                other => panic!("unknown node {:?}", other),
+            },
+            Call::MethodCall(method_call) => method_call.colon_token().leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+pub fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
     match suffix {
         Suffix::Index(index) => match index {
             Index::Brackets { brackets, .. } => {
