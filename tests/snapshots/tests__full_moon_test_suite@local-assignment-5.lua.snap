@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local x = 1
+-- Then a comment
+local y = 1
+

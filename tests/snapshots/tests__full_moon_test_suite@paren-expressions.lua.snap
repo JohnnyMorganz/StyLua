@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local x = 1 + (2 - 3)
+

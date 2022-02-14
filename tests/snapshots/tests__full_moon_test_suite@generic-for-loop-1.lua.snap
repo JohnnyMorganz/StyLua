@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+for index, value in pairs(list) do
+	call(index, value)
+end
+
