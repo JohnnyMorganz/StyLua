@@ -1,4 +1,8 @@
-use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia};
+use crate::{
+    context::{create_indent_trivia, create_newline_trivia, Context},
+    formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+    shape::Shape,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
@@ -1062,4 +1066,36 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
         }
         _ => false,
     }
+}
+
+// Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
+// An issue with this is if we do not properly take into account comments. This function also handles any comments present
+// by also interspersing them with the required newline and indentation, so they are aligned correctly.
+pub fn prepend_newline_indent<'a, T>(
+    ctx: &Context,
+    node: &T,
+    leading_trivia: impl Iterator<Item = &'a Token>, // TODO: can we use a trait to call this?
+    shape: Shape,
+) -> T
+where
+    T: UpdateLeadingTrivia,
+{
+    // Take all the leading trivia comments, and indent them accordingly
+    let leading_trivia: Vec<_> = leading_trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .flat_map(|trivia| {
+            // Prepend an indent before the comment, and append a newline after the comments
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                trivia,
+            ]
+        })
+        // Add in the newline and indentation for the actual node
+        .chain(std::iter::once(create_newline_trivia(ctx)))
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    node.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
 }
