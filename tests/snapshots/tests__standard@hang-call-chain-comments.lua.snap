@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+-- A
+a = A()
+	-- B
+	.B()
+	-- C
+	.C()
+

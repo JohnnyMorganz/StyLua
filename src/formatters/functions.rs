@@ -735,6 +735,29 @@ pub fn format_function_call(
     let formatted_prefix = format_prefix(ctx, function_call.prefix(), shape);
 
     let num_suffixes = function_call.suffixes().count();
+
+    // If there are comments within the chain, then we must hang the chain otherwise it can lead to an issue
+    let must_hang = {
+        let mut peekable_suffixes = function_call.suffixes().peekable();
+        let mut must_hang = false;
+        while let Some(suffix) = peekable_suffixes.next() {
+            must_hang =
+                // Check for a leading comment
+                trivia_util::suffix_leading_trivia(suffix).any(trivia_util::trivia_is_comment)
+                // Check for a trailing comment (iff there is still a suffix after this)
+                || (peekable_suffixes.peek().is_some()
+                    && trivia_util::suffix_trailing_trivia(suffix)
+                        .iter()
+                        .any(trivia_util::trivia_is_comment));
+
+            if must_hang {
+                break;
+            }
+        }
+
+        must_hang
+    };
+
     let should_hang = {
         // Hang if there is atleast more than one method call suffix
         if function_call
@@ -787,9 +810,12 @@ pub fn format_function_call(
     let mut shape = shape.take_last_line(&strip_leading_trivia(&formatted_prefix));
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
     let mut suffixes = function_call.suffixes().peekable();
+    let mut previous_suffix_was_index = true; // The index is a name, so we treat that as an index so `A()` doesn't hang
+
     while let Some(suffix) = suffixes.next() {
         // Only hang if this is a method call
-        let should_hang = should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_)));
+        let should_hang =
+            must_hang || (should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))));
         let current_shape = if should_hang {
             // Reset the shape as the call will be on a newline
             shape = shape.reset();
@@ -811,13 +837,20 @@ pub fn format_function_call(
 
         let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
-        if should_hang {
-            suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
-                create_newline_trivia(ctx),
-                create_indent_trivia(ctx, current_shape),
-            ]));
+        // Hang the call, but don't hang if the previous suffix was an index and this is an anonymous call, i.e. `.foo()`
+        if should_hang
+            && !(previous_suffix_was_index
+                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
+        {
+            suffix = trivia_util::prepend_newline_indent(
+                ctx,
+                &suffix,
+                trivia_util::suffix_leading_trivia(&suffix),
+                current_shape,
+            );
         }
 
+        previous_suffix_was_index = matches!(suffix, Suffix::Index(_));
         shape = shape.take_last_line(&suffix);
         formatted_suffixes.push(suffix);
     }

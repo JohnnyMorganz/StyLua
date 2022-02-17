@@ -1,4 +1,8 @@
-use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia};
+use crate::{
+    context::{create_indent_trivia, create_newline_trivia, Context},
+    formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+    shape::Shape,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
@@ -106,7 +110,32 @@ fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
     }
 }
 
-fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
+pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
+    match suffix {
+        Suffix::Index(index) => match index {
+            Index::Brackets { brackets, .. } => brackets.tokens().0.leading_trivia(),
+            Index::Dot { dot, .. } => dot.leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        Suffix::Call(call) => match call {
+            Call::AnonymousCall(function_args) => match function_args {
+                FunctionArgs::Parentheses { parentheses, .. } => {
+                    parentheses.tokens().0.leading_trivia()
+                }
+                FunctionArgs::String(string) => string.leading_trivia(),
+                FunctionArgs::TableConstructor(table_constructor) => {
+                    table_constructor.braces().tokens().0.leading_trivia()
+                }
+                other => panic!("unknown node {:?}", other),
+            },
+            Call::MethodCall(method_call) => method_call.colon_token().leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+pub fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
     match suffix {
         Suffix::Index(index) => match index {
             Index::Brackets { brackets, .. } => {
@@ -702,6 +731,38 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
 }
 
 #[cfg(feature = "luau")]
+// TODO: I tried to make this return `impl <Iterator = &Token>` but it didn't work because of the 3 recursive calls. Need to look into this to prevent alloc
+pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
+    match type_info {
+        TypeInfo::Array { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Basic(token) | TypeInfo::String(token) | TypeInfo::Boolean(token) => {
+            token.leading_trivia()
+        }
+        TypeInfo::Callback {
+            generics,
+            parentheses,
+            ..
+        } => match generics {
+            Some(generics) => generics.arrows().tokens().0.leading_trivia(),
+            None => parentheses.tokens().0.leading_trivia(),
+        },
+        TypeInfo::Generic { base, .. } => base.leading_trivia(),
+        TypeInfo::GenericPack { name, .. } => name.leading_trivia(),
+        TypeInfo::Intersection { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Module { module, .. } => module.leading_trivia(),
+        TypeInfo::Optional { base, .. } => return type_info_leading_trivia(base),
+        TypeInfo::Table { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Typeof { typeof_token, .. } => typeof_token.leading_trivia(),
+        TypeInfo::Tuple { parentheses, .. } => parentheses.tokens().0.leading_trivia(),
+        TypeInfo::Union { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Variadic { ellipse, .. } => ellipse.leading_trivia(),
+        TypeInfo::VariadicPack { ellipse, .. } => ellipse.leading_trivia(),
+        other => panic!("unknown node {:?}", other),
+    }
+    .collect()
+}
+
+#[cfg(feature = "luau")]
 pub fn take_type_argument_trailing_comments(
     type_argument: &TypeArgument,
 ) -> (TypeArgument, Vec<Token>) {
@@ -1037,4 +1098,36 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
         }
         _ => false,
     }
+}
+
+// Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
+// An issue with this is if we do not properly take into account comments. This function also handles any comments present
+// by also interspersing them with the required newline and indentation, so they are aligned correctly.
+pub fn prepend_newline_indent<'a, T>(
+    ctx: &Context,
+    node: &T,
+    leading_trivia: impl Iterator<Item = &'a Token>, // TODO: can we use a trait to call this?
+    shape: Shape,
+) -> T
+where
+    T: UpdateLeadingTrivia,
+{
+    // Take all the leading trivia comments, and indent them accordingly
+    let leading_trivia: Vec<_> = leading_trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .flat_map(|trivia| {
+            // Prepend an indent before the comment, and append a newline after the comments
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                trivia,
+            ]
+        })
+        // Add in the newline and indentation for the actual node
+        .chain(std::iter::once(create_newline_trivia(ctx)))
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    node.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
 }

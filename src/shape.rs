@@ -202,6 +202,18 @@ impl Shape {
             self.add_width(last_item.len())
         }
     }
+
+    /// Takes in a new node, and tests whether adding it in will force any lines over the budget.
+    /// NOTE: This function does not update state/return a new shape
+    pub fn test_over_budget<T: Display>(&self, item: &T) -> bool {
+        let string = format!("{}", item);
+        let lines = string.lines();
+
+        lines.enumerate().any(|(idx, line)| {
+            let shape = if idx == 0 { *self } else { self.reset() };
+            shape.add_width(line.len()).over_budget()
+        })
+    }
 }
 
 impl Add<usize> for Shape {

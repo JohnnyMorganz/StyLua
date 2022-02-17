@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+call({ x = 1 })
+call("hello")
+

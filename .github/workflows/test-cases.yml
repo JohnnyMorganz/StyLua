@@ -1,0 +1,26 @@
+name: Pull Latest Test Cases
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 0 * * *" # Runs at 00:10 UTC every day
+
+jobs:
+  retrieve_cases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Pull latest tests
+        run: python ./.github/retrieve_test_cases.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3.12.1
+        with:
+          title: Update external test cases
+          body: |
+            Pulls in new changes from external repositories for test cases
+            - This pull request is **auto-generated**
+            - Note: **snapshots have not been updated**. You must manually update snapshots for the updated test cases
+          branch: auto/update-external-test-cases
+          commit-message: Update external test cases
+          base: master
