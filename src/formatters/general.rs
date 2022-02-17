@@ -454,7 +454,7 @@ pub fn format_contained_punctuated_multiline<T, F1, F2>(
     shape: Shape,
 ) -> (ContainedSpan, Punctuated<T>)
 where
-    T: UpdateLeadingTrivia,
+    T: UpdateLeadingTrivia + UpdateTrailingTrivia,
     F1: Fn(&Context, &T, Shape) -> T,
     F2: Fn(&T) -> (T, Vec<Token>),
 {
@@ -485,21 +485,25 @@ where
         let (formatted_argument, mut trailing_comments) =
             argument_take_trailing_comments(&formatted_argument);
 
-        let punctuation = match argument.punctuation() {
+        // Add a new line to the end of the trivia to append
+        trailing_comments.push(create_newline_trivia(ctx));
+
+        let (formatted_argument, punctuation) = match argument.punctuation() {
             Some(punctuation) => {
                 // Continue adding a comma and a new line for multiline function args
                 // Also add any trailing comments we have taken from the expression
-                trailing_comments.push(create_newline_trivia(ctx));
                 let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
                     .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
 
-                Some(symbol)
+                (formatted_argument, Some(symbol))
             }
-            None => Some(TokenReference::new(
-                trailing_comments,
-                create_newline_trivia(ctx),
-                vec![],
-            )),
+
+            // If there was no punctuation, append the trivia back to the end of the argument
+            None => (
+                formatted_argument
+                    .update_trailing_trivia(FormatTriviaType::Replace(trailing_comments)),
+                None,
+            ),
         };
 
         formatted_arguments.push(Pair::new(formatted_argument, punctuation))

@@ -714,6 +714,12 @@ define_update_leading_trivia!(TypeArgument, |this, leading| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trailing_trivia!(TypeArgument, |this, trailing| {
+    this.to_owned()
+        .with_type_info(this.type_info().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
 define_update_trailing_trivia!(TypeAssertion, |this, trailing| {
     this.to_owned()
         .with_cast_to(this.cast_to().update_trailing_trivia(trailing))
