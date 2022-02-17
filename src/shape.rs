@@ -205,6 +205,7 @@ impl Shape {
 
     /// Takes in a new node, and tests whether adding it in will force any lines over the budget.
     /// NOTE: This function does not update state/return a new shape
+    #[cfg(feature = "luau")]
     pub fn test_over_budget<T: Display>(&self, item: &T) -> bool {
         let string = format!("{}", item);
         let lines = string.lines();
