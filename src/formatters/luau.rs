@@ -534,13 +534,11 @@ fn format_type_declaration(
     };
 
     let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let mut type_definition =
-        format_type_info(ctx, type_declaration.type_definition(), shape + 3) // 3 = " = "
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape + 3); // 3 = " = "
 
-    let shape = shape.take_last_line(&strip_trailing_trivia(&type_definition));
-
-    if should_hang_type(type_declaration.type_definition()) || shape.over_budget() {
+    if should_hang_type(type_declaration.type_definition())
+        || shape.test_over_budget(&strip_trailing_trivia(&type_definition))
+    {
         let shape = shape.increment_additional_indent();
         equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
             create_newline_trivia(ctx),
@@ -548,6 +546,9 @@ fn format_type_declaration(
         ]));
         type_definition = hang_type_info(ctx, type_definition, shape);
     }
+
+    let type_definition =
+        type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     type_declaration
         .to_owned()
