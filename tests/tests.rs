@@ -5,6 +5,7 @@ fn format(input: &str) -> String {
 }
 
 #[test]
+#[cfg_attr(feature = "luau", ignore)]
 fn test_standard() {
     insta::glob!("inputs/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
