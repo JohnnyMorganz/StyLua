@@ -842,25 +842,12 @@ pub fn format_function_call(
             && !(previous_suffix_was_index
                 && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
         {
-            // Take all the leading trivia comments, and indent them accordingly
-            let mut suffix_leading_trivia: Vec<_> = trivia_util::suffix_leading_trivia(&suffix)
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| x.to_owned())
-                .flat_map(|trivia| {
-                    // Prepend an indent before the comment, and append a newline after the comments
-                    vec![
-                        create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, current_shape),
-                        trivia,
-                    ]
-                })
-                .collect();
-
-            // Add in the suffix newline and indent
-            suffix_leading_trivia.push(create_newline_trivia(ctx));
-            suffix_leading_trivia.push(create_indent_trivia(ctx, current_shape));
-
-            suffix = suffix.update_leading_trivia(FormatTriviaType::Replace(suffix_leading_trivia));
+            suffix = trivia_util::prepend_newline_indent(
+                ctx,
+                &suffix,
+                trivia_util::suffix_leading_trivia(&suffix),
+                current_shape,
+            );
         }
 
         previous_suffix_was_index = matches!(suffix, Suffix::Index(_));

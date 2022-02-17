@@ -14,7 +14,7 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia,
         },
         trivia_util::{
-            contains_comments, take_type_argument_trailing_comments,
+            contains_comments, prepend_newline_indent, take_type_argument_trailing_comments,
             token_trivia_contains_comments, trivia_is_comment, trivia_is_newline,
             type_info_trailing_trivia,
         },
@@ -338,29 +338,11 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
 pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
-        TypeInfo::Union { left, pipe, right } => {
-            let mut pipe_leading_trivia: Vec<_> = pipe
-                .leading_trivia()
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|trivia| {
-                    // Prepend an indent before the comment, and append a newline after the comments
-                    vec![
-                        create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
-                        trivia.to_owned(),
-                    ]
-                })
-                .collect();
-
-            pipe_leading_trivia.push(create_newline_trivia(ctx));
-            pipe_leading_trivia.push(create_indent_trivia(ctx, shape));
-
-            TypeInfo::Union {
-                left,
-                pipe: pipe.update_leading_trivia(FormatTriviaType::Replace(pipe_leading_trivia)),
-                right: Box::new(hang_type_info(ctx, *right, shape)),
-            }
-        }
+        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
+            left,
+            pipe: prepend_newline_indent(ctx, &pipe, pipe.leading_trivia(), shape),
+            right: Box::new(hang_type_info(ctx, *right, shape)),
+        },
         _ => type_info,
     }
 }
