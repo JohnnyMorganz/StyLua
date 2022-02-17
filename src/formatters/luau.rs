@@ -388,20 +388,20 @@ fn hang_type_info_binop(
 }
 
 /// Hangs a type info at a pipe operator, then reformats either side with the new shape
-pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
+pub fn hang_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
     const PIPE_LENGTH: usize = 2; // "| "
 
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: Box::new(format_type_info(ctx, &*left, shape)),
-            pipe: hang_type_info_binop(ctx, pipe, shape, &*right),
+            left: Box::new(format_type_info(ctx, left, shape)),
+            pipe: hang_type_info_binop(ctx, pipe.to_owned(), shape, right),
             right: Box::new(hang_type_info(
                 ctx,
-                right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
                 shape.reset() + PIPE_LENGTH,
             )),
         },
-        other => format_type_info(ctx, &other, shape),
+        other => format_type_info(ctx, other, shape),
     }
 }
 
@@ -602,7 +602,7 @@ fn format_type_declaration(
             create_newline_trivia(ctx),
             create_indent_trivia(ctx, shape),
         ]));
-        type_definition = hang_type_info(ctx, type_definition, shape);
+        type_definition = hang_type_info(ctx, type_declaration.type_definition(), shape);
     }
 
     let type_definition =
