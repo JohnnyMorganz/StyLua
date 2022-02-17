@@ -11,12 +11,12 @@ use crate::{
         table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
-            UpdateLeadingTrivia, UpdateTrailingTrivia,
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, prepend_newline_indent, take_type_argument_trailing_comments,
+            contains_comments, take_type_argument_trailing_comments,
             token_trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            type_info_trailing_trivia,
+            type_info_leading_trivia, type_info_trailing_trivia,
         },
     },
     shape::Shape,
@@ -336,14 +336,70 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
     }
 }
 
+// A clone of [`hang_binop`], except for TypeInfo tokens. TODO: can we merge the two?
+fn hang_type_info_binop(
+    ctx: &Context,
+    binop: TokenReference,
+    shape: Shape,
+    rhs: &TypeInfo,
+) -> TokenReference {
+    // Get the leading comments of a binop, as we need to preserve them
+    // Intersperse a newline and indent trivia between them
+    // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
+    let leading_comments = binop
+        .leading_trivia()
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+            ]
+        })
+        // If there are any comments trailing the BinOp, we need to move them to before the BinOp
+        .chain(
+            binop
+                .trailing_trivia()
+                .filter(|token| trivia_is_comment(token))
+                .map(|x| x.to_owned()),
+        )
+        // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
+        .chain(
+            type_info_leading_trivia(rhs)
+                .iter()
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
+                    vec![
+                        create_newline_trivia(ctx),
+                        create_indent_trivia(ctx, shape),
+                        x.to_owned().to_owned(),
+                    ]
+                }),
+        )
+        // Create a newline just before the BinOp, and preserve the indentation
+        .chain(std::iter::once(create_newline_trivia(ctx)))
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    binop.update_trivia(
+        FormatTriviaType::Replace(leading_comments),
+        FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
+    )
+}
+
 /// Hangs a type info at a pipe operator, then reformats either side with the new shape
 pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
     const PIPE_LENGTH: usize = 2; // "| "
+
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
             left: Box::new(format_type_info(ctx, &*left, shape)),
-            pipe: prepend_newline_indent(ctx, &pipe, pipe.leading_trivia(), shape),
-            right: Box::new(hang_type_info(ctx, *right, shape.reset() + PIPE_LENGTH)),
+            pipe: hang_type_info_binop(ctx, pipe, shape, &*right),
+            right: Box::new(hang_type_info(
+                ctx,
+                right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                shape.reset() + PIPE_LENGTH,
+            )),
         },
         other => format_type_info(ctx, &other, shape),
     }
