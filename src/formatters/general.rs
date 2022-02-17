@@ -495,6 +495,9 @@ where
 
                 Some(symbol)
             }
+            // TODO/HACK: we create a phantom comma which is just actually a new line
+            // We need to do this because in function declarations, we format parameters but if they have a type
+            // specifier we don't have access to put it after the type specifier
             None => Some(TokenReference::new(
                 trailing_comments,
                 create_newline_trivia(ctx),

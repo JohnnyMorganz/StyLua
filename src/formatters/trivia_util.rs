@@ -731,6 +731,38 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
 }
 
 #[cfg(feature = "luau")]
+// TODO: I tried to make this return `impl <Iterator = &Token>` but it didn't work because of the 3 recursive calls. Need to look into this to prevent alloc
+pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
+    match type_info {
+        TypeInfo::Array { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Basic(token) | TypeInfo::String(token) | TypeInfo::Boolean(token) => {
+            token.leading_trivia()
+        }
+        TypeInfo::Callback {
+            generics,
+            parentheses,
+            ..
+        } => match generics {
+            Some(generics) => generics.arrows().tokens().0.leading_trivia(),
+            None => parentheses.tokens().0.leading_trivia(),
+        },
+        TypeInfo::Generic { base, .. } => base.leading_trivia(),
+        TypeInfo::GenericPack { name, .. } => name.leading_trivia(),
+        TypeInfo::Intersection { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Module { module, .. } => module.leading_trivia(),
+        TypeInfo::Optional { base, .. } => return type_info_leading_trivia(base),
+        TypeInfo::Table { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Typeof { typeof_token, .. } => typeof_token.leading_trivia(),
+        TypeInfo::Tuple { parentheses, .. } => parentheses.tokens().0.leading_trivia(),
+        TypeInfo::Union { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Variadic { ellipse, .. } => ellipse.leading_trivia(),
+        TypeInfo::VariadicPack { ellipse, .. } => ellipse.leading_trivia(),
+        other => panic!("unknown node {:?}", other),
+    }
+    .collect()
+}
+
+#[cfg(feature = "luau")]
 pub fn take_type_argument_trailing_comments(
     type_argument: &TypeArgument,
 ) -> (TypeArgument, Vec<Token>) {
