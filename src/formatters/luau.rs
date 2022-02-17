@@ -336,14 +336,16 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
     }
 }
 
+/// Hangs a type info at a pipe operator, then reformats either side with the new shape
 pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
+    const PIPE_LENGTH: usize = 2; // "| "
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left,
+            left: Box::new(format_type_info(ctx, &*left, shape)),
             pipe: prepend_newline_indent(ctx, &pipe, pipe.leading_trivia(), shape),
-            right: Box::new(hang_type_info(ctx, *right, shape)),
+            right: Box::new(hang_type_info(ctx, *right, shape.reset() + PIPE_LENGTH)),
         },
-        _ => type_info,
+        other => format_type_info(ctx, &other, shape),
     }
 }
 
