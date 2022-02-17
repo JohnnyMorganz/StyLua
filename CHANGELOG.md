@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed call chains not hanging when comments were present in between calls, leading to a syntax error. ([#367](https://github.com/JohnnyMorganz/StyLua/issues/367))
+- Fixed if-expression syntax getting unnecessarily expanded further due to trailing comments. ([#375](https://github.com/JohnnyMorganz/StyLua/issues/375))
 
 ## [0.12.2] - 2022-02-06
 ### Fixed
