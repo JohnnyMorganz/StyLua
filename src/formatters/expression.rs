@@ -392,7 +392,9 @@ fn format_token_expression_sequence(
 
     let requires_multiline_expression = shape.take_first_line(&formatted_expression).over_budget()
         || trivia_util::token_contains_trailing_comments(token)
-        || trivia_util::contains_comments(expression);
+        || trivia_util::contains_comments(
+            expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+        ); // Remove trailing trivia (comments) before checking, as they shouldn't have an impact
 
     let token = match requires_multiline_expression {
         // `<token>\n`
