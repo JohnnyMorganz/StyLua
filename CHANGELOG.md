@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
-- Fixed long comments forcing unnecessary hanging of type declarations. ([#384](https://github.com/JohnnyMorganz/StyLua/issues/384)) 
+- Fixed long comments forcing unnecessary hanging of type declarations. ([#384](https://github.com/JohnnyMorganz/StyLua/issues/384))
+- Fixed long intersection types not hanging. ([#382](https://github.com/JohnnyMorganz/StyLua/issues/382))
 
 ## [0.12.3] - 2022-02-17
 ### Fixed
