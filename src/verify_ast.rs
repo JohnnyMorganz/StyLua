@@ -132,12 +132,17 @@ impl VisitorMut for AstVerifier {
 
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num,
+                    // Try parsing as Hex (0x)
                     Err(_) => match i32::from_str_radix(&text.as_str()[2..], 16) {
                         Ok(num) => num.into(),
+                        // If in Luau, try parsing as binary (0b)
+                        #[cfg(feature = "luau")]
                         Err(_) => match i32::from_str_radix(&text.as_str()[2..], 2) {
                             Ok(num) => num.into(),
                             Err(_) => unreachable!(),
                         },
+                        #[cfg(not(feature = "luau"))]
+                        Err(_) => unreachable!(),
                     },
                 };
 
@@ -168,5 +173,149 @@ impl VisitorMut for AstVerifier {
         };
 
         Token::new(token_type)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_equivalent_asts() {
+        let input_ast = full_moon::parse("local x = 1").unwrap();
+        let output_ast = full_moon::parse("local x = 1").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_different_asts() {
+        let input_ast = full_moon::parse("local x = 1").unwrap();
+        let output_ast = full_moon::parse("local x = 2").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_stmt_semicolons() {
+        let input_ast = full_moon::parse("local x = 1;").unwrap();
+        let output_ast = full_moon::parse("local x = 1").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_string_quote_types() {
+        // Should not flag different quotes as incorrect
+        let input_ast = full_moon::parse("local x = '1'").unwrap();
+        let output_ast = full_moon::parse("local x = \"1\"").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_string_escapes() {
+        // Should not flag cleansed escapes as incorrect
+        let input_ast = full_moon::parse("local x = '\\q'").unwrap();
+        let output_ast = full_moon::parse("local x = 'q'").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_numbers() {
+        let input_ast = full_moon::parse("local x = .1").unwrap();
+        let output_ast = full_moon::parse("local x = 0.1").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_numbers_2() {
+        let input_ast = full_moon::parse("local x = -.1").unwrap();
+        let output_ast = full_moon::parse("local x = -0.1").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_hex_numbers() {
+        let input_ast = full_moon::parse("local x = 0XFFFF").unwrap();
+        let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_different_hex_numbers() {
+        let input_ast = full_moon::parse("local x = 0xFFAA").unwrap();
+        let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_equivalent_binary_numbers() {
+        let input_ast = full_moon::parse("local x = 0B10101").unwrap();
+        let output_ast = full_moon::parse("local x = 0b10101").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_different_binary_numbers() {
+        let input_ast = full_moon::parse("local x = 0b1111").unwrap();
+        let output_ast = full_moon::parse("local x = 0b1110").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_table_separators() {
+        let input_ast = full_moon::parse("local x = {'a'; 'b'; 'c';}").unwrap();
+        let output_ast = full_moon::parse("local x = {'a', 'b', 'c'}").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_function_calls() {
+        let input_ast = full_moon::parse("local x = call'foo'").unwrap();
+        let output_ast = full_moon::parse("local x = call('foo')").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_function_calls_2() {
+        let input_ast = full_moon::parse("local x = call{'foo'}").unwrap();
+        let output_ast = full_moon::parse("local x = call({'foo'})").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_conditions() {
+        let input_ast = full_moon::parse("if (true) then return end").unwrap();
+        let output_ast = full_moon::parse("if true then return end").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
     }
 }

@@ -85,7 +85,7 @@ fn format_file(
             &contents,
             &formatted_contents,
             3,
-            format!("Diff in {}:", path.display()),
+            &format!("Diff in {}:", path.display()),
             opt.color,
         )
         .context("failed to create diff")?;
@@ -118,7 +118,7 @@ fn format_string(
             &input,
             &formatted_contents,
             3,
-            "Diff from stdin:".into(),
+            "Diff from stdin:",
             opt.color,
         )
         .context("failed to create diff")?;
@@ -333,4 +333,28 @@ fn main() {
     };
 
     std::process::exit(exit_code);
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+
+    #[test]
+    fn test_no_files_provided() {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.assert()
+            .failure()
+            .code(2)
+            .stderr("error: no files provided\n");
+    }
+
+    #[test]
+    fn test_format_stdin() {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.arg("-")
+            .write_stdin("local   x   = 1")
+            .assert()
+            .success()
+            .stdout("local x = 1\n");
+    }
 }

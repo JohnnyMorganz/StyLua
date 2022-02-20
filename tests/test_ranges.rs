@@ -11,7 +11,6 @@ fn format(input: &str, range: Range) -> String {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_default() {
     insta::assert_snapshot!(
         format(
@@ -30,7 +29,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_ignore_last_stmt() {
     insta::assert_snapshot!(
         format(
@@ -47,7 +45,6 @@ end"###,
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_dont_modify_eof() {
     insta::assert_snapshot!(
         format(
@@ -73,7 +70,6 @@ local bar   =     baz
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_incomplete_range() {
     insta::assert_snapshot!(
         format(
@@ -88,7 +84,6 @@ fn test_incomplete_range() {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_large_example() {
     insta::assert_snapshot!(
         format(
@@ -169,7 +164,6 @@ end end end end end
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_nested_range() {
     insta::assert_snapshot!(
         format(

@@ -11,7 +11,6 @@ fn format(input: &str, quote_style: QuoteStyle) -> String {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_auto_prefer_double_quotes() {
     insta::assert_snapshot!(
         format(
@@ -41,7 +40,6 @@ local i = 'foo"bar\'baz'
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_auto_prefer_single_quotes() {
     insta::assert_snapshot!(
         format(
@@ -71,7 +69,6 @@ local i = 'foo"bar\'baz'
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_force_double_quotes() {
     insta::assert_snapshot!(
         format(
@@ -101,7 +98,6 @@ local i = 'foo"bar\'baz'
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_force_single_quotes() {
     insta::assert_snapshot!(
         format(
