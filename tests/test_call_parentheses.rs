@@ -300,3 +300,19 @@ foo("hello") -- comment
     "###
     );
 }
+
+#[test]
+fn test_call_parens_semicolons() {
+    insta::assert_snapshot!(
+        format(CallParenType::None,
+            r###"
+foo"hello"; -- comment
+foo{ x = y }; -- comment
+"###
+        ),
+        @r###"
+    foo "hello" -- comment
+    foo { x = y } -- comment
+    "###
+    );
+}
