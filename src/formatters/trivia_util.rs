@@ -230,8 +230,7 @@ fn var_trailing_trivia(var: &Var) -> Vec<Token> {
             if let Some(last_suffix) = var_expr.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
-                // TODO: is it possible for this to happen?
-                vec![]
+                unreachable!("got a VarExpression with no suffix");
             }
         }
         other => panic!("unknown node {:?}", other),
@@ -249,8 +248,7 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
             if let Some(last_suffix) = function_call.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
-                // TODO: is it possible for this to happen?
-                vec![]
+                unreachable!("got a FunctionCall with no suffix");
             }
         }
         Value::String(token_reference) => token_reference
@@ -853,7 +851,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let last_suffix = function_call.suffixes().last();
             let trailing_trivia = match last_suffix {
                 Some(suffix) => suffix_trailing_trivia(suffix),
-                None => Vec::new(),
+                None => unreachable!("got a FunctionCall with no suffix"),
             };
 
             (
