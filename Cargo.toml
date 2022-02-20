@@ -1,6 +1,6 @@
 [package]
 name = "stylua"
-version = "0.12.2"
+version = "0.12.3"
 authors = ["JohnnyMorganz <johnnymorganz@outlook.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
@@ -25,24 +25,24 @@ luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
 
 [dependencies]
-anyhow = "1.0.41"
-console = "0.14.1"
-crossbeam-channel = "0.5.1"
+anyhow = "1.0.53"
+console = "0.15.0"
+crossbeam-channel = "0.5.2"
 full_moon = "0.15.1"
 globset = "0.4.8"
 ignore = "0.4.18"
 lazy_static = "1.4.0"
-num_cpus = "1.13.0"
+num_cpus = "1.13.1"
 regex = "1.5.4"
-serde = "1.0.126"
-similar = { version = "1.3.0", features = ["text", "inline"] }
-structopt = "0.3.21"
+serde = "1.0.136"
+similar = { version = "2.1.0", features = ["text", "inline"] }
+structopt = "0.3.26"
 threadpool = "1.8.1"
 toml = "0.5.8"
 
 [dev-dependencies]
 criterion = "0.3.4"
-insta = { version = "1.7.1", features = ["glob"] }
+insta = { version = "1.12.0", features = ["glob"] }
 
 [[bench]]
 name = "date"

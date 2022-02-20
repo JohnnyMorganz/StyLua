@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+- Fixed long comments forcing unnecessary hanging of type declarations. ([#384](https://github.com/JohnnyMorganz/StyLua/issues/384))
+- Fixed long intersection types not hanging. ([#382](https://github.com/JohnnyMorganz/StyLua/issues/382))
+
+## [0.12.3] - 2022-02-17
+### Fixed
 - Fixed call chains not hanging when comments were present in between calls, leading to a syntax error. ([#367](https://github.com/JohnnyMorganz/StyLua/issues/367))
 - Fixed if-expression syntax getting unnecessarily expanded further due to trailing comments. ([#375](https://github.com/JohnnyMorganz/StyLua/issues/375))
 - Fixed formatting of leading comments of a keyword in if-expression syntax. ([#374](https://github.com/JohnnyMorganz/StyLua/issues/374))
