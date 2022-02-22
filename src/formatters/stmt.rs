@@ -45,7 +45,13 @@ macro_rules! fmt_stmt {
 /// Called only for condition expression (if ... then, while ... do, etc.)
 pub fn remove_condition_parentheses(expression: Expression) -> Expression {
     match expression.to_owned() {
-        Expression::Parentheses { expression, .. } => *expression,
+        Expression::Parentheses {
+            expression: inner_expression,
+            ..
+        } => {
+            let (_, comments) = trivia_util::take_expression_trailing_comments(&expression);
+            inner_expression.update_trailing_trivia(FormatTriviaType::Append(comments))
+        }
         Expression::Value { value, .. } => match *value {
             Value::ParenthesesExpression(expression) => remove_condition_parentheses(expression),
             _ => expression,
