@@ -1074,28 +1074,7 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
-    match expression {
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            contains_comments(binop) || contains_comments(lhs)
-            // Check if the binop chain still continues
-            // If so, we should keep checking the expresion
-            // Otherwise, stop checking
-            || match &**rhs {
-                Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
-                Expression::UnaryOperator { unop, expression } => {
-                    let op_contains_comments = match unop {
-                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => contains_comments(token),
-                        other => panic!("unknown node {:?}", other)
-                    };
-                    op_contains_comments || expression_contains_inline_comments(expression)
-                }
-                Expression::Value{ .. } => false,
-                Expression::Parentheses { .. } => contains_comments(rhs),
-                other => panic!("unknown node {:?}", other),
-            }
-        }
-        _ => false,
-    }
+    contains_comments(expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])))
 }
 
 // Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
