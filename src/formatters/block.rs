@@ -1,5 +1,5 @@
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
         assignment::hang_punctuated_list,
@@ -179,7 +179,10 @@ fn format_last_stmt_block(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> 
 }
 
 pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
-    if !ctx.should_format_node(last_stmt) {
+    let should_format = ctx.should_format_node(last_stmt);
+    if let FormatNode::Skip = should_format {
+        return last_stmt.to_owned();
+    } else if let FormatNode::NotInRange = should_format {
         return format_last_stmt_block(ctx, last_stmt, shape);
     }
 
@@ -418,7 +421,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
 
         // If this is the first stmt, then remove any leading newlines
         if !found_first_stmt {
-            if ctx.should_format_node(&stmt) {
+            if let FormatNode::Normal = ctx.should_format_node(&stmt) {
                 stmt = stmt_remove_leading_newlines(stmt);
             }
             found_first_stmt = true;
@@ -503,7 +506,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             let shape = shape.reset();
             let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
             // If this is the first stmt, then remove any leading newlines
-            if !found_first_stmt && ctx.should_format_node(&last_stmt) {
+            if !found_first_stmt && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal) {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
             }
             // LastStmt will never need a semicolon

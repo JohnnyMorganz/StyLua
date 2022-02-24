@@ -1,6 +1,5 @@
 use crate::{
-    check_should_format,
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
@@ -645,7 +644,9 @@ fn pop_until_no_whitespace(trivia: &mut Vec<Token>) {
 /// This is done by removing any leading whitespace, whilst preserving leading comments.
 /// An EOF token has no trailing trivia
 pub fn format_eof(ctx: &Context, eof: &TokenReference, shape: Shape) -> TokenReference {
-    check_should_format!(ctx, eof);
+    if ctx.should_format_node(eof) != FormatNode::Normal {
+        return eof.to_owned();
+    }
 
     // Need to preserve any comments in leading_trivia if present
     let mut formatted_leading_trivia: Vec<Token> = load_token_trivia(

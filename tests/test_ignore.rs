@@ -43,6 +43,23 @@ local bar   =     baz
 }
 
 #[test]
+fn test_singleline_ignore_stmt_block() {
+    insta::assert_snapshot!(
+        r###"
+-- stylua: ignore
+function foo   ()
+    return    x +    1
+end"###, @r###"
+
+    -- stylua: ignore
+    function foo   ()
+        return    x +    1
+    end
+    "###
+    )
+}
+
+#[test]
 fn test_multiline_block_ignore() {
     insta::assert_snapshot!(
         format(
