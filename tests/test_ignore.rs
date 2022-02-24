@@ -45,12 +45,12 @@ local bar   =     baz
 #[test]
 fn test_singleline_ignore_stmt_block() {
     insta::assert_snapshot!(
-        r###"
+        r###"local   x     = 1
 -- stylua: ignore
 function foo   ()
     return    x +    1
 end"###, @r###"
-
+    local   x     = 1
     -- stylua: ignore
     function foo   ()
         return    x +    1
