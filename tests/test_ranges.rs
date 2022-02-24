@@ -368,3 +368,20 @@ fn test_nested_range_table_2() {
                 }
     "###);
 }
+
+#[test]
+fn test_nested_range_binop() {
+    insta::assert_snapshot!(
+        format(
+            r###"local    z    =(    1     +  (function()
+        local    p   =  q
+        end)())
+"###,
+            Range::from_values(Some(40), Some(75))
+        ),
+    @r###"
+    local    z    =(    1     +  (function()
+    	local p = q
+            end)())
+    "###);
+}
