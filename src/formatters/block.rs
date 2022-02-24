@@ -506,7 +506,8 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             let shape = shape.reset();
             let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
             // If this is the first stmt, then remove any leading newlines
-            if !found_first_stmt && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal) {
+            if !found_first_stmt && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal)
+            {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
             }
             // LastStmt will never need a semicolon
