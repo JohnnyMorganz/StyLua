@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed long intersection types not hanging. ([#382](https://github.com/JohnnyMorganz/StyLua/issues/382))
 - Fixed comments being lost around a condition when unnecessary parentheses are removed. ([#389](https://github.com/JohnnyMorganz/StyLua/issues/389))
 - Fixed multiline expression with comments inside parentheses being collapsed leading to a syntax error. ([#386](https://github.com/JohnnyMorganz/StyLua/issues/386))
+- Fixed ignore comments not respected in child blocks of ignored statements. ([#387](https://github.com/JohnnyMorganz/StyLua/issues/387))
 
 ## [0.12.3] - 2022-02-17
 ### Fixed
