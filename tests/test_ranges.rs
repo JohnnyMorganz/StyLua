@@ -180,3 +180,208 @@ end
     end
     "###);
 }
+
+#[test]
+fn test_nested_range_local_function() {
+    insta::assert_snapshot!(
+        format(
+            r###"local function test()
+    call "hello"
+    call    { x     =   y}
+    local   z   = 1    + 3    - (2 / 3)
+end
+"###,
+            Range::from_values(Some(33), Some(116))
+        ),
+    @r###"
+    local function test()
+        call "hello"
+    	call({ x = y })
+    	local z = 1 + 3 - (2 / 3)
+    end
+    "###);
+}
+
+#[test]
+fn test_nested_range_while() {
+    insta::assert_snapshot!(
+        format(
+            r###"while     true     do
+    local    z   = 2
+    end
+"###,
+            Range::from_values(Some(21), Some(47))
+        ),
+    @r###"
+    while     true     do
+    	local z = 2
+        end
+    "###);
+}
+
+#[test]
+fn test_nested_range_repeat() {
+    insta::assert_snapshot!(
+        format(
+            r###"repeat
+    local    z   =     2
+until    true
+"###,
+            Range::from_values(Some(6), Some(32))
+        ),
+    @r###"
+    repeat
+    	local z = 2
+    until    true
+    "###);
+}
+
+#[test]
+fn test_nested_range_do() {
+    insta::assert_snapshot!(
+        format(
+            r###"do
+    local    z   =     2
+end
+"###,
+            Range::from_values(Some(2), Some(32))
+        ),
+    @r###"
+    do
+    	local z = 2
+    end
+    "###);
+}
+
+#[test]
+fn test_nested_range_generic_for() {
+    insta::assert_snapshot!(
+        format(
+            r###"for    i,    v  in pairs(x) do
+    local    z   =     2
+end
+"###,
+            Range::from_values(Some(30), Some(56))
+        ),
+    @r###"
+    for    i,    v  in pairs(x) do
+    	local z = 2
+    end
+    "###);
+}
+
+#[test]
+fn test_nested_range_else_if() {
+    insta::assert_snapshot!(
+        format(
+            r###"if   x    and  y  then
+    local   p  = q
+elseif      c - d > 2  then
+    local    z   =     2
+end
+"###,
+            Range::from_values(Some(69), Some(95))
+        ),
+    @r###"
+    if   x    and  y  then
+        local   p  = q
+    elseif      c - d > 2  then
+    	local z = 2
+    end
+    "###);
+}
+
+#[test]
+fn test_nested_range_function_call() {
+    insta::assert_snapshot!(
+        format(
+            r###"call   (function    ()
+    local    z   =   5
+            end)
+"###,
+            Range::from_values(Some(22), Some(58))
+        ),
+    @r###"
+    call   (function    ()
+    	local z = 5
+                end)
+    "###);
+}
+
+#[test]
+fn test_nested_range_function_call_table() {
+    insta::assert_snapshot!(
+        format(
+            r###"call   {   x  =   function()
+   local    z   =    2
+end}
+"###,
+            Range::from_values(Some(28), Some(61))
+        ),
+    @r###"
+    call   {   x  =   function()
+    	local z = 2
+    end}
+    "###);
+}
+
+#[test]
+fn test_nested_range_table_1() {
+    insta::assert_snapshot!(
+        format(
+            r###"local    z    = {
+                      function()
+                                local z      =  5
+                    end
+            }
+"###,
+            Range::from_values(Some(50), Some(121))
+        ),
+    @r###"
+    local    z    = {
+                          function()
+    	local z = 5
+                        end
+                }
+    "###);
+}
+
+#[test]
+fn test_nested_range_table_2() {
+    insta::assert_snapshot!(
+        format(
+            r###"local    z    = {
+                      [(function()
+                      return     random_func  ()
+
+            end)()] = true
+            }
+"###,
+            Range::from_values(Some(41), Some(121))
+        ),
+    @r###"
+    local    z    = {
+                          [(function()
+    	return random_func()
+
+                end)()] = true
+                }
+    "###);
+}
+
+#[test]
+fn test_nested_range_binop() {
+    insta::assert_snapshot!(
+        format(
+            r###"local    z    =(    1     +  (function()
+        local    p   =  q
+        end)())
+"###,
+            Range::from_values(Some(40), Some(75))
+        ),
+    @r###"
+    local    z    =(    1     +  (function()
+    	local p = q
+            end)())
+    "###);
+}

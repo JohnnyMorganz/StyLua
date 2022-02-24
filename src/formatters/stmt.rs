@@ -6,7 +6,7 @@ use crate::formatters::luau::{
     format_type_specifier,
 };
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
         assignment::{format_assignment, format_local_assignment},
@@ -839,7 +839,11 @@ pub(crate) mod stmt_block {
 }
 
 pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
-    if !ctx.should_format_node(stmt) {
+    let should_format = ctx.should_format_node(stmt);
+
+    if let FormatNode::Skip = should_format {
+        return stmt.to_owned();
+    } else if let FormatNode::NotInRange = should_format {
         return stmt_block::format_stmt_block(ctx, stmt, shape);
     }
 

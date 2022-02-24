@@ -4,6 +4,16 @@ use full_moon::{
     tokenizer::{Token, TokenType},
 };
 
+#[derive(Debug, PartialEq)]
+pub enum FormatNode {
+    /// The formatting is completely blocked via an ignore comment, so this node should be skipped
+    Skip,
+    /// This node is outside the range, but we should still look to format internally to find items within the range
+    NotInRange,
+    /// There is no restriction, the node should be formatted normally
+    Normal,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Context {
     /// The configuration passed to the formatter
@@ -68,10 +78,10 @@ impl Context {
     /// If not, determine whether the node has an ignore comment present.
     /// If not, checks whether the provided node is outside the formatting range.
     /// If not, the node should be formatted.
-    pub fn should_format_node(&self, node: &impl Node) -> bool {
+    pub fn should_format_node(&self, node: &impl Node) -> FormatNode {
         // If formatting is disabled we should immediately bailed out.
         if self.formatting_disabled {
-            return false;
+            return FormatNode::Skip;
         }
 
         // Check comments
@@ -87,7 +97,7 @@ impl Context {
 
             for line in comment_lines {
                 if line == "stylua: ignore" {
-                    return false;
+                    return FormatNode::Skip;
                 }
             }
         }
@@ -111,10 +121,14 @@ impl Context {
                 }
             }
 
-            in_range
+            if in_range {
+                FormatNode::Normal
+            } else {
+                FormatNode::NotInRange
+            }
         } else {
             // No range provided, therefore always in formatting range
-            true
+            FormatNode::Normal
         }
     }
 
@@ -129,15 +143,6 @@ impl Context {
             || self.config().call_parentheses == CallParenType::None
             || self.config().call_parentheses == CallParenType::NoSingleTable
     }
-}
-
-#[macro_export]
-macro_rules! check_should_format {
-    ($ctx:expr, $token:expr) => {
-        if !$ctx.should_format_node($token) {
-            return $token.to_owned();
-        }
-    };
 }
 
 /// Returns the relevant line ending string from the [`LineEndings`] enum
