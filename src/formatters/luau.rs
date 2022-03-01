@@ -388,17 +388,25 @@ fn hang_type_info_binop(
 }
 
 /// Hangs a type info at a pipe operator, then reformats either side with the new shape
-pub fn hang_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
+pub fn hang_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
     const PIPE_LENGTH: usize = 2; // "| "
+
+    let hanging_shape = shape.with_indent(shape.indent().add_indent_level(hang_level));
 
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
             left: Box::new(format_type_info(ctx, left, shape)),
-            pipe: hang_type_info_binop(ctx, pipe.to_owned(), shape, right),
+            pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                shape.reset() + PIPE_LENGTH,
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
             )),
         },
         TypeInfo::Intersection {
@@ -407,15 +415,24 @@ pub fn hang_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Type
             right,
         } => TypeInfo::Intersection {
             left: Box::new(format_type_info(ctx, left, shape)),
-            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), shape, right),
+            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                shape.reset() + PIPE_LENGTH,
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
             )),
         },
         other => format_type_info(ctx, other, shape),
     }
+}
+
+fn can_hang_type(type_info: &TypeInfo) -> bool {
+    matches!(
+        type_info,
+        // Can hang a binary operation
+        TypeInfo::Union { .. } | TypeInfo::Intersection { .. }
+    )
 }
 
 pub fn format_indexed_type_info(
@@ -502,6 +519,11 @@ pub fn format_type_field(
     let trailing_trivia = type_info_trailing_trivia(&value);
 
     if let TableType::MultiLine = table_type {
+        // If still over budget, hang the type
+        if can_hang_type(type_field.value()) && shape.test_over_budget(&value) {
+            value = hang_type_info(ctx, type_field.value(), shape, 1)
+        };
+
         value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
     }
 
@@ -624,7 +646,7 @@ fn format_type_declaration(
             create_newline_trivia(ctx),
             create_indent_trivia(ctx, shape),
         ]));
-        type_definition = hang_type_info(ctx, type_declaration.type_definition(), shape);
+        type_definition = hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
     }
 
     let type_definition =
