@@ -410,7 +410,8 @@ fn hang_type_info_binop(
             binop
                 .trailing_trivia()
                 .filter(|token| trivia_is_comment(token))
-                .map(|x| x.to_owned()),
+                // Prepend a single space beforehand
+                .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
         )
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
         .chain(
@@ -539,7 +540,7 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
         && (should_hang_type(&type_info) || shape.test_over_budget(&type_info))
     {
         let shape = shape.reset().increment_additional_indent();
-        hang_type_info(ctx, &type_info, shape, 1)
+        hang_type_info(ctx, &type_info, shape, 0)
     } else {
         type_info
     };
