@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ignore comments not respected in child blocks of ignored statements. ([#387](https://github.com/JohnnyMorganz/StyLua/issues/387))
 - Fixed values in type tables not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
 - Fixed type info generics not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
+- Fixed callback types with binop type parameters / return types not hanging leading to a syntax error when comments are present. ([#396](https://github.com/JohnnyMorganz/StyLua/issues/396))
 
 ## [0.12.3] - 2022-02-17
 ### Fixed
