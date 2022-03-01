@@ -593,6 +593,7 @@ pub fn format_type_assertion(
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
+/// Checks a type info to see if it should be hanged due to comments being present
 fn should_hang_type(type_info: &TypeInfo) -> bool {
     // Only hang if its a binary type info, since it doesn't matter for unary types
     match type_info {
@@ -627,6 +628,9 @@ fn format_type_declaration(
     add_leading_trivia: bool,
     shape: Shape,
 ) -> TypeDeclaration {
+    const TYPE_TOKEN_LENGTH: usize = "type ".len();
+    const EQUAL_TOKEN_LENGTH: usize = " = ".len();
+
     // Calculate trivia
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -648,7 +652,7 @@ fn format_type_declaration(
         type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
     }
 
-    let shape = shape + 5; // 5 = "type "
+    let shape = shape + TYPE_TOKEN_LENGTH;
     let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
     let shape = shape + type_name.to_string().len();
 
@@ -662,17 +666,55 @@ fn format_type_declaration(
     };
 
     let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape + 3); // 3 = " = "
+    let type_definition;
+    let singleline_type_definition = format_type_info(
+        ctx,
+        type_declaration.type_definition(),
+        shape.with_infinite_width(),
+    );
+    let proper_type_definition = format_type_info(
+        ctx,
+        type_declaration.type_definition(),
+        shape + EQUAL_TOKEN_LENGTH,
+    );
 
-    if should_hang_type(type_declaration.type_definition())
-        || shape.test_over_budget(&strip_trailing_trivia(&type_definition))
+    // Test to see whether the type definition must be hung due to comments
+    let must_hang = should_hang_type(type_declaration.type_definition());
+
+    // If we can hang the type definition, and its over width, then lets try doing so
+    if can_hang_type(type_declaration.type_definition())
+        && (must_hang
+            || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition)))
     {
-        let shape = shape.increment_additional_indent();
-        equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
-            create_newline_trivia(ctx),
-            create_indent_trivia(ctx, shape),
-        ]));
-        type_definition = hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
+        let shape = shape.reset().increment_additional_indent();
+        let hanging_type_definition =
+            hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
+
+        // Use the formatting which fits nicer (i.e., least amount of vertical space), or is required
+        if must_hang
+            || shape.test_over_budget(&proper_type_definition)
+            || strip_trivia(&hanging_type_definition)
+                .to_string()
+                .lines()
+                .count()
+                <= strip_trivia(&proper_type_definition)
+                    .to_string()
+                    .lines()
+                    .count()
+        {
+            type_definition = hanging_type_definition;
+
+            // Use a hanging equal token
+            equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+            ]));
+        } else {
+            type_definition = proper_type_definition;
+        }
+    } else {
+        // Use the proper formatting
+        type_definition = proper_type_definition;
     }
 
     let type_definition =
