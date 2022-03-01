@@ -131,6 +131,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             arrow,
             return_type,
         } => {
+            const PAREN_LEN: usize = "(".len();
+            const ARROW_LEN: usize = " -> ".len();
+
             let (start_parens, end_parens) = parentheses.tokens();
 
             let generics = generics
@@ -147,11 +150,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 || contains_comments(arguments)
                 || shape
                     .add_width(
-                        2 + 4
+                        PAREN_LEN * 2
+                            + ARROW_LEN
                             + arguments.to_string().len()
                             + strip_trailing_trivia(&**return_type).to_string().len(),
                     )
-                    .over_budget(); // 2 = opening/closing parens, 4 = " -> "
+                    .over_budget();
 
             let (parentheses, arguments, shape) = if force_multiline {
                 let (parentheses, formatted_arguments) = format_contained_punctuated_multiline(
@@ -162,19 +166,32 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     take_type_argument_trailing_comments,
                     shape,
                 );
-                let shape = shape.reset() + 1; // 1 = ")"
+                let shape = shape.reset() + PAREN_LEN;
 
                 (parentheses, formatted_arguments, shape)
             } else {
                 let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
-                let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
+                let shape = shape + (PAREN_LEN * 2 + arguments.to_string().len());
 
                 (parentheses, arguments, shape)
             };
 
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
-            let return_type = Box::new(format_type_info(ctx, return_type, shape));
+            let shape = shape + ARROW_LEN;
+            let return_type = format_type_info(ctx, return_type, shape);
+
+            // Test to see whether we need to hang the return type
+            let return_type = Box::new(
+                if can_hang_type(&return_type)
+                    && (should_hang_type(&return_type) || shape.test_over_budget(&return_type))
+                {
+                    let shape = shape.reset().increment_additional_indent();
+                    hang_type_info(ctx, &return_type, shape, 1)
+                } else {
+                    return_type
+                },
+            );
 
             TypeInfo::Callback {
                 generics,
@@ -498,6 +515,8 @@ pub fn format_indexed_type_info(
 }
 
 fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shape) -> TypeArgument {
+    const COLON_LEN: usize = ": ".len();
+
     let name = match type_argument.name() {
         Some((name, colon_token)) => {
             let name = format_token_reference(ctx, name, shape);
@@ -508,14 +527,22 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
         None => None,
     };
 
-    let type_info = format_type_info(
-        ctx,
-        type_argument.type_info(),
-        shape
-            + name
-                .as_ref()
-                .map_or(0, |(name, _)| strip_trivia(name).to_string().len() + 2), // 2 = ": "
-    );
+    let shape = shape
+        + name.as_ref().map_or(0, |(name, _)| {
+            strip_trivia(name).to_string().len() + COLON_LEN
+        });
+
+    let type_info = format_type_info(ctx, type_argument.type_info(), shape);
+
+    // Test to see whether we need to hang the type info
+    let type_info = if can_hang_type(&type_info)
+        && (should_hang_type(&type_info) || shape.test_over_budget(&type_info))
+    {
+        let shape = shape.reset().increment_additional_indent();
+        hang_type_info(ctx, &type_info, shape, 1)
+    } else {
+        type_info
+    };
 
     type_argument
         .to_owned()
