@@ -761,11 +761,9 @@ pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
 }
 
 #[cfg(feature = "luau")]
-pub fn take_type_argument_trailing_comments(
-    type_argument: &TypeArgument,
-) -> (TypeArgument, Vec<Token>) {
+pub fn take_type_info_trailing_comments(type_info: &TypeInfo) -> (TypeInfo, Vec<Token>) {
     let (type_info, trailing_trivia) =
-        get_type_info_trailing_trivia(type_argument.type_info().to_owned());
+        get_type_info_trailing_trivia(type_info.to_owned());
 
     let trailing_comments = trailing_trivia
         .iter()
@@ -775,6 +773,16 @@ pub fn take_type_argument_trailing_comments(
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .collect();
+
+    (type_info, trailing_comments)
+}
+
+#[cfg(feature = "luau")]
+pub fn take_type_argument_trailing_comments(
+    type_argument: &TypeArgument,
+) -> (TypeArgument, Vec<Token>) {
+    let (type_info, trailing_comments) =
+        take_type_info_trailing_comments(type_argument.type_info());
 
     (
         type_argument.to_owned().with_type_info(type_info),

@@ -15,8 +15,9 @@ use crate::{
         },
         trivia_util::{
             contains_comments, take_type_argument_trailing_comments,
-            token_trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            type_info_leading_trivia, type_info_trailing_trivia,
+            take_type_info_trailing_comments, token_contains_leading_comments,
+            token_contains_trailing_comments, token_trivia_contains_comments, trivia_is_comment,
+            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia,
         },
     },
     shape::Shape,
@@ -61,6 +62,42 @@ pub fn format_compound_assignment(
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     CompoundAssignment::new(lhs, compound_operator, rhs)
+}
+
+fn format_type_info_generics(
+    ctx: &Context,
+    arrows: &ContainedSpan,
+    generics: &Punctuated<TypeInfo>,
+    shape: Shape,
+) -> (ContainedSpan, Punctuated<TypeInfo>) {
+    const ARROW_LEN: usize = 1; // 1 = "<"
+
+    let singleline_arrows = format_contained_span(ctx, arrows, shape);
+    let singleline_generics =
+        format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
+
+    let (start_arrow, end_arrow) = arrows.tokens();
+    let contains_comments = token_contains_trailing_comments(start_arrow)
+        || token_contains_leading_comments(end_arrow)
+        || contains_comments(generics);
+
+    let should_expand = contains_comments
+        || shape
+            .add_width(ARROW_LEN * 2)
+            .test_over_budget(&singleline_generics);
+
+    if should_expand {
+        format_contained_punctuated_multiline(
+            ctx,
+            arrows,
+            generics,
+            format_type_info,
+            take_type_info_trailing_comments,
+            shape,
+        )
+    } else {
+        (singleline_arrows, singleline_generics)
+    }
 }
 
 pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
@@ -154,14 +191,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
+
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -451,14 +483,8 @@ pub fn format_indexed_type_info(
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
 
             IndexedTypeInfo::Generic {
                 base,
