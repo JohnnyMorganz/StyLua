@@ -560,17 +560,7 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
             strip_trivia(name).to_string().len() + COLON_LEN
         });
 
-    let type_info = format_type_info(ctx, type_argument.type_info(), shape);
-
-    // Test to see whether we need to hang the type info
-    let type_info = if can_hang_type(&type_info)
-        && (should_hang_type(&type_info) || shape.test_over_budget(&type_info))
-    {
-        let shape = shape.reset().increment_additional_indent();
-        hang_type_info(ctx, &type_info, shape, 0)
-    } else {
-        type_info
-    };
+    let type_info = format_hangable_type_info(ctx, type_argument.type_info(), shape, 1);
 
     type_argument
         .to_owned()
