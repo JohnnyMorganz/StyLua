@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.12.4] - 2022-03-02
 ### Fixed
 - Fixed long comments forcing unnecessary hanging of type declarations. ([#384](https://github.com/JohnnyMorganz/StyLua/issues/384))
 - Fixed long intersection types not hanging. ([#382](https://github.com/JohnnyMorganz/StyLua/issues/382))
