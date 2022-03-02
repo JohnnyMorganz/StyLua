@@ -1066,9 +1066,8 @@ pub fn token_contains_comments_search(token: &TokenReference, search: CommentSea
         || trivia_contains_comments(token.trailing_trivia(), search)
 }
 
-pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
-    token_trivia_contains_comments(token_ref.leading_trivia())
-        || token_trivia_contains_comments(token_ref.trailing_trivia())
+pub fn token_contains_comments(token: &TokenReference) -> bool {
+    token_contains_comments_search(token, CommentSearch::All)
 }
 
 pub fn contains_comments(node: impl Node) -> bool {
@@ -1144,4 +1143,50 @@ where
         .collect();
 
     node.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_contains_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::SingleLineComment {
+                comment: "hello".into(),
+            })],
+        );
+        assert!(contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![],
+        );
+        assert!(!contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments_2() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::MultiLineComment {
+                comment: "hello".into(),
+                blocks: 1,
+            })],
+        );
+        assert!(!contains_singleline_comments(token))
+    }
 }
