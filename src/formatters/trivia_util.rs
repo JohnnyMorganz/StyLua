@@ -1032,6 +1032,7 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
 #[derive(Clone, Copy)]
 pub enum CommentSearch {
     // Only care about singleline comments
+    #[allow(dead_code)]
     Single,
     // Looking for all comments
     All,
@@ -1074,6 +1075,7 @@ pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().into_iter().any(token_contains_comments)
 }
 
+#[allow(dead_code)]
 pub fn contains_singleline_comments(node: impl Node) -> bool {
     node.tokens()
         .into_iter()
