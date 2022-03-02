@@ -21,6 +21,10 @@ pub fn trivia_is_whitespace(trivia: &Token) -> bool {
     matches!(trivia.token_kind(), TokenKind::Whitespace)
 }
 
+pub fn trivia_is_singleline_comment(trivia: &Token) -> bool {
+    matches!(trivia.token_kind(), TokenKind::SingleLineComment)
+}
+
 pub fn trivia_is_comment(trivia: &Token) -> bool {
     matches!(
         trivia.token_kind(),
@@ -1025,13 +1029,28 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum CommentSearch {
+    // Only care about singleline comments
+    Single,
+    // Looking for all comments
+    All,
+}
+
+pub fn trivia_contains_comments<'a>(
+    mut trivia: impl Iterator<Item = &'a Token>,
+    search: CommentSearch,
+) -> bool {
+    let tester = match search {
+        CommentSearch::Single => trivia_is_singleline_comment,
+        CommentSearch::All => trivia_is_comment,
+    };
+
+    trivia.any(tester)
+}
+
 pub fn token_trivia_contains_comments<'a>(trivia: impl Iterator<Item = &'a Token>) -> bool {
-    for trivia in trivia {
-        if trivia_is_comment(trivia) {
-            return true;
-        }
-    }
-    false
+    trivia_contains_comments(trivia, CommentSearch::All)
 }
 
 pub fn token_contains_leading_comments(token_ref: &TokenReference) -> bool {
@@ -1042,6 +1061,11 @@ pub fn token_contains_trailing_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
+pub fn token_contains_comments_search(token: &TokenReference, search: CommentSearch) -> bool {
+    trivia_contains_comments(token.leading_trivia(), search)
+        || trivia_contains_comments(token.trailing_trivia(), search)
+}
+
 pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.leading_trivia())
         || token_trivia_contains_comments(token_ref.trailing_trivia())
@@ -1049,6 +1073,12 @@ pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
 
 pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().into_iter().any(token_contains_comments)
+}
+
+pub fn contains_singleline_comments(node: impl Node) -> bool {
+    node.tokens()
+        .into_iter()
+        .any(|token| token_contains_comments_search(token, CommentSearch::Single))
 }
 
 /// Checks whether any [`Field`] within a [`TableConstructor`] contains comments, without checking the braces

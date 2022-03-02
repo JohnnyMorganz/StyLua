@@ -14,10 +14,11 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, take_type_argument_trailing_comments,
-            take_type_info_trailing_comments, token_contains_leading_comments,
-            token_contains_trailing_comments, token_trivia_contains_comments, trivia_is_comment,
-            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia,
+            contains_comments, contains_singleline_comments, take_type_argument_trailing_comments,
+            take_type_info_trailing_comments, token_trivia_contains_comments,
+            trivia_contains_comments, trivia_is_comment, trivia_is_newline,
+            trivia_is_singleline_comment, type_info_leading_trivia, type_info_trailing_trivia,
+            CommentSearch,
         },
     },
     shape::Shape,
@@ -113,9 +114,10 @@ fn format_type_info_generics(
         format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
 
     let (start_arrow, end_arrow) = arrows.tokens();
-    let contains_comments = token_contains_trailing_comments(start_arrow)
-        || token_contains_leading_comments(end_arrow)
-        || contains_comments(generics);
+    let contains_comments =
+        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
+            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
+            || contains_singleline_comments(generics);
 
     let should_expand = contains_comments
         || shape
@@ -661,13 +663,13 @@ fn should_hang_type(type_info: &TypeInfo) -> bool {
         } => {
             type_info_trailing_trivia(left)
                 .iter()
-                .any(trivia_is_comment)
+                .any(trivia_is_singleline_comment)
                 || should_hang_type(left)
                 || contains_comments(binop)
                 || full_moon::node::Node::surrounding_trivia(right)
                     .0
                     .iter()
-                    .any(|trivia| trivia_is_comment(trivia))
+                    .any(|trivia| trivia_is_singleline_comment(trivia))
                 || should_hang_type(right)
         }
         _ => false,
