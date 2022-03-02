@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed comments being lost around a condition when unnecessary parentheses are removed. ([#389](https://github.com/JohnnyMorganz/StyLua/issues/389))
 - Fixed multiline expression with comments inside parentheses being collapsed leading to a syntax error. ([#386](https://github.com/JohnnyMorganz/StyLua/issues/386))
 - Fixed ignore comments not respected in child blocks of ignored statements. ([#387](https://github.com/JohnnyMorganz/StyLua/issues/387))
+- Fixed values in type tables not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
+- Fixed type info generics not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
+- Fixed callback types with binop type parameters / return types not hanging leading to a syntax error when comments are present. ([#396](https://github.com/JohnnyMorganz/StyLua/issues/396))
+- Fixed type declarations not hanging properly causing them to go over width. This includes hanging at the equals token and hanging union/intersection types.
 
 ## [0.12.3] - 2022-02-17
 ### Fixed

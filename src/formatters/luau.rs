@@ -2,6 +2,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_op, fmt_symbol,
     formatters::{
+        assignment::hang_equal_token,
         expression::{format_expression, format_var},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
@@ -14,9 +15,11 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, take_type_argument_trailing_comments,
-            token_trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            type_info_leading_trivia, type_info_trailing_trivia,
+            contains_comments, contains_singleline_comments, take_type_argument_trailing_comments,
+            take_type_info_trailing_comments, token_trivia_contains_comments,
+            trivia_contains_comments, trivia_is_comment, trivia_is_newline,
+            trivia_is_singleline_comment, type_info_leading_trivia, type_info_trailing_trivia,
+            CommentSearch,
         },
     },
     shape::Shape,
@@ -63,6 +66,79 @@ pub fn format_compound_assignment(
     CompoundAssignment::new(lhs, compound_operator, rhs)
 }
 
+// If we have a type like
+// A | B | {
+//    ...
+// }
+// we should try and hug them together if possible
+fn should_hug_type(type_info: &TypeInfo) -> bool {
+    match type_info {
+        TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
+            should_hug_type(left) || should_hug_type(right)
+        }
+        TypeInfo::Table { .. } => true,
+        _ => false,
+    }
+}
+
+// Formats a type info, then determines whether it is still over width. If so, it tries to hang it.
+fn format_hangable_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
+    let singleline_type_info = format_type_info(ctx, type_info, shape.with_infinite_width());
+
+    // If we can hang the type definition, and its over width, then lets try doing so
+    if can_hang_type(type_info)
+        && (should_hang_type(type_info)
+            || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
+    {
+        hang_type_info(ctx, type_info, shape, hang_level)
+    } else {
+        // Use the proper formatting
+        format_type_info(ctx, type_info, shape)
+    }
+}
+
+fn format_type_info_generics(
+    ctx: &Context,
+    arrows: &ContainedSpan,
+    generics: &Punctuated<TypeInfo>,
+    shape: Shape,
+) -> (ContainedSpan, Punctuated<TypeInfo>) {
+    const ARROW_LEN: usize = 1; // 1 = "<"
+
+    let singleline_arrows = format_contained_span(ctx, arrows, shape);
+    let singleline_generics =
+        format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
+
+    let (start_arrow, end_arrow) = arrows.tokens();
+    let contains_comments =
+        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
+            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
+            || contains_singleline_comments(generics);
+
+    let should_expand = contains_comments
+        || shape
+            .add_width(ARROW_LEN * 2)
+            .test_over_budget(&singleline_generics);
+
+    if should_expand {
+        format_contained_punctuated_multiline(
+            ctx,
+            arrows,
+            generics,
+            |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
+            take_type_info_trailing_comments,
+            shape,
+        )
+    } else {
+        (singleline_arrows, singleline_generics)
+    }
+}
+
 pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
@@ -94,6 +170,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             arrow,
             return_type,
         } => {
+            const PAREN_LEN: usize = "(".len();
+            const ARROW_LEN: usize = " -> ".len();
+
             let (start_parens, end_parens) = parentheses.tokens();
 
             let generics = generics
@@ -110,11 +189,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 || contains_comments(arguments)
                 || shape
                     .add_width(
-                        2 + 4
+                        PAREN_LEN * 2
+                            + ARROW_LEN
                             + arguments.to_string().len()
                             + strip_trailing_trivia(&**return_type).to_string().len(),
                     )
-                    .over_budget(); // 2 = opening/closing parens, 4 = " -> "
+                    .over_budget();
 
             let (parentheses, arguments, shape) = if force_multiline {
                 let (parentheses, formatted_arguments) = format_contained_punctuated_multiline(
@@ -125,19 +205,20 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     take_type_argument_trailing_comments,
                     shape,
                 );
-                let shape = shape.reset() + 1; // 1 = ")"
+                let shape = shape.reset() + PAREN_LEN;
 
                 (parentheses, formatted_arguments, shape)
             } else {
                 let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
-                let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
+                let shape = shape + (PAREN_LEN * 2 + arguments.to_string().len());
 
                 (parentheses, arguments, shape)
             };
 
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
-            let return_type = Box::new(format_type_info(ctx, return_type, shape));
+            let shape = shape + ARROW_LEN;
+            let return_type = Box::new(format_hangable_type_info(ctx, return_type, shape, 1));
 
             TypeInfo::Callback {
                 generics,
@@ -154,14 +235,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
+
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -361,7 +437,8 @@ fn hang_type_info_binop(
             binop
                 .trailing_trivia()
                 .filter(|token| trivia_is_comment(token))
-                .map(|x| x.to_owned()),
+                // Prepend a single space beforehand
+                .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
         )
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
         .chain(
@@ -388,17 +465,25 @@ fn hang_type_info_binop(
 }
 
 /// Hangs a type info at a pipe operator, then reformats either side with the new shape
-pub fn hang_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
+pub fn hang_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
     const PIPE_LENGTH: usize = 2; // "| "
+
+    let hanging_shape = shape.with_indent(shape.indent().add_indent_level(hang_level));
 
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
             left: Box::new(format_type_info(ctx, left, shape)),
-            pipe: hang_type_info_binop(ctx, pipe.to_owned(), shape, right),
+            pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                shape.reset() + PIPE_LENGTH,
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
             )),
         },
         TypeInfo::Intersection {
@@ -407,15 +492,24 @@ pub fn hang_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Type
             right,
         } => TypeInfo::Intersection {
             left: Box::new(format_type_info(ctx, left, shape)),
-            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), shape, right),
+            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                shape.reset() + PIPE_LENGTH,
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
             )),
         },
         other => format_type_info(ctx, other, shape),
     }
+}
+
+fn can_hang_type(type_info: &TypeInfo) -> bool {
+    matches!(
+        type_info,
+        // Can hang a binary operation
+        TypeInfo::Union { .. } | TypeInfo::Intersection { .. }
+    )
 }
 
 pub fn format_indexed_type_info(
@@ -434,14 +528,8 @@ pub fn format_indexed_type_info(
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
 
             IndexedTypeInfo::Generic {
                 base,
@@ -455,6 +543,8 @@ pub fn format_indexed_type_info(
 }
 
 fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shape) -> TypeArgument {
+    const COLON_LEN: usize = ": ".len();
+
     let name = match type_argument.name() {
         Some((name, colon_token)) => {
             let name = format_token_reference(ctx, name, shape);
@@ -465,14 +555,12 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
         None => None,
     };
 
-    let type_info = format_type_info(
-        ctx,
-        type_argument.type_info(),
-        shape
-            + name
-                .as_ref()
-                .map_or(0, |(name, _)| strip_trivia(name).to_string().len() + 2), // 2 = ": "
-    );
+    let shape = shape
+        + name.as_ref().map_or(0, |(name, _)| {
+            strip_trivia(name).to_string().len() + COLON_LEN
+        });
+
+    let type_info = format_hangable_type_info(ctx, type_argument.type_info(), shape, 1);
 
     type_argument
         .to_owned()
@@ -502,6 +590,11 @@ pub fn format_type_field(
     let trailing_trivia = type_info_trailing_trivia(&value);
 
     if let TableType::MultiLine = table_type {
+        // If still over budget, hang the type
+        if can_hang_type(type_field.value()) && shape.test_over_budget(&value) {
+            value = hang_type_info(ctx, type_field.value(), shape, 1)
+        };
+
         value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
     }
 
@@ -545,6 +638,7 @@ pub fn format_type_assertion(
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
+/// Checks a type info to see if it should be hanged due to comments being present
 fn should_hang_type(type_info: &TypeInfo) -> bool {
     // Only hang if its a binary type info, since it doesn't matter for unary types
     match type_info {
@@ -560,13 +654,13 @@ fn should_hang_type(type_info: &TypeInfo) -> bool {
         } => {
             type_info_trailing_trivia(left)
                 .iter()
-                .any(trivia_is_comment)
+                .any(trivia_is_singleline_comment)
                 || should_hang_type(left)
                 || contains_comments(binop)
                 || full_moon::node::Node::surrounding_trivia(right)
                     .0
                     .iter()
-                    .any(|trivia| trivia_is_comment(trivia))
+                    .any(|trivia| trivia_is_singleline_comment(trivia))
                 || should_hang_type(right)
         }
         _ => false,
@@ -579,6 +673,9 @@ fn format_type_declaration(
     add_leading_trivia: bool,
     shape: Shape,
 ) -> TypeDeclaration {
+    const TYPE_TOKEN_LENGTH: usize = "type ".len();
+    const EQUAL_TOKEN_LENGTH: usize = " = ".len();
+
     // Calculate trivia
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -600,7 +697,7 @@ fn format_type_declaration(
         type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
     }
 
-    let shape = shape + 5; // 5 = "type "
+    let shape = shape + TYPE_TOKEN_LENGTH;
     let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
     let shape = shape + type_name.to_string().len();
 
@@ -614,17 +711,55 @@ fn format_type_declaration(
     };
 
     let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let mut type_definition = format_type_info(ctx, type_declaration.type_definition(), shape + 3); // 3 = " = "
+    let type_definition;
+    let singleline_type_definition = format_type_info(
+        ctx,
+        type_declaration.type_definition(),
+        shape.with_infinite_width(),
+    );
+    let proper_type_definition = format_type_info(
+        ctx,
+        type_declaration.type_definition(),
+        shape + EQUAL_TOKEN_LENGTH,
+    );
 
-    if should_hang_type(type_declaration.type_definition())
-        || shape.test_over_budget(&strip_trailing_trivia(&type_definition))
+    // Test to see whether the type definition must be hung due to comments
+    let must_hang = should_hang_type(type_declaration.type_definition());
+
+    // If we can hang the type definition, and its over width, then lets try doing so
+    if can_hang_type(type_declaration.type_definition())
+        && (must_hang
+            || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
     {
-        let shape = shape.increment_additional_indent();
-        equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
-            create_newline_trivia(ctx),
-            create_indent_trivia(ctx, shape),
-        ]));
-        type_definition = hang_type_info(ctx, type_declaration.type_definition(), shape);
+        // If we should hug the type, then lets check out the proper definition and see if it fits
+        if !must_hang
+            && should_hug_type(type_declaration.type_definition())
+            && !shape.test_over_budget(&proper_type_definition)
+        {
+            type_definition = proper_type_definition;
+        } else {
+            // Use a hanging equal token
+            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+            let shape = shape.reset().increment_additional_indent();
+            let hanging_type_definition =
+                hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
+            type_definition = hanging_type_definition;
+        }
+    } else {
+        // Test whether the proper formatting goes over the column width
+        // If so, hang at the equals token and reformat
+        if shape.test_over_budget(&proper_type_definition) {
+            // Hang at the equal token
+            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+            // Add the expression list into the indent range, as it will be indented by one
+            let shape = shape.reset().increment_additional_indent();
+            type_definition = format_type_info(ctx, type_declaration.type_definition(), shape);
+        } else {
+            // Use the proper formatting
+            type_definition = proper_type_definition;
+        }
     }
 
     let type_definition =

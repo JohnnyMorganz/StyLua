@@ -21,6 +21,10 @@ pub fn trivia_is_whitespace(trivia: &Token) -> bool {
     matches!(trivia.token_kind(), TokenKind::Whitespace)
 }
 
+pub fn trivia_is_singleline_comment(trivia: &Token) -> bool {
+    matches!(trivia.token_kind(), TokenKind::SingleLineComment)
+}
+
 pub fn trivia_is_comment(trivia: &Token) -> bool {
     matches!(
         trivia.token_kind(),
@@ -761,11 +765,8 @@ pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
 }
 
 #[cfg(feature = "luau")]
-pub fn take_type_argument_trailing_comments(
-    type_argument: &TypeArgument,
-) -> (TypeArgument, Vec<Token>) {
-    let (type_info, trailing_trivia) =
-        get_type_info_trailing_trivia(type_argument.type_info().to_owned());
+pub fn take_type_info_trailing_comments(type_info: &TypeInfo) -> (TypeInfo, Vec<Token>) {
+    let (type_info, trailing_trivia) = get_type_info_trailing_trivia(type_info.to_owned());
 
     let trailing_comments = trailing_trivia
         .iter()
@@ -775,6 +776,16 @@ pub fn take_type_argument_trailing_comments(
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
         .collect();
+
+    (type_info, trailing_comments)
+}
+
+#[cfg(feature = "luau")]
+pub fn take_type_argument_trailing_comments(
+    type_argument: &TypeArgument,
+) -> (TypeArgument, Vec<Token>) {
+    let (type_info, trailing_comments) =
+        take_type_info_trailing_comments(type_argument.type_info());
 
     (
         type_argument.to_owned().with_type_info(type_info),
@@ -1018,13 +1029,28 @@ pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Toke
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum CommentSearch {
+    // Only care about singleline comments
+    Single,
+    // Looking for all comments
+    All,
+}
+
+pub fn trivia_contains_comments<'a>(
+    mut trivia: impl Iterator<Item = &'a Token>,
+    search: CommentSearch,
+) -> bool {
+    let tester = match search {
+        CommentSearch::Single => trivia_is_singleline_comment,
+        CommentSearch::All => trivia_is_comment,
+    };
+
+    trivia.any(tester)
+}
+
 pub fn token_trivia_contains_comments<'a>(trivia: impl Iterator<Item = &'a Token>) -> bool {
-    for trivia in trivia {
-        if trivia_is_comment(trivia) {
-            return true;
-        }
-    }
-    false
+    trivia_contains_comments(trivia, CommentSearch::All)
 }
 
 pub fn token_contains_leading_comments(token_ref: &TokenReference) -> bool {
@@ -1035,13 +1061,23 @@ pub fn token_contains_trailing_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
-    token_trivia_contains_comments(token_ref.leading_trivia())
-        || token_trivia_contains_comments(token_ref.trailing_trivia())
+pub fn token_contains_comments_search(token: &TokenReference, search: CommentSearch) -> bool {
+    trivia_contains_comments(token.leading_trivia(), search)
+        || trivia_contains_comments(token.trailing_trivia(), search)
+}
+
+pub fn token_contains_comments(token: &TokenReference) -> bool {
+    token_contains_comments_search(token, CommentSearch::All)
 }
 
 pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().into_iter().any(token_contains_comments)
+}
+
+pub fn contains_singleline_comments(node: impl Node) -> bool {
+    node.tokens()
+        .into_iter()
+        .any(|token| token_contains_comments_search(token, CommentSearch::Single))
 }
 
 /// Checks whether any [`Field`] within a [`TableConstructor`] contains comments, without checking the braces
@@ -1107,4 +1143,50 @@ where
         .collect();
 
     node.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_contains_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::SingleLineComment {
+                comment: "hello".into(),
+            })],
+        );
+        assert!(contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![],
+        );
+        assert!(!contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments_2() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::MultiLineComment {
+                comment: "hello".into(),
+                blocks: 1,
+            })],
+        );
+        assert!(!contains_singleline_comments(token))
+    }
 }

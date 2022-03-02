@@ -459,7 +459,7 @@ where
 {
     // Format start and end brace properly with correct trivia
     let (start_parens, end_parens) = parentheses.tokens();
-    let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
+    let start_parens = format_token_reference(ctx, start_parens, shape)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
 
     let end_parens = format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
