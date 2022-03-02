@@ -64,6 +64,42 @@ pub fn format_compound_assignment(
     CompoundAssignment::new(lhs, compound_operator, rhs)
 }
 
+// If we have a type like
+// A | B | {
+//    ...
+// }
+// we should try and hug them together if possible
+fn should_hug_type(type_info: &TypeInfo) -> bool {
+    match type_info {
+        TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
+            should_hug_type(left) || should_hug_type(right)
+        }
+        TypeInfo::Table { .. } => true,
+        _ => false,
+    }
+}
+
+// Formats a type info, then determines whether it is still over width. If so, it tries to hang it.
+fn format_hangable_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
+    let singleline_type_info = format_type_info(ctx, type_info, shape.with_infinite_width());
+
+    // If we can hang the type definition, and its over width, then lets try doing so
+    if can_hang_type(type_info)
+        && (should_hang_type(type_info)
+            || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
+    {
+        hang_type_info(ctx, type_info, shape, hang_level)
+    } else {
+        // Use the proper formatting
+        format_type_info(ctx, type_info, shape)
+    }
+}
+
 fn format_type_info_generics(
     ctx: &Context,
     arrows: &ContainedSpan,
@@ -91,7 +127,7 @@ fn format_type_info_generics(
             ctx,
             arrows,
             generics,
-            format_type_info,
+            |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
             take_type_info_trailing_comments,
             shape,
         )
@@ -179,19 +215,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
             let shape = shape + ARROW_LEN;
-            let return_type = format_type_info(ctx, return_type, shape);
-
-            // Test to see whether we need to hang the return type
-            let return_type = Box::new(
-                if can_hang_type(&return_type)
-                    && (should_hang_type(&return_type) || shape.test_over_budget(&return_type))
-                {
-                    let shape = shape.reset().increment_additional_indent();
-                    hang_type_info(ctx, &return_type, shape, 1)
-                } else {
-                    return_type
-                },
-            );
+            let return_type = Box::new(format_hangable_type_info(ctx, return_type, shape, 1));
 
             TypeInfo::Callback {
                 generics,
@@ -712,24 +736,18 @@ fn format_type_declaration(
     // If we can hang the type definition, and its over width, then lets try doing so
     if can_hang_type(type_declaration.type_definition())
         && (must_hang
-            || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition)))
+            || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
     {
-        let shape = shape.reset().increment_additional_indent();
-        let hanging_type_definition =
-            hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
-
-        // Use the formatting which fits nicer (i.e., least amount of vertical space), or is required
-        if must_hang
-            || shape.test_over_budget(&proper_type_definition)
-            || strip_trivia(&hanging_type_definition)
-                .to_string()
-                .lines()
-                .count()
-                <= strip_trivia(&proper_type_definition)
-                    .to_string()
-                    .lines()
-                    .count()
+        // If we should hug the type, then lets check out the proper definition and see if it fits
+        if !must_hang
+            && should_hug_type(type_declaration.type_definition())
+            && !shape.test_over_budget(&proper_type_definition)
         {
+            type_definition = proper_type_definition;
+        } else {
+            let shape = shape.reset().increment_additional_indent();
+            let hanging_type_definition =
+                hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
             type_definition = hanging_type_definition;
 
             // Use a hanging equal token
@@ -737,8 +755,6 @@ fn format_type_declaration(
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
             ]));
-        } else {
-            type_definition = proper_type_definition;
         }
     } else {
         // Use the proper formatting
