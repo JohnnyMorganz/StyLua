@@ -71,7 +71,7 @@ pub fn hang_punctuated_list(
 
 /// Hangs at the equal token, and indents the first item.
 /// Returns the new equal token [`TokenReference`]
-fn hang_equal_token(
+pub fn hang_equal_token(
     ctx: &Context,
     equal_token: TokenReference,
     shape: Shape,

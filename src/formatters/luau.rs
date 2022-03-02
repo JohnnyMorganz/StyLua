@@ -2,6 +2,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_op, fmt_symbol,
     formatters::{
+        assignment::hang_equal_token,
         expression::{format_expression, format_var},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
@@ -747,20 +748,28 @@ fn format_type_declaration(
         {
             type_definition = proper_type_definition;
         } else {
+            // Use a hanging equal token
+            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
             let shape = shape.reset().increment_additional_indent();
             let hanging_type_definition =
                 hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
             type_definition = hanging_type_definition;
-
-            // Use a hanging equal token
-            equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
-                create_newline_trivia(ctx),
-                create_indent_trivia(ctx, shape),
-            ]));
         }
     } else {
-        // Use the proper formatting
-        type_definition = proper_type_definition;
+        // Test whether the proper formatting goes over the column width
+        // If so, hang at the equals token and reformat
+        if shape.test_over_budget(&proper_type_definition) {
+            // Hang at the equal token
+            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+            // Add the expression list into the indent range, as it will be indented by one
+            let shape = shape.reset().increment_additional_indent();
+            type_definition = format_type_info(ctx, type_declaration.type_definition(), shape);
+        } else {
+            // Use the proper formatting
+            type_definition = proper_type_definition;
+        }
     }
 
     let type_definition =
