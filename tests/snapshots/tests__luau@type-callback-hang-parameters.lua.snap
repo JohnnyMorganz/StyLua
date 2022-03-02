@@ -22,5 +22,5 @@ type Foo = (
 ) -> string
 
 type Foo = () -> X -- test
-		& Y
+	& Y
 
