@@ -283,7 +283,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
 fn main() {
     let opt = opt::Opt::from_args();
-    let should_use_color = opt.color.should_use_color();
+    let should_use_color = opt.color.should_use_color_stderr();
     let level_filter = if opt.verbose {
         LevelFilter::Debug
     } else {
