@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+assertion_line: 30
+expression: format(&contents)
+
+---
+export type CoverageReporterWithOptions<K> =
+	Array<string | Object> --[[ [K, Partial<ReportOptions[K]>] ]]
+	| nil
+
