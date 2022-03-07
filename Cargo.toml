@@ -28,10 +28,12 @@ lua52 = ["full_moon/lua52"]
 anyhow = "1.0.53"
 console = "0.15.0"
 crossbeam-channel = "0.5.2"
+env_logger = { version = "0.9.0", default-features = false }
 full_moon = "0.15.1"
 globset = "0.4.8"
 ignore = "0.4.18"
 lazy_static = "1.4.0"
+log = "0.4.14"
 num_cpus = "1.13.1"
 regex = "1.5.4"
 serde = "1.0.136"
