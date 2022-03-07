@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
+use log::{LevelFilter, *};
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
@@ -17,36 +18,6 @@ mod opt;
 mod output_diff;
 
 static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
-
-#[macro_export]
-macro_rules! verbose_println {
-    ($verbosity:expr, $str:expr) => {
-        if $verbosity {
-            println!($str);
-        }
-    };
-    ($verbosity:expr, $str:expr, $($arg:tt)*) => {
-        if $verbosity {
-            println!($str, $($arg)*);
-        }
-    };
-}
-
-macro_rules! error {
-    ($opt:expr, $fmt:expr, $($args:tt)*) => {
-        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color())
-    };
-}
-
-fn error(text: String, should_use_color: bool) {
-    eprintln!(
-        "{}{} {}",
-        style("error").bold().red().force_styling(should_use_color),
-        style(":").bold().force_styling(should_use_color),
-        text
-    );
-    EXIT_CODE.store(2, Ordering::SeqCst);
-}
 
 enum FormatResult {
     /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
@@ -73,8 +44,7 @@ fn format_file(
         .with_context(|| format!("could not format file {}", path.display()))?;
     let after_formatting = Instant::now();
 
-    verbose_println!(
-        opt.verbose,
+    debug!(
         "formatted {} in {:?}",
         path.display(),
         after_formatting.duration_since(before_formatting)
@@ -144,7 +114,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
     // Handle any configuration overrides provided by options
     let config = config::load_overrides(config, &opt);
-    verbose_println!(opt.verbose, "config: {:#?}", config);
+    debug!("config: {config:#?}");
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -195,17 +165,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
         None => true,
     };
 
-    verbose_println!(
-        opt.verbose,
-        "creating a pool with {} threads",
-        opt.num_threads
-    );
+    debug!("creating a pool with {} threads", opt.num_threads);
     let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need atleast one output reader as well as a formatter
     let (tx, rx) = crossbeam_channel::unbounded();
     let opt = Arc::new(opt);
 
     // Create a thread to handle the formatting output
-    let read_opt = opt.clone();
     pool.execute(move || {
         for output in rx {
             match output {
@@ -217,7 +182,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!(&read_opt, "could not output to stdout: {:#}", err)
+                                error!("could not output to stdout: {err:#}")
                             }
                         };
                     }
@@ -230,11 +195,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => error!(&read_opt, "{:#}", err),
+                            Err(err) => error!("{err:#}"),
                         }
                     }
                 },
-                Err(err) => error!(&read_opt, "{:#}", err),
+                Err(err) => error!("{err:#}"),
             }
         }
     });
@@ -293,17 +258,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
                 ignore::Error::WithPath { path, err } => match *err {
                     ignore::Error::Io(error) => match error.kind() {
                         std::io::ErrorKind::NotFound => {
-                            error!(
-                                &opt,
-                                "no file or directory found matching '{:#}'",
-                                path.display()
-                            )
+                            error!("no file or directory found matching '{:#}'", path.display())
                         }
-                        _ => error!(&opt, "{:#}", error),
+                        _ => error!("{error:#}"),
                     },
-                    _ => error!(&opt, "{:#}", err),
+                    _ => error!("{err:#}"),
                 },
-                _ => error!(&opt, "{:#}", error),
+                _ => error!("{error:#}"),
             },
         }
     }
@@ -323,11 +284,44 @@ fn format(opt: opt::Opt) -> Result<i32> {
 fn main() {
     let opt = opt::Opt::from_args();
     let should_use_color = opt.color.should_use_color();
+    let level_filter = if opt.verbose {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Warn
+    };
+
+    env_logger::Builder::from_env("STYLUA_LOG")
+        .filter(None, level_filter)
+        .format(move |buf, record| {
+            // Side effect: set exit code
+            if let Level::Error = record.level() {
+                EXIT_CODE.store(2, Ordering::SeqCst);
+            }
+
+            let tag = match record.level() {
+                Level::Error => style("error").red(),
+                Level::Warn => style("warn").yellow(),
+                Level::Info => style("info").green(),
+                Level::Debug => style("debug").cyan(),
+                Level::Trace => style("trace").magenta(),
+            }
+            .bold()
+            .force_styling(should_use_color);
+
+            writeln!(
+                buf,
+                "{}{} {}",
+                tag,
+                style(":").bold().force_styling(should_use_color),
+                record.args()
+            )
+        })
+        .init();
 
     let exit_code = match format(opt) {
         Ok(code) => code,
-        Err(e) => {
-            error(format!("{:#}", e), should_use_color);
+        Err(err) => {
+            error!("{err:#}");
             2
         }
     };

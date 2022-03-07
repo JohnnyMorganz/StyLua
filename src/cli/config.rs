@@ -1,6 +1,6 @@
 use crate::opt::Opt;
-use crate::verbose_println;
 use anyhow::{Context, Result};
+use log::*;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -33,15 +33,11 @@ fn find_config_file(
     recursive: bool,
     verbose: bool,
 ) -> Result<Option<Config>> {
-    verbose_println!(
-        verbose,
-        "config: looking for config in {}",
-        directory.display()
-    );
+    debug!("config: looking for config in {}", directory.display());
     let config_file = find_toml_file(&directory);
     match config_file {
         Some(file_path) => {
-            verbose_println!(verbose, "config: found config at {}", file_path.display());
+            debug!("config: found config at {}", file_path.display());
             read_config_file(&file_path).map(Some)
         }
         None => {
@@ -62,13 +58,13 @@ fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
     if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
         let xdg_config_path = Path::new(&xdg_config);
         if xdg_config_path.exists() {
-            verbose_println!(verbose, "config: looking in $XDG_CONFIG_HOME");
+            debug!("config: looking in $XDG_CONFIG_HOME");
 
             if let Some(config) = find_config_file(xdg_config_path.to_path_buf(), false, verbose)? {
                 return Ok(Some(config));
             }
 
-            verbose_println!(verbose, "config: looking in $XDG_CONFIG_HOME/stylua");
+            debug!("config: looking in $XDG_CONFIG_HOME/stylua");
             let xdg_config_path = xdg_config_path.join("stylua");
             if xdg_config_path.exists() {
                 if let Some(config) = find_config_file(xdg_config_path, false, verbose)? {
@@ -83,13 +79,13 @@ fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
         let home_config_path = Path::new(&home).join(".config");
 
         if home_config_path.exists() {
-            verbose_println!(verbose, "config: looking in $HOME/.config");
+            debug!("config: looking in $HOME/.config");
 
             if let Some(config) = find_config_file(home_config_path.to_owned(), false, verbose)? {
                 return Ok(Some(config));
             }
 
-            verbose_println!(verbose, "config: looking in $HOME/.config/stylua");
+            debug!("config: looking in $HOME/.config/stylua");
             let home_config_path = home_config_path.join("stylua");
             if home_config_path.exists() {
                 if let Some(config) = find_config_file(home_config_path, false, verbose)? {
@@ -105,8 +101,7 @@ fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
 pub fn load_config(opt: &Opt) -> Result<Config> {
     match &opt.config_path {
         Some(config_path) => {
-            verbose_println!(
-                opt.verbose,
+            debug!(
                 "config: explicit config path provided at {}",
                 config_path.display()
             );
@@ -120,8 +115,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
                     .to_path_buf(),
                 None => env::current_dir().context("Could not find current directory")?,
             };
-            verbose_println!(
-                opt.verbose,
+            debug!(
                 "config: starting config search from {} - recursively searching parents: {}",
                 current_dir.display(),
                 opt.search_parent_directories
@@ -130,7 +124,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
             match config {
                 Some(config) => Ok(config),
                 None => {
-                    verbose_println!(opt.verbose, "config: no configuration file found");
+                    debug!("config: no configuration file found");
 
                     // Search the configuration directory for a file, if necessary
                     if opt.search_parent_directories {
@@ -140,7 +134,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
                     }
 
                     // Fallback to a default configuration
-                    verbose_println!(opt.verbose, "config: falling back to default config");
+                    debug!("config: falling back to default config");
                     Ok(Config::default())
                 }
             }
