@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.3.2] - 2022-03-07
+
 ### Changed
 
 - Updated release version setting to include v0.12.
