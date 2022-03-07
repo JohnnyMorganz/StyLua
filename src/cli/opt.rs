@@ -95,6 +95,18 @@ impl Color {
             }
         }
     }
+
+    pub fn should_use_color_stderr(&self) -> bool {
+        match self {
+            Color::Always => true,
+            Color::Never => false,
+            Color::Auto => {
+                let terminal = console::Term::stderr();
+                let features = terminal.features();
+                features.is_attended() && features.colors_supported()
+            }
+        }
+    }
 }
 
 #[derive(StructOpt, Debug)]
