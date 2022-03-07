@@ -28,11 +28,7 @@ fn find_toml_file(directory: &Path) -> Option<PathBuf> {
 }
 
 /// Looks for a configuration file in the directory provided (and its parent's recursively, if specified)
-fn find_config_file(
-    mut directory: PathBuf,
-    recursive: bool,
-    verbose: bool,
-) -> Result<Option<Config>> {
+fn find_config_file(mut directory: PathBuf, recursive: bool) -> Result<Option<Config>> {
     debug!("config: looking for config in {}", directory.display());
     let config_file = find_toml_file(&directory);
     match config_file {
@@ -44,7 +40,7 @@ fn find_config_file(
             // Both don't exist, search up the tree if necessary
             // directory.pop() mutates the path to get its parent, and returns false if no more parent
             if recursive && directory.pop() {
-                find_config_file(directory, recursive, verbose)
+                find_config_file(directory, recursive)
             } else {
                 Ok(None)
             }
@@ -53,21 +49,21 @@ fn find_config_file(
 }
 
 /// Looks for a configuration file at either `$XDG_CONFIG_HOME`, `$XDG_CONFIG_HOME/stylua`, `$HOME/.config` or `$HOME/.config/stylua`
-fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
+fn search_config_locations() -> Result<Option<Config>> {
     // Look in `$XDG_CONFIG_HOME`
     if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
         let xdg_config_path = Path::new(&xdg_config);
         if xdg_config_path.exists() {
             debug!("config: looking in $XDG_CONFIG_HOME");
 
-            if let Some(config) = find_config_file(xdg_config_path.to_path_buf(), false, verbose)? {
+            if let Some(config) = find_config_file(xdg_config_path.to_path_buf(), false)? {
                 return Ok(Some(config));
             }
 
             debug!("config: looking in $XDG_CONFIG_HOME/stylua");
             let xdg_config_path = xdg_config_path.join("stylua");
             if xdg_config_path.exists() {
-                if let Some(config) = find_config_file(xdg_config_path, false, verbose)? {
+                if let Some(config) = find_config_file(xdg_config_path, false)? {
                     return Ok(Some(config));
                 }
             }
@@ -81,14 +77,14 @@ fn search_config_locations(verbose: bool) -> Result<Option<Config>> {
         if home_config_path.exists() {
             debug!("config: looking in $HOME/.config");
 
-            if let Some(config) = find_config_file(home_config_path.to_owned(), false, verbose)? {
+            if let Some(config) = find_config_file(home_config_path.to_owned(), false)? {
                 return Ok(Some(config));
             }
 
             debug!("config: looking in $HOME/.config/stylua");
             let home_config_path = home_config_path.join("stylua");
             if home_config_path.exists() {
-                if let Some(config) = find_config_file(home_config_path, false, verbose)? {
+                if let Some(config) = find_config_file(home_config_path, false)? {
                     return Ok(Some(config));
                 }
             }
@@ -120,7 +116,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
                 current_dir.display(),
                 opt.search_parent_directories
             );
-            let config = find_config_file(current_dir, opt.search_parent_directories, opt.verbose)?;
+            let config = find_config_file(current_dir, opt.search_parent_directories)?;
             match config {
                 Some(config) => Ok(config),
                 None => {
@@ -128,7 +124,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
 
                     // Search the configuration directory for a file, if necessary
                     if opt.search_parent_directories {
-                        if let Some(config) = search_config_locations(opt.verbose)? {
+                        if let Some(config) = search_config_locations()? {
                             return Ok(config);
                         }
                     }
