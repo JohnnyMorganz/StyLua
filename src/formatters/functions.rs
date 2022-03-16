@@ -119,6 +119,49 @@ fn function_args_contains_comments(
     }
 }
 
+#[derive(Clone, Copy)]
+enum ArgumentState {
+    /// No special arguments have been seen
+    None,
+    /// Whether a multiline table/function has been seen
+    SeenMultilineArguments,
+    /// Whether a normal argument has been seen after a multiline table/function
+    SeenNonMultilineArgumentAfterMultiline,
+}
+
+impl ArgumentState {
+    fn new() -> ArgumentState {
+        ArgumentState::None
+    }
+
+    /// Record that a multiline argument has been seen.
+    #[must_use]
+    fn record_multiline_arg(self) -> ArgumentState {
+        match self {
+            // Move from standard state to "seen multiline arguments state"
+            ArgumentState::None => ArgumentState::SeenMultilineArguments,
+            _ => self,
+        }
+    }
+
+    /// Records that a normal (non-multiline) argument has been seen
+    #[must_use]
+    fn record_standard_arg(self) -> ArgumentState {
+        match self {
+            // If we have already seen a multiline argument, move from that state
+            ArgumentState::SeenMultilineArguments => {
+                ArgumentState::SeenNonMultilineArgumentAfterMultiline
+            }
+            _ => self,
+        }
+    }
+
+    /// If we are in the [`ArgumentState::SeenNonMultilineArgumentAfterMultiline`] state, then we need to hang.
+    fn should_hang(self) -> bool {
+        matches!(self, ArgumentState::SeenNonMultilineArgumentAfterMultiline)
+    }
+}
+
 /// Applies heuristics to determine whether a parenthesised function call should be expanded onto multiple lines.
 /// These heuristics are subject to change.
 fn function_args_multiline_heuristic(
@@ -129,6 +172,8 @@ fn function_args_multiline_heuristic(
     const PAREN_LEN: usize = "(".len();
     const COMMA_SPACE_LEN: usize = ", ".len();
     const SPACE_LEN: usize = " ".len();
+    const BRACKET_LEN: usize = "}".len();
+    const END_LEN: usize = "end".len();
 
     // If we have no arguments, then we don't need to do anything
     if arguments.is_empty() {
@@ -153,8 +198,7 @@ fn function_args_multiline_heuristic(
     //    single line arguments dont surpass the column width setting
 
     // Use state values to determine the type of arguments we have seen so far
-    let mut seen_multiline_arg = false; // Whether we have seen a multiline table/function already
-    let mut seen_other_arg_after_multiline = false; // Whether we have seen a non multiline table/function after a multiline one. In this case, we should expand
+    let mut current_state = ArgumentState::new();
 
     for argument in first_iter_formatted_arguments {
         match argument {
@@ -167,11 +211,11 @@ fn function_args_multiline_heuristic(
                         if is_expanded {
                             // If we have a mixture of multiline args, and other arguments
                             // Then the function args should be expanded
-                            if seen_multiline_arg && seen_other_arg_after_multiline {
+                            if current_state.should_hang() {
                                 return true;
                             }
 
-                            seen_multiline_arg = true;
+                            current_state = current_state.record_multiline_arg();
 
                             // First check the top line of the anonymous function (i.e. the function token and any parameters)
                             // If this is over budget, then we should expand
@@ -180,49 +224,38 @@ fn function_args_multiline_heuristic(
                                 return true;
                             }
 
-                            // Reset the shape onto a new line // 3 = "end" for the function line
-                            singleline_shape = singleline_shape.reset() + 3;
+                            // Reset the shape onto a new line, and include the `end` token
+                            singleline_shape = singleline_shape.reset() + END_LEN;
                         } else {
-                            // We have a collapsed function (normally indicitive of a noop function)
-                            // add the width, and if it fails, we need to expand
+                            // Update the width with the collapsed function (normaly indicative of a noop function)
                             singleline_shape = singleline_shape + argument.to_string().len();
-                            if singleline_shape.over_budget() {
-                                return true;
-                            }
                         }
                     }
                     Value::TableConstructor(table) => {
-                        // Check to see whether it has been expanded
-                        let start_brace = table.braces().tokens().0;
-                        let is_expanded =
-                            trivia_util::trivia_contains_newline(start_brace.trailing_trivia());
+                        // Check to see whether it has been expanded (there is a newline after the start brace)
+                        let is_expanded = trivia_util::trivia_contains_newline(
+                            table.braces().tokens().0.trailing_trivia(),
+                        );
+
                         if is_expanded {
                             // If we have a mixture of multiline args, and other arguments
                             // Then the function args should be expanded
-                            if seen_multiline_arg && seen_other_arg_after_multiline {
+                            if current_state.should_hang() {
                                 return true;
                             }
 
-                            seen_multiline_arg = true;
+                            current_state = current_state.record_multiline_arg();
 
                             // Reset the shape onto a new line
-                            singleline_shape = singleline_shape.reset() + 1;
-                        // 1 = "}"
+                            singleline_shape = singleline_shape.reset() + BRACKET_LEN;
                         } else {
-                            // We have a collapsed table constructor - add the width, and if it fails,
-                            // we need to expand
+                            // Update the shape with the size of the collapsed table constructor
                             singleline_shape = singleline_shape + argument.to_string().len();
-                            if singleline_shape.over_budget() {
-                                return true;
-                            }
                         }
                     }
+
                     _ => {
-                        // If we previously had a table/anonymous function, and we have something else
-                        // in the mix, update the state to respond to this
-                        if seen_multiline_arg {
-                            seen_other_arg_after_multiline = true;
-                        }
+                        current_state = current_state.record_standard_arg();
 
                         // If the argument is complex (spans multiple lines), then we will immediately
                         // exit and span multiline - it is most likely too complex to keep going forward.
@@ -235,34 +268,30 @@ fn function_args_multiline_heuristic(
                             return true;
                         }
 
-                        // Set the shape to the last line, then examine if over budget
+                        // Update the shape with the last line (which may be different from the first)
                         singleline_shape = singleline_shape.take_last_line(&argument);
-                        if singleline_shape.over_budget() {
-                            return true;
-                        }
                     }
                 }
             }
             // TODO: Parentheses/UnOp, do we need to do more checking?
             // We will continue counting on the width_passed
             _ => {
-                // If we previously had a table/anonymous function, and we have something else
-                // in the mix, update the state to respond to this
-                if seen_multiline_arg {
-                    seen_other_arg_after_multiline = true;
-                }
+                current_state = current_state.record_standard_arg();
 
                 // Take the first line to see if we are over budget
                 if singleline_shape.take_first_line(&argument).over_budget() {
                     return true;
                 }
 
-                // Set the shape to the last line, then examine if over budget
+                // Update the shape with the last line (which may be different from the first)
                 singleline_shape = singleline_shape.take_last_line(&argument);
-                if singleline_shape.over_budget() {
-                    return true;
-                }
             }
+        }
+
+        // Check the current shape to see if it has fallen over budget.
+        // If it has, we can bail out and force the arguments onto multiple lines.
+        if singleline_shape.over_budget() {
+            return true;
         }
 
         // Add width which would be taken up by comma and space
