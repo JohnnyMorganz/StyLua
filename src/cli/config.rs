@@ -167,12 +167,12 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use structopt::StructOpt;
+    use clap::StructOpt;
     use stylua_lib::{CallParenType, IndentType, LineEndings, QuoteStyle};
 
     #[test]
     fn test_override_column_width() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--column-width", "80"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--column-width", "80"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.column_width(), 80);
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_override_line_endings() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--line-endings", "Windows"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--line-endings", "Windows"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.line_endings(), LineEndings::Windows);
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_override_indent_type() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--indent-type", "Spaces"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--indent-type", "Spaces"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.indent_type(), IndentType::Spaces);
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_override_indent_width() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--indent-width", "2"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--indent-width", "2"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.indent_width(), 2);
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_override_quote_style() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--quote-style", "ForceSingle"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--quote-style", "ForceSingle"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.quote_style(), QuoteStyle::ForceSingle);
@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_override_call_parentheses() {
-        let override_opt = Opt::from_iter(vec!["BINARY_NAME", "--call-parentheses", "None"]);
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--call-parentheses", "None"]);
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.call_parentheses(), CallParenType::None);

@@ -1,5 +1,5 @@
+use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
-use structopt::{clap::arg_enum, StructOpt};
 use stylua_lib::{CallParenType, IndentType, LineEndings, QuoteStyle};
 
 lazy_static::lazy_static! {
@@ -7,10 +7,10 @@ lazy_static::lazy_static! {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "stylua", about = "A utility to format Lua code")]
+#[structopt(name = "stylua", about = "A utility to format Lua code", version)]
 pub struct Opt {
     /// Specify path to stylua.toml configuration file
-    #[structopt(long = "config-path", short = "f", parse(from_os_str))]
+    #[structopt(long = "config-path", short = 'f', parse(from_os_str))]
     pub config_path: Option<PathBuf>,
 
     /// Specify the location of the file that is being passed into stdin.
@@ -47,7 +47,7 @@ pub struct Opt {
     pub verbose: bool,
 
     /// Whether the output should include terminal colour or not
-    #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
+    #[structopt(long, ignore_case = true, default_value = "auto", arg_enum)]
     pub color: Color,
 
     /// Any glob patterns to test against which files to check.
@@ -71,7 +71,7 @@ pub struct Opt {
     pub range_end: Option<usize>,
 
     /// Formatting options to apply when formatting code.
-    #[structopt(flatten)]
+    #[structopt(flatten, next_help_heading = "FORMATTING OPTIONS")]
     pub format_opts: FormatOpts,
 
     /// A list of files to format
@@ -79,13 +79,11 @@ pub struct Opt {
     pub files: Vec<PathBuf>,
 }
 
-structopt::clap::arg_enum! {
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum Color {
-        Always,
-        Auto,
-        Never,
-    }
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
+pub enum Color {
+    Always,
+    Auto,
+    Never,
 }
 
 impl Color {
@@ -120,32 +118,30 @@ pub struct FormatOpts {
     #[structopt(long)]
     pub column_width: Option<usize>,
     /// The type of line endings to use.
-    #[structopt(long, possible_values = &ArgLineEndings::variants(), case_insensitive = true, )]
+    #[structopt(long, arg_enum, ignore_case = true)]
     pub line_endings: Option<ArgLineEndings>,
     /// The type of indents to use.
-    #[structopt(long, possible_values = &ArgIndentType::variants(), case_insensitive = true, )]
+    #[structopt(long, arg_enum, ignore_case = true)]
     pub indent_type: Option<ArgIndentType>,
     /// The width of a single indentation level.
     #[structopt(long)]
     pub indent_width: Option<usize>,
     /// The style of quotes to use in string literals.
-    #[structopt(long, possible_values = &ArgQuoteStyle::variants(), case_insensitive = true, )]
+    #[structopt(long, arg_enum, ignore_case = true)]
     pub quote_style: Option<ArgQuoteStyle>,
     /// Specify whether to apply parentheses on function calls with signle string or table arg.
-    #[structopt(long, possible_values = &ArgCallParenType::variants(), case_insensitive = true, )]
+    #[structopt(long, arg_enum, ignore_case = true)]
     pub call_parentheses: Option<ArgCallParenType>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
 macro_rules! convert_enum {
     ($from:tt, $arg:tt, { $($enum_name:ident,)+ }) => {
-        structopt::clap::arg_enum! {
-            #[derive(Clone, Copy, Debug)]
-            pub enum $arg {
-                $(
-                    $enum_name,
-                )+
-            }
+        #[derive(ArgEnum, Clone, Copy, Debug)]
+        pub enum $arg {
+            $(
+                $enum_name,
+            )+
         }
 
         impl From<$arg> for $from {
@@ -193,3 +189,14 @@ convert_enum!(CallParenType, ArgCallParenType, {
     NoSingleTable,
     None,
 });
+
+#[cfg(test)]
+mod tests {
+    use super::Opt;
+    use clap::IntoApp;
+
+    #[test]
+    fn verify_opt() {
+        Opt::command().debug_assert()
+    }
+}
