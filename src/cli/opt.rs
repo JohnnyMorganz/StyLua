@@ -15,38 +15,43 @@ pub struct Opt {
 
     /// Specify the location of the file that is being passed into stdin.
     /// Ignored if not taking in input from stdin.
+    ///
     /// This option is only used to help determine where to find the configuration file.
     #[structopt(long = "stdin-filepath", parse(from_os_str))]
     pub stdin_filepath: Option<PathBuf>,
 
     /// Search parent directories for stylua.toml, if not found in current directory.
     /// Ignored if config_path is provided.
+    ///
     /// Keeps searching recursively up the parent directory tree, until the root directory is reached.
     /// If not found, looks in $XDG_CONFIG_HOME or $XDG_CONFIG_HOME/stylua.
     #[structopt(short, long)]
     pub search_parent_directories: bool,
 
     /// Runs in 'check' mode.
+    ///
     /// Exits with 0 if all formatting is OK,
     /// Exits with 1 if the formatting is incorrect.
     /// Any files input will not be overwritten.
     #[structopt(short, long)]
     pub check: bool,
 
-    /// Verify the output after formatting.
+    /// Verifies the output after formatting.
+    ///
     /// Checks the generated AST with the original AST to detect if code correctness has changed.
     #[structopt(long)]
     pub verify: bool,
 
-    /// Whether to print out verbose output
+    /// Enables verbose output
     #[structopt(short, long)]
     pub verbose: bool,
 
-    // Whether the output should include terminal colour or not
+    /// Whether the output should include terminal colour or not
     #[structopt(long, possible_values = &Color::variants(), case_insensitive = true, default_value = "auto")]
     pub color: Color,
 
     /// Any glob patterns to test against which files to check.
+    ///
     /// To ignore a specific glob pattern, begin the glob pattern with `!`
     #[structopt(short, long)]
     pub glob: Option<Vec<String>>,
