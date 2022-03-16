@@ -9,7 +9,9 @@ lazy_static::lazy_static! {
 #[derive(StructOpt, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code", version)]
 pub struct Opt {
-    /// Specify path to stylua.toml configuration file
+    /// Specify path to stylua.toml configuration file.
+    ///
+    /// If not provided, defaults to looking in the current directory for a configuration file.
     #[structopt(long = "config-path", short = 'f', parse(from_os_str))]
     pub config_path: Option<PathBuf>,
 
@@ -30,13 +32,14 @@ pub struct Opt {
 
     /// Runs in 'check' mode.
     ///
+    /// Compares a diff between all input files to determine if they are formatted.
     /// Exits with 0 if all formatting is OK,
-    /// Exits with 1 if the formatting is incorrect.
+    /// Exits with 1 if any formatting is incorrect, outputting file diffs.
     /// Any files input will not be overwritten.
     #[structopt(short, long)]
     pub check: bool,
 
-    /// Verifies the output after formatting.
+    /// Verifies the output correctness after formatting.
     ///
     /// Checks the generated AST with the original AST to detect if code correctness has changed.
     #[structopt(long)]
@@ -46,26 +49,30 @@ pub struct Opt {
     #[structopt(short, long)]
     pub verbose: bool,
 
-    /// Whether the output should include terminal colour or not
-    #[structopt(long, ignore_case = true, default_value = "auto", arg_enum)]
+    /// Use colored output.
+    #[structopt(long, ignore_case = true, default_value_t = Color::Auto, arg_enum)]
     pub color: Color,
 
-    /// Any glob patterns to test against which files to check.
+    /// Glob patterns to test against which files to check.
     ///
     /// To ignore a specific glob pattern, begin the glob pattern with `!`
     #[structopt(short, long)]
     pub glob: Option<Vec<String>>,
 
-    /// The number of threads to use to format files in parallel. Defaults to the number of logical cores on your system.
+    /// The number of threads to use to format files in parallel.
+    ///
+    /// Defaults to the number of logical cores on your system.
     #[structopt(long, default_value = &NUM_CPUS)]
     pub num_threads: usize,
 
     /// A starting range to format files, given as a byte offset from the beginning of the file.
+    ///
     /// Any content before this value will be ignored.
     #[structopt(long)]
     pub range_start: Option<usize>,
 
     /// An ending range to format files, given as a byte offset from the beginning of the file.
+    ///
     /// Any content after this value will be ignored.
     #[structopt(long)]
     pub range_end: Option<usize>,
@@ -80,9 +87,13 @@ pub struct Opt {
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
+#[clap(rename_all = "PascalCase")]
 pub enum Color {
+    /// Always use colour
     Always,
+    /// Checks the terminal features to determine whether to apply colour
     Auto,
+    /// Never use colour
     Never,
 }
 
@@ -138,6 +149,7 @@ pub struct FormatOpts {
 macro_rules! convert_enum {
     ($from:tt, $arg:tt, { $($enum_name:ident,)+ }) => {
         #[derive(ArgEnum, Clone, Copy, Debug)]
+        #[clap(rename_all = "PascalCase")]
         pub enum $arg {
             $(
                 $enum_name,
