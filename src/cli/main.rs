@@ -1,4 +1,5 @@
 use anyhow::{bail, Context, Result};
+use clap::StructOpt;
 use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
@@ -8,7 +9,6 @@ use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use structopt::StructOpt;
 use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
@@ -282,7 +282,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 }
 
 fn main() {
-    let opt = opt::Opt::from_args();
+    let opt = opt::Opt::parse();
     let should_use_color = opt.color.should_use_color_stderr();
     let level_filter = if opt.verbose {
         LevelFilter::Debug
