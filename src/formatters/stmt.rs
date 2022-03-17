@@ -92,56 +92,48 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
     let expression = expressions.iter().next().unwrap();
 
     // Ensure no comments
-    !trivia_util::trivia_contains_comments(
+    if trivia_util::trivia_contains_comments(
         trivia_util::get_expression_leading_trivia(expression).iter(),
         trivia_util::CommentSearch::All,
-    ) && !trivia_util::trivia_contains_comments(
+    ) || trivia_util::trivia_contains_comments(
         trivia_util::get_expression_trailing_trivia(expression).iter(),
         trivia_util::CommentSearch::All,
-    ) && match expression {
+    ) {
+        return false;
+    }
+
+    match expression {
         Expression::Value { value, .. } => {
             match &**value {
                 // Ensure is function call
                 Value::FunctionCall(function_call) => {
                     let mut suffixes = function_call.suffixes();
-                    match suffixes.next() {
-                        // Ensure atleast one suffix
-                        Some(suffix) => match suffixes.next() {
-                            // Ensure no more than one suffix
-                            Some(_) => false,
-                            None => match suffix {
-                                // Ensure suffix is a call
-                                Suffix::Call(Call::AnonymousCall(function_args)) => {
-                                    match function_args {
-                                        // Has a single table constructor
-                                        FunctionArgs::TableConstructor(_) => true,
-                                        FunctionArgs::Parentheses { arguments, .. } => {
-                                            let mut arguments = arguments.iter();
-                                            match arguments.next() {
-                                                // Ensure atleast one argument
-                                                Some(argument) => match arguments.next() {
-                                                    // Ensure no more than one argument
-                                                    Some(_) => false,
-                                                    None => match argument {
-                                                        Expression::Value { value, .. } => {
-                                                            matches!(
-                                                                **value,
-                                                                Value::TableConstructor(_)
-                                                            )
-                                                        }
-                                                        _ => false,
-                                                    },
-                                                },
-                                                None => false,
-                                            }
-                                        }
-                                        _ => false,
+                    // Test next 2 available suffixes
+                    match (suffixes.next(), suffixes.next()) {
+                        // Ensure atleast one suffix, and only one suffix
+                        (Some(suffix), None) => match suffix {
+                            // Ensure suffix is a call with a single table constructor as argument
+                            Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(
+                                _,
+                            ))) => true,
+                            Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
+                                arguments,
+                                ..
+                            })) => {
+                                let mut arguments = arguments.iter();
+                                // Test next 2 available arguments
+                                match (arguments.next(), arguments.next()) {
+                                    // Ensure atleast one argument, and only one argument
+                                    // And that the argument is a table constructor
+                                    (Some(Expression::Value { value, .. }), None) => {
+                                        matches!(**value, Value::TableConstructor(_))
                                     }
+                                    _ => false,
                                 }
-                                _ => false,
-                            },
+                            }
+                            _ => false,
                         },
-                        None => false,
+                        _ => false,
                     }
                 }
                 _ => false,
