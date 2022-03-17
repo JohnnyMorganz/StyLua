@@ -3,6 +3,7 @@ use clap::StructOpt;
 use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
+use serde_json::json;
 use std::fs;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::Path;
@@ -51,13 +52,35 @@ fn format_file(
     );
 
     if opt.check {
-        let diff = output_diff::output_diff(
-            &contents,
-            &formatted_contents,
-            3,
-            &format!("Diff in {}:", path.display()),
-            opt.color,
-        )
+        let diff = match opt.output_format {
+            opt::OutputFormat::Standard => output_diff::output_diff(
+                &contents,
+                &formatted_contents,
+                3,
+                &format!("Diff in {}:", path.display()),
+                opt.color,
+            ),
+            opt::OutputFormat::Unified => {
+                output_diff::output_diff_unified(&contents, &formatted_contents)
+            }
+            opt::OutputFormat::Json => {
+                output_diff::output_diff_json(&contents, &formatted_contents)
+                    .map(|mismatches| {
+                        serde_json::to_vec(&json!({
+                            "file": path.display().to_string(),
+                            "mismatches": mismatches
+                        }))
+                        // Add newline to end
+                        .map(|mut vec| {
+                            vec.push(b'\n');
+                            vec
+                        })
+                        // Covert to anyhow::Error
+                        .map_err(|err| err.into())
+                    })
+                    .transpose()
+            }
+        }
         .context("failed to create diff")?;
 
         match diff {
