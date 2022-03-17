@@ -25,7 +25,8 @@ use crate::{
     shape::Shape,
 };
 use full_moon::ast::{
-    Do, ElseIf, Expression, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, Value, While,
+    punctuated::Punctuated, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall, GenericFor,
+    If, NumericFor, Repeat, Stmt, Suffix, Value, While,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
@@ -78,6 +79,77 @@ pub fn format_do_block(ctx: &Context, do_block: &Do, shape: Shape) -> Do {
         .with_do_token(do_token)
         .with_block(block)
         .with_end_token(end_token)
+}
+
+/// Determine if we should hug the generic for.
+/// This should only happen when there is a single expression, which is a function call containing
+/// a single table, and there are no comments which will affect it
+fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
+    if expressions.len() != 1 {
+        return false;
+    }
+
+    let expression = expressions.iter().next().unwrap();
+
+    // Ensure no comments
+    !trivia_util::trivia_contains_comments(
+        trivia_util::get_expression_leading_trivia(expression).iter(),
+        trivia_util::CommentSearch::All,
+    ) && !trivia_util::trivia_contains_comments(
+        trivia_util::get_expression_trailing_trivia(expression).iter(),
+        trivia_util::CommentSearch::All,
+    ) && match expression {
+        Expression::Value { value, .. } => {
+            match &**value {
+                // Ensure is function call
+                Value::FunctionCall(function_call) => {
+                    let mut suffixes = function_call.suffixes();
+
+                    match suffixes.next() {
+                        // Ensure atleast one suffix
+                        Some(suffix) => match suffixes.next() {
+                            // Ensure no more than one suffix
+                            Some(_) => false,
+                            None => match suffix {
+                                // Ensure suffix is a call
+                                Suffix::Call(Call::AnonymousCall(function_args)) => {
+                                    match function_args {
+                                        // Has a single table constructor
+                                        FunctionArgs::TableConstructor(_) => true,
+                                        FunctionArgs::Parentheses { arguments, .. } => {
+                                            let mut arguments = arguments.iter();
+                                            match arguments.next() {
+                                                // Ensure atleast one argument
+                                                Some(argument) => match arguments.next() {
+                                                    // Ensure no more than one argument
+                                                    Some(_) => false,
+                                                    None => match argument {
+                                                        Expression::Value { value, .. } => {
+                                                            matches!(
+                                                                **value,
+                                                                Value::TableConstructor(_)
+                                                            )
+                                                        }
+                                                        _ => false,
+                                                    },
+                                                },
+                                                None => false,
+                                            }
+                                        }
+                                        _ => false,
+                                    }
+                                }
+                                _ => false,
+                            },
+                        },
+                        None => false,
+                    }
+                }
+                _ => false,
+            }
+        }
+        _ => false,
+    }
 }
 
 /// Format a GenericFor node
@@ -148,9 +220,10 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let singleline_expr =
         format_punctuated(ctx, generic_for.expressions(), shape, format_expression);
     let singleline_expr_shape = shape.take_first_line(&singleline_expr);
-    let requires_expr_multiline = trivia_util::contains_comments(generic_for.expressions())
+    let requires_expr_multiline = (trivia_util::contains_comments(generic_for.expressions())
         || trivia_util::spans_multiple_lines(&singleline_expr)
-        || singleline_expr_shape.over_budget();
+        || singleline_expr_shape.over_budget())
+        && !hug_generic_for(generic_for.expressions());
 
     let in_token = match (require_names_multiline, requires_expr_multiline) {
         (true, true) => fmt_symbol!(ctx, generic_for.in_token(), "in", shape)
