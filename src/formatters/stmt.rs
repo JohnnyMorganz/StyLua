@@ -104,7 +104,6 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
                 // Ensure is function call
                 Value::FunctionCall(function_call) => {
                     let mut suffixes = function_call.suffixes();
-
                     match suffixes.next() {
                         // Ensure atleast one suffix
                         Some(suffix) => match suffixes.next() {
