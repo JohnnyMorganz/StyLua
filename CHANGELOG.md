@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added support for alternative diff outputs. You can now use `--output-format=unified` or `--output-format=json` to output a unified diff or json mismatches list respectively. A unified diff can be fed into other tools such as `patch` or `delta`, whilst a JSON diff provides a more machine readable format useful for extensions.
+- Added support for alternative diff outputs. You can now use `--output-format=unified` or `--output-format=json` to output a unified diff or json mismatches list respectively. A unified diff can be fed into other tools such as `patch` or `delta`, whilst a JSON diff provides a more machine readable format useful for extensions. ([#230](https://github.com/JohnnyMorganz/StyLua/issues/230))
 
 ### Changed
 - Migrate internal dependency for CLI arguments handling, with improved help messages.
