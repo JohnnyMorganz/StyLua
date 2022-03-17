@@ -3,7 +3,8 @@
 use crate::opt;
 use anyhow::Result;
 use console::{style, Style};
-use similar::{ChangeTag, TextDiff};
+use serde::Serialize;
+use similar::{ChangeTag, DiffOp, TextDiff};
 use std::fmt;
 use std::io::Write;
 
@@ -89,6 +90,119 @@ pub fn output_diff(
     }
 
     Ok(Some(buffer))
+}
+
+pub fn output_diff_unified(old: &str, new: &str) -> Result<Option<Vec<u8>>> {
+    let text_diff = TextDiff::from_lines(old, new);
+
+    // If there are no changes, return nothing
+    if text_diff.ratio() == 1.0 {
+        return Ok(None);
+    }
+
+    let mut buffer = Vec::new();
+    write!(
+        &mut buffer,
+        "{}",
+        text_diff.unified_diff().header("old", "new")
+    )?;
+    Ok(Some(buffer))
+}
+
+#[derive(Serialize)]
+pub struct DiffMismatch {
+    original_start_line: usize,
+    original_end_line: usize,
+    expected_start_line: usize,
+    expected_end_line: usize,
+    original: String,
+    expected: String,
+}
+
+pub fn output_diff_json(old: &str, new: &str) -> Option<Vec<DiffMismatch>> {
+    let text_diff = TextDiff::from_lines(old, new);
+    let grouped_ops = text_diff.grouped_ops(0);
+
+    if grouped_ops.is_empty() {
+        return None;
+    }
+
+    let mut mismatches = Vec::with_capacity(grouped_ops.len());
+
+    for group in grouped_ops {
+        for op in group {
+            match op {
+                DiffOp::Replace {
+                    old_index,
+                    old_len,
+                    new_index,
+                    new_len,
+                } => {
+                    let original = text_diff
+                        .iter_changes(&op)
+                        .filter(|change| matches!(change.tag(), ChangeTag::Delete))
+                        .map(|change| change.value())
+                        .collect();
+
+                    let expected = text_diff
+                        .iter_changes(&op)
+                        .filter(|change| matches!(change.tag(), ChangeTag::Insert))
+                        .map(|change| change.value())
+                        .collect();
+
+                    mismatches.push(DiffMismatch {
+                        original_start_line: old_index,
+                        original_end_line: old_index + old_len - 1,
+                        expected_start_line: new_index,
+                        expected_end_line: new_index + new_len - 1,
+                        original,
+                        expected,
+                    });
+                }
+                DiffOp::Delete {
+                    old_index,
+                    old_len,
+                    new_index,
+                } => {
+                    let actual = text_diff
+                        .iter_changes(&op)
+                        .next()
+                        .expect("no actual change present in diff/delete");
+
+                    mismatches.push(DiffMismatch {
+                        original_start_line: old_index,
+                        original_end_line: old_index + old_len - 1,
+                        expected_start_line: new_index,
+                        expected_end_line: new_index,
+                        original: actual.to_string(),
+                        expected: "".to_string(),
+                    })
+                }
+                DiffOp::Insert {
+                    old_index,
+                    new_index,
+                    new_len,
+                } => {
+                    let expected = text_diff
+                        .iter_changes(&op)
+                        .next()
+                        .expect("no actual change present in diff/insert");
+
+                    mismatches.push(DiffMismatch {
+                        original_start_line: old_index,
+                        original_end_line: old_index,
+                        expected_start_line: new_index,
+                        expected_end_line: new_index + new_len - 1,
+                        original: "".to_string(),
+                        expected: expected.to_string(),
+                    })
+                }
+                DiffOp::Equal { .. } => (), // Don't record an equals diff, its unnecessary
+            }
+        }
+    }
+
+    Some(mismatches)
 }
 
 #[cfg(test)]

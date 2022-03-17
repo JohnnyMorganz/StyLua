@@ -39,6 +39,12 @@ pub struct Opt {
     #[structopt(short, long)]
     pub check: bool,
 
+    /// Configures the diff output when using 'check' mode.
+    ///
+    /// This option is ignored if 'check' is not enabled.
+    #[structopt(long, arg_enum, ignore_case = true, default_value_t = OutputFormat::Standard)]
+    pub output_format: OutputFormat,
+
     /// Verifies the output correctness after formatting.
     ///
     /// Checks the generated AST with the original AST to detect if code correctness has changed.
@@ -121,6 +127,17 @@ impl Color {
             }
         }
     }
+}
+
+#[derive(ArgEnum, Clone, Copy, Debug)]
+#[clap(rename_all = "PascalCase")]
+pub enum OutputFormat {
+    /// Outputs using the standard inbuilt pretty-diff design
+    Standard,
+    /// Outputs using unified diff formatting
+    Unified,
+    /// Outputs in json
+    Json,
 }
 
 #[derive(StructOpt, Debug)]
