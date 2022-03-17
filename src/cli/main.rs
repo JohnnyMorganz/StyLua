@@ -109,6 +109,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
         bail!("no files provided");
     }
 
+    // Check for incompatible options
+    if !opt.check && !matches!(opt.output_format, opt::OutputFormat::Standard) {
+        bail!("--output-format can only be used when --check is enabled");
+    }
+
     // Load the configuration
     let config = config::load_config(&opt)?;
 
