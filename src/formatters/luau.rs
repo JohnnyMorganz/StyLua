@@ -18,8 +18,7 @@ use crate::{
             contains_comments, contains_singleline_comments, take_type_argument_trailing_comments,
             take_type_info_trailing_comments, token_trivia_contains_comments,
             trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            trivia_is_singleline_comment, type_info_leading_trivia, type_info_trailing_trivia,
-            CommentSearch,
+            type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
         },
     },
     shape::Shape,
@@ -92,7 +91,7 @@ fn format_hangable_type_info(
 
     // If we can hang the type definition, and its over width, then lets try doing so
     if can_hang_type(type_info)
-        && (should_hang_type(type_info)
+        && (should_hang_type(type_info, CommentSearch::Single)
             || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
     {
         hang_type_info(ctx, type_info, shape, hang_level)
@@ -639,7 +638,7 @@ pub fn format_type_assertion(
 }
 
 /// Checks a type info to see if it should be hanged due to comments being present
-fn should_hang_type(type_info: &TypeInfo) -> bool {
+fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool {
     // Only hang if its a binary type info, since it doesn't matter for unary types
     match type_info {
         TypeInfo::Union {
@@ -652,16 +651,14 @@ fn should_hang_type(type_info: &TypeInfo) -> bool {
             ampersand: binop,
             right,
         } => {
-            type_info_trailing_trivia(left)
-                .iter()
-                .any(trivia_is_singleline_comment)
-                || should_hang_type(left)
+            trivia_contains_comments(type_info_trailing_trivia(left).iter(), comment_search)
+                || should_hang_type(left, comment_search)
                 || contains_comments(binop)
-                || full_moon::node::Node::surrounding_trivia(right)
-                    .0
-                    .iter()
-                    .any(|trivia| trivia_is_singleline_comment(trivia))
-                || should_hang_type(right)
+                || trivia_contains_comments(
+                    type_info_leading_trivia(right).iter().copied(),
+                    comment_search,
+                )
+                || should_hang_type(right, comment_search)
         }
         _ => false,
     }
@@ -724,7 +721,7 @@ fn format_type_declaration(
     );
 
     // Test to see whether the type definition must be hung due to comments
-    let must_hang = should_hang_type(type_declaration.type_definition());
+    let must_hang = should_hang_type(type_declaration.type_definition(), CommentSearch::All);
 
     // If we can hang the type definition, and its over width, then lets try doing so
     if can_hang_type(type_declaration.type_definition())
