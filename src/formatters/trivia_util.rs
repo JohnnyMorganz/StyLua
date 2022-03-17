@@ -192,6 +192,7 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
             let (_, end_brace) = arrows.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        TypeInfo::GenericPack { ellipse, .. } => ellipse.trailing_trivia().cloned().collect(),
 
         TypeInfo::Intersection { right, .. } => type_info_trailing_trivia(right),
 
@@ -219,7 +220,7 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
 
         TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
         TypeInfo::Variadic { type_info, .. } => type_info_trailing_trivia(type_info),
-
+        TypeInfo::VariadicPack { name, .. } => name.trailing_trivia().cloned().collect(),
         other => panic!("unknown node {:?}", other),
     }
 }
