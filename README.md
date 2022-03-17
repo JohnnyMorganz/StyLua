@@ -51,7 +51,6 @@ Add the following to your `.pre-commit-config.yaml` file:
 
 ### Other Installation Methods
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
-- [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
 ```toml
 stylua = { source = "JohnnyMorganz/stylua", version = "0.12.5" }
@@ -59,6 +58,12 @@ stylua = { source = "JohnnyMorganz/stylua", version = "0.12.5" }
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
 
 [![Community Packages](https://repology.org/badge/vertical-allrepos/stylua.svg?header=Community%20Packages)](https://repology.org/project/stylua/versions)
+
+### Other Editor Integrations
+Note that these integrations require the StyLua binary to already be installed and available on your system.
+
+- Sublime: [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
+- Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim)
 
 ## Usage
 Once installed, pass the files to format to the CLI:
