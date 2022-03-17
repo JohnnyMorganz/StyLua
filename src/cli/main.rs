@@ -30,6 +30,41 @@ enum FormatResult {
     Diff(Vec<u8>),
 }
 
+fn create_diff(
+    opt: &opt::Opt,
+    original: &str,
+    expected: &str,
+    file_name: &str,
+) -> Result<Option<Vec<u8>>> {
+    match opt.output_format {
+        opt::OutputFormat::Standard => output_diff::output_diff(
+            original,
+            expected,
+            3,
+            &format!("Diff in {}:", file_name),
+            opt.color,
+        ),
+        opt::OutputFormat::Unified => output_diff::output_diff_unified(original, expected),
+        opt::OutputFormat::Json => {
+            output_diff::output_diff_json(original, expected)
+                .map(|mismatches| {
+                    serde_json::to_vec(&json!({
+                        "file": file_name,
+                        "mismatches": mismatches
+                    }))
+                    // Add newline to end
+                    .map(|mut vec| {
+                        vec.push(b'\n');
+                        vec
+                    })
+                    // Covert to anyhow::Error
+                    .map_err(|err| err.into())
+                })
+                .transpose()
+        }
+    }
+}
+
 fn format_file(
     path: &Path,
     config: Config,
@@ -52,35 +87,12 @@ fn format_file(
     );
 
     if opt.check {
-        let diff = match opt.output_format {
-            opt::OutputFormat::Standard => output_diff::output_diff(
-                &contents,
-                &formatted_contents,
-                3,
-                &format!("Diff in {}:", path.display()),
-                opt.color,
-            ),
-            opt::OutputFormat::Unified => {
-                output_diff::output_diff_unified(&contents, &formatted_contents)
-            }
-            opt::OutputFormat::Json => {
-                output_diff::output_diff_json(&contents, &formatted_contents)
-                    .map(|mismatches| {
-                        serde_json::to_vec(&json!({
-                            "file": path.display().to_string(),
-                            "mismatches": mismatches
-                        }))
-                        // Add newline to end
-                        .map(|mut vec| {
-                            vec.push(b'\n');
-                            vec
-                        })
-                        // Covert to anyhow::Error
-                        .map_err(|err| err.into())
-                    })
-                    .transpose()
-            }
-        }
+        let diff = create_diff(
+            opt,
+            &contents,
+            &formatted_contents,
+            path.display().to_string().as_str(),
+        )
         .context("failed to create diff")?;
 
         match diff {
@@ -107,14 +119,8 @@ fn format_string(
         format_code(&input, config, range, verify_output).context("failed to format from stdin")?;
 
     if opt.check {
-        let diff = output_diff::output_diff(
-            &input,
-            &formatted_contents,
-            3,
-            "Diff from stdin:",
-            opt.color,
-        )
-        .context("failed to create diff")?;
+        let diff = create_diff(opt, &input, &formatted_contents, "stdin")
+            .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
