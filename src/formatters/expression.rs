@@ -45,12 +45,21 @@ macro_rules! fmt_op {
     };
 }
 
+#[derive(Clone, Copy)]
 enum ExpressionContext {
     /// Standard expression, with no special context
     Standard,
     /// The expression originates from a [`Prefix`] node. The special context here is that the expression will
     /// always be wrapped in parentheses.
     Prefix,
+    /// The internal expression is being asserted by a type: the `expr` part of `(expr) :: type`.
+    /// If this occurs and `expr` is wrapped in parentheses, we keep the parentheses, such
+    /// as for cases like `(expr) :: any) :: type`
+    #[cfg(feature = "luau")]
+    TypeAssertion,
+    /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
+    /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
+    Unary,
 }
 
 pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
@@ -75,12 +84,14 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
 
 /// Check to determine whether expression parentheses are required, depending on the provided
 /// internal expression contained within the parentheses
-fn check_excess_parentheses(internal_expression: &Expression) -> bool {
+fn check_excess_parentheses(internal_expression: &Expression, context: ExpressionContext) -> bool {
     match internal_expression {
         // Parentheses inside parentheses, not necessary
         Expression::Parentheses { .. } => true,
         // Check whether the expression relating to the UnOp is safe
-        Expression::UnaryOperator { expression, .. } => check_excess_parentheses(expression),
+        Expression::UnaryOperator { expression, .. } => {
+            check_excess_parentheses(expression, context)
+        }
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
         Expression::BinaryOperator { .. } => false,
         Expression::Value {
@@ -88,9 +99,11 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
-            // If we have a type assertion, we should always keep parentheses
+            // If we have a type assertion, and the context is a unary operation
+            // we should always keep parentheses
+            // [e.g. #(value :: Array<string>) or -(value :: number)]
             #[cfg(feature = "luau")]
-            if type_assertion.is_some() {
+            if type_assertion.is_some() && matches!(context, ExpressionContext::Unary) {
                 return false;
             }
 
@@ -135,7 +148,20 @@ fn format_expression_internal(
             #[cfg(feature = "luau")]
             type_assertion,
         } => Expression::Value {
-            value: Box::new(format_value(ctx, value, shape)),
+            value: Box::new(format_value(
+                ctx,
+                value,
+                shape,
+                #[cfg(feature = "luau")]
+                if type_assertion.is_some() {
+                    ExpressionContext::TypeAssertion
+                } else {
+                    context
+                },
+                #[cfg(not(feature = "luau"))]
+                context,
+            )),
+
             #[cfg(feature = "luau")]
             type_assertion: type_assertion
                 .as_ref()
@@ -145,12 +171,20 @@ fn format_expression_internal(
             contained,
             expression,
         } => {
+            #[cfg(feature = "luau")]
+            let keep_parentheses = matches!(
+                context,
+                ExpressionContext::Prefix | ExpressionContext::TypeAssertion
+            );
+            #[cfg(not(feature = "luau"))]
+            let keep_parentheses = matches!(context, ExpressionContext::Prefix);
+
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
-            let use_internal_expression = check_excess_parentheses(expression);
+            let use_internal_expression = check_excess_parentheses(expression, context);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
-            if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
+            if use_internal_expression && !keep_parentheses {
                 // Get the trailing comments from contained span and append them onto the expression
                 let trailing_comments = contained
                     .tokens()
@@ -174,7 +208,8 @@ fn format_expression_internal(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let mut expression = format_expression(ctx, expression, shape);
+            let mut expression =
+                format_expression_internal(ctx, expression, ExpressionContext::Unary, shape);
 
             // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
             // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
@@ -635,7 +670,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
 }
 
 /// Formats a Value Node
-pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
+fn format_value(ctx: &Context, value: &Value, shape: Shape, context: ExpressionContext) -> Value {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function(
             format_anonymous_function(ctx, token_reference, function_body, shape),
@@ -650,9 +685,9 @@ pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
         Value::Number(token_reference) => {
             Value::Number(format_token_reference(ctx, token_reference, shape))
         }
-        Value::ParenthesesExpression(expression) => {
-            Value::ParenthesesExpression(format_expression(ctx, expression, shape))
-        }
+        Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+            format_expression_internal(ctx, expression, context, shape),
+        ),
         Value::String(token_reference) => {
             Value::String(format_token_reference(ctx, token_reference, shape))
         }
@@ -1080,7 +1115,13 @@ fn format_hanging_expression_(
                     } else {
                         shape
                     };
-                    format_value(ctx, value, shape)
+                    #[cfg(feature = "luau")]
+                    let expression_context = if type_assertion.is_some() {
+                        ExpressionContext::TypeAssertion
+                    } else {
+                        expression_context
+                    };
+                    format_value(ctx, value, shape, expression_context)
                 }
             });
             Expression::Value {
@@ -1103,7 +1144,7 @@ fn format_hanging_expression_(
 
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
-            let use_internal_expression = check_excess_parentheses(expression);
+            let use_internal_expression = check_excess_parentheses(expression, expression_context);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {

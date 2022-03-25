@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrate internal dependency for CLI arguments handling, with improved help messages.
 - Type declarations consisting of unions/intersections where an inner type has a multiline comment will now force hanging
 - Generic fors will no longer expand onto multiple lines if the expression looping over is a function call with a single table argument (e.g., `ipairs({ ... })`) ([#405](https://github.com/JohnnyMorganz/StyLua/issues/405))
+- Excess parentheses around a type assertion will now be removed. ([#383](https://github.com/JohnnyMorganz/StyLua/issues/383))
 
 ## [0.12.5] - 2022-03-08
 ### Fixed
