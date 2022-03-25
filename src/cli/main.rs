@@ -148,7 +148,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
     // Handle any configuration overrides provided by options
     let config = config::load_overrides(config, &opt);
-    debug!("config: {config:#?}");
+    debug!("config: {:#?}", config);
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -216,7 +216,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!("could not output to stdout: {err:#}")
+                                error!("could not output to stdout: {:#}", err)
                             }
                         };
                     }
@@ -229,11 +229,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => error!("{err:#}"),
+                            Err(err) => error!("{:#}", err),
                         }
                     }
                 },
-                Err(err) => error!("{err:#}"),
+                Err(err) => error!("{:#}", err),
             }
         }
     });
@@ -294,11 +294,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         std::io::ErrorKind::NotFound => {
                             error!("no file or directory found matching '{:#}'", path.display())
                         }
-                        _ => error!("{error:#}"),
+                        _ => error!("{:#}", error),
                     },
-                    _ => error!("{err:#}"),
+                    _ => error!("{:#}", err),
                 },
-                _ => error!("{error:#}"),
+                _ => error!("{:#}", error),
             },
         }
     }
@@ -355,7 +355,7 @@ fn main() {
     let exit_code = match format(opt) {
         Ok(code) => code,
         Err(err) => {
-            error!("{err:#}");
+            error!("{:#}", err);
             2
         }
     };
