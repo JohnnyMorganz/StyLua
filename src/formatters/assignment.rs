@@ -216,7 +216,10 @@ fn attempt_assignment_tactics(
         let formatting_shape = shape.take_first_line(&strip_trailing_trivia(&expr_list));
 
         // Find the better format out of the hanging shape or the normal formatting
-        if hanging_shape.used_width() < formatting_shape.used_width() {
+        // If the expression contains comments, we must hang
+        if trivia_util::expression_contains_inline_comments(expression)
+            || hanging_shape.used_width() < formatting_shape.used_width()
+        {
             // Hanging version is better
             (hanging_expr_list, equal_token)
         } else {
