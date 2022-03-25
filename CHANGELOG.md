@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue through static linking where Windows binary would not execute due to missing `VCRUNTIME140.dll`. ([#413](https://github.com/JohnnyMorganz/StyLua/issues/413))
+- Fixed assignment with comment sometimes not hanging leading to malformed syntax. ([#416](https://github.com/JohnnyMorganz/StyLua/issues/416))
 
 ## [0.12.5] - 2022-03-08
 ### Fixed
