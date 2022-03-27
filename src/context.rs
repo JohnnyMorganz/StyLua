@@ -44,33 +44,36 @@ impl Context {
     // To preserve immutability of Context, we return a new Context with the `formatting_disabled` field toggled or left the same
     // where necessary. Context is cheap so this is reasonable to do.
     pub fn check_toggle_formatting(&self, node: &impl Node) -> Self {
-        // Check comments
+        // Load all the leading comments from the token
         let leading_trivia = node.surrounding_trivia().0;
-        for trivia in leading_trivia {
-            let comment_lines = match trivia.token_type() {
-                TokenType::SingleLineComment { comment } => comment,
-                TokenType::MultiLineComment { comment, .. } => comment,
-                _ => continue,
-            }
-            .lines()
-            .map(|line| line.trim());
-
-            for line in comment_lines {
-                if line == "stylua: ignore start" && !self.formatting_disabled {
-                    return Self {
-                        formatting_disabled: true,
-                        ..*self
-                    };
-                } else if line == "stylua: ignore end" && self.formatting_disabled {
-                    return Self {
-                        formatting_disabled: false,
-                        ..*self
-                    };
+        let comment_lines = leading_trivia
+            .iter()
+            .filter_map(|trivia| {
+                match trivia.token_type() {
+                    TokenType::SingleLineComment { comment } => Some(comment),
+                    TokenType::MultiLineComment { comment, .. } => Some(comment),
+                    _ => None,
                 }
+                .map(|comment| comment.lines().map(|line| line.trim()))
+            })
+            .flatten();
+
+        // Load the current formatting disabled state
+        let mut formatting_disabled = self.formatting_disabled;
+
+        // Work through all the lines and update the state as necessary
+        for line in comment_lines {
+            if line == "stylua: ignore start" {
+                formatting_disabled = true;
+            } else if line == "stylua: ignore end" {
+                formatting_disabled = false;
             }
         }
 
-        *self
+        Self {
+            formatting_disabled,
+            ..*self
+        }
     }
 
     /// Checks whether we should format the given node.
