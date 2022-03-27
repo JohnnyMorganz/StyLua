@@ -211,3 +211,48 @@ local bar   =     baz
     local bar = baz
     "###);
 }
+
+#[test]
+fn test_multiline_block_ignore_multiple_comments_in_leading_trivia() {
+    insta::assert_snapshot!(
+        format(
+            r###"--stylua: ignore start
+local a   =   1
+--stylua: ignore end
+
+--stylua: ignore start
+local b   =   2
+--stylua: ignore end
+
+--stylua: ignore start
+local c   =   3
+--stylua: ignore end
+
+-- Some very large comment
+
+--stylua: ignore start
+local d   =   4
+--stylua: ignore end
+"###
+        ),
+    @r###"
+    --stylua: ignore start
+    local a   =   1
+    --stylua: ignore end
+
+    --stylua: ignore start
+    local b   =   2
+    --stylua: ignore end
+
+    --stylua: ignore start
+    local c   =   3
+    --stylua: ignore end
+
+    -- Some very large comment
+
+    --stylua: ignore start
+    local d   =   4
+    --stylua: ignore end
+    "###
+    )
+}
