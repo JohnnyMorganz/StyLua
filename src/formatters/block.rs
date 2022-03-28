@@ -1,10 +1,12 @@
+#[cfg(feature = "luau")]
+use crate::formatters::general::format_symbol;
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
         assignment::hang_punctuated_list,
         expression::{format_expression, hang_expression},
-        general::{format_punctuated, format_punctuated_multiline, format_symbol},
+        general::{format_punctuated, format_punctuated_multiline},
         stmt::format_stmt,
         trivia::{
             strip_trailing_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -476,18 +478,29 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                 Some(semi) => {
                     // We used to have a semicolon, but now we are removing it
                     // We want to keep any old comments on the semicolon token, otherwise we will lose it
-                    let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
-                    stmt = updated_stmt;
-                    // We will do a hack here, where we insert an empty token, and add all the remaining trivia onto it
-                    Some(
-                        format_symbol(
-                            &ctx,
-                            semi,
-                            &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
-                            shape,
+                    // Move the comments to the end of the stmt, but before the newline token
+                    // TODO: this is a bit of a hack - we should probably move newline appending to this function
+                    let trivia = trivia_util::get_stmt_trailing_trivia(stmt.to_owned())
+                        .1
+                        .iter()
+                        .rev()
+                        .skip(1) // Remove the newline at the end
+                        .rev()
+                        .cloned()
+                        .chain(
+                            semi.trailing_trivia()
+                                .filter(|token| trivia_util::trivia_is_comment(token))
+                                .flat_map(|x| {
+                                    // Prepend a single space beforehand
+                                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                                }),
                         )
-                        .update_trailing_trivia(FormatTriviaType::Append(trivia)),
-                    )
+                        .chain(std::iter::once(create_newline_trivia(&ctx)))
+                        .collect();
+
+                    stmt = stmt.update_trailing_trivia(FormatTriviaType::Replace(trivia));
+
+                    None
                 }
                 None => None,
             },
@@ -510,24 +523,33 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
             }
+
             // LastStmt will never need a semicolon
             // We need to check if we previously had a semicolon, and keep the comments if so
             let semicolon = match semi {
                 Some(semi) => {
-                    let (updated_last_stmt, trivia) =
-                        trivia_util::get_last_stmt_trailing_trivia(last_stmt);
-                    last_stmt = updated_last_stmt;
+                    // Append semicolon trailing trivia to the end, but before the newline
+                    // TODO: this is a bit of a hack - we should probably move newline appending to this function
+                    let trivia = trivia_util::last_stmt_trailing_trivia(&last_stmt)
+                        .iter()
+                        .rev()
+                        .skip(1) // Remove the newline at the end
+                        .rev()
+                        .cloned()
+                        .chain(
+                            semi.trailing_trivia()
+                                .filter(|token| trivia_util::trivia_is_comment(token))
+                                .flat_map(|x| {
+                                    // Prepend a single space beforehand
+                                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                                }),
+                        )
+                        .chain(std::iter::once(create_newline_trivia(&ctx)))
+                        .collect();
 
-                    // We want to keep any old comments on the semicolon token, otherwise we will lose it
-                    // We will do a hack here, where we replace the semicolon with an empty symbol
-                    let semicolon_token = format_symbol(
-                        &ctx,
-                        semi,
-                        &TokenReference::new(vec![], Token::new(TokenType::spaces(0)), vec![]),
-                        shape,
-                    )
-                    .update_trailing_trivia(FormatTriviaType::Append(trivia));
-                    Some(semicolon_token)
+                    last_stmt = last_stmt.update_trailing_trivia(FormatTriviaType::Replace(trivia));
+
+                    None
                 }
                 None => None,
             };
