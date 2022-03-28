@@ -6,8 +6,8 @@ use full_moon::ast::types::{
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
-    FunctionBody, FunctionCall, FunctionName, Index, MethodCall, Parameter, Prefix, Suffix,
-    TableConstructor, UnOp, Value, Var, VarExpression,
+    FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix, Stmt,
+    Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 
@@ -362,6 +362,30 @@ define_update_trivia!(Index, |this, leading, trailing| {
     }
 });
 
+define_update_trailing_trivia!(LastStmt, |this, trailing| {
+    match this {
+        LastStmt::Break(token) => LastStmt::Break(token.update_trailing_trivia(trailing)),
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(token) => LastStmt::Continue(token.update_trailing_trivia(trailing)),
+        LastStmt::Return(r#return) => {
+            if r#return.returns().is_empty() {
+                LastStmt::Return(
+                    r#return
+                        .to_owned()
+                        .with_token(r#return.token().update_trailing_trivia(trailing)),
+                )
+            } else {
+                LastStmt::Return(
+                    r#return
+                        .to_owned()
+                        .with_returns(r#return.returns().update_trailing_trivia(trailing)),
+                )
+            }
+        }
+        other => panic!("unknown node {:?}", other),
+    }
+});
+
 define_update_trivia!(MethodCall, |this, leading, trailing| {
     this.to_owned()
         .with_colon_token(this.colon_token().update_leading_trivia(leading))
@@ -430,6 +454,95 @@ where
         punctuated
     }
 }
+
+define_update_trailing_trivia!(Stmt, |this, trailing| {
+    match this {
+        Stmt::Assignment(assignment) => {
+            let expressions = assignment.expressions().update_trailing_trivia(trailing);
+            Stmt::Assignment(assignment.to_owned().with_expressions(expressions))
+        }
+
+        Stmt::LocalAssignment(local_assignment) => {
+            if local_assignment.expressions().is_empty() {
+                let names = local_assignment.names().update_trailing_trivia(trailing);
+                Stmt::LocalAssignment(local_assignment.to_owned().with_names(names))
+            } else {
+                let expressions = local_assignment
+                    .expressions()
+                    .update_trailing_trivia(trailing);
+                Stmt::LocalAssignment(local_assignment.to_owned().with_expressions(expressions))
+            }
+        }
+        Stmt::FunctionCall(function_call) => {
+            Stmt::FunctionCall(function_call.update_trailing_trivia(trailing))
+        }
+        Stmt::Repeat(repeat_block) => {
+            let until = repeat_block.until().update_trailing_trivia(trailing);
+            Stmt::Repeat(repeat_block.to_owned().with_until(until))
+        }
+        Stmt::Do(stmt) => {
+            let end_token = stmt.end_token().update_trailing_trivia(trailing);
+            Stmt::Do(stmt.to_owned().with_end_token(end_token))
+        }
+        Stmt::GenericFor(stmt) => {
+            let end_token = stmt.end_token().update_trailing_trivia(trailing);
+            Stmt::GenericFor(stmt.to_owned().with_end_token(end_token))
+        }
+        Stmt::If(stmt) => {
+            let end_token = stmt.end_token().update_trailing_trivia(trailing);
+            Stmt::If(stmt.to_owned().with_end_token(end_token))
+        }
+        Stmt::FunctionDeclaration(stmt) => {
+            let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
+            let body = stmt.body().to_owned().with_end_token(end_token);
+            Stmt::FunctionDeclaration(stmt.to_owned().with_body(body))
+        }
+        Stmt::LocalFunction(stmt) => {
+            let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
+            let body = stmt.body().to_owned().with_end_token(end_token);
+            Stmt::LocalFunction(stmt.to_owned().with_body(body))
+        }
+        Stmt::NumericFor(stmt) => {
+            let end_token = stmt.end_token().update_trailing_trivia(trailing);
+            Stmt::NumericFor(stmt.to_owned().with_end_token(end_token))
+        }
+        Stmt::While(stmt) => {
+            let end_token = stmt.end_token().update_trailing_trivia(trailing);
+            Stmt::While(stmt.to_owned().with_end_token(end_token))
+        }
+
+        #[cfg(feature = "luau")]
+        Stmt::CompoundAssignment(stmt) => {
+            let rhs = stmt.rhs().update_trailing_trivia(trailing);
+            Stmt::CompoundAssignment(stmt.to_owned().with_rhs(rhs))
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeDeclaration(stmt) => {
+            let type_declaration = stmt.type_declaration().to_owned().with_type_definition(
+                stmt.type_declaration()
+                    .type_definition()
+                    .update_trailing_trivia(trailing),
+            );
+            Stmt::ExportedTypeDeclaration(stmt.to_owned().with_type_declaration(type_declaration))
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(
+            stmt.to_owned()
+                .with_type_definition(stmt.type_definition().update_trailing_trivia(trailing)),
+        ),
+        #[cfg(feature = "lua52")]
+        Stmt::Goto(stmt) => Stmt::Goto(
+            stmt.to_owned()
+                .with_label_name(stmt.label_name().update_trailing_trivia(trailing)),
+        ),
+        #[cfg(feature = "lua52")]
+        Stmt::Label(stmt) => Stmt::Label(
+            stmt.to_owned()
+                .with_right_colons(stmt.right_colons().update_trailing_trivia(trailing)),
+        ),
+        other => panic!("unknown node {:?}", other),
+    }
+});
 
 define_update_trivia!(Suffix, |this, leading, trailing| {
     match this {

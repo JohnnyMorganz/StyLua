@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue through static linking where Windows binary would not execute due to missing `VCRUNTIME140.dll`. ([#413](https://github.com/JohnnyMorganz/StyLua/issues/413))
 - Fixed assignment with comment sometimes not hanging leading to malformed syntax. ([#416](https://github.com/JohnnyMorganz/StyLua/issues/416))
 - Fixed block ignores not applied when multiple leading block ignore comments are present at once. ([#421](https://github.com/JohnnyMorganz/StyLua/issues/421))
+- Fixed ordering of comments when semicolon after statement is removed. ([#423](https://github.com/JohnnyMorganz/StyLua/issues/423))
 
 ## [0.12.5] - 2022-03-08
 ### Fixed
