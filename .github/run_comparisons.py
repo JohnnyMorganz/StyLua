@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 from typing import List
 
@@ -42,6 +43,8 @@ def printCodeblock(content: str, lang: str = "diff"):
 
 # Run the comparison tool on different repositories
 for repo, data in REPOS.items():
+    print(f"Working on {repo}", file=sys.stderr)
+
     # Checkout the repository
     cloneProcess = subprocess.Popen(["git", "clone", data['url'], "--depth=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cloneProcessStderr = cloneProcess.communicate()[1].decode()
@@ -52,12 +55,16 @@ for repo, data in REPOS.items():
 
     os.chdir(repo)
 
+    print(f"Repo cloned and tool prepared", file=sys.stderr)
+
     # Run the base tool on the repository
     runMasterProcess = executeTool("../stylua-master", data["command"])
     runMasterStderr = runMasterProcess.communicate()[1].decode()
     if runMasterStderr and runMasterStderr.strip() != "":
         print(f"**Error when running master on `{repo}`**:")
         printCodeblock(runMasterStderr, "")
+
+    print(f"Master tool executed", file=sys.stderr)
 
     # Commit the current changes
     commitProcess = subprocess.Popen(["git", "commit", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -67,6 +74,8 @@ for repo, data in REPOS.items():
         printCodeblock(commitProcessStderr or "<no output>", "")
         continue
 
+    print(f"Master changes committed", file=sys.stderr)
+
     # Run the latest tool on the repository
     runLatestProcess = executeTool("../stylua-latest", data["command"])
     runLatestStderr = runLatestProcess.communicate()[1].decode()
@@ -74,12 +83,16 @@ for repo, data in REPOS.items():
         print(f"**Error when running latest on `{repo}`**:")
         printCodeblock(runLatestStderr, "")
 
+    print(f"Latest tool executed", file=sys.stderr)
+
     # Compute the diff
     diffProcess = subprocess.Popen(['git', 'diff', f"--src-prefix=ORI/{repo}/", f"--dst-prefix=ALT/{repo}/"], stdout=subprocess.PIPE)
     diffStdout = diffProcess.communicate()[0].decode('utf-8')
 
     if diffStdout and diffStdout.strip() != "":
         diffs.append(diffStdout)
+
+    print(f"Diff calculated, cleaning up", file=sys.stderr)
 
     # Cleanup: move out of the repository
     os.chdir("..")
