@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build (All features)
-        run: cargo build --verbose --locked --all-features
+        run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: stylua-latest
-          path: target/debug/stylua
+          path: target/release/stylua
 
   build-master:
     if: ${{ github.event.issue.pull_request }} && ${{ github.event.sender.login }} == "JohnnyMorganz" && ${{ startsWith(github.event.comment.body, 'run-comparison') }}
@@ -34,13 +34,13 @@ jobs:
           ref: "master"
 
       - name: Build (All features)
-        run: cargo build --verbose --locked --all-features
+        run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: stylua-master
-          path: target/debug/stylua
+          path: target/release/stylua
 
   run-comparison:
     runs-on: ubuntu-latest
@@ -70,5 +70,5 @@ jobs:
       - name: Create comment
         uses: peter-evans/create-or-update-comment@v2
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.issue.number }} || ${{ github.event.inputs.prId }}
           body: ${{ steps.run_comparison.outputs.body }}

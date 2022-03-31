@@ -33,11 +33,11 @@ diffs: List[str] = []
 print("## Repo Comparison Test")
 print()
 
-r = re.compile('`+')
+# r = re.compile('`+')
 def printCodeblock(content: str, lang: str = "diff"):
-    sequences: List[str] = r.findall(content)
-    maxLen = max(map(len, sequences))
-    ticks = "`" * max(3, maxLen + 1)
+    # sequences: List[str] = r.findall(content)
+    # maxLen = max(map(len, sequences))
+    ticks = "```"
     print(ticks + lang)
     print(content)
     print(ticks)
