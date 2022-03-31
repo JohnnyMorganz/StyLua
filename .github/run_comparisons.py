@@ -50,12 +50,10 @@ for repo, data in REPOS.items():
         printCodeblock(cloneProcessStderr or "<no output>", "")
         continue
 
-    # Move into the repository
-    if ret := subprocess.Popen(["cd", repo]).wait() != 0:
-        raise Exception("Error occured when changing directory")
+    os.chdir(repo)
 
     # Run the base tool on the repository
-    runMasterProcess = executeTool("./stylua-master", data["command"])
+    runMasterProcess = executeTool("../stylua-master", data["command"])
     runMasterStderr = runMasterProcess.communicate()[1].decode()
     if runMasterStderr and runMasterStderr.strip() != "":
         print(f"**Error when running master on `{repo}`**:")
@@ -70,7 +68,7 @@ for repo, data in REPOS.items():
         continue
 
     # Run the latest tool on the repository
-    runLatestProcess = executeTool("./stylua-latest", data["command"])
+    runLatestProcess = executeTool("../stylua-latest", data["command"])
     runLatestStderr = runLatestProcess.communicate()[1].decode()
     if runLatestStderr and runLatestStderr.strip() != "":
         print(f"**Error when running latest on `{repo}`**:")
@@ -84,8 +82,7 @@ for repo, data in REPOS.items():
         diffs.append(diffStdout)
 
     # Cleanup: move out of the repository
-    if ret := subprocess.Popen(["cd", ".."]).wait() != 0:
-        raise Exception("Error occured when changing out of directory")
+    os.chdir("..")
 
 # Report out the diffs
 if len(diffs) == 0:
