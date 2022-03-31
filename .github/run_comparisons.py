@@ -43,10 +43,16 @@ def printCodeblock(content: str, lang: str = "diff"):
 # Run the comparison tool on different repositories
 for repo, data in REPOS.items():
     # Checkout the repository
-    os.system(f"git clone {data['url']} --depth=1")
+    cloneProcess = subprocess.Popen(["git", "clone", data['url'], "--depth=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cloneProcessStderr = cloneProcess.communicate()[1].decode()
+    if cloneProcess.wait() != 0:
+        print(f"**Error when cloning `{repo}`**:")
+        printCodeblock(cloneProcessStderr or "<no output>", "")
+        continue
 
     # Move into the repository
-    os.system(f"cd {repo}")
+    if ret := subprocess.Popen(["cd", repo]).wait() != 0:
+        raise Exception("Error occured when changing directory")
 
     # Run the base tool on the repository
     runMasterProcess = executeTool("./stylua-master", data["command"])
@@ -56,7 +62,12 @@ for repo, data in REPOS.items():
         printCodeblock(runMasterStderr, "")
 
     # Commit the current changes
-    os.system(f"git commit --allow-empty --no-verify -m 'Base StyLua'")
+    commitProcess = subprocess.Popen(["git", "commit", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    commitProcessStderr = commitProcess.communicate()[1].decode()
+    if commitProcess.wait() != 0:
+        print(f"**Error when commiting master changes on `{repo}`**:")
+        printCodeblock(commitProcessStderr or "<no output>", "")
+        continue
 
     # Run the latest tool on the repository
     runLatestProcess = executeTool("./stylua-latest", data["command"])
@@ -73,7 +84,8 @@ for repo, data in REPOS.items():
         diffs.append(diffStdout)
 
     # Cleanup: move out of the repository
-    os.system("cd ..")
+    if ret := subprocess.Popen(["cd", ".."]).wait() != 0:
+        raise Exception("Error occured when changing out of directory")
 
 # Report out the diffs
 if len(diffs) == 0:
