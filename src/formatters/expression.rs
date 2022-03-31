@@ -1099,6 +1099,12 @@ fn format_hanging_expression_(
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
+            #[cfg(feature = "luau")]
+            let expression_context = if type_assertion.is_some() {
+                ExpressionContext::TypeAssertion
+            } else {
+                expression_context
+            };
             let value = Box::new(match &**value {
                 Value::ParenthesesExpression(expression) => {
                     Value::ParenthesesExpression(format_hanging_expression_(
@@ -1114,12 +1120,6 @@ fn format_hanging_expression_(
                         lhs_hang.required_shape(shape, &expression_range)
                     } else {
                         shape
-                    };
-                    #[cfg(feature = "luau")]
-                    let expression_context = if type_assertion.is_some() {
-                        ExpressionContext::TypeAssertion
-                    } else {
-                        expression_context
                     };
                     format_value(ctx, value, shape, expression_context)
                 }
@@ -1141,13 +1141,20 @@ fn format_hanging_expression_(
             } else {
                 shape
             };
+            #[cfg(feature = "luau")]
+            let keep_parentheses = matches!(
+                expression_context,
+                ExpressionContext::Prefix | ExpressionContext::TypeAssertion
+            );
+            #[cfg(not(feature = "luau"))]
+            let keep_parentheses = matches!(expression_context, ExpressionContext::Prefix);
 
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
             let use_internal_expression = check_excess_parentheses(expression, expression_context);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
-            if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
+            if use_internal_expression && !keep_parentheses {
                 format_hanging_expression_(
                     ctx,
                     expression,
@@ -1209,8 +1216,13 @@ fn format_hanging_expression_(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let expression =
-                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range);
+            let expression = format_hanging_expression_(
+                ctx,
+                expression,
+                shape,
+                ExpressionContext::Unary,
+                lhs_range,
+            );
 
             Expression::UnaryOperator {
                 unop,
