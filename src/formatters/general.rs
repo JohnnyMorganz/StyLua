@@ -656,8 +656,6 @@ pub fn format_eof(ctx: &Context, eof: &TokenReference, shape: Shape) -> TokenRef
         shape,
     );
 
-    formatted_leading_trivia.push(Token::new(TokenType::spaces(100)));
-
     let only_whitespace = formatted_leading_trivia
         .iter()
         .all(|x| x.token_kind() == TokenKind::Whitespace);

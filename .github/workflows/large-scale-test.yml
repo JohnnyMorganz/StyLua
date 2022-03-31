@@ -70,5 +70,5 @@ jobs:
       - name: Create comment
         uses: peter-evans/create-or-update-comment@v2
         with:
-          issue-number: ${{ github.event.issue.number }} || ${{ github.event.inputs.prId }}
+          issue-number: ${{ github.event.issue.number || github.event.inputs.prId }}
           body: ${{ steps.run_comparison.outputs.body }}
