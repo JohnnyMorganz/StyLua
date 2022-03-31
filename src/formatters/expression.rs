@@ -45,7 +45,7 @@ macro_rules! fmt_op {
     };
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 enum ExpressionContext {
     /// Standard expression, with no special context
     Standard,
