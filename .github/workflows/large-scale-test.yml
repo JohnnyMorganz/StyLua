@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-latest:
-    if: ${{ github.event.issue.pull_request && ${{ github.event.sender.login }} == "JohnnyMorganz" && startsWith(github.event.comment.body, 'run-comparison') }}
+    if: ${{ github.event.issue.pull_request }} && ${{ github.event.sender.login }} == "JohnnyMorganz" && ${{ startsWith(github.event.comment.body, 'run-comparison') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,6 +26,7 @@ jobs:
           path: target/release/stylua
 
   build-master:
+    if: ${{ github.event.issue.pull_request }} && ${{ github.event.sender.login }} == "JohnnyMorganz" && ${{ startsWith(github.event.comment.body, 'run-comparison') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -38,7 +39,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: stylua-latest
+          name: stylua-master
           path: target/release/stylua
 
   run-comparison:
@@ -69,5 +70,5 @@ jobs:
       - name: Create comment
         uses: peter-evans/create-or-update-comment@v2
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.issue.number || github.event.inputs.prId }}
           body: ${{ steps.run_comparison.outputs.body }}
