@@ -16,11 +16,11 @@ local x = #(value :: Array<number>)
 
 -- https://github.com/JohnnyMorganz/StyLua/issues/425
 self.mutationStore[mutationId] = (
-		{
-			lolz = foreva,
-			variables = variables,
-		} :: anyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-	) :: MutationStoreValue
+	{
+		lolz = foreva,
+		variables = variables,
+	} :: anyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+) :: MutationStoreValue
 
 local _name = debug.info(fn :: ((any) -> any), "n")
 
