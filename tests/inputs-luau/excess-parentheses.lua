@@ -16,3 +16,4 @@ self.mutationStore[mutationId] = (
 	} :: anyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 ) :: MutationStoreValue
 
+local _name = debug.info(fn :: ((any) -> any), "n")
