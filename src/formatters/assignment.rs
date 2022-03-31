@@ -50,18 +50,23 @@ pub fn hang_punctuated_list(
     punctuated: &Punctuated<Expression>,
     shape: Shape,
 ) -> Punctuated<Expression> {
+    // WE ACTUALLY ONLY CALL THIS WHEN THE PUNCTUATED LIST HAS ONE ELEMENT
+    // SO LETS ENFORCE THIS INVARIANT FOR NOW
+    assert!(punctuated.len() == 1);
+
     let mut output = Punctuated::new();
 
     // Format each expression and hang them
     // We need to format again because we will now take into account the indent increase
     for (idx, pair) in punctuated.pairs().enumerate() {
-        let shape = if idx == 0 {
-            shape
-        } else if calculate_hang_level(pair.value()).is_some() {
-            shape.reset().increment_additional_indent()
-        } else {
-            shape.reset()
-        };
+        // TODO: UNCOMMENT THIS IF THE INVARIANT ABOVE IS REMOVED
+        // let shape = if idx == 0 {
+        //     shape
+        // } else if calculate_hang_level(pair.value()).is_some() {
+        //     shape.reset().increment_additional_indent()
+        // } else {
+        //     shape.reset()
+        // };
 
         let mut value =
             hang_expression(ctx, pair.value(), shape, calculate_hang_level(pair.value()));
