@@ -39,7 +39,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: stylua-latest
+          name: stylua-master
           path: target/release/stylua
 
   run-comparison:
