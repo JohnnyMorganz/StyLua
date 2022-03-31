@@ -39,7 +39,7 @@ for repo, data in REPOS.items():
     os.system(f"git clone {data['url']} --depth=1")
 
     # Move into the repository
-    os.system("cd {repo}")
+    os.system(f"cd {repo}")
 
     # Run the base tool on the repository
     runMasterProcess = executeTool(master_tool, data["command"])
