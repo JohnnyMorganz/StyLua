@@ -1,0 +1,73 @@
+name: Measure Diff Across Multiple Repos
+on:
+  workflow_dispatch:
+    inputs:
+      prId:
+        description: "PR #"
+        required: true
+        type: number
+  issue_comment:
+    types: [created]
+
+jobs:
+  build-latest:
+    if: ${{ github.event.issue.pull_request && ${{ github.event.sender.login }} == "JohnnyMorganz" && startsWith(github.event.comment.body, 'run-comparison') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build (All features)
+        run: cargo build --verbose --locked --release --all-features
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: stylua-latest
+          path: target/release/stylua
+
+  build-master:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: "master"
+
+      - name: Build (All features)
+        run: cargo build --verbose --locked --release --all-features
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: stylua-latest
+          path: target/release/stylua
+
+  run-comparison:
+    runs-on: ubuntu-latest
+    needs: ["build-master", "build-latest"]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Set up artifacts
+        run: |
+          mv ./artifacts/stylua-master/stylua ./stylua-master
+          mv ./artifacts/stylua-latest/stylua ./stylua-latest
+
+      - name: Run comparison tool
+        id: run_comparison
+        run: |
+          body="$(python ./.github/run_comparisons.py ./stylua-master ./stylua-latest)"
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}"
+          echo "::set-output name=body::$body"
+
+      - name: Create comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: ${{ steps.run_comparison.outputs.body }}
