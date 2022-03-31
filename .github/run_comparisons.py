@@ -32,9 +32,6 @@ def printCodeblock(content: str, lang: str = "diff"):
     print(content)
     print(ticks)
 
-print(subprocess.Popen(["ls", "-al"], stdout=subprocess.PIPE).communicate()[0].decode('utf-8'))
-print(subprocess.Popen(["ls", "-al", ".."], stdout=subprocess.PIPE).communicate()[0].decode('utf-8'))
-
 # Run the comparison tool on different repositories
 for repo, data in REPOS.items():
     # Checkout the repository
@@ -44,7 +41,7 @@ for repo, data in REPOS.items():
     os.system(f"cd {repo}")
 
     # Run the base tool on the repository
-    runMasterProcess = executeTool("../stylua-master", data["command"])
+    runMasterProcess = executeTool("./stylua-master", data["command"])
     runMasterStderr = runMasterProcess.communicate()[1].decode()
     if runMasterStderr and runMasterStderr.strip() != "":
         print(f"**Error when running master on `{repo}`:")
@@ -54,7 +51,7 @@ for repo, data in REPOS.items():
     os.system(f"git commit --allow-empty --no-verify -m Base StyLua")
 
     # Run the latest tool on the repository
-    runLatestProcess = executeTool("../stylua-latest", data["command"])
+    runLatestProcess = executeTool("./stylua-latest", data["command"])
     runLatestStderr = runLatestProcess.communicate()[1].decode()
     if runLatestStderr and runLatestStderr.strip() != "":
         print(f"**Error when running latest on `{repo}`:")
