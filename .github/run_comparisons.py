@@ -51,7 +51,7 @@ for repo, data in REPOS.items():
         printCodeblock(runMasterStderr, "")
 
     # Commit the current changes
-    os.system(f"git commit --allow-empty --no-verify -m Base StyLua")
+    os.system(f"git commit --allow-empty --no-verify -m 'Base StyLua'")
 
     # Run the latest tool on the repository
     runLatestProcess = executeTool("./stylua-latest", data["command"])
