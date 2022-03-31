@@ -24,8 +24,6 @@ os.chmod("./stylua-latest", 0o700)
 os.system('git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"')
 os.system('git config --global user.name "github-actions[bot]"')
 
-
-
 def executeTool(toolPath: str, command: str):
     # toolPath = os.path.join("../", tool)
     return subprocess.Popen([toolPath, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -35,6 +33,7 @@ diffs: List[str] = []
 print("## Repo Comparison Test")
 print()
 
+r = re.compile('`+')
 def printCodeblock(content: str, lang: str = "diff"):
     sequences: List[str] = r.findall(content)
     maxLen = max(map(len, sequences))
@@ -77,8 +76,6 @@ for repo, data in REPOS.items():
 
     # Cleanup: move out of the repository
     os.system("cd ..")
-
-r = re.compile('`+')
 
 # Report out the diffs
 if len(diffs) == 0:
