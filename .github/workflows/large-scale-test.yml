@@ -6,9 +6,12 @@ on:
         description: "PR #"
         required: true
         type: number
+  issue_comment:
+    types: [created]
 
 jobs:
   build-latest:
+    if: ${{ github.event.issue.pull_request && ${{ github.event.sender.login }} == "JohnnyMorganz" && startsWith(github.event.comment.body, 'run-comparison') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -66,5 +69,5 @@ jobs:
       - name: Create comment
         uses: peter-evans/create-or-update-comment@v2
         with:
-          issue-number: 1 # TODO
+          issue-number: ${{ github.event.issue.number }}
           body: ${{ steps.run_comparison.outputs.body }}
