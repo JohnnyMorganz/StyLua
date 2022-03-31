@@ -4,7 +4,7 @@ use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        Assignment, Expression, LocalAssignment,
+        Assignment, Expression, LocalAssignment, Value,
     },
     tokenizer::TokenType,
 };
@@ -29,6 +29,19 @@ use crate::{
     shape::Shape,
 };
 
+/// Calculates the hanging level to use when hanging an expression.
+/// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses
+/// https://github.com/JohnnyMorganz/StyLua/issues/274
+fn calculate_hang_level(expression: &Expression) -> Option<usize> {
+    match expression {
+        Expression::Value { value, .. } => match **value {
+            Value::ParenthesesExpression(_) => None,
+            _ => Some(1),
+        },
+        _ => Some(1),
+    }
+}
+
 /// Hangs each [`Expression`] in a [`Punctuated`] list.
 /// The Punctuated list is hung multiline at the comma aswell, and each subsequent item after the first is
 /// indented by one.
@@ -44,11 +57,14 @@ pub fn hang_punctuated_list(
     for (idx, pair) in punctuated.pairs().enumerate() {
         let shape = if idx == 0 {
             shape
-        } else {
+        } else if calculate_hang_level(pair.value()).is_some() {
             shape.reset().increment_additional_indent()
+        } else {
+            shape.reset()
         };
 
-        let mut value = hang_expression(ctx, pair.value(), shape, Some(1));
+        let mut value =
+            hang_expression(ctx, pair.value(), shape, calculate_hang_level(pair.value()));
         if idx != 0 {
             value =
                 value.update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
@@ -145,8 +161,9 @@ fn attempt_assignment_tactics(
                     || shape.take_first_line(&formatted).over_budget()
                 {
                     // Hang the pair, using the original expression for formatting
-                    output_expr
-                        .push(formatted.map(|_| hang_expression(ctx, original, shape, Some(1))))
+                    output_expr.push(formatted.map(|_| {
+                        hang_expression(ctx, original, shape, calculate_hang_level(original))
+                    }))
                 } else {
                     // Add the pair as it is
                     output_expr.push(formatted);
