@@ -15,8 +15,8 @@ REPOS = {
 # master_tool = sys.argv[1]
 # latest_tool = sys.argv[2]
 
-def executeTool(tool: str, command: str):
-    toolPath = os.path.join("../", tool)
+def executeTool(toolPath: str, command: str):
+    # toolPath = os.path.join("../", tool)
     return subprocess.Popen([toolPath, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 diffs: List[str] = []
