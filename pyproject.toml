@@ -3,10 +3,10 @@ requires = ["release-gitter[builder]"]
 build-backend = "pseudo_builder"
 
 [tool.release-gitter]
-extract-files = [ "stylua" ]
-format = "stylua-{version}-{system}.zip"
+extract-files = ["stylua"]
+format = "stylua-{system}.zip"
 exec = "chmod +x stylua"
 [tool.release-gitter.map-system]
-    Darwin = "macos"
-    Windows = "win64"
-    Linux = "linux"
+Darwin = "macos"
+Windows = "win64"
+Linux = "linux"

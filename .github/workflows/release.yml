@@ -58,7 +58,7 @@ jobs:
       with:
         name: stylua-linux
         path: target/release/stylua
-  
+
   release:
     runs-on: ubuntu-latest
     needs: ['windows', 'macos', 'linux']
@@ -72,9 +72,6 @@ jobs:
         zip -rj stylua-win64.zip ./artifacts/stylua-win64/*
         zip -rj stylua-macos.zip ./artifacts/stylua-macos/*
         zip -rj stylua-linux.zip ./artifacts/stylua-linux/*
-
-        VERSION=`grep -Po '(?<=^version = ")([^"]+)' ./Cargo.toml`
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
     - name: Create release
       id: create_release
       uses: actions/create-release@v1
@@ -84,7 +81,7 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
         draft: true
-    
+
     - name: Upload windows build
       uses: actions/upload-release-asset@v1
       env:
@@ -92,9 +89,9 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./stylua-win64.zip
-        asset_name: stylua-${{ env.VERSION }}-win64.zip
+        asset_name: stylua-win64.zip
         asset_content_type: application/zip
-    
+
     - name: Upload macos build
       uses: actions/upload-release-asset@v1
       env:
@@ -102,7 +99,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./stylua-macos.zip
-        asset_name: stylua-${{ env.VERSION }}-macos.zip
+        asset_name: stylua-macos.zip
         asset_content_type: application/zip
 
     - name: Upload linux build
@@ -112,5 +109,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./stylua-linux.zip
-        asset_name: stylua-${{ env.VERSION }}-linux.zip
+        asset_name: stylua-linux.zip
         asset_content_type: application/zip
