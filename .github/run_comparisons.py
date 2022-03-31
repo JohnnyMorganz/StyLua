@@ -15,6 +15,9 @@ REPOS = {
 # master_tool = sys.argv[1]
 # latest_tool = sys.argv[2]
 
+os.chmod("./stylua-master", 0o700)
+os.chmod("./stylua-latest", 0o700)
+
 def executeTool(toolPath: str, command: str):
     # toolPath = os.path.join("../", tool)
     return subprocess.Popen([toolPath, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
