@@ -32,6 +32,8 @@ def printCodeblock(content: str, lang: str = "diff"):
     print(content)
     print(ticks)
 
+print(subprocess.Popen(["ls", "-al"], stdout=subprocess.PIPE).communicate()[0].decode('utf-8'))
+print(subprocess.Popen(["ls", "-al", ".."], stdout=subprocess.PIPE).communicate()[0].decode('utf-8'))
 
 # Run the comparison tool on different repositories
 for repo, data in REPOS.items():
