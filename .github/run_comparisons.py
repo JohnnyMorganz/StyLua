@@ -8,6 +8,10 @@ REPOS = {
     "roact": {
         "url": "https://github.com/Roblox/roact.git",
         "command": "src"
+    },
+    "neovim": {
+        "url": "https://github.com/neovim/neovim.git",
+        "command": "runtime"
     }
 }
 
@@ -17,6 +21,10 @@ REPOS = {
 
 os.chmod("./stylua-master", 0o700)
 os.chmod("./stylua-latest", 0o700)
+os.system('git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"')
+os.system('git config --global user.name "github-actions[bot]"')
+
+
 
 def executeTool(toolPath: str, command: str):
     # toolPath = os.path.join("../", tool)
