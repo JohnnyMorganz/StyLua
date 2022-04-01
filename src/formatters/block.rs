@@ -488,7 +488,8 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                         .rev()
                         .cloned()
                         .chain(
-                            semi.trailing_trivia()
+                            semi.leading_trivia()
+                                .chain(semi.trailing_trivia())
                                 .filter(|token| trivia_util::trivia_is_comment(token))
                                 .flat_map(|x| {
                                     // Prepend a single space beforehand
@@ -537,7 +538,8 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                         .rev()
                         .cloned()
                         .chain(
-                            semi.trailing_trivia()
+                            semi.leading_trivia()
+                                .chain(semi.trailing_trivia())
                                 .filter(|token| trivia_util::trivia_is_comment(token))
                                 .flat_map(|x| {
                                     // Prepend a single space beforehand
