@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed leading trivia on semicolon lost when semicolon is removed ([#431](https://github.com/JohnnyMorganz/StyLua/issues/431))
 
 ## [0.13.0] - 2022-03-31
 ### Added
