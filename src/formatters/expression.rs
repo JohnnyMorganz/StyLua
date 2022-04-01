@@ -978,6 +978,8 @@ fn hang_binop_expression(
     shape: Shape,
     lhs_range: Option<LeftmostRangeHang>,
 ) -> Expression {
+    const SPACE_LEN: usize = " ".len();
+
     let full_expression = expression.to_owned();
 
     match expression {
@@ -1018,7 +1020,8 @@ fn hang_binop_expression(
             let (lhs, rhs) = match should_hang {
                 true => {
                     let lhs_shape = shape;
-                    let rhs_shape = shape + strip_trivia(&new_binop).to_string().len() + 1;
+                    let rhs_shape =
+                        shape.reset() + strip_trivia(&new_binop).to_string().len() + SPACE_LEN;
 
                     let (lhs, rhs) = match side_to_hang {
                         ExpressionSide::Left => (
