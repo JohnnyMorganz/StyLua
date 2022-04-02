@@ -419,11 +419,7 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
             }
         }
 
-        // Determine if there was a new line at the end of the start brace
-        // If so, then we should always be multiline
-        start_brace
-            .trailing_trivia()
-            .any(trivia_util::trivia_is_newline)
+        false
     }
 }
 
@@ -444,47 +440,56 @@ pub fn format_table_constructor(
         (true, _) => TableType::MultiLine,
 
         (false, Some(_)) => {
-            // Compare the difference between the position of the start brace and the end brace to
-            // guess how long the table is. This heuristic is very naiive, since it relies on the input.
-            // If the input is badly formatted (e.g. lots of spaces in the table), then it would flag this over width.
-            // However, this is currently our best solution: attempting to format the input onto a single line to
-            // see if we are over width (both completely and in a fail-fast shape.over_budget() check) leads to
-            // exponential time complexity with respect to how deep the table is.
-            // TODO: find an improved heuristic whilst comparing against benchmarks
-            let braces_range = (
-                // Use the position of the last trivia in case there is some present (e.g. whitespace)
-                // So that we don't include an extra space
-                if let Some(token) = start_brace.leading_trivia().last() {
-                    token.end_position().bytes()
-                } else {
-                    start_brace.token().end_position().bytes()
-                },
-                end_brace.token().start_position().bytes(),
-            );
+            // Determine if there was a new line at the end of the start brace
+            // If so, then we should always be multiline
+            if start_brace
+                .trailing_trivia()
+                .any(trivia_util::trivia_is_newline)
+            {
+                TableType::MultiLine
+            } else {
+                // Compare the difference between the position of the start brace and the end brace to
+                // guess how long the table is. This heuristic is very naiive, since it relies on the input.
+                // If the input is badly formatted (e.g. lots of spaces in the table), then it would flag this over width.
+                // However, this is currently our best solution: attempting to format the input onto a single line to
+                // see if we are over width (both completely and in a fail-fast shape.over_budget() check) leads to
+                // exponential time complexity with respect to how deep the table is.
+                // TODO: find an improved heuristic whilst comparing against benchmarks
+                let braces_range = (
+                    // Use the position of the last trivia in case there is some present (e.g. whitespace)
+                    // So that we don't include an extra space
+                    if let Some(token) = start_brace.leading_trivia().last() {
+                        token.end_position().bytes()
+                    } else {
+                        start_brace.token().end_position().bytes()
+                    },
+                    end_brace.token().start_position().bytes(),
+                );
 
-            // See if we need to +1 because we will be adding spaces
-            let additional_shape = match (
-                start_brace
-                    .trailing_trivia()
-                    .any(|x| x.token_kind() == TokenKind::Whitespace),
-                end_brace
-                    .leading_trivia()
-                    .any(|x| x.token_kind() == TokenKind::Whitespace),
-            ) {
-                (true, true) => 0,
-                (true, false) | (false, true) => 1,
-                (false, false) => 2,
-            };
+                // See if we need to +1 because we will be adding spaces
+                let additional_shape = match (
+                    start_brace
+                        .trailing_trivia()
+                        .any(|x| x.token_kind() == TokenKind::Whitespace),
+                    end_brace
+                        .leading_trivia()
+                        .any(|x| x.token_kind() == TokenKind::Whitespace),
+                ) {
+                    (true, true) => 0,
+                    (true, false) | (false, true) => 1,
+                    (false, false) => 2,
+                };
 
-            let singleline_shape = shape
-                + (braces_range.1 - braces_range.0)
-                + additional_shape
-                + BRACE_LEN
-                + BRACE_LEN;
+                let singleline_shape = shape
+                    + (braces_range.1 - braces_range.0)
+                    + additional_shape
+                    + BRACE_LEN
+                    + BRACE_LEN;
 
-            match singleline_shape.over_budget() {
-                true => TableType::MultiLine,
-                false => TableType::SingleLine,
+                match singleline_shape.over_budget() {
+                    true => TableType::MultiLine,
+                    false => TableType::SingleLine,
+                }
             }
         }
 
