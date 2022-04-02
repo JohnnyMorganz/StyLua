@@ -1078,6 +1078,15 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
     })
 }
 
+pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
+    match field {
+        Field::ExpressionKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NameKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 // Checks to see whether an expression contains comments inline inside of it
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline

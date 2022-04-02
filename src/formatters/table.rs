@@ -5,7 +5,7 @@ use crate::{
         expression::{format_expression, hang_expression, is_brackets_string},
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-        trivia_util,
+        trivia_util::{self, table_field_trailing_trivia},
     },
     shape::Shape,
 };
@@ -466,14 +466,25 @@ pub fn format_table_constructor(
                     end_brace.token().start_position().bytes(),
                 );
 
+                let last_field = table_constructor
+                    .fields()
+                    .last()
+                    .expect("atleast one field must be present");
+
                 // See if we need to +1 because we will be adding spaces
                 let additional_shape = match (
                     start_brace
                         .trailing_trivia()
                         .any(|x| x.token_kind() == TokenKind::Whitespace),
-                    end_brace
-                        .leading_trivia()
-                        .any(|x| x.token_kind() == TokenKind::Whitespace),
+                    // A space will be present on the end of the last field, not the start of the end brace
+                    match (last_field.value(), last_field.punctuation()) {
+                        (_, Some(token)) => token
+                            .trailing_trivia()
+                            .any(|x| x.token_kind() == TokenKind::Whitespace),
+                        (field, None) => table_field_trailing_trivia(field)
+                            .iter()
+                            .any(|x| x.token_kind() == TokenKind::Whitespace),
+                    },
                 ) {
                     (true, true) => 0,
                     (true, false) | (false, true) => 1,
