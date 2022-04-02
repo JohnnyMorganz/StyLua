@@ -814,6 +814,86 @@ fn format_type_declaration(
     let (equal_token, type_definition) =
         attempt_assigned_type_tactics(ctx, equal_token, type_declaration.type_definition(), shape);
 
+    // Handle comments in between the type name and generics + generics and equal token
+    // (or just type name and equal token if generics not present)
+
+    // If there are comments in between the type name and the generics, then handle them
+    let (type_name, equal_token, generics) =
+        if trivia_contains_comments(type_name.trailing_trivia(), CommentSearch::All)
+            || generics.as_ref().map_or(false, |generics| {
+                trivia_contains_comments(
+                    generics.arrows().tokens().0.leading_trivia(),
+                    CommentSearch::All,
+                )
+            })
+            || trivia_contains_comments(equal_token.leading_trivia(), CommentSearch::All)
+        {
+            // See if we have generics
+            if let Some(generics) = generics {
+                let (start_arrow, end_arrow) = generics.arrows().tokens();
+
+                let type_name_comments = type_name
+                    .trailing_trivia()
+                    .chain(start_arrow.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect::<Vec<_>>();
+                let type_name_comments_len = type_name_comments.len();
+
+                let arrow_comments = end_arrow
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    Some(generics.to_owned().with_arrows(ContainedSpan::new(
+                        start_arrow.update_leading_trivia(FormatTriviaType::Replace(
+                            // If there are some comments present between the type name and generics,
+                            // then lets add a single space before the arrow to make it look nicer
+                            if type_name_comments_len > 0 {
+                                vec![Token::new(TokenType::spaces(1))]
+                            } else {
+                                vec![]
+                            },
+                        )),
+                        end_arrow.update_trailing_trivia(FormatTriviaType::Replace(arrow_comments)),
+                    ))),
+                )
+            } else {
+                let comments = type_name
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    generics,
+                )
+            }
+        } else {
+            (type_name, equal_token, generics)
+        };
+
     let type_definition =
         type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
