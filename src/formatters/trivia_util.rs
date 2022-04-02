@@ -228,6 +228,7 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
     }
 }
 
+#[cfg(feature = "luau")]
 fn generic_declaration_parameter_trailing_trivia(
     parameter: &GenericDeclarationParameter,
 ) -> Vec<Token> {
@@ -244,6 +245,7 @@ fn generic_declaration_parameter_trailing_trivia(
     }
 }
 
+#[cfg(feature = "luau")]
 pub fn take_generic_parameter_trailing_comments(
     parameter: &GenericDeclarationParameter,
 ) -> (GenericDeclarationParameter, Vec<Token>) {
