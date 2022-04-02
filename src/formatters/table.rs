@@ -16,7 +16,7 @@ use full_moon::{
         Expression, Field, TableConstructor, Value,
     },
     node::Node,
-    tokenizer::{Token, TokenReference, TokenType},
+    tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
 /// Used to provide information about the table
@@ -418,7 +418,12 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
                 return true;
             }
         }
-        false
+
+        // Determine if there was a new line at the end of the start brace
+        // If so, then we should always be multiline
+        start_brace
+            .trailing_trivia()
+            .any(trivia_util::trivia_is_newline)
     }
 }
 
@@ -427,6 +432,8 @@ pub fn format_table_constructor(
     table_constructor: &TableConstructor,
     shape: Shape,
 ) -> TableConstructor {
+    const BRACE_LEN: usize = "{".len();
+
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
     // Determine if we need to force the table multiline
@@ -454,22 +461,30 @@ pub fn format_table_constructor(
                 },
                 end_brace.token().start_position().bytes(),
             );
-            let singleline_shape = shape + (braces_range.1 - braces_range.0) + 3; // 4 = two braces + single space before last brace
+
+            // See if we need to +1 because we will be adding spaces
+            let additional_shape = match (
+                start_brace
+                    .trailing_trivia()
+                    .any(|x| x.token_kind() == TokenKind::Whitespace),
+                end_brace
+                    .leading_trivia()
+                    .any(|x| x.token_kind() == TokenKind::Whitespace),
+            ) {
+                (true, true) => 0,
+                (true, false) | (false, true) => 1,
+                (false, false) => 2,
+            };
+
+            let singleline_shape = shape
+                + (braces_range.1 - braces_range.0)
+                + additional_shape
+                + BRACE_LEN
+                + BRACE_LEN;
 
             match singleline_shape.over_budget() {
                 true => TableType::MultiLine,
-                false => {
-                    // Determine if there was a new line at the end of the start brace
-                    // If so, then we should always be multiline
-                    if start_brace
-                        .trailing_trivia()
-                        .any(trivia_util::trivia_is_newline)
-                    {
-                        TableType::MultiLine
-                    } else {
-                        TableType::SingleLine
-                    }
-                }
+                false => TableType::SingleLine,
             }
         }
 
