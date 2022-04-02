@@ -16,9 +16,9 @@ use crate::{
         },
         trivia_util::{
             contains_comments, contains_singleline_comments, take_type_argument_trailing_comments,
-            take_type_info_trailing_comments, token_trivia_contains_comments,
-            trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
+            take_type_info_trailing_comments, token_contains_comments,
+            token_trivia_contains_comments, trivia_contains_comments, trivia_is_comment,
+            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
         },
     },
     shape::Shape,
@@ -707,57 +707,101 @@ fn format_type_declaration(
         None => shape,
     };
 
-    let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let type_definition;
-    let singleline_type_definition = format_type_info(
-        ctx,
-        type_declaration.type_definition(),
-        shape.with_infinite_width(),
-    );
-    let proper_type_definition = format_type_info(
-        ctx,
-        type_declaration.type_definition(),
-        shape + EQUAL_TOKEN_LENGTH,
-    );
+    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
 
-    // Test to see whether the type definition must be hung due to comments
-    let must_hang = should_hang_type(type_declaration.type_definition(), CommentSearch::All);
+    // Special case: there is a comment between the equals token and the assignment
+    let (equal_token, type_definition) = if token_contains_comments(type_declaration.equal_token())
+        || trivia_contains_comments(
+            type_info_leading_trivia(type_declaration.type_definition())
+                .iter()
+                .cloned(),
+            CommentSearch::All,
+        ) {
+        // We will hang at the equals token, and then format the declaration as necessary
+        let equal_token = hang_equal_token(ctx, equal_token, shape, false);
 
-    // If we can hang the type definition, and its over width, then lets try doing so
-    if can_hang_type(type_declaration.type_definition())
-        && (must_hang
-            || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
-    {
-        // If we should hug the type, then lets check out the proper definition and see if it fits
-        if !must_hang
-            && should_hug_type(type_declaration.type_definition())
-            && !shape.test_over_budget(&proper_type_definition)
-        {
-            type_definition = proper_type_definition;
+        let shape = shape.reset().increment_additional_indent();
+
+        // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
+        let declaration = if contains_comments(strip_trivia(type_declaration.type_definition())) {
+            hang_type_info(ctx, type_declaration.type_definition(), shape, 0)
         } else {
-            // Use a hanging equal token
-            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+            format_type_info(ctx, type_declaration.type_definition(), shape)
+        };
 
-            let shape = shape.reset().increment_additional_indent();
-            let hanging_type_definition =
-                hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
-            type_definition = hanging_type_definition;
-        }
+        // Take the leading comments and format them nicely
+        let leading_comments = type_info_leading_trivia(type_declaration.type_definition())
+            .iter()
+            .filter(|x| trivia_is_comment(x))
+            .flat_map(|x| {
+                vec![
+                    create_indent_trivia(ctx, shape),
+                    x.to_owned().to_owned(),
+                    create_newline_trivia(ctx),
+                ]
+            })
+            .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+            .collect();
+
+        let declaration =
+            declaration.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
+
+        (equal_token, declaration)
     } else {
-        // Test whether the proper formatting goes over the column width
-        // If so, hang at the equals token and reformat
-        if shape.test_over_budget(&proper_type_definition) {
-            // Hang at the equal token
-            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+        let mut equal_token = equal_token;
+        let type_definition;
+        let singleline_type_definition = format_type_info(
+            ctx,
+            type_declaration.type_definition(),
+            shape.with_infinite_width(),
+        );
+        let proper_type_definition = format_type_info(
+            ctx,
+            type_declaration.type_definition(),
+            shape + EQUAL_TOKEN_LENGTH,
+        );
 
-            // Add the expression list into the indent range, as it will be indented by one
-            let shape = shape.reset().increment_additional_indent();
-            type_definition = format_type_info(ctx, type_declaration.type_definition(), shape);
+        // Test to see whether the type definition must be hung due to comments
+        let must_hang = should_hang_type(type_declaration.type_definition(), CommentSearch::All);
+
+        // If we can hang the type definition, and its over width, then lets try doing so
+        if can_hang_type(type_declaration.type_definition())
+            && (must_hang
+                || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
+        {
+            // If we should hug the type, then lets check out the proper definition and see if it fits
+            if !must_hang
+                && should_hug_type(type_declaration.type_definition())
+                && !shape.test_over_budget(&proper_type_definition)
+            {
+                type_definition = proper_type_definition;
+            } else {
+                // Use a hanging equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                let shape = shape.reset().increment_additional_indent();
+                let hanging_type_definition =
+                    hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
+                type_definition = hanging_type_definition;
+            }
         } else {
-            // Use the proper formatting
-            type_definition = proper_type_definition;
+            // Test whether the proper formatting goes over the column width
+            // If so, hang at the equals token and reformat
+            if shape.test_over_budget(&proper_type_definition) {
+                // Hang at the equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                // Add the expression list into the indent range, as it will be indented by one
+                let shape = shape.reset().increment_additional_indent();
+                type_definition = format_type_info(ctx, type_declaration.type_definition(), shape);
+            } else {
+                // Use the proper formatting
+                type_definition = proper_type_definition;
+            }
         }
-    }
+
+        (equal_token, type_definition)
+    };
 
     let type_definition =
         type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
