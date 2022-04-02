@@ -117,7 +117,18 @@ fn format_type_info_generics(
     let contains_comments =
         trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
             || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
-            || contains_singleline_comments(generics);
+            || generics.pairs().any(|generic_pair| {
+                contains_singleline_comments(generic_pair.value())
+                    || trivia_contains_comments(
+                        type_info_leading_trivia(generic_pair.value())
+                            .iter()
+                            .cloned(),
+                        CommentSearch::All, // Look for leading multiline comments - these suggest expansion
+                    )
+                    || generic_pair
+                        .punctuation()
+                        .map_or(false, contains_singleline_comments)
+            });
 
     let should_expand = contains_comments
         || shape
