@@ -885,6 +885,28 @@ define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trailing_trivia!(GenericDeclarationParameter, |this, trailing| {
+    if let Some(default_type) = this.default_type() {
+        let default_type = default_type.update_trailing_trivia(trailing);
+        this.to_owned()
+            .with_default(Some((this.equals().unwrap().to_owned(), default_type)))
+    } else {
+        let parameter_info = match this.parameter() {
+            GenericParameterInfo::Name(token) => {
+                GenericParameterInfo::Name(token.update_trailing_trivia(trailing))
+            }
+            GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+                name: name.to_owned(),
+                ellipse: ellipse.update_trailing_trivia(trailing),
+            },
+            other => panic!("unknown node {:?}", other),
+        };
+
+        this.to_owned().with_parameter(parameter_info)
+    }
+});
+
+#[cfg(feature = "luau")]
 define_update_leading_trivia!(IfExpression, |this, leading| {
     this.to_owned()
         .with_if_token(this.if_token().update_leading_trivia(leading))

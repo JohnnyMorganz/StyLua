@@ -6,7 +6,10 @@ use crate::{
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeArgument, TypeDeclaration, TypeInfo};
+use full_moon::ast::types::{
+    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+    TypeDeclaration, TypeInfo,
+};
 use full_moon::ast::{Block, FunctionBody, Parameter};
 use full_moon::{
     ast::{
@@ -223,6 +226,38 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
         TypeInfo::VariadicPack { name, .. } => name.trailing_trivia().cloned().collect(),
         other => panic!("unknown node {:?}", other),
     }
+}
+
+#[cfg(feature = "luau")]
+fn generic_declaration_parameter_trailing_trivia(
+    parameter: &GenericDeclarationParameter,
+) -> Vec<Token> {
+    if let Some(default_type) = parameter.default_type() {
+        type_info_trailing_trivia(default_type)
+    } else {
+        match parameter.parameter() {
+            GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
+            GenericParameterInfo::Variadic { ellipse, .. } => {
+                ellipse.trailing_trivia().cloned().collect()
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+pub fn take_generic_parameter_trailing_comments(
+    parameter: &GenericDeclarationParameter,
+) -> (GenericDeclarationParameter, Vec<Token>) {
+    let trailing_comments = generic_declaration_parameter_trailing_trivia(parameter)
+        .iter()
+        .filter(|x| trivia_is_comment(x))
+        .cloned()
+        .collect();
+    (
+        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+        trailing_comments,
+    )
 }
 
 fn var_trailing_trivia(var: &Var) -> Vec<Token> {

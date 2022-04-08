@@ -5,9 +5,8 @@ use crate::{
         assignment::hang_equal_token,
         expression::{format_expression, format_var},
         general::{
-            format_contained_punctuated_multiline, format_contained_span, format_end_token,
-            format_punctuated, format_symbol, format_token_reference, try_format_punctuated,
-            EndTokenType,
+            format_contained_punctuated_multiline, format_contained_span, format_punctuated,
+            format_symbol, format_token_reference, try_format_punctuated,
         },
         table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
@@ -15,10 +14,11 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, contains_singleline_comments, take_type_argument_trailing_comments,
-            take_type_info_trailing_comments, token_trivia_contains_comments,
-            trivia_contains_comments, trivia_is_comment, trivia_is_newline,
-            type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
+            contains_comments, contains_singleline_comments,
+            take_generic_parameter_trailing_comments, take_type_argument_trailing_comments,
+            take_type_info_trailing_comments, token_contains_comments,
+            token_trivia_contains_comments, trivia_contains_comments, trivia_is_comment,
+            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
         },
     },
     shape::Shape,
@@ -117,7 +117,18 @@ fn format_type_info_generics(
     let contains_comments =
         trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
             || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
-            || contains_singleline_comments(generics);
+            || generics.pairs().any(|generic_pair| {
+                contains_singleline_comments(generic_pair.value())
+                    || trivia_contains_comments(
+                        type_info_leading_trivia(generic_pair.value())
+                            .iter()
+                            .cloned(),
+                        CommentSearch::All, // Look for leading multiline comments - these suggest expansion
+                    )
+                    || generic_pair
+                        .punctuation()
+                        .map_or(false, contains_singleline_comments)
+            });
 
     let should_expand = contains_comments
         || shape
@@ -664,6 +675,99 @@ fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool
     }
 }
 
+fn attempt_assigned_type_tactics(
+    ctx: &Context,
+    equal_token: TokenReference,
+    type_info: &TypeInfo,
+    shape: Shape,
+) -> (TokenReference, TypeInfo) {
+    const EQUAL_TOKEN_LENGTH: usize = " = ".len();
+
+    if token_contains_comments(&equal_token)
+        || trivia_contains_comments(
+            type_info_leading_trivia(type_info).iter().cloned(),
+            CommentSearch::All,
+        )
+    {
+        // We will hang at the equals token, and then format the declaration as necessary
+        let equal_token = hang_equal_token(ctx, equal_token, shape, false);
+
+        let shape = shape.reset().increment_additional_indent();
+
+        // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
+        let declaration = if contains_comments(strip_trivia(type_info)) {
+            hang_type_info(ctx, type_info, shape, 0)
+        } else {
+            format_type_info(ctx, type_info, shape)
+        };
+
+        // Take the leading comments and format them nicely
+        let leading_comments = type_info_leading_trivia(type_info)
+            .iter()
+            .filter(|x| trivia_is_comment(x))
+            .flat_map(|x| {
+                vec![
+                    create_indent_trivia(ctx, shape),
+                    x.to_owned().to_owned(),
+                    create_newline_trivia(ctx),
+                ]
+            })
+            .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+            .collect();
+
+        let declaration =
+            declaration.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
+
+        (equal_token, declaration)
+    } else {
+        let mut equal_token = equal_token;
+        let type_definition;
+        let singleline_type_definition =
+            format_type_info(ctx, type_info, shape.with_infinite_width());
+        let proper_type_definition = format_type_info(ctx, type_info, shape + EQUAL_TOKEN_LENGTH);
+
+        // Test to see whether the type definition must be hung due to comments
+        let must_hang = should_hang_type(type_info, CommentSearch::All);
+
+        // If we can hang the type definition, and its over width, then lets try doing so
+        if can_hang_type(type_info)
+            && (must_hang
+                || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
+        {
+            // If we should hug the type, then lets check out the proper definition and see if it fits
+            if !must_hang
+                && should_hug_type(type_info)
+                && !shape.test_over_budget(&proper_type_definition)
+            {
+                type_definition = proper_type_definition;
+            } else {
+                // Use a hanging equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                let shape = shape.reset().increment_additional_indent();
+                let hanging_type_definition = hang_type_info(ctx, type_info, shape, 0);
+                type_definition = hanging_type_definition;
+            }
+        } else {
+            // Test whether the proper formatting goes over the column width
+            // If so, hang at the equals token and reformat
+            if shape.test_over_budget(&proper_type_definition) {
+                // Hang at the equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                // Add the expression list into the indent range, as it will be indented by one
+                let shape = shape.reset().increment_additional_indent();
+                type_definition = format_type_info(ctx, type_info, shape);
+            } else {
+                // Use the proper formatting
+                type_definition = proper_type_definition;
+            }
+        }
+
+        (equal_token, type_definition)
+    }
+}
+
 fn format_type_declaration(
     ctx: &Context,
     type_declaration: &TypeDeclaration,
@@ -671,7 +775,6 @@ fn format_type_declaration(
     shape: Shape,
 ) -> TypeDeclaration {
     const TYPE_TOKEN_LENGTH: usize = "type ".len();
-    const EQUAL_TOKEN_LENGTH: usize = " = ".len();
 
     // Calculate trivia
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -707,57 +810,89 @@ fn format_type_declaration(
         None => shape,
     };
 
-    let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let type_definition;
-    let singleline_type_definition = format_type_info(
-        ctx,
-        type_declaration.type_definition(),
-        shape.with_infinite_width(),
-    );
-    let proper_type_definition = format_type_info(
-        ctx,
-        type_declaration.type_definition(),
-        shape + EQUAL_TOKEN_LENGTH,
-    );
+    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
+    let (equal_token, type_definition) =
+        attempt_assigned_type_tactics(ctx, equal_token, type_declaration.type_definition(), shape);
 
-    // Test to see whether the type definition must be hung due to comments
-    let must_hang = should_hang_type(type_declaration.type_definition(), CommentSearch::All);
+    // Handle comments in between the type name and generics + generics and equal token
+    // (or just type name and equal token if generics not present)
 
-    // If we can hang the type definition, and its over width, then lets try doing so
-    if can_hang_type(type_declaration.type_definition())
-        && (must_hang
-            || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
-    {
-        // If we should hug the type, then lets check out the proper definition and see if it fits
-        if !must_hang
-            && should_hug_type(type_declaration.type_definition())
-            && !shape.test_over_budget(&proper_type_definition)
+    // If there are comments in between the type name and the generics, then handle them
+    let (type_name, equal_token, generics) =
+        if trivia_contains_comments(type_name.trailing_trivia(), CommentSearch::All)
+            || generics.as_ref().map_or(false, |generics| {
+                trivia_contains_comments(
+                    generics.arrows().tokens().0.leading_trivia(),
+                    CommentSearch::All,
+                )
+            })
+            || trivia_contains_comments(equal_token.leading_trivia(), CommentSearch::All)
         {
-            type_definition = proper_type_definition;
-        } else {
-            // Use a hanging equal token
-            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+            // See if we have generics
+            if let Some(generics) = generics {
+                let (start_arrow, end_arrow) = generics.arrows().tokens();
 
-            let shape = shape.reset().increment_additional_indent();
-            let hanging_type_definition =
-                hang_type_info(ctx, type_declaration.type_definition(), shape, 0);
-            type_definition = hanging_type_definition;
-        }
-    } else {
-        // Test whether the proper formatting goes over the column width
-        // If so, hang at the equals token and reformat
-        if shape.test_over_budget(&proper_type_definition) {
-            // Hang at the equal token
-            equal_token = hang_equal_token(ctx, equal_token, shape, true);
+                let type_name_comments = type_name
+                    .trailing_trivia()
+                    .chain(start_arrow.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect::<Vec<_>>();
+                let type_name_comments_len = type_name_comments.len();
 
-            // Add the expression list into the indent range, as it will be indented by one
-            let shape = shape.reset().increment_additional_indent();
-            type_definition = format_type_info(ctx, type_declaration.type_definition(), shape);
+                let arrow_comments = end_arrow
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    Some(generics.to_owned().with_arrows(ContainedSpan::new(
+                        start_arrow.update_leading_trivia(FormatTriviaType::Replace(
+                            // If there are some comments present between the type name and generics,
+                            // then lets add a single space before the arrow to make it look nicer
+                            if type_name_comments_len > 0 {
+                                vec![Token::new(TokenType::spaces(1))]
+                            } else {
+                                vec![]
+                            },
+                        )),
+                        end_arrow.update_trailing_trivia(FormatTriviaType::Replace(arrow_comments)),
+                    ))),
+                )
+            } else {
+                let comments = type_name
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    generics,
+                )
+            }
         } else {
-            // Use the proper formatting
-            type_definition = proper_type_definition;
-        }
-    }
+            (type_name, equal_token, generics)
+        };
 
     let type_definition =
         type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
@@ -803,7 +938,8 @@ fn format_generic_parameter(
     let default_type = match (generic_parameter.equals(), generic_parameter.default_type()) {
         (Some(equals), Some(default_type)) => {
             let equals = fmt_symbol!(ctx, equals, " = ", shape);
-            let default_type = format_type_info(ctx, default_type, shape);
+            let (equals, default_type) =
+                attempt_assigned_type_tactics(ctx, equals, default_type, shape);
             Some((equals, default_type))
         }
         (None, None) => None,
@@ -821,47 +957,38 @@ pub fn format_generic_declaration(
     generic_declaration: &GenericDeclaration,
     shape: Shape,
 ) -> GenericDeclaration {
-    // If the generics contains comments, then format multiline
-    let (arrows, generics) = if contains_comments(generic_declaration.generics()) {
-        let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+    const ARROW_LEN: usize = 1; // 1 = "<"
 
-        // Format start and end arrows properly with correct trivia
-        let end_arrow_leading_trivia =
-            vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
+    let singleline_arrows = format_contained_span(ctx, generic_declaration.arrows(), shape);
+    let singleline_generics = format_punctuated(
+        ctx,
+        generic_declaration.generics(),
+        shape.with_infinite_width(),
+        format_generic_parameter,
+    );
 
-        // Add new_line trivia to start arrow
-        let start_arrow_token = fmt_symbol!(ctx, start_arrow, "<", shape)
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+    let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+    let contains_comments =
+        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::All)
+            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::All)
+            || contains_comments(generic_declaration.generics());
 
-        let end_arrow_token = format_end_token(ctx, end_arrow, EndTokenType::ClosingBrace, shape)
-            .update_leading_trivia(FormatTriviaType::Append(end_arrow_leading_trivia));
+    let should_expand = contains_comments
+        || shape
+            .add_width(ARROW_LEN * 2)
+            .test_over_budget(&singleline_generics);
 
-        let arrows = ContainedSpan::new(start_arrow_token, end_arrow_token);
-
-        let shape = shape.reset().increment_additional_indent();
-        let generics = try_format_punctuated(
+    let (arrows, generics) = if should_expand {
+        format_contained_punctuated_multiline(
             ctx,
+            generic_declaration.arrows(),
             generic_declaration.generics(),
+            format_generic_parameter, // TODO: hangable?
+            take_generic_parameter_trailing_comments,
             shape,
-            format_generic_parameter,
-            None,
         )
-        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-            ctx, shape,
-        )]));
-
-        (arrows, generics)
     } else {
-        (
-            format_contained_span(ctx, generic_declaration.arrows(), shape),
-            try_format_punctuated(
-                ctx,
-                generic_declaration.generics(),
-                shape,
-                format_generic_parameter,
-                None,
-            ),
-        )
+        (singleline_arrows, singleline_generics)
     };
 
     generic_declaration
