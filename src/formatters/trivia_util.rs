@@ -58,7 +58,7 @@ pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
 
 pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
-        Expression::Parentheses { expression, .. } => can_hang_expression(expression),
+        Expression::Parentheses { .. } => true, // Can always hang parentheses if necessary
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
         Expression::Value { value, .. } => match &**value {
