@@ -61,7 +61,7 @@ pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
 
 pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
-        Expression::Parentheses { expression, .. } => can_hang_expression(expression),
+        Expression::Parentheses { .. } => true, // Can always hang parentheses if necessary
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
         Expression::Value { value, .. } => match &**value {
@@ -1111,6 +1111,15 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
 
         comments || field.punctuation().map_or(false, contains_comments)
     })
+}
+
+pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
+    match field {
+        Field::ExpressionKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NameKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+        other => panic!("unknown node {:?}", other),
+    }
 }
 
 // Checks to see whether an expression contains comments inline inside of it
