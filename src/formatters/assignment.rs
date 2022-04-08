@@ -239,8 +239,9 @@ fn attempt_assignment_tactics(
 
         // Find the better format out of the hanging shape or the normal formatting
         // If the expression contains comments, we must hang
-        if trivia_util::expression_contains_inline_comments(expression)
-            || hanging_shape.used_width() < formatting_shape.used_width()
+        if trivia_util::can_hang_expression(expression)
+            && (trivia_util::expression_contains_inline_comments(expression)
+                || hanging_shape.used_width() < formatting_shape.used_width())
         {
             // Hanging version is better
             (hanging_expr_list, equal_token)

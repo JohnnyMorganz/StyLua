@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed leading trivia on semicolon lost when semicolon is removed ([#431](https://github.com/JohnnyMorganz/StyLua/issues/431))
 - Fixed shape calculation of the RHS of a binary expression not correctly reset when hanging, causing it to expand unnecessarily ([#432](https://github.com/JohnnyMorganz/StyLua/issues/432))
 - Fixed unstable formatting of tables at column width boundary ([#436](https://github.com/JohnnyMorganz/StyLua/issues/436))
+- Fixed assignments no longer hanging at equals token if a comment is present, but the expression is not hangable at a binop. ([#439](https://github.com/JohnnyMorganz/StyLua/issues/439))
 
 ## [0.13.0] - 2022-03-31
 ### Added
