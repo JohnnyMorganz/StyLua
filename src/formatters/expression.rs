@@ -1075,13 +1075,23 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression_internal(ctx, &*lhs, ExpressionContext::UnaryOrBinary, shape)
+                        format_expression_internal(
+                            ctx,
+                            &*lhs,
+                            ExpressionContext::UnaryOrBinary,
+                            shape,
+                        )
                     };
 
                     let rhs = if contains_comments(&*rhs) {
                         hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
                     } else {
-                        format_expression_internal(ctx, &*rhs, ExpressionContext::UnaryOrBinary, shape)
+                        format_expression_internal(
+                            ctx,
+                            &*rhs,
+                            ExpressionContext::UnaryOrBinary,
+                            shape,
+                        )
                     };
 
                     (lhs, rhs)
