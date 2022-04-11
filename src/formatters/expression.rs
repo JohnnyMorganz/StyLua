@@ -59,7 +59,7 @@ enum ExpressionContext {
     TypeAssertion,
     /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
     /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
-    Unary,
+    UnaryOrBinary,
 }
 
 pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
@@ -99,11 +99,11 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
-            // If we have a type assertion, and the context is a unary operation
+            // If we have a type assertion, and the context is a unary or binary operation
             // we should always keep parentheses
             // [e.g. #(value :: Array<string>) or -(value :: number)]
             #[cfg(feature = "luau")]
-            if type_assertion.is_some() && matches!(context, ExpressionContext::Unary) {
+            if type_assertion.is_some() && matches!(context, ExpressionContext::UnaryOrBinary) {
                 return false;
             }
 
@@ -208,8 +208,12 @@ fn format_expression_internal(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let mut expression =
-                format_expression_internal(ctx, expression, ExpressionContext::Unary, shape);
+            let mut expression = format_expression_internal(
+                ctx,
+                expression,
+                ExpressionContext::UnaryOrBinary,
+                shape,
+            );
 
             // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
             // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
@@ -251,13 +255,18 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = format_expression(ctx, lhs, shape);
+            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::UnaryOrBinary, shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
                 binop,
-                rhs: Box::new(format_expression(ctx, rhs, shape)),
+                rhs: Box::new(format_expression_internal(
+                    ctx,
+                    rhs,
+                    ExpressionContext::UnaryOrBinary,
+                    shape,
+                )),
             }
         }
         other => panic!("unknown node {:?}", other),
@@ -1032,10 +1041,20 @@ fn hang_binop_expression(
                                 lhs_shape,
                                 lhs_range,
                             ),
-                            format_expression(ctx, &*rhs, rhs_shape),
+                            format_expression_internal(
+                                ctx,
+                                &*rhs,
+                                ExpressionContext::UnaryOrBinary,
+                                rhs_shape,
+                            ),
                         ),
                         ExpressionSide::Right => (
-                            format_expression(ctx, &*lhs, lhs_shape),
+                            format_expression_internal(
+                                ctx,
+                                &*lhs,
+                                ExpressionContext::UnaryOrBinary,
+                                lhs_shape,
+                            ),
                             hang_binop_expression(
                                 ctx,
                                 *rhs,
@@ -1056,13 +1075,13 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression(ctx, &*lhs, shape)
+                        format_expression_internal(ctx, &*lhs, ExpressionContext::UnaryOrBinary, shape)
                     };
 
                     let rhs = if contains_comments(&*rhs) {
                         hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
                     } else {
-                        format_expression(ctx, &*rhs, shape)
+                        format_expression_internal(ctx, &*rhs, ExpressionContext::UnaryOrBinary, shape)
                     };
 
                     (lhs, rhs)
@@ -1223,7 +1242,7 @@ fn format_hanging_expression_(
                 ctx,
                 expression,
                 shape,
-                ExpressionContext::Unary,
+                ExpressionContext::UnaryOrBinary,
                 lhs_range,
             );
 
