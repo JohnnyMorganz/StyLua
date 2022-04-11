@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed unstable formatting of tables at column width boundary ([#436](https://github.com/JohnnyMorganz/StyLua/issues/436))
 - Fixed assignments no longer hanging at equals token if a comment is present, but the expression is not hangable at a binop. ([#439](https://github.com/JohnnyMorganz/StyLua/issues/439))
 - Fixed unstable formatting around comments within type declarations ([#397](https://github.com/JohnnyMorganz/StyLua/issues/397), [#430](https://github.com/JohnnyMorganz/StyLua/issues/430))
+- Fixed parentheses around type assertions in a binary expression being removed leading to incorrect semantics. ([#441](https://github.com/JohnnyMorganz/StyLua/issues/441))
 
 ## [0.13.0] - 2022-03-31
 ### Added
