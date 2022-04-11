@@ -17,3 +17,14 @@ self.mutationStore[mutationId] = (
 ) :: MutationStoreValue
 
 local _name = debug.info(fn :: ((any) -> any), "n")
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/441
+if string.len(string_) > (length :: number) then
+    return string_:sub(1, (length :: number) + 1) .. "…"
+else
+    return string_
+end
+
+if fiber.actualStartTime ~= nil and (fiber.actualStartTime :: number) < 0 then
+    fiber.actualStartTime = now()
+end
