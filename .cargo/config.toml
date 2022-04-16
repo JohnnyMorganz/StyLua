@@ -11,6 +11,3 @@ rustflags = [
     "-C",
     "link-args=/NODEFAULTLIB:libucrt.lib /NODEFAULTLIB:libucrtd.lib /NODEFAULTLIB:ucrtd.lib",
 ]
-
-[target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "target-feature=+crt-static"]

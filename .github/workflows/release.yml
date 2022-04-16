@@ -51,7 +51,7 @@ jobs:
         submodules: true
 
     - name: Build (All features)
-      run: cargo build --locked --verbose --release --all-features --target x86_64-unknown-linux-gnu
+      run: RUSTFLAGS='-C target-feature=+crt-static' cargo build --locked --verbose --release --all-features --target x86_64-unknown-linux-gnu
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v1
