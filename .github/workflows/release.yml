@@ -43,7 +43,7 @@ jobs:
         path: target/release/stylua
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v1
@@ -60,7 +60,7 @@ jobs:
         path: target/release/stylua
 
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: ['windows', 'macos', 'linux']
     steps:
     - uses: actions/checkout@v1
