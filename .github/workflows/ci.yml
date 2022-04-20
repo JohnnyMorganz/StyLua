@@ -10,7 +10,7 @@ on:
     - test-actions
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
 
@@ -23,7 +23,7 @@ jobs:
     - name: Test (Lua 5.2)
       run: cargo test --features lua52
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
 
