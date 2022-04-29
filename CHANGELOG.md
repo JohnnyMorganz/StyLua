@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
+- [**Luau**] Removed unnecessary expansion of a type generic with a single table as the parameter ([#442](https://github.com/JohnnyMorganz/StyLua/issues/442))
 
 ## [0.13.1] - 2022-04-11
 ### Fixed

@@ -135,7 +135,20 @@ fn format_type_info_generics(
             .add_width(ARROW_LEN * 2)
             .test_over_budget(&singleline_generics);
 
-    if should_expand {
+    // If the generics is just a single type table, then we can hug it
+    let can_hug_table = should_expand
+        && generics.len() == 1
+        && match generics.iter().next().unwrap() {
+            TypeInfo::Table { braces, .. } => {
+                // Check there is not leading or trailing comments on the brace
+                let (start_brace, end_brace) = braces.tokens();
+                !trivia_contains_comments(start_brace.leading_trivia(), CommentSearch::Single)
+                    || !trivia_contains_comments(end_brace.trailing_trivia(), CommentSearch::Single)
+            }
+            _ => false,
+        };
+
+    if should_expand && !can_hug_table {
         format_contained_punctuated_multiline(
             ctx,
             arrows,
