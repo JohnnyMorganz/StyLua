@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+assertion_line: 30
+expression: format(&contents)
+
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/446
+export type IntrospectionNamedTypeRef<
+	T -- XYZ ABC
+> = {}
+
