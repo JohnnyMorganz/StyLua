@@ -8,7 +8,7 @@ expression: format(&contents)
 
 --[[opening type comment]]
 type Doo<
-	T--[[ per-generic argument comment]]
+	T --[[ per-generic argument comment]]
 > =
 	--[[ opening RHS comment]]
 	string --[[ per-RHS comment]]

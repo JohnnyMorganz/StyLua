@@ -252,7 +252,10 @@ pub fn take_generic_parameter_trailing_comments(
     let trailing_comments = generic_declaration_parameter_trailing_trivia(parameter)
         .iter()
         .filter(|x| trivia_is_comment(x))
-        .cloned()
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
         .collect();
     (
         parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
