@@ -19,7 +19,7 @@ jobs:
 
     - name: Test (Luau)
       run: cargo test --features luau
-    
+
     - name: Test (Lua 5.2)
       run: cargo test --features lua52
   lint:
