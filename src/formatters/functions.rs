@@ -195,7 +195,7 @@ fn function_args_multiline_heuristic(
     // 2) If we have a mixture of multiline (tables/anonymous functions) and other values. For
     //    example, call({ ... }, foo, { ... }), should be expanded, but
     //    call(foo, { ... }) or call(foo, { ... }, foo) can stay on one line, provided the
-    //    single line arguments dont surpass the column width setting
+    //    single line arguments don't surpass the column width setting
 
     // Use state values to determine the type of arguments we have seen so far
     let mut current_state = ArgumentState::new();
@@ -227,7 +227,7 @@ fn function_args_multiline_heuristic(
                             // Reset the shape onto a new line, and include the `end` token
                             singleline_shape = singleline_shape.reset() + END_LEN;
                         } else {
-                            // Update the width with the collapsed function (normaly indicative of a noop function)
+                            // Update the width with the collapsed function (normally indicative of a noop function)
                             singleline_shape = singleline_shape + argument.to_string().len();
                         }
                     }
@@ -416,7 +416,7 @@ pub fn format_function_args(
                 // multiline function args
 
                 // If we are hugging a table constructor with the parentheses, we use a shape increment of 2 to include the closing
-                // parentheses aswell. Otherwise, we just use 1 = opening parentheses.
+                // parentheses as well. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
                 let parentheses = format_contained_span(ctx, parentheses, shape);
@@ -763,7 +763,7 @@ pub fn format_function_call(
     };
 
     let should_hang = {
-        // Hang if there is atleast more than one method call suffix
+        // Hang if there is at least more than one method call suffix
         if function_call
             .suffixes()
             .filter(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))

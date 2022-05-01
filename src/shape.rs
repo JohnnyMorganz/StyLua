@@ -184,7 +184,7 @@ impl Shape {
         Self { offset: 0, ..*self }
     }
 
-    /// Takes the first line from an item which can be converted into a string, and sets that to the the shape
+    /// Takes the first line from an item which can be converted into a string, and sets that to the shape
     pub fn take_first_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{}", item);
         let mut lines = string.lines();
