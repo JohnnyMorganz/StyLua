@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+assertion_line: 56
+expression: "format_code(&contents, Config::default().with_sort_requires(true), None,\n            OutputVerification::None).unwrap()"
+
+---
+local holder = script.Parent
+local modules = holder.Modules
+local aa = require(modules.Test)
+local bee = require(modules.BeeMovie)
+local cee = require(modules.Script)
+print("hello!")
+
