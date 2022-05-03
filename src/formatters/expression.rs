@@ -874,20 +874,20 @@ impl ToRange for Expression {
 /// It holds the range of the leftmost binary expression, and the original additional indent level of this range.
 /// This struct is only used when the hanging binary expression involves a hang level, for example:
 /// ```lua
-/// foooo
+/// foo
 ///    + bar
 ///    + baz
 /// ```
 /// or in a larger context:
 /// ```lua
-/// local someVariable = foooo
+/// local someVariable = foo
 ///    + bar
 ///    + baz
 /// ```
-/// As seen, the first item (`foooo`) is inlined, and has an indent level one lower than the rest of the binary
-/// expressions. We want to ensure that whenever we have `foooo` in our expression, we use the original indentation level
+/// As seen, the first item (`foo`) is inlined, and has an indent level one lower than the rest of the binary
+/// expressions. We want to ensure that whenever we have `foo` in our expression, we use the original indentation level
 /// because the expression is (at this current point in time) inlined - otherwise, it will be over-indented.
-/// We hold the original indentation level incase we are deep down in the recursivecalls:
+/// We hold the original indentation level in case we are deep down in the recursive calls:
 /// ```lua
 /// local ratio = (minAxis - minAxisSize) / delta * (self.props.maxScaleRatio - self.props.minScaleRatio)
 ///     + self.props.minScaleRatio

@@ -70,7 +70,7 @@ for repo, data in REPOS.items():
     commitProcess = subprocess.Popen(["git", "commit", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     commitProcessStderr = commitProcess.communicate()[1].decode()
     if commitProcess.wait() != 0:
-        print(f"**Error when commiting master changes on `{repo}`**:")
+        print(f"**Error when committing master changes on `{repo}`**:")
         printCodeblock(commitProcessStderr or "<no output>", "")
         continue
 

@@ -157,7 +157,7 @@ impl VisitorMut for AstVerifier {
     }
 
     fn visit_string_literal(&mut self, token: Token) -> Token {
-        // We change the string quotes of our progrem.
+        // We change the string quotes of our program.
         // Convert all string literals to brackets quotes, and remove any escapes.
         let token_type = match token.token_type() {
             TokenType::StringLiteral {

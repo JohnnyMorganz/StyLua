@@ -65,9 +65,9 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
 
         // See if we need to format multiline
         // If we contain comments, we immediately force multiline, and return an empty Punctuated sequence as a placeholder (it will never be used)
-        // If not, format the sequence on a single line, and test the shape. We return the singleline output incase we want to use it.
+        // If not, format the sequence on a single line, and test the shape. We return the singleline output in case we want to use it.
         // We do it this way so that the singleline return is evaluated lazily - we don't want to create it if we never use it, but if we
-        // create it, we need to keep it incase we want to use it.
+        // create it, we need to keep it in case we want to use it.
         let (should_format_multiline, singleline_returns) = if contains_comments {
             (true, Punctuated::new())
         } else {

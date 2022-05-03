@@ -118,7 +118,7 @@ fn format_token(
                     quote_type: StringLiteralQuoteType::Brackets,
                 }
             } else {
-                // Match all escapes within the the string
+                // Match all escapes within the string
                 // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                 lazy_static::lazy_static! {
                     static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();

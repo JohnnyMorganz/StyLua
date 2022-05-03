@@ -110,7 +110,7 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
                     let mut suffixes = function_call.suffixes();
                     // Test next 2 available suffixes
                     match (suffixes.next(), suffixes.next()) {
-                        // Ensure atleast one suffix, and only one suffix
+                        // Ensure at least one suffix, and only one suffix
                         (Some(suffix), None) => match suffix {
                             // Ensure suffix is a call with a single table constructor as argument
                             Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(
@@ -123,7 +123,7 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
                                 let mut arguments = arguments.iter();
                                 // Test next 2 available arguments
                                 match (arguments.next(), arguments.next()) {
-                                    // Ensure atleast one argument, and only one argument
+                                    // Ensure at least one argument, and only one argument
                                     // And that the argument is a table constructor
                                     (Some(Expression::Value { value, .. }), None) => {
                                         matches!(**value, Value::TableConstructor(_))

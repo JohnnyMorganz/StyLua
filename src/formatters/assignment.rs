@@ -43,7 +43,7 @@ fn calculate_hang_level(expression: &Expression) -> Option<usize> {
 }
 
 /// Hangs each [`Expression`] in a [`Punctuated`] list.
-/// The Punctuated list is hung multiline at the comma aswell, and each subsequent item after the first is
+/// The Punctuated list is hung multiline at the comma as well, and each subsequent item after the first is
 /// indented by one.
 pub fn hang_punctuated_list(
     ctx: &Context,

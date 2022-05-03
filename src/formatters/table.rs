@@ -22,7 +22,7 @@ use full_moon::{
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]
 pub enum TableType {
-    /// The table will have multline fields
+    /// The table will have multiline fields
     MultiLine,
     /// The table will be on a single line
     SingleLine,
@@ -449,7 +449,7 @@ pub fn format_table_constructor(
                 TableType::MultiLine
             } else {
                 // Compare the difference between the position of the start brace and the end brace to
-                // guess how long the table is. This heuristic is very naiive, since it relies on the input.
+                // guess how long the table is. This heuristic is very naive, since it relies on the input.
                 // If the input is badly formatted (e.g. lots of spaces in the table), then it would flag this over width.
                 // However, this is currently our best solution: attempting to format the input onto a single line to
                 // see if we are over width (both completely and in a fail-fast shape.over_budget() check) leads to
@@ -469,7 +469,7 @@ pub fn format_table_constructor(
                 let last_field = table_constructor
                     .fields()
                     .last()
-                    .expect("atleast one field must be present");
+                    .expect("at least one field must be present");
 
                 // See if we need to +1 because we will be adding spaces
                 let additional_shape = match (

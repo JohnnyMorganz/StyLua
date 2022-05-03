@@ -157,7 +157,7 @@ pub struct FormatOpts {
     /// The style of quotes to use in string literals.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub quote_style: Option<ArgQuoteStyle>,
-    /// Specify whether to apply parentheses on function calls with signle string or table arg.
+    /// Specify whether to apply parentheses on function calls with single string or table arg.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub call_parentheses: Option<ArgCallParenType>,
 }
