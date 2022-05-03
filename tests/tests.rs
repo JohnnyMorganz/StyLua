@@ -53,6 +53,12 @@ fn test_lua52() {
 fn test_sort_requires() {
     insta::glob!("inputs-sort-requires/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
-        insta::assert_snapshot!(format(&contents));
+        insta::assert_snapshot!(format_code(
+            &contents,
+            Config::default().with_sort_requires(true),
+            None,
+            OutputVerification::None
+        )
+        .unwrap());
     })
 }

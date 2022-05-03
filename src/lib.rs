@@ -123,6 +123,8 @@ pub struct Config {
     /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
     /// function is called with only one table or string argument (same as no_call_parentheses).
     call_parentheses: CallParenType,
+
+    sort_requires: bool, // TODO: probably separate this out into a different section entirely? so toml looks like [sort_requires] enabled = true
 }
 
 impl Config {
@@ -159,6 +161,10 @@ impl Config {
     /// Returns the current configured call parentheses style
     pub fn call_parentheses(&self) -> CallParenType {
         self.call_parentheses
+    }
+
+    pub fn sort_requires(&self) -> bool {
+        self.sort_requires
     }
 
     /// Returns a new config with the given column width
@@ -215,6 +221,13 @@ impl Config {
             ..self
         }
     }
+
+    pub fn with_sort_requires(self, sort_requires: bool) -> Self {
+        Self {
+            sort_requires,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -227,6 +240,7 @@ impl Default for Config {
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
+            sort_requires: false,
         }
     }
 }
@@ -288,7 +302,7 @@ pub fn format_code(
 
     // If we want to sort requires, we should firstly apply this on the input ast
     // TODO: connect to option
-    let input_ast = match true {
+    let input_ast = match config.sort_requires {
         true => sort_requires::sort_requires(input_ast),
         false => input_ast,
     };
