@@ -5,7 +5,7 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
 use std::fs;
-use std::io::{stdin, stdout, Read, Write};
+use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
@@ -28,6 +28,75 @@ enum FormatResult {
     SuccessBufferedOutput(Vec<u8>),
     /// There is a diff output. This stores the diff created
     Diff(Vec<u8>),
+}
+
+/// Wraps an error to include information about the file it resonated from
+#[derive(Debug)]
+struct ErrorFileWrapper {
+    file: String,
+    error: anyhow::Error,
+}
+impl std::fmt::Display for ErrorFileWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.error, f)
+    }
+}
+impl std::error::Error for ErrorFileWrapper {}
+
+fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<serde_json::Value> {
+    Some(match err {
+        full_moon::Error::AstError(full_moon::ast::AstError::UnexpectedToken {
+            token,
+            additional,
+        }) => json!({
+            "type": "parse_error",
+            "message": format!("unexpected token `{}`{}", token, additional.as_ref().map(|x| format!(": {}", x)).unwrap_or_default()),
+            "filename": file,
+            "location": {
+                "start": token.start_position().bytes(),
+                "start_line": token.start_position().line(),
+                "start_column": token.start_position().character(),
+                "end": token.end_position().bytes(),
+                "end_line": token.end_position().line(),
+                "end_column": token.end_position().character(),
+            },
+        }),
+        full_moon::Error::TokenizerError(error) => json!({
+            "type": "parse_error",
+            "message": match error.error() {
+                full_moon::tokenizer::TokenizerErrorType::UnclosedComment => {
+                    "unclosed comment".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnclosedString => {
+                    "unclosed string".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnexpectedShebang => {
+                    "unexpected shebang".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(
+                    character,
+                ) => {
+                    format!("unexpected character {}", character)
+                }
+                full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
+                    format!("invalid symbol {}", symbol)
+                }
+            },
+            "filename": file,
+            "location": {
+                "start": error.position().bytes(),
+                "start_line": error.position().line(),
+                "start_column": error.position().character(),
+                "end": error.position().bytes(),
+                "end_line": error.position().line(),
+                "end_column": error.position().character(),
+            },
+        }),
+        _ => {
+            error!("{:#}", err);
+            return None;
+        }
+    })
 }
 
 fn create_diff(
@@ -139,8 +208,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     // Check for incompatible options
-    if !opt.check && !matches!(opt.output_format, opt::OutputFormat::Standard) {
-        bail!("--output-format can only be used when --check is enabled");
+    if !opt.check && matches!(opt.output_format, opt::OutputFormat::Unified) {
+        bail!("--output-format=unified can only be used when --check is enabled");
     }
 
     // Load the configuration
@@ -201,7 +270,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
     debug!("creating a pool with {} threads", opt.num_threads);
     let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need at least one output reader as well as a formatter
-    let (tx, rx) = crossbeam_channel::unbounded();
+    let (tx, rx) = crossbeam_channel::unbounded::<Result<_>>();
+    let output_format = opt.output_format;
     let opt = Arc::new(opt);
 
     // Create a thread to handle the formatting output
@@ -233,6 +303,34 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         }
                     }
                 },
+                Err(err) if matches!(output_format, opt::OutputFormat::Json) => {
+                    match err.downcast_ref::<ErrorFileWrapper>() {
+                        Some(ErrorFileWrapper { file, error }) => {
+                            match error.downcast_ref::<stylua_lib::Error>() {
+                                Some(stylua_lib::Error::ParseError(err)) => {
+                                    if let Some(structured_err) =
+                                        convert_parse_error_to_json(file, err)
+                                    {
+                                        // Force write to stderr directly
+                                        // TODO: can we do this through error! instead?
+                                        let stderr = stderr();
+                                        let mut handle = stderr.lock();
+                                        match handle
+                                            .write_all(structured_err.to_string().as_bytes())
+                                        {
+                                            Ok(_) => (),
+                                            Err(err) => {
+                                                error!("could not output to stdout: {:#}", err)
+                                            }
+                                        };
+                                    }
+                                }
+                                _ => error!("{:#}", err),
+                            }
+                        }
+                        _ => error!("{:#}", err),
+                    }
+                }
                 Err(err) => error!("{:#}", err),
             }
         }
@@ -253,9 +351,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             Ok(_) => {
                                 tx.send(format_string(buf, config, range, &opt, verify_output))
                             }
-                            Err(error) => {
-                                tx.send(Err(error).context("could not format from stdin"))
-                            }
+                            Err(error) => tx.send(
+                                Err(ErrorFileWrapper {
+                                    file: "stdin".to_string(),
+                                    error: error.into(),
+                                })
+                                .context("could not format from stdin"),
+                            ),
                         }
                         .unwrap();
                     });
@@ -282,8 +384,18 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                         let tx = tx.clone();
                         pool.execute(move || {
-                            tx.send(format_file(&path, config, range, &opt, verify_output))
-                                .unwrap()
+                            tx.send(
+                                format_file(&path, config, range, &opt, verify_output).map_err(
+                                    |error| {
+                                        ErrorFileWrapper {
+                                            file: path.display().to_string(),
+                                            error,
+                                        }
+                                        .into()
+                                    },
+                                ),
+                            )
+                            .unwrap()
                         });
                     }
                 }
@@ -317,6 +429,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
 fn main() {
     let opt = opt::Opt::parse();
+    let output_format = opt.output_format;
     let should_use_color = opt.color.should_use_color_stderr();
     let level_filter = if opt.verbose {
         LevelFilter::Debug
@@ -342,13 +455,24 @@ fn main() {
             .bold()
             .force_styling(should_use_color);
 
-            writeln!(
-                buf,
-                "{}{} {}",
-                tag,
-                style(":").bold().force_styling(should_use_color),
-                record.args()
-            )
+            if let opt::OutputFormat::Json = output_format {
+                writeln!(
+                    buf,
+                    "{}",
+                    json!({
+                        "type": record.level().to_string().to_lowercase(),
+                        "message": record.args().to_string(),
+                    })
+                )
+            } else {
+                writeln!(
+                    buf,
+                    "{}{} {}",
+                    tag,
+                    style(":").bold().force_styling(should_use_color),
+                    record.args()
+                )
+            }
         })
         .init();
 

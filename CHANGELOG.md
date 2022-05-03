@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `--output-format=json` now outputs all (error) messages in JSON format ([#453](https://github.com/JohnnyMorganz/StyLua/issues/453))
+
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
 - [**Luau**] Removed unnecessary expansion of a type generic with a single table as the parameter ([#442](https://github.com/JohnnyMorganz/StyLua/issues/442))
