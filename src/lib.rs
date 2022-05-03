@@ -124,7 +124,8 @@ pub struct Config {
     /// function is called with only one table or string argument (same as no_call_parentheses).
     call_parentheses: CallParenType,
 
-    sort_requires: bool, // TODO: probably separate this out into a different section entirely? so toml looks like [sort_requires] enabled = true
+    /// Configuration for the sort requires codemod
+    sort_requires: sort_requires::SortRequiresConfig,
 }
 
 impl Config {
@@ -163,7 +164,8 @@ impl Config {
         self.call_parentheses
     }
 
-    pub fn sort_requires(&self) -> bool {
+    /// Returns the current sort requires codemod configuration
+    pub fn sort_requires(&self) -> sort_requires::SortRequiresConfig {
         self.sort_requires
     }
 
@@ -222,7 +224,8 @@ impl Config {
         }
     }
 
-    pub fn with_sort_requires(self, sort_requires: bool) -> Self {
+    /// Returns a new config with the given sort requires configuration
+    pub fn with_sort_requires(self, sort_requires: sort_requires::SortRequiresConfig) -> Self {
         Self {
             sort_requires,
             ..self
@@ -240,7 +243,7 @@ impl Default for Config {
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
-            sort_requires: false,
+            sort_requires: sort_requires::SortRequiresConfig::default(),
         }
     }
 }
@@ -302,7 +305,7 @@ pub fn format_code(
 
     // If we want to sort requires, we should firstly apply this on the input ast
     // TODO: connect to option
-    let input_ast = match config.sort_requires {
+    let input_ast = match config.sort_requires.enabled() {
         true => sort_requires::sort_requires(input_ast),
         false => input_ast,
     };

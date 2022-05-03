@@ -22,8 +22,26 @@ use full_moon::{
     },
     tokenizer::{TokenReference, TokenType},
 };
+use serde::Deserialize;
 
 type StmtSemicolon = (Stmt, Option<TokenReference>);
+
+#[derive(Copy, Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SortRequiresConfig {
+    /// Whether the sort requires codemod is enabled.
+    enabled: bool,
+}
+
+impl SortRequiresConfig {
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn set_enabled(&self, enabled: bool) -> Self {
+        Self { enabled }
+    }
+}
 
 /// Takes in an input AST, and applies the sort requires codemod to output a new AST
 pub fn sort_requires(input_ast: Ast) -> Ast {
@@ -251,6 +269,7 @@ fn rewrite_requires(
     sorted_requires: Vec<&StmtSemicolon>,
     remainder_stmts: Vec<&StmtSemicolon>,
 ) -> Vec<StmtSemicolon> {
+    // TODO: remove any excessive newlines at the end of requires (in case they were removed)
     // TODO: place a single newline between the sorted requires and the remainder statements
 
     sorted_requires
