@@ -44,7 +44,7 @@ impl SortRequiresConfig {
 }
 
 /// Takes in an input AST, and applies the sort requires codemod to output a new AST
-pub fn sort_requires(input_ast: Ast) -> Ast {
+pub(crate) fn sort_requires(input_ast: Ast) -> Ast {
     let block = input_ast.nodes();
 
     // Find all the requires in the code

@@ -4,7 +4,7 @@ use serde::Deserialize;
 mod context;
 mod formatters;
 mod shape;
-mod sort_requires;
+pub mod sort_requires;
 mod verify_ast;
 
 /// The type of indents to use when indenting

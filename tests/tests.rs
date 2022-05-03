@@ -1,4 +1,4 @@
-use stylua_lib::{format_code, Config, OutputVerification};
+use stylua_lib::{format_code, sort_requires::SortRequiresConfig, Config, OutputVerification};
 
 fn format(input: &str) -> String {
     format_code(input, Config::default(), None, OutputVerification::None).unwrap()
@@ -55,7 +55,7 @@ fn test_sort_requires() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config::default().with_sort_requires(true),
+            Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),
             None,
             OutputVerification::None
         )
