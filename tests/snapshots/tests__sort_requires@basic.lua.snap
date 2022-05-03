@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+assertion_line: 56
+expression: format(&contents)
+
+---
+local ah = require("a")
+local bee = require("b")
+
+print("hello world")
+
