@@ -4,6 +4,7 @@ use serde::Deserialize;
 mod context;
 mod formatters;
 mod shape;
+mod sort_requires;
 mod verify_ast;
 
 /// The type of indents to use when indenting
@@ -283,6 +284,13 @@ pub fn format_code(
         Some(input_ast.to_owned())
     } else {
         None
+    };
+
+    // If we want to sort requires, we should firstly apply this on the input ast
+    // TODO: connect to option
+    let input_ast = match true {
+        true => sort_requires::sort_requires(input_ast),
+        false => input_ast,
     };
 
     let code_formatter = formatters::CodeFormatter::new(config, range);
