@@ -167,14 +167,24 @@ fn find_dependency_name(stmt: &StmtSemicolon) -> Option<String> {
                                 Var::Name(token) => name_from_token(token.token_type()),
                                 Var::Expression(var_expression) => match var_expression.prefix() {
                                     Prefix::Name(token) => name_from_token(token.token_type()),
-                                    _ => todo!("non-standard dependency"),
+                                    _ => todo!(
+                                        "non-standard dependency [PREFIX]: {}",
+                                        var_expression.to_string()
+                                    ),
                                 },
                                 other => unreachable!("unknown node: {:?}", other),
                             },
-                            _ => todo!("non-standard dependency"),
+                            Value::FunctionCall(function_call) => match function_call.prefix() {
+                                Prefix::Name(token) => name_from_token(token.token_type()),
+                                _ => todo!(
+                                    "non-standard dependency [PREFIX]: {}",
+                                    function_call.to_string()
+                                ),
+                            },
+                            _ => todo!("non-standard dependency [VALUE]: {}", value.to_string()),
                         }
                     }
-                    _ => todo!("non-standard dependency"),
+                    _ => todo!("non-standard dependency [EXPR]: {}", expression.to_string()),
                 };
 
                 Some(dependency)
