@@ -121,12 +121,14 @@ impl UpdateTrivia for TokenReference {
 
 macro_rules! define_update_trivia {
     ($node:ident, |$self:ident, $leading_trivia:ident, $trailing_trivia:ident| $body:expr) => {
-        define_update_trivia! {$node, |$self:&$node, $leading_trivia: FormatTriviaType, $trailing_trivia: FormatTriviaType| $body}
-    };
-    ($node:ident, $body:expr) => {
         impl UpdateTrivia for $node {
-            fn update_trivia(&self, leading_trivia: FormatTriviaType, trailing_trivia: FormatTriviaType) -> Self {
-                $body(&self, leading_trivia, trailing_trivia)
+            fn update_trivia(
+                &self,
+                $leading_trivia: FormatTriviaType,
+                $trailing_trivia: FormatTriviaType,
+            ) -> Self {
+                let $self = self;
+                $body
             }
         }
     };
@@ -134,12 +136,10 @@ macro_rules! define_update_trivia {
 
 macro_rules! define_update_leading_trivia {
     ($node:ident, |$self:ident, $leading_trivia:ident| $body:expr) => {
-        define_update_leading_trivia! {$node, |$self:&$node, $leading_trivia: FormatTriviaType| $body}
-    };
-    ($node:ident, $body:expr) => {
         impl UpdateLeadingTrivia for $node {
-            fn update_leading_trivia(&self, leading_trivia: FormatTriviaType) -> Self {
-                $body(&self, leading_trivia)
+            fn update_leading_trivia(&self, $leading_trivia: FormatTriviaType) -> Self {
+                let $self = self;
+                $body
             }
         }
     };
@@ -147,12 +147,10 @@ macro_rules! define_update_leading_trivia {
 
 macro_rules! define_update_trailing_trivia {
     ($node:ident, |$self:ident, $trailing_trivia:ident| $body:expr) => {
-        define_update_trailing_trivia! {$node, |$self:&$node, $trailing_trivia: FormatTriviaType| $body}
-    };
-    ($node:ident, $body:expr) => {
         impl UpdateTrailingTrivia for $node {
-            fn update_trailing_trivia(&self, trailing_trivia: FormatTriviaType) -> Self {
-                $body(&self, trailing_trivia)
+            fn update_trailing_trivia(&self, $trailing_trivia: FormatTriviaType) -> Self {
+                let $self = self;
+                $body
             }
         }
     };
