@@ -1213,9 +1213,7 @@ fn format_hanging_expression_(
                 }
 
                 // Update the expression shape to be used inside the parentheses, applying the indent increase
-                // Use the original `shape` rather than the LeftmostRangeHang-determined shape, because we are now
-                // indenting the internal expression, which is not part of the hang
-                let expression_shape = shape.reset().increment_additional_indent();
+                let expression_shape = lhs_shape.reset().increment_additional_indent();
 
                 // Modify the parentheses to hang the expression
                 let (start_token, end_token) = contained.tokens();
@@ -1229,7 +1227,7 @@ fn format_hanging_expression_(
                     ])),
                     end_token.update_leading_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
+                        create_indent_trivia(ctx, lhs_shape),
                     ])),
                 );
 
