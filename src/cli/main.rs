@@ -10,6 +10,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
+use thiserror::Error;
 use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
@@ -31,17 +32,12 @@ enum FormatResult {
 }
 
 /// Wraps an error to include information about the file it resonated from
-#[derive(Debug)]
+#[derive(Error, Debug)]
+#[error("{:#}", .error)]
 struct ErrorFileWrapper {
     file: String,
     error: anyhow::Error,
 }
-impl std::fmt::Display for ErrorFileWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.error, f)
-    }
-}
-impl std::error::Error for ErrorFileWrapper {}
 
 fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<serde_json::Value> {
     Some(match err {
