@@ -49,6 +49,11 @@ Add the following to your `.pre-commit-config.yaml` file:
     - id: stylua # or stylua-system / stylua-github
 ```
 
+# WASM build (npm)
+
+StyLua is available as a wasm package, and is [published to npm](https://www.npmjs.com/package/@johnnymorganz/stylua).
+It is usable in Node.js, or the in the browser (using a bundler).
+
 ### Other Installation Methods
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
 - [Foreman](https://github.com/Roblox/foreman) - Add the following to your `foreman.toml` file:
