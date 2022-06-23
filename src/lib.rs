@@ -1,5 +1,7 @@
 use serde::Deserialize;
 use thiserror::Error;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 
 #[macro_use]
 mod context;
@@ -9,6 +11,7 @@ mod verify_ast;
 
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
     Tabs,
@@ -24,6 +27,7 @@ impl Default for IndentType {
 
 /// The type of line endings to use at the end of a line
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum LineEndings {
     // Auto,
     /// Unix Line Endings (LF) - `\n`
@@ -40,6 +44,7 @@ impl Default for LineEndings {
 
 /// The style of quotes to use within string literals
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
     AutoPreferDouble,
@@ -59,6 +64,7 @@ impl Default for QuoteStyle {
 
 /// When to use call parentheses
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum CallParenType {
     /// Use call parentheses all the time
     Always,
@@ -80,11 +86,13 @@ impl Default for CallParenType {
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
 #[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Range {
     start: Option<usize>,
     end: Option<usize>,
 }
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 impl Range {
     /// Creates a new formatting range from the given start and end point.
     /// All content within these boundaries (inclusive) will be formatted.
@@ -96,6 +104,7 @@ impl Range {
 /// The configuration to use when formatting.
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Config {
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
@@ -125,6 +134,7 @@ pub struct Config {
     call_parentheses: CallParenType,
 }
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 impl Config {
     /// Creates a new Config with the default values
     pub fn new() -> Self {
@@ -233,6 +243,7 @@ impl Default for Config {
 
 /// The type of verification to perform to validate that the output AST is still correct.
 #[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum OutputVerification {
     /// Reparse the generated output to detect any changes to code correctness.
     Full,
@@ -294,6 +305,17 @@ pub fn format_code(
     }
 
     Ok(output)
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(js_name = formatCode)]
+pub fn format_code_wasm(
+    code: &str,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<String, String> {
+    format_code(code, config, range, verify_output).map_err(|err| err.to_string())
 }
 
 #[cfg(test)]
