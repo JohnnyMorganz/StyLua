@@ -1,0 +1,17 @@
+---
+source: tests/tests.rs
+assertion_line: 30
+expression: format(&contents)
+
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/466
+function example()
+	do
+		do
+			self = (
+				setmetatable(Error.new(createErrDiff(actual, expected, operator)), AssertionError) :: any
+			) :: AssertionError
+		end
+	end
+end
+

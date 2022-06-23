@@ -1132,36 +1132,49 @@ fn format_hanging_expression_(
             type_assertion,
         } => {
             #[cfg(feature = "luau")]
-            let expression_context = if type_assertion.is_some() {
-                ExpressionContext::TypeAssertion
+            let (expression_context, value_shape) = if let Some(type_assertion) = type_assertion {
+                // If we have a type assertion, we increment the current shape with the size of the assertion
+                // to "force" the parentheses to hang if necessary
+                (
+                    ExpressionContext::TypeAssertion,
+                    shape.take_first_line(&strip_trivia(type_assertion)),
+                )
             } else {
-                expression_context
+                (expression_context, shape)
             };
+            #[cfg(not(feature = "luau"))]
+            let value_shape = shape;
+
             let value = Box::new(match &**value {
                 Value::ParenthesesExpression(expression) => {
                     Value::ParenthesesExpression(format_hanging_expression_(
                         ctx,
                         expression,
-                        shape,
+                        value_shape,
                         expression_context,
                         lhs_range,
                     ))
                 }
                 _ => {
-                    let shape = if let Some(lhs_hang) = lhs_range {
-                        lhs_hang.required_shape(shape, &expression_range)
+                    let value_shape = if let Some(lhs_hang) = lhs_range {
+                        lhs_hang.required_shape(value_shape, &expression_range)
                     } else {
-                        shape
+                        value_shape
                     };
-                    format_value(ctx, value, shape, expression_context)
+                    format_value(ctx, value, value_shape, expression_context)
                 }
             });
+
+            // Update the shape used to format the type assertion
+            #[cfg(feature = "luau")]
+            let assertion_shape = shape.take_last_line(&value);
+
             Expression::Value {
                 value,
                 #[cfg(feature = "luau")]
                 type_assertion: type_assertion
                     .as_ref()
-                    .map(|assertion| format_type_assertion(ctx, assertion, shape)),
+                    .map(|assertion| format_type_assertion(ctx, assertion, assertion_shape)),
             }
         }
         Expression::Parentheses {
