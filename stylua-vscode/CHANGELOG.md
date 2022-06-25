@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Added
+
+- Added `stylua.disableVersionCheck` to configure whether we call out to GitHub to check for newer versions. Useful if you do not want network requests
+
 ## [1.3.2] - 2022-03-07
 
 ### Changed
