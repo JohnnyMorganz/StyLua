@@ -16,7 +16,7 @@ os.makedirs(FULL_MOON_LUA_OUTPUT, exist_ok=True)
 os.makedirs(FULL_MOON_LUAU_OUTPUT, exist_ok=True)
 
 # Clear old tests
-def delete_children(directory):
+def delete_children(directory: str):
     for root, dirs, files in os.walk(directory):
         for f in files:
             os.unlink(os.path.join(root, f))
@@ -27,10 +27,10 @@ delete_children(FULL_MOON_LUA_OUTPUT)
 delete_children(FULL_MOON_LUAU_OUTPUT)
 
 # Copy new tests
-def copy_test_files(input, output):
+def copy_test_files(input: str, output: str):
     for test in os.listdir(input):
         source_file = os.path.join(input, test, "source.lua")
-        shutil.copyfile(source_file, os.path.join(output, f"{test}.lua"))
+        shutil.copyfile(source_file, os.path.join(output, test + ".lua"))
 
 copy_test_files(FULL_MOON_LUA_TESTS_DIRS, FULL_MOON_LUA_OUTPUT)
 copy_test_files(FULL_MOON_LUAU_TESTS_DIR, FULL_MOON_LUAU_OUTPUT)
