@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+assertion_line: 56
+expression: format(&contents)
+
+---
+-- stylua: ignore
+return      "hi"
+

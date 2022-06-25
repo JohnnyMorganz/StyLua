@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+assertion_line: 56
+expression: format(&contents)
+
+---
+local foo = bar
+local bar = baz
+local bar = baz
+-- stylua: ignore end
+local bar = baz
+
