@@ -12,6 +12,8 @@ jobs:
     name: Build Pull Request (#${{ github.event.inputs.prId }})
     runs-on: ubuntu-18.04
     steps:
+      - uses: actions/checkout@v3
+
       - name: Checkout Pull Request
         run: hub pr checkout ${{ github.event.inputs.prId }}
         env:
