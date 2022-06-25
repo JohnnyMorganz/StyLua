@@ -1,5 +1,15 @@
 use stylua_lib::{format_code, Config, OutputVerification, Range};
 
+fn format_range(input: &str, range: Range) -> String {
+    format_code(
+        input,
+        Config::default(),
+        Some(range),
+        OutputVerification::None,
+    )
+    .unwrap()
+}
+
 fn format(input: &str) -> String {
     let start_point = input.find("||");
     let end_point = input.rfind("||");
@@ -368,5 +378,36 @@ fn test_nested_range_binop() {
     local    z    =(    1     +  (function()
     	local p = q
             end)())
+    "###);
+}
+
+#[test]
+fn test_no_range_start() {
+    insta::assert_snapshot!(
+        format_range(
+            r###"local     z   =   2
+local   e    = 5
+"###,
+            Range::from_values(None, Some(20))
+        ),
+    @r###"
+    local z = 2
+    local   e    = 5
+    "###);
+}
+
+#[test]
+fn test_no_range_end() {
+    insta::assert_snapshot!(
+        format_range(
+            r###"local     z   =   2
+local   e    = 5
+"###,
+            Range::from_values(Some(20), None)
+        ),
+    @r###"
+
+    local     z   =   2
+    local e = 5
     "###);
 }

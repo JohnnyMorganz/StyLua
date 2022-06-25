@@ -106,20 +106,18 @@ impl Context {
         }
 
         if let Some(range) = self.range {
-            if let Some(start_bound) = range.start {
-                if let Some(node_start) = node.start_position() {
-                    if node_start.bytes() < start_bound {
-                        return FormatNode::NotInRange;
-                    }
+            match (range.start, node.start_position()) {
+                (Some(start_bound), Some(node_start)) if node_start.bytes() < start_bound => {
+                    return FormatNode::NotInRange
                 }
-            }
+                _ => (),
+            };
 
-            if let Some(end_bound) = range.end {
-                if let Some(node_end) = node.end_position() {
-                    if node_end.bytes() > end_bound {
-                        return FormatNode::NotInRange;
-                    }
+            match (range.end, node.end_position()) {
+                (Some(end_bound), Some(node_end)) if node_end.bytes() > end_bound => {
+                    return FormatNode::NotInRange
                 }
+                _ => (),
             }
         }
 
