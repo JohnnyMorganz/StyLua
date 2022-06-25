@@ -1,5 +1,5 @@
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
         expression::{format_expression, hang_expression, is_brackets_string},
@@ -110,6 +110,12 @@ fn format_field(
     table_type: TableType,
     shape: Shape,
 ) -> (Field, Vec<Token>) {
+    match dbg!(ctx.should_format_node(field)) {
+        FormatNode::Skip => return (field.to_owned(), Vec::new()),
+        FormatNode::NotInRange => unreachable!("called format_field on a field not in range"),
+        _ => (),
+    }
+
     let leading_trivia = match table_type {
         TableType::MultiLine => FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
         _ => FormatTriviaType::NoChange,

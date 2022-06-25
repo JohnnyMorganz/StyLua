@@ -108,9 +108,10 @@ AST, flagging any syntax errors or possible code semantics changes. This flag ma
 where not every file can be examined for spurious formatting.
 
 ### Ignoring parts of a file
-If there is a specific statement within your file which you wish to skip formatting on, you can precede it with `-- stylua: ignore`,
-and it will be skipped over during formatting. This may be useful when there is a specific formatting style you wish to preserve for
-a statement. For example:
+
+To skip formatting a particular part of a file, you can add `-- stylua: ignore` before it.
+This may be useful if there is a particular style you want to preseve for readability, e.g.:
+
 ```lua
 -- stylua: ignore
 local matrix = {
@@ -119,7 +120,9 @@ local matrix = {
     { 0, 0, 0 },
 }
 ```
-You can also disable formatting over a block of code by using `-- stylua: ignore start` / `-- stylua: ignore end` respectively.
+
+Formatting can also be skipped over a block of code using `-- stylua: ignore start` and `-- stylua: ignore end`:
+
 ```lua
 local foo = true
 -- stylua: ignore start
@@ -128,8 +131,8 @@ local  baz      = 0
 -- stylua: ignore end
 local foobar = false
 ```
-Note: this comment must be preceding a statement (same as `-- stylua: ignore`), and cannot cross block scope boundaries
-(i.e. if formatting is disabled, and we exit a block, formatting is automatically re-enabled).
+
+Note that ignoring cannot cross scope boundaries - once a block is exited, formatting will be re-enabled.
 
 ### Formatting Ranges
 If you only want to format a specific range within a file, you can pass the `--range-start <num>` and/or `--range-end <num>` arguments,
