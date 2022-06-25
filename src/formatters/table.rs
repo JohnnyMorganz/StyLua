@@ -110,7 +110,7 @@ fn format_field(
     table_type: TableType,
     shape: Shape,
 ) -> (Field, Vec<Token>) {
-    match dbg!(ctx.should_format_node(field)) {
+    match ctx.should_format_node(field) {
         FormatNode::Skip => return (field.to_owned(), Vec::new()),
         FormatNode::NotInRange => unreachable!("called format_field on a field not in range"),
         _ => (),
