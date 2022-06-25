@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added WASM build support. Stylua is available on npm for consumption in Node.js or a browser (using a bundler) - https://www.npmjs.com/package/@johnnymorganz/stylua
 - Ignore comments will now be respected before fields inside tables ([#448](https://github.com/JohnnyMorganz/StyLua/issues/448))
 
+### Changed
+- Static chained function calls (i.e., `foo.bar().baz()`) will now hang if necessary ([#368](https://github.com/JohnnyMorganz/StyLua/issues/368))
+
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
 - [**Luau**] Removed unnecessary expansion of a type generic with a single table as the parameter ([#442](https://github.com/JohnnyMorganz/StyLua/issues/442))

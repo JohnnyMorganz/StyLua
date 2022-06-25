@@ -1,16 +1,19 @@
 ---
 source: tests/tests.rs
+assertion_line: 12
 expression: format(&contents)
 
 ---
-Promise.new()
+Promise
+	.new()
 	:andThen(callThis)
 	:andThen(function()
 		print("test")
 	end)
 	:andThen()
 
-Promise.new()
+Promise
+	.new()
 	:andThen(callThis)
 	:andThen({
 		true,
@@ -37,7 +40,8 @@ this
 	:andThen()
 
 function foo()
-	Promise.new()
+	Promise
+		.new()
 		:andThen(callThis)
 		:andThen(function()
 			print("test")
@@ -46,7 +50,8 @@ function foo()
 end
 
 local x = {
-	promise = Promise.new()
+	promise = Promise
+		.new()
 		:andThen(callThis)
 		:andThen(function()
 			print("test")

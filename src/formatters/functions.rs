@@ -763,13 +763,26 @@ pub fn format_function_call(
     };
 
     let should_hang = {
-        // Hang if there is at least more than one method call suffix
-        if function_call
-            .suffixes()
-            .filter(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
-            .count()
-            > 1
-        {
+        // Hang if there is at least more than one function call suffix
+        // We can't just directly test for Suffix::Call(_) since we want to ignore calls like foo()()
+        let mut peekable_suffixes = function_call.suffixes().peekable();
+        let mut call_count = 0;
+        while let Some(suffix) = peekable_suffixes.next() {
+            if matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+                || (matches!(suffix, Suffix::Index(_))
+                    && matches!(
+                        peekable_suffixes.peek(),
+                        Some(Suffix::Call(Call::AnonymousCall(_)))
+                    ))
+            {
+                call_count += 1;
+                if call_count > 1 {
+                    break;
+                }
+            }
+        }
+
+        if call_count > 1 {
             // Check if either a), we are surpassing the column width
             // Or b), one of the INTERNAL (not the last call) method call's arguments is multiline [function/table]
 
@@ -793,8 +806,8 @@ pub fn format_function_call(
                     // Check to see whether this suffix is an "internal" method call suffix
                     // i.e. we are not at the last MethodCall suffix
                     let mut remaining_suffixes = preliminary_function_call.suffixes().skip(idx + 1);
-                    if remaining_suffixes.any(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
-                        && matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+                    if remaining_suffixes.any(|x| matches!(x, Suffix::Call(_)))
+                        && matches!(suffix, Suffix::Call(_))
                         && strip_trivia(suffix).to_string().contains('\n')
                     {
                         contains_newline = true;
@@ -817,10 +830,20 @@ pub fn format_function_call(
     let mut previous_suffix_was_index = true; // The index is a name, so we treat that as an index so `A()` doesn't hang
 
     while let Some(suffix) = suffixes.next() {
-        // Only hang if this is a method call
-        let should_hang =
-            must_hang || (should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))));
-        let current_shape = if should_hang {
+        // Only hang if this is a method call or function call
+        let will_hang = must_hang
+            || (should_hang
+                && (matches!(suffix, Suffix::Call(Call::MethodCall(_)))
+                    || (matches!(suffix, Suffix::Index(_))
+                        && matches!(suffixes.peek(), Some(Suffix::Call(Call::AnonymousCall(_)))))));
+
+        // Update the shape depending on if we will hang
+        // We also need to increment the shape if we hung the previous index and this is an anonymous call, so that the arguments are correctly indented
+        let current_shape = if will_hang
+            || (should_hang
+                && previous_suffix_was_index
+                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
+        {
             // Reset the shape as the call will be on a newline
             shape = shape.reset();
             // Increment the additional indent level for this current suffix
@@ -842,7 +865,7 @@ pub fn format_function_call(
         let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
         // Hang the call, but don't hang if the previous suffix was an index and this is an anonymous call, i.e. `.foo()`
-        if should_hang
+        if will_hang
             && !(previous_suffix_was_index
                 && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
         {

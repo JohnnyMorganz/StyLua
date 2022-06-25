@@ -1,0 +1,17 @@
+---
+source: tests/tests.rs
+assertion_line: 12
+expression: format(&contents)
+
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/368
+foo
+	.bar("-------------------------------------------------------------------------------------------------------------")
+	.returns()
+foo
+	.bar("--------------------------------------------------------------------------------------------------")
+	.returns()
+	.way()
+	.longer()
+	.chain()
+
