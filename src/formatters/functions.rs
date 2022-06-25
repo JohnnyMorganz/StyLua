@@ -100,8 +100,10 @@ fn function_args_contains_comments(
 ) -> bool {
     let (start_parens, end_parens) = parentheses.tokens();
 
-    if trivia_util::token_trivia_contains_comments(start_parens.trailing_trivia())
-        || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
+    if trivia_util::trivia_contains_comments(
+        start_parens.trailing_trivia(),
+        trivia_util::CommentSearch::Single,
+    ) || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
     {
         true
     } else {

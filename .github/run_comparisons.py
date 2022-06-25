@@ -11,6 +11,18 @@ REPOS = {
     "neovim": {
         "url": "https://github.com/neovim/neovim.git",
         "command": "."
+    },
+    # "zombie-strike": {
+    #     "url": "https://github.com/Kampfkarren/zombie-strike.git",
+    #     "command": "src"
+    # },
+    "nvim-lspconfig": {
+        "url": "https://github.com/neovim/nvim-lspconfig.git",
+        "command": "."
+    },
+    "nvim-treesitter": {
+        "url": "https://github.com/nvim-treesitter/nvim-treesitter.git",
+        "command": "."
     }
 }
 

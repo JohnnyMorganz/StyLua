@@ -41,6 +41,7 @@ fn format_field_expression_value(
 
     if trivia_util::can_hang_expression(expression)
         && shape.take_first_line(&singleline_value).over_budget()
+        || trivia_util::expression_contains_inline_comments(expression)
     {
         hang_expression(ctx, expression, shape, Some(1))
             .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
@@ -188,24 +189,12 @@ fn format_field(
         }
         Field::NoKey(expression) => {
             trailing_trivia = trivia_util::get_expression_trailing_trivia(expression);
-            let formatted_expression = format_expression(ctx, expression, shape);
 
             if let TableType::MultiLine = table_type {
-                // If still over budget, hang the expression
-                let formatted_expression = if trivia_util::can_hang_expression(expression)
-                    && shape.take_first_line(&formatted_expression).over_budget()
-                {
-                    hang_expression(ctx, expression, shape, Some(1))
-                } else {
-                    formatted_expression
-                };
-
-                Field::NoKey(
-                    formatted_expression
-                        .update_leading_trivia(leading_trivia)
-                        .update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-                )
+                let formatted_expression = format_field_expression_value(ctx, expression, shape);
+                Field::NoKey(formatted_expression.update_leading_trivia(leading_trivia))
             } else {
+                let formatted_expression = format_expression(ctx, expression, shape);
                 Field::NoKey(formatted_expression)
             }
         }

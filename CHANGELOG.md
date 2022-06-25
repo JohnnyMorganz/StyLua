@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [**Luau**] Removed unnecessary expansion of a type generic with a single table as the parameter ([#442](https://github.com/JohnnyMorganz/StyLua/issues/442))
 - Fixed incorrect extra indentation of an expanded parentheses passed as a function call argument ([#456](https://github.com/JohnnyMorganz/StyLua/issues/456))
 - [**Luau**] Increased the shape size of the expression in a type assertion so that it will correctly hang if over width ([#466](https://github.com/JohnnyMorganz/StyLua/issues/466))
+- Fixed binary expression in a table field containing a comment being collapsed leading to malformed formatted ([#471](https://github.com/JohnnyMorganz/StyLua/issues/471))
+- Fixed end parentheses of a function call with a multiline comment internally being expanded onto a new line unnecessarily ([#473](https://github.com/JohnnyMorganz/StyLua/issues/473))
 
 ## [0.13.1] - 2022-04-11
 ### Fixed

@@ -52,6 +52,7 @@
           "default": "latest",
           "enum": [
             "latest",
+            "v0.13",
             "v0.12",
             "v0.11",
             "v0.10",
@@ -78,6 +79,11 @@
           ],
           "default": null,
           "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
+        },
+        "stylua.disableVersionCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
         }
       }
     }
