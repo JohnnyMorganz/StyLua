@@ -4,7 +4,6 @@ use crate::{
     formatters::{
         expression::{format_expression, hang_expression, is_brackets_string},
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
-        stmt::stmt_block::format_expression_block,
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util::{self, table_field_trailing_trivia},
     },
@@ -105,39 +104,15 @@ fn handle_field_key_equals_comments<T: Node>(
     (key_leading_comments, equal)
 }
 
-/// Only formats a field present inside of a block
-fn format_field_block(ctx: &Context, field: &Field, shape: Shape) -> Field {
-    match field {
-        Field::ExpressionKey {
-            brackets,
-            key,
-            equal,
-            value,
-        } => Field::ExpressionKey {
-            brackets: brackets.to_owned(),
-            key: format_expression_block(ctx, key, shape),
-            equal: equal.to_owned(),
-            value: format_expression_block(ctx, value, shape),
-        },
-        Field::NameKey { key, equal, value } => Field::NameKey {
-            key: key.to_owned(),
-            equal: equal.to_owned(),
-            value: format_expression_block(ctx, value, shape),
-        },
-        Field::NoKey(expression) => Field::NoKey(format_expression_block(ctx, expression, shape)),
-        other => unreachable!("unknown node {:?}", other),
-    }
-}
-
 fn format_field(
     ctx: &Context,
     field: &Field,
     table_type: TableType,
     shape: Shape,
 ) -> (Field, Vec<Token>) {
-    match ctx.should_format_node(field) {
+    match dbg!(ctx.should_format_node(field)) {
         FormatNode::Skip => return (field.to_owned(), Vec::new()),
-        FormatNode::NotInRange => return (format_field_block(ctx, field, shape), Vec::new()),
+        FormatNode::NotInRange => unreachable!("called format_field on a field not in range"),
         _ => (),
     }
 

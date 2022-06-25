@@ -106,12 +106,10 @@ impl Context {
         }
 
         if let Some(range) = self.range {
-            let mut in_range = true;
-
             if let Some(start_bound) = range.start {
                 if let Some(node_start) = node.start_position() {
                     if node_start.bytes() < start_bound {
-                        in_range = false;
+                        return FormatNode::NotInRange;
                     }
                 }
             }
@@ -119,20 +117,13 @@ impl Context {
             if let Some(end_bound) = range.end {
                 if let Some(node_end) = node.end_position() {
                     if node_end.bytes() > end_bound {
-                        in_range = false;
+                        return FormatNode::NotInRange;
                     }
                 }
             }
-
-            if in_range {
-                FormatNode::Normal
-            } else {
-                FormatNode::NotInRange
-            }
-        } else {
-            // No range provided, therefore always in formatting range
-            FormatNode::Normal
         }
+
+        FormatNode::Normal
     }
 
     pub fn should_omit_string_parens(&self) -> bool {
