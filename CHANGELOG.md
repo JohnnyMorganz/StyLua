@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `--output-format=json` now outputs all (error) messages in JSON format ([#453](https://github.com/JohnnyMorganz/StyLua/issues/453))
 - Added WASM build support. Stylua is available on npm for consumption in Node.js or a browser (using a bundler) - https://www.npmjs.com/package/@johnnymorganz/stylua
+- Ignore comments will now be respected before fields inside tables ([#448](https://github.com/JohnnyMorganz/StyLua/issues/448))
 
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
