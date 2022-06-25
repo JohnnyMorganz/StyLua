@@ -78,6 +78,11 @@
           ],
           "default": null,
           "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
+        },
+        "stylua.disableVersionCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
         }
       }
     }

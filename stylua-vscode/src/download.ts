@@ -27,36 +27,40 @@ export class StyluaDownloader {
         return;
       }
 
-      try {
-        const currentVersion = (
-          await executeStylua(path, ["--version"])
-        )?.trim();
-        const desiredVersion = util.getDesiredVersion();
-        const release = await this.github.getRelease(desiredVersion);
-        if (
-          currentVersion !==
-          `stylua ${
-            release.tagName.startsWith("v")
-              ? release.tagName.substr(1)
-              : release.tagName
-          }`
-        ) {
-          this.openUpdatePrompt(release);
-        }
-      } catch (err) {
-        vscode.window.showWarningMessage(
-          `Error checking the selected StyLua version, falling back to the currently installed version:\n${err}`
-        );
-        if (!this.github.authenticated) {
-          const option = await vscode.window.showInformationMessage(
-            "Authenticating with GitHub can fix rate limits.",
-            "Authenticate with GitHub"
+      if (
+        !vscode.workspace.getConfiguration("stylua").get("disableVersionCheck")
+      ) {
+        try {
+          const currentVersion = (
+            await executeStylua(path, ["--version"])
+          )?.trim();
+          const desiredVersion = util.getDesiredVersion();
+          const release = await this.github.getRelease(desiredVersion);
+          if (
+            currentVersion !==
+            `stylua ${
+              release.tagName.startsWith("v")
+                ? release.tagName.substr(1)
+                : release.tagName
+            }`
+          ) {
+            this.openUpdatePrompt(release);
+          }
+        } catch (err) {
+          vscode.window.showWarningMessage(
+            `Error checking the selected StyLua version, falling back to the currently installed version:\n${err}`
           );
-          switch (option) {
-            case "Authenticate with GitHub":
-              if (await this.github.authenticate()) {
-                return this.ensureStyluaExists();
-              }
+          if (!this.github.authenticated) {
+            const option = await vscode.window.showInformationMessage(
+              "Authenticating with GitHub can fix rate limits.",
+              "Authenticate with GitHub"
+            );
+            switch (option) {
+              case "Authenticate with GitHub":
+                if (await this.github.authenticate()) {
+                  return this.ensureStyluaExists();
+                }
+            }
           }
         }
       }
