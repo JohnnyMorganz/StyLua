@@ -6,9 +6,9 @@ on:
 
 jobs:
   retrieve_cases:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       - name: Pull latest tests
         run: python ./.github/retrieve_test_cases.py

@@ -44,7 +44,7 @@ jobs:
           path: target/release/stylua
 
   run-comparison:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     needs: ["build-master", "build-latest"]
     steps:
       - uses: actions/checkout@v3
