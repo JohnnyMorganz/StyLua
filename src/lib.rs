@@ -90,6 +90,10 @@ pub enum CollapseSimpleStatement {
     Never,
     /// Collapse simple functions onto a single line
     FunctionOnly,
+    /// Collapse simple if guards onto a single line
+    ConditionalOnly,
+    /// Collapse all simple statements onto a single line
+    Always,
 }
 
 impl Default for CollapseSimpleStatement {

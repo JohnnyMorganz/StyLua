@@ -225,6 +225,8 @@ convert_enum!(CallParenType, ArgCallParenType, {
 convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Never,
     FunctionOnly,
+    ConditionalOnly,
+    Always,
 });
 
 #[cfg(test)]

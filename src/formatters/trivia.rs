@@ -4,6 +4,7 @@ use full_moon::ast::types::{
     IfExpression, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo,
     TypeSpecifier,
 };
+use full_moon::ast::If;
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix,
@@ -452,6 +453,12 @@ where
     }
 }
 
+define_update_trivia!(If, |this, leading, trailing| {
+    this.to_owned()
+        .with_if_token(this.if_token().update_leading_trivia(leading))
+        .with_end_token(this.end_token().update_trailing_trivia(trailing))
+});
+
 define_update_trailing_trivia!(Stmt, |this, trailing| {
     match this {
         Stmt::Assignment(assignment) => {
@@ -485,10 +492,7 @@ define_update_trailing_trivia!(Stmt, |this, trailing| {
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
             Stmt::GenericFor(stmt.to_owned().with_end_token(end_token))
         }
-        Stmt::If(stmt) => {
-            let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::If(stmt.to_owned().with_end_token(end_token))
-        }
+        Stmt::If(stmt) => Stmt::If(stmt.update_trailing_trivia(trailing)),
         Stmt::FunctionDeclaration(stmt) => {
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);

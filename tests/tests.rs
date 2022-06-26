@@ -63,7 +63,7 @@ fn test_collapse_single_statement() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::FunctionOnly),
+            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),
             None,
             OutputVerification::None
         )

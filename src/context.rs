@@ -142,7 +142,14 @@ impl Context {
     pub fn should_collapse_simple_functions(&self) -> bool {
         matches!(
             self.config().collapse_simple_statement(),
-            CollapseSimpleStatement::FunctionOnly
+            CollapseSimpleStatement::FunctionOnly | CollapseSimpleStatement::Always
+        )
+    }
+
+    pub fn should_collapse_simple_conditionals(&self) -> bool {
+        matches!(
+            self.config().collapse_simple_statement(),
+            CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
         )
     }
 }
