@@ -1,5 +1,5 @@
 use crate::{
-    shape::Shape, CallParenType, CollapseMode, Config, IndentType, LineEndings,
+    shape::Shape, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
     Range as FormatRange,
 };
 use full_moon::{
@@ -140,7 +140,10 @@ impl Context {
     }
 
     pub fn should_collapse_simple_functions(&self) -> bool {
-        matches!(self.config().collapse_mode(), CollapseMode::Functions)
+        matches!(
+            self.config().collapse_simple_statement(),
+            CollapseSimpleStatement::FunctionOnly
+        )
     }
 }
 

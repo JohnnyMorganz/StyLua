@@ -1,6 +1,6 @@
 ---
 source: tests/tests.rs
-expression: "format_code(&contents,\n            Config::default().with_collapse_mode(CollapseMode::Functions),\n            None, OutputVerification::None).unwrap()"
+expression: "format_code(&contents,\n            Config::default().with_collapse_mode(CollapseSimpleStatement::FunctionOnly),\n            None, OutputVerification::None).unwrap()"
 ---
 local x = function(body, opts)
 	return {

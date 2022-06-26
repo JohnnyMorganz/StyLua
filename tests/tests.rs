@@ -1,4 +1,4 @@
-use stylua_lib::{format_code, CollapseMode, Config, OutputVerification};
+use stylua_lib::{format_code, CollapseSimpleStatement, Config, OutputVerification};
 
 fn format(input: &str) -> String {
     format_code(input, Config::default(), None, OutputVerification::None).unwrap()
@@ -63,7 +63,7 @@ fn test_collapse_single_statement() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config::default().with_collapse_mode(CollapseMode::Functions),
+            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::FunctionOnly),
             None,
             OutputVerification::None
         )

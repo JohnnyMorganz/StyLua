@@ -160,8 +160,8 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
     if let Some(call_parentheses) = opt.format_opts.call_parentheses {
         new_config = new_config.with_call_parentheses(call_parentheses.into());
     };
-    if let Some(collapse_mode) = opt.format_opts.collapse_mode {
-        new_config = new_config.with_collapse_mode(collapse_mode.into());
+    if let Some(collapse_simple_statement) = opt.format_opts.collapse_simple_statement {
+        new_config = new_config.with_collapse_simple_statement(collapse_simple_statement.into());
     }
 
     new_config

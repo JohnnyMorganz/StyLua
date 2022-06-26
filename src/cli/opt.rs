@@ -1,6 +1,6 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
-use stylua_lib::{CallParenType, CollapseMode, IndentType, LineEndings, QuoteStyle};
+use stylua_lib::{CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle};
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
@@ -160,9 +160,9 @@ pub struct FormatOpts {
     /// Specify whether to apply parentheses on function calls with single string or table arg.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub call_parentheses: Option<ArgCallParenType>,
-    /// Specify whether to collapse simple structures.
+    /// Specify whether to collapse simple statements.
     #[structopt(long, arg_enum, ignore_case = true)]
-    pub collapse_mode: Option<ArgCollapseMode>,
+    pub collapse_simple_statement: Option<ArgCollapseSimpleStatement>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -222,9 +222,9 @@ convert_enum!(CallParenType, ArgCallParenType, {
     None,
 });
 
-convert_enum!(CollapseMode, ArgCollapseMode, {
-    None,
-    Functions,
+convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
+    Never,
+    FunctionOnly,
 });
 
 #[cfg(test)]
