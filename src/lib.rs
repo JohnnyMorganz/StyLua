@@ -82,6 +82,22 @@ impl Default for CallParenType {
     }
 }
 
+/// What mode to use if we want to collapse simple functions / guard statements
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub enum CollapseMode {
+    /// Never collapse
+    None,
+    /// Collapse simple functions onto a single line
+    Functions,
+}
+
+impl Default for CollapseMode {
+    fn default() -> Self {
+        CollapseMode::None
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -132,6 +148,10 @@ pub struct Config {
     /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
     /// function is called with only one table or string argument (same as no_call_parentheses).
     call_parentheses: CallParenType,
+    /// Whether we should collapse simple structures like functions or guard statements
+    /// if collapse_mode is set to [`CollapseMode::None`] structures are never collapsed.
+    /// if collapse_mode is set to [`CollapseMode::Functions`] then simple functions (i.e., functions with a single laststmt) can be collapsed
+    collapse_mode: CollapseMode,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -169,6 +189,10 @@ impl Config {
     /// Returns the current configured call parentheses style
     pub fn call_parentheses(&self) -> CallParenType {
         self.call_parentheses
+    }
+
+    pub fn collapse_mode(&self) -> CollapseMode {
+        self.collapse_mode
     }
 
     /// Returns a new config with the given column width
@@ -225,6 +249,13 @@ impl Config {
             ..self
         }
     }
+
+    pub fn with_collapse_mode(self, collapse_mode: CollapseMode) -> Self {
+        Self {
+            collapse_mode,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -237,6 +268,7 @@ impl Default for Config {
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
+            collapse_mode: CollapseMode::default(),
         }
     }
 }

@@ -1,4 +1,7 @@
-use crate::{shape::Shape, CallParenType, Config, IndentType, LineEndings, Range as FormatRange};
+use crate::{
+    shape::Shape, CallParenType, CollapseMode, Config, IndentType, LineEndings,
+    Range as FormatRange,
+};
 use full_moon::{
     node::Node,
     tokenizer::{Token, TokenType},
@@ -134,6 +137,10 @@ impl Context {
         self.config().no_call_parentheses
             || self.config().call_parentheses == CallParenType::None
             || self.config().call_parentheses == CallParenType::NoSingleTable
+    }
+
+    pub fn should_collapse_simple_functions(&self) -> bool {
+        matches!(self.config().collapse_mode(), CollapseMode::Functions)
     }
 }
 
