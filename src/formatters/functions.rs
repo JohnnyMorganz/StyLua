@@ -1,8 +1,8 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
-    LocalFunction, MethodCall, Parameter, Suffix, Value,
+    Block, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
+    FunctionName, LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -13,7 +13,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        block::format_block,
+        block::{format_block, format_last_stmt_},
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
@@ -22,7 +22,7 @@ use crate::{
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
-            UpdateTrailingTrivia, UpdateTrivia,
+            UpdateTrailingTrivia,
         },
         trivia_util,
     },
@@ -38,7 +38,7 @@ pub fn format_anonymous_function(
     shape: Shape,
 ) -> (TokenReference, FunctionBody) {
     let function_token = fmt_symbol!(ctx, function_token, "function", shape);
-    let function_body = format_function_body(ctx, function_body, false, shape.reset()); // TODO: do we want to reset this shape?
+    let function_body = format_function_body(ctx, function_body, shape.reset()); // TODO: do we want to reset this shape?
 
     (function_token, function_body)
 }
@@ -217,7 +217,9 @@ fn function_args_multiline_heuristic(
                     // Check to see if we have a table constructor, or anonymous function
                     Value::Function((_, function_body)) => {
                         // Check to see whether it has been expanded
-                        let is_expanded = !trivia_util::is_function_empty(function_body);
+                        let is_expanded = !(trivia_util::is_block_empty(function_body.block())
+                            || ctx.should_collapse_simple_functions()
+                                && trivia_util::is_block_simple(function_body.block()));
                         if is_expanded {
                             // If we have a mixture of multiline args, and other arguments
                             // Then the function args should be expanded
@@ -547,10 +549,9 @@ fn should_parameters_format_multiline(
     ctx: &Context,
     function_body: &FunctionBody,
     shape: Shape,
-    block_empty: bool,
 ) -> bool {
     // Check the length of the parameters. We need to format them first onto a single line to check if required
-    let mut line_length = format_singleline_parameters(ctx, function_body, shape)
+    let line_length = format_singleline_parameters(ctx, function_body, shape)
         .to_string()
         .len()
         + 2; // Account for the parentheses around the parameters
@@ -589,11 +590,6 @@ fn should_parameters_format_multiline(
         line_length += extra_line_length
     }
 
-    // If the block is empty, then the `end` will be inlined. We should include this in our line length check
-    if block_empty {
-        line_length += 4 // 4 = " end"
-    }
-
     let singleline_shape = shape + line_length;
     singleline_shape.over_budget()
 }
@@ -602,23 +598,23 @@ fn should_parameters_format_multiline(
 pub fn format_function_body(
     ctx: &Context,
     function_body: &FunctionBody,
-    add_trivia_after_end: bool,
     shape: Shape,
 ) -> FunctionBody {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
 
-    // If the FunctionBody block is empty, then don't add a newline after the parameters, but add a space:
-    // `function() end`
-    let block_empty = trivia_util::is_function_empty(function_body);
-
-    #[cfg(feature = "luau")]
-    let generics = function_body
-        .generics()
-        .map(|generic_declaration| format_generic_declaration(ctx, generic_declaration, shape));
-    #[cfg(feature = "luau")]
-    let shape = shape + generics.as_ref().map_or(0, |x| x.to_string().len());
+    // Test for presence of any comments
+    let require_multiline_function = function_body
+        .parameters_parentheses()
+        .tokens()
+        .1
+        .trailing_trivia()
+        .any(trivia_util::trivia_is_comment)
+        || function_body
+            .end_token()
+            .leading_trivia()
+            .any(trivia_util::trivia_is_comment)
+        || trivia_util::contains_comments(function_body.block());
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
@@ -643,9 +639,28 @@ pub fn format_function_body(
             contains_comments || type_specifier_comments
         });
 
-        contains_comments
-            || should_parameters_format_multiline(ctx, function_body, shape, block_empty)
+        contains_comments || should_parameters_format_multiline(ctx, function_body, shape)
     };
+
+    // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
+    let singleline_function = !require_multiline_function
+        && !multiline_params
+        && (trivia_util::is_block_empty(function_body.block())
+            || (trivia_util::is_block_simple(function_body.block())
+                && ctx.should_collapse_simple_functions()));
+
+    let trailing_trivia = if singleline_function {
+        vec![Token::new(TokenType::spaces(1))]
+    } else {
+        vec![create_newline_trivia(ctx)]
+    };
+
+    #[cfg(feature = "luau")]
+    let generics = function_body
+        .generics()
+        .map(|generic_declaration| format_generic_declaration(ctx, generic_declaration, shape));
+    #[cfg(feature = "luau")]
+    let shape = shape + generics.as_ref().map_or(0, |x| x.to_string().len());
 
     let (mut parameters_parentheses, formatted_parameters) = match multiline_params {
         true => format_contained_punctuated_multiline(
@@ -663,68 +678,72 @@ pub fn format_function_body(
     };
 
     #[cfg(feature = "luau")]
-    let type_specifiers;
-    #[cfg(feature = "luau")]
-    let return_type;
-    #[allow(unused_mut)]
-    let mut added_trailing_trivia = false;
-
-    #[cfg(feature = "luau")]
-    {
+    let (type_specifiers, return_type) = {
         let parameters_shape = if multiline_params {
             shape.increment_additional_indent()
         } else {
             shape
         };
 
-        type_specifiers = function_body
-            .type_specifiers()
-            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
-            .collect();
-
-        return_type = function_body.return_type().map(|return_type| {
-            let formatted = format_type_specifier(ctx, return_type, shape);
-            added_trailing_trivia = true;
-            let trivia = if block_empty {
-                vec![Token::new(TokenType::spaces(1))]
-            } else {
-                trailing_trivia.to_owned()
-            };
-            formatted.update_trailing_trivia(FormatTriviaType::Append(trivia))
-        });
-    }
-
-    if !added_trailing_trivia {
-        parameters_parentheses = parameters_parentheses.update_trailing_trivia(
-            FormatTriviaType::Append(if block_empty {
-                vec![Token::new(TokenType::spaces(1))]
-            } else {
-                trailing_trivia.to_owned()
+        (
+            function_body
+                .type_specifiers()
+                .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
+                .collect(),
+            function_body.return_type().map(|return_type| {
+                format_type_specifier(ctx, return_type, shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
             }),
         )
+    };
+
+    #[cfg(feature = "luau")]
+    let added_trailing_trivia = function_body.return_type().is_some();
+    #[cfg(not(feature = "luau"))]
+    let added_trailing_trivia = false;
+
+    if !added_trailing_trivia {
+        parameters_parentheses =
+            parameters_parentheses.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
     }
 
-    let block_shape = shape.reset().increment_block_indent();
-    let block = format_block(ctx, function_body.block(), block_shape);
+    let block = if singleline_function {
+        if trivia_util::is_block_empty(function_body.block()) {
+            Block::new()
+        } else {
+            const PARENS_LEN: usize = "()".len();
+            let block_shape = shape.take_first_line(&formatted_parameters) + PARENS_LEN;
 
-    let (end_token_leading_trivia, end_token_trailing_trivia) = (
-        match block_empty {
-            true => FormatTriviaType::NoChange,
-            false => FormatTriviaType::Append(leading_trivia),
-        },
-        match add_trivia_after_end {
-            true => FormatTriviaType::Append(trailing_trivia),
-            false => FormatTriviaType::NoChange,
-        },
-    );
+            #[cfg(feature = "luau")]
+            let block_shape = block_shape
+                .take_first_line(&type_specifiers)
+                .take_first_line(&return_type);
 
-    let end_token = format_end_token(
+            let last_stmt = function_body
+                .block()
+                .last_stmt()
+                .expect("no last stmt in singleline function");
+            let last_stmt = format_last_stmt_(ctx, last_stmt, block_shape).update_trailing_trivia(
+                FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+            );
+
+            Block::new().with_last_stmt(Some((last_stmt, None)))
+        }
+    } else {
+        let block_shape = shape.reset().increment_block_indent();
+        format_block(ctx, function_body.block(), block_shape)
+    };
+
+    let mut end_token = format_end_token(
         ctx,
         function_body.end_token(),
         EndTokenType::BlockEnd,
         shape,
-    )
-    .update_trivia(end_token_leading_trivia, end_token_trailing_trivia);
+    );
+
+    if !singleline_function {
+        end_token = end_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    }
 
     let function_body = function_body.to_owned();
     #[cfg(feature = "luau")]
@@ -917,6 +936,7 @@ pub fn format_function_declaration(
 ) -> FunctionDeclaration {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let function_token = fmt_symbol!(
         ctx,
@@ -928,7 +948,8 @@ pub fn format_function_declaration(
     let formatted_function_name = format_function_name(ctx, function_declaration.name(), shape);
 
     let shape = shape + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
-    let function_body = format_function_body(ctx, function_declaration.body(), true, shape);
+    let function_body = format_function_body(ctx, function_declaration.body(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
@@ -943,6 +964,7 @@ pub fn format_local_function(
 ) -> LocalFunction {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
@@ -950,7 +972,8 @@ pub fn format_local_function(
     let formatted_name = format_token_reference(ctx, local_function.name(), shape);
 
     let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
-    let function_body = format_function_body(ctx, local_function.body(), true, shape);
+    let function_body = format_function_body(ctx, local_function.body(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     LocalFunction::new(formatted_name)
         .with_local_token(local_token)

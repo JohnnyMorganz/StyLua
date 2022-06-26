@@ -10,11 +10,10 @@ use full_moon::ast::types::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
     TypeDeclaration, TypeInfo,
 };
-use full_moon::ast::{Block, FunctionBody, Parameter};
 use full_moon::{
     ast::{
-        BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix, Stmt, Suffix,
-        TableConstructor, UnOp, Value, Var,
+        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, Parameter, Prefix,
+        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -84,18 +83,8 @@ pub fn is_block_empty(block: &Block) -> bool {
     block.stmts().next().is_none() && block.last_stmt().is_none()
 }
 
-pub fn is_function_empty(function_body: &FunctionBody) -> bool {
-    is_block_empty(function_body.block())
-        && !function_body
-            .parameters_parentheses()
-            .tokens()
-            .1
-            .trailing_trivia()
-            .any(trivia_is_comment)
-        && !function_body
-            .end_token()
-            .leading_trivia()
-            .any(trivia_is_comment)
+pub fn is_block_simple(block: &Block) -> bool {
+    block.stmts().next().is_none() && block.last_stmt().is_some()
 }
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
