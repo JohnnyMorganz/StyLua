@@ -15,10 +15,12 @@ exclude = ["stylua-vscode/**", "tests/**"]
 name = "stylua_lib"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
+bench = false
 
 [[bin]]
 name = "stylua"
 path = "src/cli/main.rs"
+bench = false
 
 [features]
 default = []
