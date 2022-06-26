@@ -1,9 +1,16 @@
-use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia};
+use crate::{
+    context::{create_indent_trivia, create_newline_trivia, Context},
+    formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
+    shape::Shape,
+};
 #[cfg(feature = "luau")]
 use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{IndexedTypeInfo, TypeDeclaration, TypeInfo};
-use full_moon::ast::{Block, FunctionBody};
+use full_moon::ast::types::{
+    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+    TypeDeclaration, TypeInfo,
+};
+use full_moon::ast::{Block, FunctionBody, Parameter};
 use full_moon::{
     ast::{
         BinOp, Call, Expression, Field, FunctionArgs, Index, LastStmt, Prefix, Stmt, Suffix,
@@ -15,6 +22,10 @@ use full_moon::{
 
 pub fn trivia_is_whitespace(trivia: &Token) -> bool {
     matches!(trivia.token_kind(), TokenKind::Whitespace)
+}
+
+pub fn trivia_is_singleline_comment(trivia: &Token) -> bool {
+    matches!(trivia.token_kind(), TokenKind::SingleLineComment)
 }
 
 pub fn trivia_is_comment(trivia: &Token) -> bool {
@@ -50,7 +61,7 @@ pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
 
 pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
-        Expression::Parentheses { expression, .. } => can_hang_expression(expression),
+        Expression::Parentheses { .. } => true, // Can always hang parentheses if necessary
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
         Expression::Value { value, .. } => match &**value {
@@ -106,7 +117,32 @@ fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
     }
 }
 
-fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
+pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
+    match suffix {
+        Suffix::Index(index) => match index {
+            Index::Brackets { brackets, .. } => brackets.tokens().0.leading_trivia(),
+            Index::Dot { dot, .. } => dot.leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        Suffix::Call(call) => match call {
+            Call::AnonymousCall(function_args) => match function_args {
+                FunctionArgs::Parentheses { parentheses, .. } => {
+                    parentheses.tokens().0.leading_trivia()
+                }
+                FunctionArgs::String(string) => string.leading_trivia(),
+                FunctionArgs::TableConstructor(table_constructor) => {
+                    table_constructor.braces().tokens().0.leading_trivia()
+                }
+                other => panic!("unknown node {:?}", other),
+            },
+            Call::MethodCall(method_call) => method_call.colon_token().leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+pub fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
     match suffix {
         Suffix::Index(index) => match index {
             Index::Brackets { brackets, .. } => {
@@ -147,15 +183,19 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
             let (_, end_brace) = braces.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
-        TypeInfo::Basic(token_reference) => token_reference
+        TypeInfo::Basic(token_reference)
+        | TypeInfo::String(token_reference)
+        | TypeInfo::Boolean(token_reference) => token_reference
             .trailing_trivia()
             .map(|x| x.to_owned())
             .collect(),
+
         TypeInfo::Callback { return_type, .. } => type_info_trailing_trivia(return_type),
         TypeInfo::Generic { arrows, .. } => {
             let (_, end_brace) = arrows.tokens();
             end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
         }
+        TypeInfo::GenericPack { ellipse, .. } => ellipse.trailing_trivia().cloned().collect(),
 
         TypeInfo::Intersection { right, .. } => type_info_trailing_trivia(right),
 
@@ -183,9 +223,44 @@ pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
 
         TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
         TypeInfo::Variadic { type_info, .. } => type_info_trailing_trivia(type_info),
-
+        TypeInfo::VariadicPack { name, .. } => name.trailing_trivia().cloned().collect(),
         other => panic!("unknown node {:?}", other),
     }
+}
+
+#[cfg(feature = "luau")]
+fn generic_declaration_parameter_trailing_trivia(
+    parameter: &GenericDeclarationParameter,
+) -> Vec<Token> {
+    if let Some(default_type) = parameter.default_type() {
+        type_info_trailing_trivia(default_type)
+    } else {
+        match parameter.parameter() {
+            GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
+            GenericParameterInfo::Variadic { ellipse, .. } => {
+                ellipse.trailing_trivia().cloned().collect()
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+pub fn take_generic_parameter_trailing_comments(
+    parameter: &GenericDeclarationParameter,
+) -> (GenericDeclarationParameter, Vec<Token>) {
+    let trailing_comments = generic_declaration_parameter_trailing_trivia(parameter)
+        .iter()
+        .filter(|x| trivia_is_comment(x))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+    (
+        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+        trailing_comments,
+    )
 }
 
 fn var_trailing_trivia(var: &Var) -> Vec<Token> {
@@ -198,8 +273,7 @@ fn var_trailing_trivia(var: &Var) -> Vec<Token> {
             if let Some(last_suffix) = var_expr.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
-                // TODO: is it possible for this to happen?
-                vec![]
+                unreachable!("got a VarExpression with no suffix");
             }
         }
         other => panic!("unknown node {:?}", other),
@@ -217,8 +291,7 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
             if let Some(last_suffix) = function_call.suffixes().last() {
                 suffix_trailing_trivia(last_suffix)
             } else {
-                // TODO: is it possible for this to happen?
-                vec![]
+                unreachable!("got a FunctionCall with no suffix");
             }
         }
         Value::String(token_reference) => token_reference
@@ -416,17 +489,37 @@ pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression
     let trailing_comments = get_expression_trailing_trivia(expression)
         .iter()
         .filter(|token| trivia_is_comment(token))
-        .map(|x| {
+        .flat_map(|x| {
             // Prepend a single space beforehand
             vec![Token::new(TokenType::spaces(1)), x.to_owned()]
         })
-        .flatten()
         .collect();
 
     (
         expression.update_trailing_trivia(
             FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
         ),
+        trailing_comments,
+    )
+}
+
+pub fn take_parameter_trailing_comments(parameter: &Parameter) -> (Parameter, Vec<Token>) {
+    let trailing_trivia = match parameter {
+        Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
+        other => panic!("unknown node {:?}", other),
+    };
+
+    // Remove any trailing comments from the parameter if present
+    let trailing_comments: Vec<Token> = trailing_trivia
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+
+    (
+        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         trailing_comments,
     )
 }
@@ -498,6 +591,16 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
             let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (TypeInfo::Basic(token), trailing_trivia)
         }
+        TypeInfo::String(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::String(token), trailing_trivia)
+        }
+        TypeInfo::Boolean(token) => {
+            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
+            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::Boolean(token), trailing_trivia)
+        }
         TypeInfo::Callback {
             generics,
             parentheses,
@@ -538,10 +641,10 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 trailing_trivia,
             )
         }
-        TypeInfo::GenericVariadic { name, ellipse } => {
+        TypeInfo::GenericPack { name, ellipse } => {
             let trailing_trivia = ellipse.trailing_trivia().map(|x| x.to_owned()).collect();
             let ellipse = ellipse.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::GenericVariadic { name, ellipse }, trailing_trivia)
+            (TypeInfo::GenericPack { name, ellipse }, trailing_trivia)
         }
         TypeInfo::Intersection {
             left,
@@ -659,8 +762,74 @@ fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) 
                 trailing_trivia,
             )
         }
+        TypeInfo::VariadicPack { ellipse, name } => {
+            let trailing_trivia = name.trailing_trivia().map(|x| x.to_owned()).collect();
+            let name = name.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            (TypeInfo::VariadicPack { ellipse, name }, trailing_trivia)
+        }
         other => panic!("unknown node {:?}", other),
     }
+}
+
+#[cfg(feature = "luau")]
+// TODO: I tried to make this return `impl <Iterator = &Token>` but it didn't work because of the 3 recursive calls. Need to look into this to prevent alloc
+pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
+    match type_info {
+        TypeInfo::Array { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Basic(token) | TypeInfo::String(token) | TypeInfo::Boolean(token) => {
+            token.leading_trivia()
+        }
+        TypeInfo::Callback {
+            generics,
+            parentheses,
+            ..
+        } => match generics {
+            Some(generics) => generics.arrows().tokens().0.leading_trivia(),
+            None => parentheses.tokens().0.leading_trivia(),
+        },
+        TypeInfo::Generic { base, .. } => base.leading_trivia(),
+        TypeInfo::GenericPack { name, .. } => name.leading_trivia(),
+        TypeInfo::Intersection { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Module { module, .. } => module.leading_trivia(),
+        TypeInfo::Optional { base, .. } => return type_info_leading_trivia(base),
+        TypeInfo::Table { braces, .. } => braces.tokens().0.leading_trivia(),
+        TypeInfo::Typeof { typeof_token, .. } => typeof_token.leading_trivia(),
+        TypeInfo::Tuple { parentheses, .. } => parentheses.tokens().0.leading_trivia(),
+        TypeInfo::Union { left, .. } => return type_info_leading_trivia(left),
+        TypeInfo::Variadic { ellipse, .. } => ellipse.leading_trivia(),
+        TypeInfo::VariadicPack { ellipse, .. } => ellipse.leading_trivia(),
+        other => panic!("unknown node {:?}", other),
+    }
+    .collect()
+}
+
+#[cfg(feature = "luau")]
+pub fn take_type_info_trailing_comments(type_info: &TypeInfo) -> (TypeInfo, Vec<Token>) {
+    let (type_info, trailing_trivia) = get_type_info_trailing_trivia(type_info.to_owned());
+
+    let trailing_comments = trailing_trivia
+        .iter()
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+
+    (type_info, trailing_comments)
+}
+
+#[cfg(feature = "luau")]
+pub fn take_type_argument_trailing_comments(
+    type_argument: &TypeArgument,
+) -> (TypeArgument, Vec<Token>) {
+    let (type_info, trailing_comments) =
+        take_type_info_trailing_comments(type_argument.type_info());
+
+    (
+        type_argument.to_owned().with_type_info(type_info),
+        trailing_comments,
+    )
 }
 
 #[cfg(feature = "luau")]
@@ -732,7 +901,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let last_suffix = function_call.suffixes().last();
             let trailing_trivia = match last_suffix {
                 Some(suffix) => suffix_trailing_trivia(suffix),
-                None => Vec::new(),
+                None => unreachable!("got a FunctionCall with no suffix"),
             };
 
             (
@@ -851,61 +1020,46 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     (updated_stmt, trailing_trivia)
 }
 
-pub fn get_last_stmt_trailing_trivia(last_stmt: LastStmt) -> (LastStmt, Vec<Token>) {
+pub fn last_stmt_trailing_trivia(last_stmt: &LastStmt) -> Vec<Token> {
     match last_stmt {
         LastStmt::Return(ret) => {
-            let mut return_token = ret.token().to_owned();
-            let mut formatted_expression_list = ret.returns().to_owned();
-            let mut trailing_trivia = Vec::new();
-
-            // Retrieve last item and remove trailing trivia
-            if let Some(last_pair) = formatted_expression_list.pop() {
-                let pair = last_pair.map(|value| {
-                    trailing_trivia = get_expression_trailing_trivia(&value);
-                    value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
-                });
-                formatted_expression_list.push(pair);
+            if ret.returns().is_empty() {
+                ret.token().trailing_trivia().cloned().collect()
             } else {
-                trailing_trivia = return_token
-                    .trailing_trivia()
-                    .map(|x| x.to_owned())
-                    .collect();
-                return_token =
-                    return_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+                let last_expression = ret.returns().iter().last().unwrap();
+                get_expression_trailing_trivia(last_expression)
             }
-
-            (
-                LastStmt::Return(
-                    ret.with_token(return_token)
-                        .with_returns(formatted_expression_list),
-                ),
-                trailing_trivia,
-            )
         }
-        LastStmt::Break(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            (LastStmt::Break(token), trailing_trivia)
-        }
+        LastStmt::Break(token) => token.trailing_trivia().cloned().collect(),
         #[cfg(feature = "luau")]
-        LastStmt::Continue(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            (LastStmt::Continue(token), trailing_trivia)
-        }
+        LastStmt::Continue(token) => token.trailing_trivia().cloned().collect(),
         other => panic!("unknown node {:?}", other),
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum CommentSearch {
+    // Only care about singleline comments
+    #[allow(dead_code)]
+    Single,
+    // Looking for all comments
+    All,
+}
+
+pub fn trivia_contains_comments<'a>(
+    mut trivia: impl Iterator<Item = &'a Token>,
+    search: CommentSearch,
+) -> bool {
+    let tester = match search {
+        CommentSearch::Single => trivia_is_singleline_comment,
+        CommentSearch::All => trivia_is_comment,
+    };
+
+    trivia.any(tester)
+}
+
 pub fn token_trivia_contains_comments<'a>(trivia: impl Iterator<Item = &'a Token>) -> bool {
-    for trivia in trivia {
-        if trivia_is_comment(trivia) {
-            return true;
-        }
-    }
-    false
+    trivia_contains_comments(trivia, CommentSearch::All)
 }
 
 pub fn token_contains_leading_comments(token_ref: &TokenReference) -> bool {
@@ -916,13 +1070,24 @@ pub fn token_contains_trailing_comments(token_ref: &TokenReference) -> bool {
     token_trivia_contains_comments(token_ref.trailing_trivia())
 }
 
-pub fn token_contains_comments(token_ref: &TokenReference) -> bool {
-    token_trivia_contains_comments(token_ref.leading_trivia())
-        || token_trivia_contains_comments(token_ref.trailing_trivia())
+pub fn token_contains_comments_search(token: &TokenReference, search: CommentSearch) -> bool {
+    trivia_contains_comments(token.leading_trivia(), search)
+        || trivia_contains_comments(token.trailing_trivia(), search)
+}
+
+pub fn token_contains_comments(token: &TokenReference) -> bool {
+    token_contains_comments_search(token, CommentSearch::All)
 }
 
 pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().into_iter().any(token_contains_comments)
+}
+
+#[allow(dead_code)]
+pub fn contains_singleline_comments(node: impl Node) -> bool {
+    node.tokens()
+        .into_iter()
+        .any(|token| token_contains_comments_search(token, CommentSearch::Single))
 }
 
 /// Checks whether any [`Field`] within a [`TableConstructor`] contains comments, without checking the braces
@@ -951,30 +1116,96 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
     })
 }
 
+pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
+    match field {
+        Field::ExpressionKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NameKey { value, .. } => get_expression_trailing_trivia(value),
+        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 // Checks to see whether an expression contains comments inline inside of it
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
-    match expression {
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            contains_comments(binop) || contains_comments(lhs)
-            // Check if the binop chain still continues
-            // If so, we should keep checking the expresion
-            // Otherwise, stop checking
-            || match &**rhs {
-                Expression::BinaryOperator { .. } => expression_contains_inline_comments(rhs),
-                Expression::UnaryOperator { unop, expression } => {
-                    let op_contains_comments = match unop {
-                        UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => contains_comments(token),
-                        other => panic!("unknown node {:?}", other)
-                    };
-                    op_contains_comments || expression_contains_inline_comments(expression)
-                }
-                Expression::Value{ .. } => false,
-                Expression::Parentheses { .. } => contains_comments(rhs),
-                other => panic!("unknown node {:?}", other),
-            }
-        }
-        _ => false,
+    contains_comments(expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])))
+}
+
+// Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
+// An issue with this is if we do not properly take into account comments. This function also handles any comments present
+// by also interspersing them with the required newline and indentation, so they are aligned correctly.
+pub fn prepend_newline_indent<'a, T>(
+    ctx: &Context,
+    node: &T,
+    leading_trivia: impl Iterator<Item = &'a Token>, // TODO: can we use a trait to call this?
+    shape: Shape,
+) -> T
+where
+    T: UpdateLeadingTrivia,
+{
+    // Take all the leading trivia comments, and indent them accordingly
+    let leading_trivia: Vec<_> = leading_trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(|x| x.to_owned())
+        .flat_map(|trivia| {
+            // Prepend an indent before the comment, and append a newline after the comments
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                trivia,
+            ]
+        })
+        // Add in the newline and indentation for the actual node
+        .chain(std::iter::once(create_newline_trivia(ctx)))
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    node.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_contains_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::SingleLineComment {
+                comment: "hello".into(),
+            })],
+        );
+        assert!(contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![],
+        );
+        assert!(!contains_singleline_comments(token))
+    }
+
+    #[test]
+    fn test_token_contains_no_singleline_comments_2() {
+        let token = TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: full_moon::tokenizer::Symbol::And,
+            }),
+            vec![Token::new(TokenType::MultiLineComment {
+                comment: "hello".into(),
+                blocks: 1,
+            })],
+        );
+        assert!(!contains_singleline_comments(token))
     }
 }

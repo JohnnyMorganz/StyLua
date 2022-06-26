@@ -15,17 +15,23 @@ export const getDownloadOutputFilename = () => {
   }
 };
 
-export const getAssetFilenamePattern = () => {
-  switch (os.platform()) {
+export const getAssetFilenamePatternForPlatform = (
+  platform: NodeJS.Platform
+) => {
+  switch (platform) {
     case "win32":
-      return /stylua-[\d\w\-\.]+-win64.zip/;
+      return /stylua(-[\d\w\-\.]+)?-win64.zip/;
     case "linux":
-      return /stylua-[\d\w\-\.]+-linux.zip/;
+      return /stylua(-[\d\w\-\.]+)?-linux.zip/;
     case "darwin":
-      return /stylua-[\d\w\-\.]+-macos.zip/;
+      return /stylua(-[\d\w\-\.]+)?-macos.zip/;
     default:
       throw new Error("Platform not supported");
   }
+};
+
+export const getAssetFilenamePattern = () => {
+  return getAssetFilenamePatternForPlatform(os.platform());
 };
 
 export const getDesiredVersion = (): string => {

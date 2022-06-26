@@ -1,13 +1,16 @@
 use anyhow::{bail, Context, Result};
+use clap::StructOpt;
 use console::style;
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
+use log::{LevelFilter, *};
+use serde_json::json;
 use std::fs;
-use std::io::{stdin, stdout, Read, Write};
+use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use structopt::StructOpt;
+use thiserror::Error;
 use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
@@ -18,36 +21,6 @@ mod output_diff;
 
 static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
 
-#[macro_export]
-macro_rules! verbose_println {
-    ($verbosity:expr, $str:expr) => {
-        if $verbosity {
-            println!($str);
-        }
-    };
-    ($verbosity:expr, $str:expr, $($arg:tt)*) => {
-        if $verbosity {
-            println!($str, $($arg)*);
-        }
-    };
-}
-
-macro_rules! error {
-    ($opt:expr, $fmt:expr, $($args:tt)*) => {
-        error(std::fmt::format(format_args!($fmt, $($args)*)), $opt.color.should_use_color())
-    };
-}
-
-fn error(text: String, should_use_color: bool) {
-    eprintln!(
-        "{}{} {}",
-        style("error").bold().red().force_styling(should_use_color),
-        style(":").bold().force_styling(should_use_color),
-        text
-    );
-    EXIT_CODE.store(2, Ordering::SeqCst);
-}
-
 enum FormatResult {
     /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
     Complete,
@@ -56,6 +29,105 @@ enum FormatResult {
     SuccessBufferedOutput(Vec<u8>),
     /// There is a diff output. This stores the diff created
     Diff(Vec<u8>),
+}
+
+/// Wraps an error to include information about the file it resonated from
+#[derive(Error, Debug)]
+#[error("{:#}", .error)]
+struct ErrorFileWrapper {
+    file: String,
+    error: anyhow::Error,
+}
+
+fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<serde_json::Value> {
+    Some(match err {
+        full_moon::Error::AstError(full_moon::ast::AstError::UnexpectedToken {
+            token,
+            additional,
+        }) => json!({
+            "type": "parse_error",
+            "message": format!("unexpected token `{}`{}", token, additional.as_ref().map(|x| format!(": {}", x)).unwrap_or_default()),
+            "filename": file,
+            "location": {
+                "start": token.start_position().bytes(),
+                "start_line": token.start_position().line(),
+                "start_column": token.start_position().character(),
+                "end": token.end_position().bytes(),
+                "end_line": token.end_position().line(),
+                "end_column": token.end_position().character(),
+            },
+        }),
+        full_moon::Error::TokenizerError(error) => json!({
+            "type": "parse_error",
+            "message": match error.error() {
+                full_moon::tokenizer::TokenizerErrorType::UnclosedComment => {
+                    "unclosed comment".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnclosedString => {
+                    "unclosed string".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnexpectedShebang => {
+                    "unexpected shebang".to_string()
+                }
+                full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(
+                    character,
+                ) => {
+                    format!("unexpected character {}", character)
+                }
+                full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
+                    format!("invalid symbol {}", symbol)
+                }
+            },
+            "filename": file,
+            "location": {
+                "start": error.position().bytes(),
+                "start_line": error.position().line(),
+                "start_column": error.position().character(),
+                "end": error.position().bytes(),
+                "end_line": error.position().line(),
+                "end_column": error.position().character(),
+            },
+        }),
+        _ => {
+            error!("{:#}", err);
+            return None;
+        }
+    })
+}
+
+fn create_diff(
+    opt: &opt::Opt,
+    original: &str,
+    expected: &str,
+    file_name: &str,
+) -> Result<Option<Vec<u8>>> {
+    match opt.output_format {
+        opt::OutputFormat::Standard => output_diff::output_diff(
+            original,
+            expected,
+            3,
+            &format!("Diff in {}:", file_name),
+            opt.color,
+        ),
+        opt::OutputFormat::Unified => output_diff::output_diff_unified(original, expected),
+        opt::OutputFormat::Json => {
+            output_diff::output_diff_json(original, expected)
+                .map(|mismatches| {
+                    serde_json::to_vec(&json!({
+                        "file": file_name,
+                        "mismatches": mismatches
+                    }))
+                    // Add newline to end
+                    .map(|mut vec| {
+                        vec.push(b'\n');
+                        vec
+                    })
+                    // Covert to anyhow::Error
+                    .map_err(|err| err.into())
+                })
+                .transpose()
+        }
+    }
 }
 
 fn format_file(
@@ -73,20 +145,18 @@ fn format_file(
         .with_context(|| format!("could not format file {}", path.display()))?;
     let after_formatting = Instant::now();
 
-    verbose_println!(
-        opt.verbose,
+    debug!(
         "formatted {} in {:?}",
         path.display(),
         after_formatting.duration_since(before_formatting)
     );
 
     if opt.check {
-        let diff = output_diff::output_diff(
+        let diff = create_diff(
+            opt,
             &contents,
             &formatted_contents,
-            3,
-            format!("Diff in {}:", path.display()),
-            opt.color,
+            path.display().to_string().as_str(),
         )
         .context("failed to create diff")?;
 
@@ -114,14 +184,8 @@ fn format_string(
         format_code(&input, config, range, verify_output).context("failed to format from stdin")?;
 
     if opt.check {
-        let diff = output_diff::output_diff(
-            &input,
-            &formatted_contents,
-            3,
-            "Diff from stdin:".into(),
-            opt.color,
-        )
-        .context("failed to create diff")?;
+        let diff = create_diff(opt, &input, &formatted_contents, "stdin")
+            .context("failed to create diff")?;
 
         match diff {
             Some(diff) => Ok(FormatResult::Diff(diff)),
@@ -139,12 +203,17 @@ fn format(opt: opt::Opt) -> Result<i32> {
         bail!("no files provided");
     }
 
+    // Check for incompatible options
+    if !opt.check && matches!(opt.output_format, opt::OutputFormat::Unified) {
+        bail!("--output-format=unified can only be used when --check is enabled");
+    }
+
     // Load the configuration
     let config = config::load_config(&opt)?;
 
     // Handle any configuration overrides provided by options
     let config = config::load_overrides(config, &opt);
-    verbose_println!(opt.verbose, "config: {:#?}", config);
+    debug!("config: {:#?}", config);
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -195,17 +264,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
         None => true,
     };
 
-    verbose_println!(
-        opt.verbose,
-        "creating a pool with {} threads",
-        opt.num_threads
-    );
-    let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need atleast one output reader as well as a formatter
-    let (tx, rx) = crossbeam_channel::unbounded();
+    debug!("creating a pool with {} threads", opt.num_threads);
+    let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need at least one output reader as well as a formatter
+    let (tx, rx) = crossbeam_channel::unbounded::<Result<_>>();
+    let output_format = opt.output_format;
     let opt = Arc::new(opt);
 
     // Create a thread to handle the formatting output
-    let read_opt = opt.clone();
     pool.execute(move || {
         for output in rx {
             match output {
@@ -217,7 +282,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         match handle.write_all(&output) {
                             Ok(_) => (),
                             Err(err) => {
-                                error!(&read_opt, "could not output to stdout: {:#}", err)
+                                error!("could not output to stdout: {:#}", err)
                             }
                         };
                     }
@@ -230,11 +295,39 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         let mut handle = stdout.lock();
                         match handle.write_all(&diff) {
                             Ok(_) => (),
-                            Err(err) => error!(&read_opt, "{:#}", err),
+                            Err(err) => error!("{:#}", err),
                         }
                     }
                 },
-                Err(err) => error!(&read_opt, "{:#}", err),
+                Err(err) if matches!(output_format, opt::OutputFormat::Json) => {
+                    match err.downcast_ref::<ErrorFileWrapper>() {
+                        Some(ErrorFileWrapper { file, error }) => {
+                            match error.downcast_ref::<stylua_lib::Error>() {
+                                Some(stylua_lib::Error::ParseError(err)) => {
+                                    if let Some(structured_err) =
+                                        convert_parse_error_to_json(file, err)
+                                    {
+                                        // Force write to stderr directly
+                                        // TODO: can we do this through error! instead?
+                                        let stderr = stderr();
+                                        let mut handle = stderr.lock();
+                                        match handle
+                                            .write_all(structured_err.to_string().as_bytes())
+                                        {
+                                            Ok(_) => (),
+                                            Err(err) => {
+                                                error!("could not output to stdout: {:#}", err)
+                                            }
+                                        };
+                                    }
+                                }
+                                _ => error!("{:#}", err),
+                            }
+                        }
+                        _ => error!("{:#}", err),
+                    }
+                }
+                Err(err) => error!("{:#}", err),
             }
         }
     });
@@ -254,9 +347,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             Ok(_) => {
                                 tx.send(format_string(buf, config, range, &opt, verify_output))
                             }
-                            Err(error) => {
-                                tx.send(Err(error).context("could not format from stdin"))
-                            }
+                            Err(error) => tx.send(
+                                Err(ErrorFileWrapper {
+                                    file: "stdin".to_string(),
+                                    error: error.into(),
+                                })
+                                .context("could not format from stdin"),
+                            ),
                         }
                         .unwrap();
                     });
@@ -283,8 +380,18 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                         let tx = tx.clone();
                         pool.execute(move || {
-                            tx.send(format_file(&path, config, range, &opt, verify_output))
-                                .unwrap()
+                            tx.send(
+                                format_file(&path, config, range, &opt, verify_output).map_err(
+                                    |error| {
+                                        ErrorFileWrapper {
+                                            file: path.display().to_string(),
+                                            error,
+                                        }
+                                        .into()
+                                    },
+                                ),
+                            )
+                            .unwrap()
                         });
                     }
                 }
@@ -293,17 +400,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
                 ignore::Error::WithPath { path, err } => match *err {
                     ignore::Error::Io(error) => match error.kind() {
                         std::io::ErrorKind::NotFound => {
-                            error!(
-                                &opt,
-                                "no file or directory found matching '{:#}'",
-                                path.display()
-                            )
+                            error!("no file or directory found matching '{:#}'", path.display())
                         }
-                        _ => error!(&opt, "{:#}", error),
+                        _ => error!("{:#}", error),
                     },
-                    _ => error!(&opt, "{:#}", err),
+                    _ => error!("{:#}", err),
                 },
-                _ => error!(&opt, "{:#}", error),
+                _ => error!("{:#}", error),
             },
         }
     }
@@ -321,16 +424,85 @@ fn format(opt: opt::Opt) -> Result<i32> {
 }
 
 fn main() {
-    let opt = opt::Opt::from_args();
-    let should_use_color = opt.color.should_use_color();
+    let opt = opt::Opt::parse();
+    let output_format = opt.output_format;
+    let should_use_color = opt.color.should_use_color_stderr();
+    let level_filter = if opt.verbose {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Warn
+    };
+
+    env_logger::Builder::from_env("STYLUA_LOG")
+        .filter(None, level_filter)
+        .format(move |buf, record| {
+            // Side effect: set exit code
+            if let Level::Error = record.level() {
+                EXIT_CODE.store(2, Ordering::SeqCst);
+            }
+
+            let tag = match record.level() {
+                Level::Error => style("error").red(),
+                Level::Warn => style("warn").yellow(),
+                Level::Info => style("info").green(),
+                Level::Debug => style("debug").cyan(),
+                Level::Trace => style("trace").magenta(),
+            }
+            .bold()
+            .force_styling(should_use_color);
+
+            if let opt::OutputFormat::Json = output_format {
+                writeln!(
+                    buf,
+                    "{}",
+                    json!({
+                        "type": record.level().to_string().to_lowercase(),
+                        "message": record.args().to_string(),
+                    })
+                )
+            } else {
+                writeln!(
+                    buf,
+                    "{}{} {}",
+                    tag,
+                    style(":").bold().force_styling(should_use_color),
+                    record.args()
+                )
+            }
+        })
+        .init();
 
     let exit_code = match format(opt) {
         Ok(code) => code,
-        Err(e) => {
-            error(format!("{:#}", e), should_use_color);
+        Err(err) => {
+            error!("{:#}", err);
             2
         }
     };
 
     std::process::exit(exit_code);
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+
+    #[test]
+    fn test_no_files_provided() {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.assert()
+            .failure()
+            .code(2)
+            .stderr("error: no files provided\n");
+    }
+
+    #[test]
+    fn test_format_stdin() {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.arg("-")
+            .write_stdin("local   x   = 1")
+            .assert()
+            .success()
+            .stdout("local x = 1\n");
+    }
 }

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/master/CHANGELOG.md)
 
+## [Unreleased]
+
+### Added
+
+- Added `stylua.disableVersionCheck` to configure whether we call out to GitHub to check for newer versions. Useful if you do not want network requests
+- Added v0.13 to release version setting
+
+## [1.3.2] - 2022-03-07
+
+### Changed
+
+- Updated release version setting to include v0.12.
+- Changed the pattern match for downloading a stylua binary to ignore a version present in the name - in future stylua releases the version may no longer be included in the name.
+
 ## [1.3.1] - 2021-11-19
 
 ### Fixed

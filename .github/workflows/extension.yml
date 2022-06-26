@@ -1,4 +1,4 @@
-name: Lint VSCode Extension
+name: VSCode Extension
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
       - master
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
       - name: Setup node
@@ -24,3 +24,24 @@ jobs:
       - name: Prettier
         run: npm run check:format
         working-directory: stylua-vscode
+
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-18.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 10.x
+      - run: npm install
+        working-directory: stylua-vscode
+      - run: xvfb-run -a npm test
+        working-directory: stylua-vscode
+        if: runner.os == 'Linux'
+      - run: npm test
+        working-directory: stylua-vscode
+        if: runner.os != 'Linux'

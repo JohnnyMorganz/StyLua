@@ -13,7 +13,7 @@
   },
   "license": "MPL-2.0",
   "icon": "assets/icon.png",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "engines": {
     "vscode": "^1.53.0"
   },
@@ -52,6 +52,8 @@
           "default": "latest",
           "enum": [
             "latest",
+            "v0.13",
+            "v0.12",
             "v0.11",
             "v0.10",
             "v0.9",
@@ -77,6 +79,11 @@
           ],
           "default": null,
           "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
+        },
+        "stylua.disableVersionCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
         }
       }
     }

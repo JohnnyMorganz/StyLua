@@ -1,0 +1,36 @@
+{
+    "name": "@johnnymorganz/stylua",
+    "collaborators": [
+        "JohnnyMorganz <johnnymorganz@outlook.com>"
+    ],
+    "description": "A code formatter for Lua",
+    "version": "0.13.1",
+    "license": "MPL-2.0",
+    "readme": "README.md",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/johnnymorganz/stylua"
+    },
+    "files": [
+        "stylua.node/stylua_lib_bg.wasm",
+        "stylua.node/stylua_lib.js",
+        "stylua.node/stylua_lib_bg.js",
+        "stylua.node/stylua_lib.d.ts",
+        "stylua.bundler/stylua_lib_bg.wasm",
+        "stylua.bundler/stylua_lib.js",
+        "stylua.bundler/stylua_lib_bg.js",
+        "stylua.bundler/stylua_lib.d.ts",
+        "LICENSE.md"
+    ],
+    "main": "stylua.node/stylua_lib.js",
+    "module": "stylua.bundler/stylua_lib.js",
+    "types": "stylua.bundler/stylua_lib.d.ts",
+    "sideEffects": false,
+    "keywords": [
+        "cli",
+        "utility",
+        "lua",
+        "lua51",
+        "formatter"
+    ]
+}

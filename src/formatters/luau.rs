@@ -2,30 +2,31 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_op, fmt_symbol,
     formatters::{
+        assignment::hang_equal_token,
         expression::{format_expression, format_var},
         general::{
-            format_contained_span, format_end_token, format_punctuated, format_symbol,
-            format_token_reference, try_format_punctuated, EndTokenType,
+            format_contained_punctuated_multiline, format_contained_span, format_punctuated,
+            format_symbol, format_token_reference, try_format_punctuated,
         },
         table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
-            UpdateLeadingTrivia, UpdateTrailingTrivia,
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, token_trivia_contains_comments, trivia_is_comment,
-            trivia_is_newline, type_info_trailing_trivia,
+            contains_comments, contains_singleline_comments,
+            take_generic_parameter_trailing_comments, take_type_argument_trailing_comments,
+            take_type_info_trailing_comments, token_contains_comments,
+            token_trivia_contains_comments, trivia_contains_comments, trivia_is_comment,
+            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
         },
     },
     shape::Shape,
 };
-use full_moon::ast::{
-    punctuated::Pair,
-    types::{
-        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-        GenericDeclarationParameter, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeDeclaration,
-        TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
-    },
+use full_moon::ast::types::{
+    CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
+    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -64,6 +65,103 @@ pub fn format_compound_assignment(
     CompoundAssignment::new(lhs, compound_operator, rhs)
 }
 
+// If we have a type like
+// A | B | {
+//    ...
+// }
+// we should try and hug them together if possible
+fn should_hug_type(type_info: &TypeInfo) -> bool {
+    match type_info {
+        TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
+            should_hug_type(left) || should_hug_type(right)
+        }
+        TypeInfo::Table { .. } => true,
+        _ => false,
+    }
+}
+
+// Formats a type info, then determines whether it is still over width. If so, it tries to hang it.
+fn format_hangable_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
+    let singleline_type_info = format_type_info(ctx, type_info, shape.with_infinite_width());
+
+    // If we can hang the type definition, and its over width, then lets try doing so
+    if can_hang_type(type_info)
+        && (should_hang_type(type_info, CommentSearch::Single)
+            || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
+    {
+        hang_type_info(ctx, type_info, shape, hang_level)
+    } else {
+        // Use the proper formatting
+        format_type_info(ctx, type_info, shape)
+    }
+}
+
+fn format_type_info_generics(
+    ctx: &Context,
+    arrows: &ContainedSpan,
+    generics: &Punctuated<TypeInfo>,
+    shape: Shape,
+) -> (ContainedSpan, Punctuated<TypeInfo>) {
+    const ARROW_LEN: usize = 1; // 1 = "<"
+
+    let singleline_arrows = format_contained_span(ctx, arrows, shape);
+    let singleline_generics =
+        format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
+
+    let (start_arrow, end_arrow) = arrows.tokens();
+    let contains_comments =
+        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
+            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
+            || generics.pairs().any(|generic_pair| {
+                contains_singleline_comments(generic_pair.value())
+                    || trivia_contains_comments(
+                        type_info_leading_trivia(generic_pair.value())
+                            .iter()
+                            .cloned(),
+                        CommentSearch::All, // Look for leading multiline comments - these suggest expansion
+                    )
+                    || generic_pair
+                        .punctuation()
+                        .map_or(false, contains_singleline_comments)
+            });
+
+    let should_expand = contains_comments
+        || shape
+            .add_width(ARROW_LEN * 2)
+            .test_over_budget(&singleline_generics);
+
+    // If the generics is just a single type table, then we can hug it
+    let can_hug_table = should_expand
+        && generics.len() == 1
+        && match generics.iter().next().unwrap() {
+            TypeInfo::Table { braces, .. } => {
+                // Check there is not leading or trailing comments on the brace
+                let (start_brace, end_brace) = braces.tokens();
+                !trivia_contains_comments(start_brace.leading_trivia(), CommentSearch::Single)
+                    || !trivia_contains_comments(end_brace.trailing_trivia(), CommentSearch::Single)
+            }
+            _ => false,
+        };
+
+    if should_expand && !can_hug_table {
+        format_contained_punctuated_multiline(
+            ctx,
+            arrows,
+            generics,
+            |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
+            take_type_info_trailing_comments,
+            shape,
+        )
+    } else {
+        (singleline_arrows, singleline_generics)
+    }
+}
+
 pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
@@ -82,6 +180,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             TypeInfo::Basic(token_reference)
         }
 
+        // Special cases for singleton types
+        TypeInfo::String(string) => TypeInfo::String(format_token_reference(ctx, string, shape)),
+        TypeInfo::Boolean(boolean) => {
+            TypeInfo::Boolean(format_token_reference(ctx, boolean, shape))
+        }
+
         TypeInfo::Callback {
             generics,
             parentheses,
@@ -89,6 +193,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             arrow,
             return_type,
         } => {
+            const PAREN_LEN: usize = "(".len();
+            const ARROW_LEN: usize = " -> ".len();
+
             let (start_parens, end_parens) = parentheses.tokens();
 
             let generics = generics
@@ -105,58 +212,36 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 || contains_comments(arguments)
                 || shape
                     .add_width(
-                        2 + 4
+                        PAREN_LEN * 2
+                            + ARROW_LEN
                             + arguments.to_string().len()
                             + strip_trailing_trivia(&**return_type).to_string().len(),
                     )
-                    .over_budget(); // 2 = opening/closing parens, 4 = " -> "
+                    .over_budget();
 
             let (parentheses, arguments, shape) = if force_multiline {
-                let start_parens = fmt_symbol!(ctx, start_parens, "(", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
-                        ctx,
-                    )]));
-                let end_parens =
-                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
-                        .update_leading_trivia(FormatTriviaType::Append(vec![
-                            create_newline_trivia(ctx),
-                            create_indent_trivia(ctx, shape),
-                        ]));
-
-                let parentheses = ContainedSpan::new(start_parens, end_parens);
-                let mut formatted_arguments = Punctuated::new();
-
-                for pair in arguments.pairs() {
-                    // Reset the shape (as the parameter is on a newline), and increment the additional indent level
-                    let shape = shape.reset().increment_additional_indent();
-
-                    let parameter = format_type_argument(ctx, pair.value(), shape)
-                        .update_leading_trivia(FormatTriviaType::Append(vec![
-                            create_indent_trivia(ctx, shape),
-                        ]));
-
-                    let punctuation = pair.punctuation().map(|punctuation| {
-                        fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
-                            FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-                        )
-                    });
-
-                    formatted_arguments.push(Pair::new(parameter, punctuation))
-                }
-
-                let shape = shape.reset() + 1; // 1 = ")"
+                let (parentheses, formatted_arguments) = format_contained_punctuated_multiline(
+                    ctx,
+                    parentheses,
+                    arguments,
+                    format_type_argument,
+                    take_type_argument_trailing_comments,
+                    shape,
+                );
+                let shape = shape.reset() + PAREN_LEN;
 
                 (parentheses, formatted_arguments, shape)
             } else {
                 let parentheses = format_contained_span(ctx, parentheses, shape);
                 let arguments = format_punctuated(ctx, arguments, shape + 1, format_type_argument);
-                let shape = shape + (2 + arguments.to_string().len()); // 2 = opening and closing parens
+                let shape = shape + (PAREN_LEN * 2 + arguments.to_string().len());
 
                 (parentheses, arguments, shape)
             };
 
             let arrow = fmt_symbol!(ctx, arrow, " -> ", shape);
-            let return_type = Box::new(format_type_info(ctx, return_type, shape));
+            let shape = shape + ARROW_LEN;
+            let return_type = Box::new(format_hangable_type_info(ctx, return_type, shape, 1));
 
             TypeInfo::Callback {
                 generics,
@@ -173,14 +258,9 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
+
             TypeInfo::Generic {
                 base,
                 arrows,
@@ -188,11 +268,11 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             }
         }
 
-        TypeInfo::GenericVariadic { name, ellipse } => {
+        TypeInfo::GenericPack { name, ellipse } => {
             let name = format_token_reference(ctx, name, shape);
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
 
-            TypeInfo::GenericVariadic { name, ellipse }
+            TypeInfo::GenericPack { name, ellipse }
         }
 
         TypeInfo::Intersection {
@@ -344,22 +424,115 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             TypeInfo::Variadic { ellipse, type_info }
         }
 
+        TypeInfo::VariadicPack { ellipse, name } => {
+            let name = format_token_reference(ctx, name, shape);
+            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+
+            TypeInfo::VariadicPack { ellipse, name }
+        }
+
         other => panic!("unknown node {:?}", other),
     }
 }
 
-pub fn hang_type_info(ctx: &Context, type_info: TypeInfo, shape: Shape) -> TypeInfo {
-    match type_info {
-        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left,
-            pipe: pipe.update_leading_trivia(FormatTriviaType::Replace(vec![
+// A clone of [`hang_binop`], except for TypeInfo tokens. TODO: can we merge the two?
+fn hang_type_info_binop(
+    ctx: &Context,
+    binop: TokenReference,
+    shape: Shape,
+    rhs: &TypeInfo,
+) -> TokenReference {
+    // Get the leading comments of a binop, as we need to preserve them
+    // Intersperse a newline and indent trivia between them
+    // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
+    let leading_comments = binop
+        .leading_trivia()
+        .filter(|token| trivia_is_comment(token))
+        .flat_map(|x| {
+            vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
-            ])),
-            right: Box::new(hang_type_info(ctx, *right, shape)),
+                x.to_owned(),
+            ]
+        })
+        // If there are any comments trailing the BinOp, we need to move them to before the BinOp
+        .chain(
+            binop
+                .trailing_trivia()
+                .filter(|token| trivia_is_comment(token))
+                // Prepend a single space beforehand
+                .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
+        )
+        // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
+        .chain(
+            type_info_leading_trivia(rhs)
+                .iter()
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
+                    vec![
+                        create_newline_trivia(ctx),
+                        create_indent_trivia(ctx, shape),
+                        x.to_owned().to_owned(),
+                    ]
+                }),
+        )
+        // Create a newline just before the BinOp, and preserve the indentation
+        .chain(std::iter::once(create_newline_trivia(ctx)))
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    binop.update_trivia(
+        FormatTriviaType::Replace(leading_comments),
+        FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]),
+    )
+}
+
+/// Hangs a type info at a pipe operator, then reformats either side with the new shape
+pub fn hang_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
+    const PIPE_LENGTH: usize = 2; // "| "
+
+    let hanging_shape = shape.with_indent(shape.indent().add_indent_level(hang_level));
+
+    match type_info {
+        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
+            left: Box::new(format_type_info(ctx, left, shape)),
+            pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
+            right: Box::new(hang_type_info(
+                ctx,
+                &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
+            )),
         },
-        _ => type_info,
+        TypeInfo::Intersection {
+            left,
+            ampersand,
+            right,
+        } => TypeInfo::Intersection {
+            left: Box::new(format_type_info(ctx, left, shape)),
+            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
+            right: Box::new(hang_type_info(
+                ctx,
+                &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                hanging_shape.reset() + PIPE_LENGTH,
+                0,
+            )),
+        },
+        other => format_type_info(ctx, other, shape),
     }
+}
+
+fn can_hang_type(type_info: &TypeInfo) -> bool {
+    matches!(
+        type_info,
+        // Can hang a binary operation
+        TypeInfo::Union { .. } | TypeInfo::Intersection { .. }
+    )
 }
 
 pub fn format_indexed_type_info(
@@ -378,14 +551,8 @@ pub fn format_indexed_type_info(
             generics,
         } => {
             let base = format_token_reference(ctx, base, shape);
-            let arrows = format_contained_span(ctx, arrows, shape);
-            let generics = try_format_punctuated(
-                ctx,
-                generics,
-                shape + (strip_trivia(&base).to_string().len() + 1), // 1 = "<"
-                format_type_info,
-                None,
-            );
+            let shape = shape.take_first_line(&base);
+            let (arrows, generics) = format_type_info_generics(ctx, arrows, generics, shape);
 
             IndexedTypeInfo::Generic {
                 base,
@@ -399,6 +566,8 @@ pub fn format_indexed_type_info(
 }
 
 fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shape) -> TypeArgument {
+    const COLON_LEN: usize = ": ".len();
+
     let name = match type_argument.name() {
         Some((name, colon_token)) => {
             let name = format_token_reference(ctx, name, shape);
@@ -409,14 +578,12 @@ fn format_type_argument(ctx: &Context, type_argument: &TypeArgument, shape: Shap
         None => None,
     };
 
-    let type_info = format_type_info(
-        ctx,
-        type_argument.type_info(),
-        shape
-            + name
-                .as_ref()
-                .map_or(0, |(name, _)| strip_trivia(name).to_string().len() + 2), // 2 = ": "
-    );
+    let shape = shape
+        + name.as_ref().map_or(0, |(name, _)| {
+            strip_trivia(name).to_string().len() + COLON_LEN
+        });
+
+    let type_info = format_hangable_type_info(ctx, type_argument.type_info(), shape, 1);
 
     type_argument
         .to_owned()
@@ -446,6 +613,11 @@ pub fn format_type_field(
     let trailing_trivia = type_info_trailing_trivia(&value);
 
     if let TableType::MultiLine = table_type {
+        // If still over budget, hang the type
+        if can_hang_type(type_field.value()) && shape.test_over_budget(&value) {
+            value = hang_type_info(ctx, type_field.value(), shape, 1)
+        };
+
         value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
     }
 
@@ -489,12 +661,134 @@ pub fn format_type_assertion(
     TypeAssertion::new(cast_to).with_assertion_op(assertion_op)
 }
 
+/// Checks a type info to see if it should be hanged due to comments being present
+fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool {
+    // Only hang if its a binary type info, since it doesn't matter for unary types
+    match type_info {
+        TypeInfo::Union {
+            left,
+            pipe: binop,
+            right,
+        }
+        | TypeInfo::Intersection {
+            left,
+            ampersand: binop,
+            right,
+        } => {
+            trivia_contains_comments(type_info_trailing_trivia(left).iter(), comment_search)
+                || should_hang_type(left, comment_search)
+                || contains_comments(binop)
+                || trivia_contains_comments(
+                    type_info_leading_trivia(right).iter().copied(),
+                    comment_search,
+                )
+                || should_hang_type(right, comment_search)
+        }
+        _ => false,
+    }
+}
+
+fn attempt_assigned_type_tactics(
+    ctx: &Context,
+    equal_token: TokenReference,
+    type_info: &TypeInfo,
+    shape: Shape,
+) -> (TokenReference, TypeInfo) {
+    const EQUAL_TOKEN_LENGTH: usize = " = ".len();
+
+    if token_contains_comments(&equal_token)
+        || trivia_contains_comments(
+            type_info_leading_trivia(type_info).iter().cloned(),
+            CommentSearch::All,
+        )
+    {
+        // We will hang at the equals token, and then format the declaration as necessary
+        let equal_token = hang_equal_token(ctx, equal_token, shape, false);
+
+        let shape = shape.reset().increment_additional_indent();
+
+        // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
+        let declaration = if contains_comments(strip_trivia(type_info)) {
+            hang_type_info(ctx, type_info, shape, 0)
+        } else {
+            format_type_info(ctx, type_info, shape)
+        };
+
+        // Take the leading comments and format them nicely
+        let leading_comments = type_info_leading_trivia(type_info)
+            .iter()
+            .filter(|x| trivia_is_comment(x))
+            .flat_map(|x| {
+                vec![
+                    create_indent_trivia(ctx, shape),
+                    x.to_owned().to_owned(),
+                    create_newline_trivia(ctx),
+                ]
+            })
+            .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+            .collect();
+
+        let declaration =
+            declaration.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
+
+        (equal_token, declaration)
+    } else {
+        let mut equal_token = equal_token;
+        let type_definition;
+        let singleline_type_definition =
+            format_type_info(ctx, type_info, shape.with_infinite_width());
+        let proper_type_definition = format_type_info(ctx, type_info, shape + EQUAL_TOKEN_LENGTH);
+
+        // Test to see whether the type definition must be hung due to comments
+        let must_hang = should_hang_type(type_info, CommentSearch::All);
+
+        // If we can hang the type definition, and its over width, then lets try doing so
+        if can_hang_type(type_info)
+            && (must_hang
+                || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
+        {
+            // If we should hug the type, then lets check out the proper definition and see if it fits
+            if !must_hang
+                && should_hug_type(type_info)
+                && !shape.test_over_budget(&proper_type_definition)
+            {
+                type_definition = proper_type_definition;
+            } else {
+                // Use a hanging equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                let shape = shape.reset().increment_additional_indent();
+                let hanging_type_definition = hang_type_info(ctx, type_info, shape, 0);
+                type_definition = hanging_type_definition;
+            }
+        } else {
+            // Test whether the proper formatting goes over the column width
+            // If so, hang at the equals token and reformat
+            if shape.test_over_budget(&proper_type_definition) {
+                // Hang at the equal token
+                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+
+                // Add the expression list into the indent range, as it will be indented by one
+                let shape = shape.reset().increment_additional_indent();
+                type_definition = format_type_info(ctx, type_info, shape);
+            } else {
+                // Use the proper formatting
+                type_definition = proper_type_definition;
+            }
+        }
+
+        (equal_token, type_definition)
+    }
+}
+
 fn format_type_declaration(
     ctx: &Context,
     type_declaration: &TypeDeclaration,
     add_leading_trivia: bool,
     shape: Shape,
 ) -> TypeDeclaration {
+    const TYPE_TOKEN_LENGTH: usize = "type ".len();
+
     // Calculate trivia
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
@@ -516,7 +810,7 @@ fn format_type_declaration(
         type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
     }
 
-    let shape = shape + 5; // 5 = "type "
+    let shape = shape + TYPE_TOKEN_LENGTH;
     let type_name = format_token_reference(ctx, type_declaration.type_name(), shape);
     let shape = shape + type_name.to_string().len();
 
@@ -529,21 +823,92 @@ fn format_type_declaration(
         None => shape,
     };
 
-    let mut equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let mut type_definition =
-        format_type_info(ctx, type_declaration.type_definition(), shape + 3) // 3 = " = "
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+    let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
+    let (equal_token, type_definition) =
+        attempt_assigned_type_tactics(ctx, equal_token, type_declaration.type_definition(), shape);
 
-    let shape = shape.take_last_line(&strip_trailing_trivia(&type_definition));
+    // Handle comments in between the type name and generics + generics and equal token
+    // (or just type name and equal token if generics not present)
 
-    if shape.over_budget() {
-        let shape = shape.increment_additional_indent();
-        equal_token = equal_token.update_trailing_trivia(FormatTriviaType::Replace(vec![
-            create_newline_trivia(ctx),
-            create_indent_trivia(ctx, shape),
-        ]));
-        type_definition = hang_type_info(ctx, type_definition, shape);
-    }
+    // If there are comments in between the type name and the generics, then handle them
+    let (type_name, equal_token, generics) =
+        if trivia_contains_comments(type_name.trailing_trivia(), CommentSearch::All)
+            || generics.as_ref().map_or(false, |generics| {
+                trivia_contains_comments(
+                    generics.arrows().tokens().0.leading_trivia(),
+                    CommentSearch::All,
+                )
+            })
+            || trivia_contains_comments(equal_token.leading_trivia(), CommentSearch::All)
+        {
+            // See if we have generics
+            if let Some(generics) = generics {
+                let (start_arrow, end_arrow) = generics.arrows().tokens();
+
+                let type_name_comments = type_name
+                    .trailing_trivia()
+                    .chain(start_arrow.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect::<Vec<_>>();
+                let type_name_comments_len = type_name_comments.len();
+
+                let arrow_comments = end_arrow
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    Some(generics.to_owned().with_arrows(ContainedSpan::new(
+                        start_arrow.update_leading_trivia(FormatTriviaType::Replace(
+                            // If there are some comments present between the type name and generics,
+                            // then lets add a single space before the arrow to make it look nicer
+                            if type_name_comments_len > 0 {
+                                vec![Token::new(TokenType::spaces(1))]
+                            } else {
+                                vec![]
+                            },
+                        )),
+                        end_arrow.update_trailing_trivia(FormatTriviaType::Replace(arrow_comments)),
+                    ))),
+                )
+            } else {
+                let comments = type_name
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia())
+                    .filter(|token| trivia_is_comment(token))
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                    })
+                    .collect();
+
+                (
+                    type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                        TokenType::spaces(1),
+                    )])),
+                    generics,
+                )
+            }
+        } else {
+            (type_name, equal_token, generics)
+        };
+
+    let type_definition =
+        type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
     type_declaration
         .to_owned()
@@ -569,19 +934,35 @@ fn format_generic_parameter(
     generic_parameter: &GenericDeclarationParameter,
     shape: Shape,
 ) -> GenericDeclarationParameter {
-    match generic_parameter {
-        GenericDeclarationParameter::Name(token_reference) => {
-            GenericDeclarationParameter::Name(format_token_reference(ctx, token_reference, shape))
+    let parameter_info = match generic_parameter.parameter() {
+        GenericParameterInfo::Name(token_reference) => {
+            GenericParameterInfo::Name(format_token_reference(ctx, token_reference, shape))
         }
-        GenericDeclarationParameter::Variadic { name, ellipse } => {
+        GenericParameterInfo::Variadic { name, ellipse } => {
             let name = format_token_reference(ctx, name, shape);
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
 
-            GenericDeclarationParameter::Variadic { name, ellipse }
+            GenericParameterInfo::Variadic { name, ellipse }
         }
 
         other => panic!("unknown node {:?}", other),
-    }
+    };
+
+    let default_type = match (generic_parameter.equals(), generic_parameter.default_type()) {
+        (Some(equals), Some(default_type)) => {
+            let equals = fmt_symbol!(ctx, equals, " = ", shape);
+            let (equals, default_type) =
+                attempt_assigned_type_tactics(ctx, equals, default_type, shape);
+            Some((equals, default_type))
+        }
+        (None, None) => None,
+        _ => unreachable!("have generic parameter default type with no equals or vice versa"),
+    };
+
+    generic_parameter
+        .to_owned()
+        .with_parameter(parameter_info)
+        .with_default(default_type)
 }
 
 pub fn format_generic_declaration(
@@ -589,47 +970,38 @@ pub fn format_generic_declaration(
     generic_declaration: &GenericDeclaration,
     shape: Shape,
 ) -> GenericDeclaration {
-    // If the generics contains comments, then format multiline
-    let (arrows, generics) = if contains_comments(generic_declaration.generics()) {
-        let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+    const ARROW_LEN: usize = 1; // 1 = "<"
 
-        // Format start and end arrows properly with correct trivia
-        let end_arrow_leading_trivia =
-            vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
+    let singleline_arrows = format_contained_span(ctx, generic_declaration.arrows(), shape);
+    let singleline_generics = format_punctuated(
+        ctx,
+        generic_declaration.generics(),
+        shape.with_infinite_width(),
+        format_generic_parameter,
+    );
 
-        // Add new_line trivia to start arrow
-        let start_arrow_token = fmt_symbol!(ctx, start_arrow, "<", shape)
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+    let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
+    let contains_comments =
+        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::All)
+            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::All)
+            || contains_comments(generic_declaration.generics());
 
-        let end_arrow_token = format_end_token(ctx, end_arrow, EndTokenType::ClosingBrace, shape)
-            .update_leading_trivia(FormatTriviaType::Append(end_arrow_leading_trivia));
+    let should_expand = contains_comments
+        || shape
+            .add_width(ARROW_LEN * 2)
+            .test_over_budget(&singleline_generics);
 
-        let arrows = ContainedSpan::new(start_arrow_token, end_arrow_token);
-
-        let shape = shape.reset().increment_additional_indent();
-        let generics = try_format_punctuated(
+    let (arrows, generics) = if should_expand {
+        format_contained_punctuated_multiline(
             ctx,
+            generic_declaration.arrows(),
             generic_declaration.generics(),
+            format_generic_parameter, // TODO: hangable?
+            take_generic_parameter_trailing_comments,
             shape,
-            format_generic_parameter,
-            None,
         )
-        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-            ctx, shape,
-        )]));
-
-        (arrows, generics)
     } else {
-        (
-            format_contained_span(ctx, generic_declaration.arrows(), shape),
-            try_format_punctuated(
-                ctx,
-                generic_declaration.generics(),
-                shape,
-                format_generic_parameter,
-                None,
-            ),
-        )
+        (singleline_arrows, singleline_generics)
     };
 
     generic_declaration

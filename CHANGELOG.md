@@ -6,14 +6,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `--output-format=json` now outputs all (error) messages in JSON format ([#453](https://github.com/JohnnyMorganz/StyLua/issues/453))
+- Added WASM build support. Stylua is available on npm for consumption in Node.js or a browser (using a bundler) - https://www.npmjs.com/package/@johnnymorganz/stylua
+- Ignore comments will now be respected before fields inside tables ([#448](https://github.com/JohnnyMorganz/StyLua/issues/448))
+
+### Fixed
+- [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
+- [**Luau**] Removed unnecessary expansion of a type generic with a single table as the parameter ([#442](https://github.com/JohnnyMorganz/StyLua/issues/442))
+- Fixed incorrect extra indentation of an expanded parentheses passed as a function call argument ([#456](https://github.com/JohnnyMorganz/StyLua/issues/456))
+- [**Luau**] Increased the shape size of the expression in a type assertion so that it will correctly hang if over width ([#466](https://github.com/JohnnyMorganz/StyLua/issues/466))
+- Fixed binary expression in a table field containing a comment being collapsed leading to malformed formatted ([#471](https://github.com/JohnnyMorganz/StyLua/issues/471))
+- Fixed end parentheses of a function call with a multiline comment internally being expanded onto a new line unnecessarily ([#473](https://github.com/JohnnyMorganz/StyLua/issues/473))
+- Fixed severe performance regression with complex nested function calls ([#477](https://github.com/JohnnyMorganz/StyLua/issues/477))
+
+## [0.13.1] - 2022-04-11
+### Fixed
+- Fixed leading trivia on semicolon lost when semicolon is removed ([#431](https://github.com/JohnnyMorganz/StyLua/issues/431))
+- Fixed shape calculation of the RHS of a binary expression not correctly reset when hanging, causing it to expand unnecessarily ([#432](https://github.com/JohnnyMorganz/StyLua/issues/432))
+- Fixed unstable formatting of tables at column width boundary ([#436](https://github.com/JohnnyMorganz/StyLua/issues/436))
+- Fixed assignments no longer hanging at equals token if a comment is present, but the expression is not hangable at a binop. ([#439](https://github.com/JohnnyMorganz/StyLua/issues/439))
+- Fixed unstable formatting around comments within type declarations ([#397](https://github.com/JohnnyMorganz/StyLua/issues/397), [#430](https://github.com/JohnnyMorganz/StyLua/issues/430))
+- Fixed parentheses around type assertions in a binary expression being removed leading to incorrect semantics. ([#441](https://github.com/JohnnyMorganz/StyLua/issues/441))
+
+## [0.13.0] - 2022-03-31
+### Added
+- Added support for alternative diff outputs. You can now use `--output-format=unified` or `--output-format=json` to output a unified diff or json mismatches list respectively. A unified diff can be fed into other tools such as `patch` or `delta`, whilst a JSON diff provides a more machine readable format useful for extensions. ([#230](https://github.com/JohnnyMorganz/StyLua/issues/230))
+
+### Changed
+- Migrate internal dependency for CLI arguments handling, with improved help messages.
+- Type declarations consisting of unions/intersections where an inner type has a multiline comment will now force hanging
+- Generic fors will no longer expand onto multiple lines if the expression looping over is a function call with a single table argument (e.g., `ipairs({ ... })`) ([#405](https://github.com/JohnnyMorganz/StyLua/issues/405))
+- Excess parentheses around a type assertion will now be removed. ([#383](https://github.com/JohnnyMorganz/StyLua/issues/383), [[#425](https://github.com/JohnnyMorganz/StyLua/issues/425)])
+- When hanging an assignment of an expression contained within parentheses, we do not add an extra indentation. The formatting is now consistent with expanded tables and function calls. ([#274](https://github.com/JohnnyMorganz/StyLua/issues/274))
+
+### Fixed
+- Fixed issue through static linking where Windows binary would not execute due to missing `VCRUNTIME140.dll`. ([#413](https://github.com/JohnnyMorganz/StyLua/issues/413))
+- Fixed assignment with comment sometimes not hanging leading to malformed syntax. ([#416](https://github.com/JohnnyMorganz/StyLua/issues/416))
+- Fixed block ignores not applied when multiple leading block ignore comments are present at once. ([#421](https://github.com/JohnnyMorganz/StyLua/issues/421))
+- Fixed ordering of comments when semicolon after statement is removed. ([#423](https://github.com/JohnnyMorganz/StyLua/issues/423))
+
+## [0.12.5] - 2022-03-08
+### Fixed
+- Fixed crashed due to unhandled generic type packs under the `luau` feature flag. ([#403](https://github.com/JohnnyMorganz/StyLua/issues/403))
+
+## [0.12.4] - 2022-03-02
+### Fixed
+- Fixed long comments forcing unnecessary hanging of type declarations. ([#384](https://github.com/JohnnyMorganz/StyLua/issues/384))
+- Fixed long intersection types not hanging. ([#382](https://github.com/JohnnyMorganz/StyLua/issues/382))
+- Fixed comments being lost around a condition when unnecessary parentheses are removed. ([#389](https://github.com/JohnnyMorganz/StyLua/issues/389))
+- Fixed multiline expression with comments inside parentheses being collapsed leading to a syntax error. ([#386](https://github.com/JohnnyMorganz/StyLua/issues/386))
+- Fixed ignore comments not respected in child blocks of ignored statements. ([#387](https://github.com/JohnnyMorganz/StyLua/issues/387))
+- Fixed values in type tables not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
+- Fixed type info generics not hanging when over width. ([#394](https://github.com/JohnnyMorganz/StyLua/issues/394))
+- Fixed callback types with binop type parameters / return types not hanging leading to a syntax error when comments are present. ([#396](https://github.com/JohnnyMorganz/StyLua/issues/396))
+- Fixed type declarations not hanging properly causing them to go over width. This includes hanging at the equals token and hanging union/intersection types.
+
+## [0.12.3] - 2022-02-17
+### Fixed
+- Fixed call chains not hanging when comments were present in between calls, leading to a syntax error. ([#367](https://github.com/JohnnyMorganz/StyLua/issues/367))
+- Fixed if-expression syntax getting unnecessarily expanded further due to trailing comments. ([#375](https://github.com/JohnnyMorganz/StyLua/issues/375))
+- Fixed formatting of leading comments of a keyword in if-expression syntax. ([#374](https://github.com/JohnnyMorganz/StyLua/issues/374))
+- Fixed formatting of long type declarations which go over the line width to hang if possible. ([#372](https://github.com/JohnnyMorganz/StyLua/issues/372))
+- Fixed mistransformation of comments within a type union leading to a syntax error. ([#378](https://github.com/JohnnyMorganz/StyLua/issues/378))
+
+## [0.12.2] - 2022-02-06
+### Fixed
+- Fixed crash due to unhandled singleton type formatting under the `luau` feature flag. ([#358](https://github.com/JohnnyMorganz/StyLua/issues/358))
+- Includes types in shape calculation for causing a generic for to go multiline under the `luau` feature flag. ([#360](https://github.com/JohnnyMorganz/StyLua/issues/360))
+
+## [0.12.1] - 2022-02-01
+### Fixed
+- Fixed misformatting of conditions in if-expression syntax leading to spurious whitespace under the `luau` feature flag. ([#349](https://github.com/JohnnyMorganz/StyLua/issues/349))
+- Fixed incorrect shape calculation in if-expression syntax: if-expression will now go multiline when only slightly over column width (`luau` feature flag).
+- Fixed incorrect handling of comments at the end of a callback type's arguments under the `luau` feature flag. ([#352](https://github.com/JohnnyMorganz/StyLua/issues/352))
+- Fixed mistransformation of type declaration when the type info is a union which must be multiline due to comments under the `luau` feature flag. ([#351](https://github.com/JohnnyMorganz/StyLua/issues/351))
+- Fixed leading comments on a `|` symbol in a type info being lost when hanging the type under the `luau` feature flag.
+- Fixed trailing comments of a function call being lost as parentheses are removed around a single argument when `call_parentheses` is set to not `Always`. ([#356](https://github.com/JohnnyMorganz/StyLua/issues/356))
+
+## [0.12.0] - 2022-01-31
+### Added
 - Added option `call_parentheses`:
 Specify whether to apply parentheses on function calls with single string or table arg. Possible options: `Always` (default), `NoSingleString`, `NoSingleTable`, `None`. ([#329](https://github.com/JohnnyMorganz/StyLua/issues/329))
 - Added proper multiline hanging of generic for syntax. ([#322](https://github.com/JohnnyMorganz/StyLua/issues/322))
 - Added proper formatting for if-expression syntax under the `luau` feature flag. ([#289](https://github.com/JohnnyMorganz/StyLua/issues/289))
+- Updated parser to add support for generic/variadic type packs, singleton types and default types under the `luau` feature flag.
 
 ### Fixed
 - Fixed generic variadics not being handled under the `luau` feature flag. ([#333](https://github.com/JohnnyMorganz/StyLua/issues/333))
 - Fixed issue with comments within an assignment not being correctly handled, leading to a syntax error. ([#340](https://github.com/JohnnyMorganz/StyLua/issues/340))
+- Fixed parentheses around an IfExpression being removed, leading to incorrect semantics, under the `luau` feature flag. ([#345](https://github.com/JohnnyMorganz/StyLua/issues/345))
 
 ### Deprecated
 - Option `no_call_parentheses` has been deprecated. Use `call_parentheses = "None"` instead.
@@ -57,7 +138,7 @@ Specify whether to apply parentheses on function calls with single string or tab
 - Fixed config locations (`$XDG_CONFIG_HOME` and `$HOME/.config`) not being looked into correctly on macOS when `--search-parent-directories` is used. ([#260](https://github.com/JohnnyMorganz/StyLua/issues/260))
 - Fixed incorrect indentation of multiline type specifiers for function parameters under the `luau` feature flag. ([#256](https://github.com/JohnnyMorganz/StyLua/issues/256))
 - Fixed unstable formatting caused by a singleline table which just reaches the column width. ([#261](https://github.com/JohnnyMorganz/StyLua/issues/261))
-- Fixed misformatting of a binop expression as precedence of the RHS expression was not taken into account. ([#257](https://github.com/JohnnyMorganz/StyLua/issues/257), [#261](https://github.com/JohnnyMorganz/StyLua/issues/261)) 
+- Fixed misformatting of a binop expression as precedence of the RHS expression was not taken into account. ([#257](https://github.com/JohnnyMorganz/StyLua/issues/257), [#261](https://github.com/JohnnyMorganz/StyLua/issues/261))
 
 ## [0.10.1] - 2021-08-08
 ### Fixed

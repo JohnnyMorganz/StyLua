@@ -45,12 +45,21 @@ macro_rules! fmt_op {
     };
 }
 
+#[derive(Clone, Copy)]
 enum ExpressionContext {
     /// Standard expression, with no special context
     Standard,
     /// The expression originates from a [`Prefix`] node. The special context here is that the expression will
     /// always be wrapped in parentheses.
     Prefix,
+    /// The internal expression is being asserted by a type: the `expr` part of `(expr) :: type`.
+    /// If this occurs and `expr` is wrapped in parentheses, we keep the parentheses, such
+    /// as for cases like `(expr) :: any) :: type`
+    #[cfg(feature = "luau")]
+    TypeAssertion,
+    /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
+    /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
+    UnaryOrBinary,
 }
 
 pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
@@ -75,12 +84,14 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
 
 /// Check to determine whether expression parentheses are required, depending on the provided
 /// internal expression contained within the parentheses
-fn check_excess_parentheses(internal_expression: &Expression) -> bool {
+fn check_excess_parentheses(internal_expression: &Expression, context: ExpressionContext) -> bool {
     match internal_expression {
         // Parentheses inside parentheses, not necessary
         Expression::Parentheses { .. } => true,
         // Check whether the expression relating to the UnOp is safe
-        Expression::UnaryOperator { expression, .. } => check_excess_parentheses(expression),
+        Expression::UnaryOperator { expression, .. } => {
+            check_excess_parentheses(expression, context)
+        }
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
         Expression::BinaryOperator { .. } => false,
         Expression::Value {
@@ -88,9 +99,11 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
-            // If we have a type assertion, we should always keep parentheses
+            // If we have a type assertion, and the context is a unary or binary operation
+            // we should always keep parentheses
+            // [e.g. #(value :: Array<string>) or -(value :: number)]
             #[cfg(feature = "luau")]
-            if type_assertion.is_some() {
+            if type_assertion.is_some() && matches!(context, ExpressionContext::UnaryOrBinary) {
                 return false;
             }
 
@@ -106,6 +119,10 @@ fn check_excess_parentheses(internal_expression: &Expression) -> bool {
                         _ => true,
                     }
                 }
+                // If the internal expression is an if expression, we need to keep the parentheses
+                // as modifying it can lead to issues [e.g. (if <x> then <expr> else <expr>) + 1 is different without parens]
+                #[cfg(feature = "luau")]
+                Value::IfExpression(_) => false,
                 _ => true,
             }
         }
@@ -131,7 +148,20 @@ fn format_expression_internal(
             #[cfg(feature = "luau")]
             type_assertion,
         } => Expression::Value {
-            value: Box::new(format_value(ctx, value, shape)),
+            value: Box::new(format_value(
+                ctx,
+                value,
+                shape,
+                #[cfg(feature = "luau")]
+                if type_assertion.is_some() {
+                    ExpressionContext::TypeAssertion
+                } else {
+                    context
+                },
+                #[cfg(not(feature = "luau"))]
+                context,
+            )),
+
             #[cfg(feature = "luau")]
             type_assertion: type_assertion
                 .as_ref()
@@ -141,12 +171,20 @@ fn format_expression_internal(
             contained,
             expression,
         } => {
+            #[cfg(feature = "luau")]
+            let keep_parentheses = matches!(
+                context,
+                ExpressionContext::Prefix | ExpressionContext::TypeAssertion
+            );
+            #[cfg(not(feature = "luau"))]
+            let keep_parentheses = matches!(context, ExpressionContext::Prefix);
+
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
-            let use_internal_expression = check_excess_parentheses(expression);
+            let use_internal_expression = check_excess_parentheses(expression, context);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
-            if use_internal_expression && !matches!(context, ExpressionContext::Prefix) {
+            if use_internal_expression && !keep_parentheses {
                 // Get the trailing comments from contained span and append them onto the expression
                 let trailing_comments = contained
                     .tokens()
@@ -170,7 +208,12 @@ fn format_expression_internal(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let mut expression = format_expression(ctx, expression, shape);
+            let mut expression = format_expression_internal(
+                ctx,
+                expression,
+                ExpressionContext::UnaryOrBinary,
+                shape,
+            );
 
             // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
             // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
@@ -212,13 +255,18 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = format_expression(ctx, lhs, shape);
+            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::UnaryOrBinary, shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
                 lhs: Box::new(lhs),
                 binop,
-                rhs: Box::new(format_expression(ctx, rhs, shape)),
+                rhs: Box::new(format_expression_internal(
+                    ctx,
+                    rhs,
+                    ExpressionContext::UnaryOrBinary,
+                    shape,
+                )),
             }
         }
         other => panic!("unknown node {:?}", other),
@@ -388,7 +436,9 @@ fn format_token_expression_sequence(
 
     let requires_multiline_expression = shape.take_first_line(&formatted_expression).over_budget()
         || trivia_util::token_contains_trailing_comments(token)
-        || trivia_util::contains_comments(expression);
+        || trivia_util::contains_comments(
+            expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+        ); // Remove trailing trivia (comments) before checking, as they shouldn't have an impact
 
     let token = match requires_multiline_expression {
         // `<token>\n`
@@ -422,7 +472,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
 
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
-    let then_token = fmt_symbol!(ctx, if_expression.then_token(), "then ", shape);
+    let then_token = fmt_symbol!(ctx, if_expression.then_token(), " then ", shape);
     let singleline_expression = format_expression(
         ctx,
         if_expression.if_expression(),
@@ -449,8 +499,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         shape.with_infinite_width(),
     );
 
+    const IF_LENGTH: usize = 3; // "if "
+    const THEN_LENGTH: usize = 6; // " then "
+    const ELSE_LENGTH: usize = 6; // " else "
+
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + 3 + 5) // 3 = "if " + 5 = " then"
+    let singleline_shape = (shape + IF_LENGTH + THEN_LENGTH + ELSE_LENGTH)
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
@@ -588,10 +642,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         );
 
         // Put the else on a new line
-        let else_token = else_token.update_leading_trivia(FormatTriviaType::Append(vec![
-            create_newline_trivia(ctx),
-            create_indent_trivia(ctx, hanging_shape),
-        ]));
+        let else_token = trivia_util::prepend_newline_indent(
+            ctx,
+            &else_token,
+            else_token.leading_trivia(),
+            hanging_shape,
+        );
 
         IfExpression::new(condition, expression, else_expression)
             .with_if_token(if_token)
@@ -610,16 +666,20 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                 .collect()
         });
 
-        IfExpression::new(condition, singleline_expression, singleline_else_expression)
-            .with_if_token(if_token)
-            .with_then_token(then_token)
-            .with_else_if(else_ifs)
-            .with_else_token(else_token)
+        IfExpression::new(
+            singleline_condition,
+            singleline_expression,
+            singleline_else_expression,
+        )
+        .with_if_token(if_token)
+        .with_then_token(then_token)
+        .with_else_if(else_ifs)
+        .with_else_token(else_token)
     }
 }
 
 /// Formats a Value Node
-pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
+fn format_value(ctx: &Context, value: &Value, shape: Shape, context: ExpressionContext) -> Value {
     match value {
         Value::Function((token_reference, function_body)) => Value::Function(
             format_anonymous_function(ctx, token_reference, function_body, shape),
@@ -634,9 +694,9 @@ pub fn format_value(ctx: &Context, value: &Value, shape: Shape) -> Value {
         Value::Number(token_reference) => {
             Value::Number(format_token_reference(ctx, token_reference, shape))
         }
-        Value::ParenthesesExpression(expression) => {
-            Value::ParenthesesExpression(format_expression(ctx, expression, shape))
-        }
+        Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
+            format_expression_internal(ctx, expression, context, shape),
+        ),
         Value::String(token_reference) => {
             Value::String(format_token_reference(ctx, token_reference, shape))
         }
@@ -814,20 +874,20 @@ impl ToRange for Expression {
 /// It holds the range of the leftmost binary expression, and the original additional indent level of this range.
 /// This struct is only used when the hanging binary expression involves a hang level, for example:
 /// ```lua
-/// foooo
+/// foo
 ///    + bar
 ///    + baz
 /// ```
 /// or in a larger context:
 /// ```lua
-/// local someVariable = foooo
+/// local someVariable = foo
 ///    + bar
 ///    + baz
 /// ```
-/// As seen, the first item (`foooo`) is inlined, and has an indent level one lower than the rest of the binary
-/// expressions. We want to ensure that whenever we have `foooo` in our expression, we use the original indentation level
+/// As seen, the first item (`foo`) is inlined, and has an indent level one lower than the rest of the binary
+/// expressions. We want to ensure that whenever we have `foo` in our expression, we use the original indentation level
 /// because the expression is (at this current point in time) inlined - otherwise, it will be over-indented.
-/// We hold the original indentation level incase we are deep down in the recursivecalls:
+/// We hold the original indentation level in case we are deep down in the recursive calls:
 /// ```lua
 /// local ratio = (minAxis - minAxisSize) / delta * (self.props.maxScaleRatio - self.props.minScaleRatio)
 ///     + self.props.minScaleRatio
@@ -927,6 +987,8 @@ fn hang_binop_expression(
     shape: Shape,
     lhs_range: Option<LeftmostRangeHang>,
 ) -> Expression {
+    const SPACE_LEN: usize = " ".len();
+
     let full_expression = expression.to_owned();
 
     match expression {
@@ -967,7 +1029,8 @@ fn hang_binop_expression(
             let (lhs, rhs) = match should_hang {
                 true => {
                     let lhs_shape = shape;
-                    let rhs_shape = shape + strip_trivia(&new_binop).to_string().len() + 1;
+                    let rhs_shape =
+                        shape.reset() + strip_trivia(&new_binop).to_string().len() + SPACE_LEN;
 
                     let (lhs, rhs) = match side_to_hang {
                         ExpressionSide::Left => (
@@ -978,10 +1041,20 @@ fn hang_binop_expression(
                                 lhs_shape,
                                 lhs_range,
                             ),
-                            format_expression(ctx, &*rhs, rhs_shape),
+                            format_expression_internal(
+                                ctx,
+                                &*rhs,
+                                ExpressionContext::UnaryOrBinary,
+                                rhs_shape,
+                            ),
                         ),
                         ExpressionSide::Right => (
-                            format_expression(ctx, &*lhs, lhs_shape),
+                            format_expression_internal(
+                                ctx,
+                                &*lhs,
+                                ExpressionContext::UnaryOrBinary,
+                                lhs_shape,
+                            ),
                             hang_binop_expression(
                                 ctx,
                                 *rhs,
@@ -1002,13 +1075,23 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression(ctx, &*lhs, shape)
+                        format_expression_internal(
+                            ctx,
+                            &*lhs,
+                            ExpressionContext::UnaryOrBinary,
+                            shape,
+                        )
                     };
 
                     let rhs = if contains_comments(&*rhs) {
                         hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
                     } else {
-                        format_expression(ctx, &*rhs, shape)
+                        format_expression_internal(
+                            ctx,
+                            &*rhs,
+                            ExpressionContext::UnaryOrBinary,
+                            shape,
+                        )
                     };
 
                     (lhs, rhs)
@@ -1048,31 +1131,50 @@ fn format_hanging_expression_(
             #[cfg(feature = "luau")]
             type_assertion,
         } => {
+            #[cfg(feature = "luau")]
+            let (expression_context, value_shape) = if let Some(type_assertion) = type_assertion {
+                // If we have a type assertion, we increment the current shape with the size of the assertion
+                // to "force" the parentheses to hang if necessary
+                (
+                    ExpressionContext::TypeAssertion,
+                    shape.take_first_line(&strip_trivia(type_assertion)),
+                )
+            } else {
+                (expression_context, shape)
+            };
+            #[cfg(not(feature = "luau"))]
+            let value_shape = shape;
+
             let value = Box::new(match &**value {
                 Value::ParenthesesExpression(expression) => {
                     Value::ParenthesesExpression(format_hanging_expression_(
                         ctx,
                         expression,
-                        shape,
+                        value_shape,
                         expression_context,
                         lhs_range,
                     ))
                 }
                 _ => {
-                    let shape = if let Some(lhs_hang) = lhs_range {
-                        lhs_hang.required_shape(shape, &expression_range)
+                    let value_shape = if let Some(lhs_hang) = lhs_range {
+                        lhs_hang.required_shape(value_shape, &expression_range)
                     } else {
-                        shape
+                        value_shape
                     };
-                    format_value(ctx, value, shape)
+                    format_value(ctx, value, value_shape, expression_context)
                 }
             });
+
+            // Update the shape used to format the type assertion
+            #[cfg(feature = "luau")]
+            let assertion_shape = shape.take_last_line(&value);
+
             Expression::Value {
                 value,
                 #[cfg(feature = "luau")]
                 type_assertion: type_assertion
                     .as_ref()
-                    .map(|assertion| format_type_assertion(ctx, assertion, shape)),
+                    .map(|assertion| format_type_assertion(ctx, assertion, assertion_shape)),
             }
         }
         Expression::Parentheses {
@@ -1084,13 +1186,20 @@ fn format_hanging_expression_(
             } else {
                 shape
             };
+            #[cfg(feature = "luau")]
+            let keep_parentheses = matches!(
+                expression_context,
+                ExpressionContext::Prefix | ExpressionContext::TypeAssertion
+            );
+            #[cfg(not(feature = "luau"))]
+            let keep_parentheses = matches!(expression_context, ExpressionContext::Prefix);
 
             // Examine whether the internal expression requires parentheses
             // If not, just format and return the internal expression. Otherwise, format the parentheses
-            let use_internal_expression = check_excess_parentheses(expression);
+            let use_internal_expression = check_excess_parentheses(expression, expression_context);
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
-            if use_internal_expression && !matches!(expression_context, ExpressionContext::Prefix) {
+            if use_internal_expression && !keep_parentheses {
                 format_hanging_expression_(
                     ctx,
                     expression,
@@ -1106,7 +1215,9 @@ fn format_hanging_expression_(
                 let formatted_expression = format_expression(ctx, expression, lhs_shape + 1); // 1 = opening parentheses
 
                 let expression_str = formatted_expression.to_string();
-                if !lhs_shape.add_width(2 + expression_str.len()).over_budget() {
+                if !contains_comments(expression)
+                    && !lhs_shape.add_width(2 + expression_str.len()).over_budget()
+                {
                     // The expression inside the parentheses is small, we do not need to break it down further
                     return Expression::Parentheses {
                         contained,
@@ -1115,9 +1226,7 @@ fn format_hanging_expression_(
                 }
 
                 // Update the expression shape to be used inside the parentheses, applying the indent increase
-                // Use the original `shape` rather than the LeftmostRangeHang-determined shape, because we are now
-                // indenting the internal expression, which is not part of the hang
-                let expression_shape = shape.reset().increment_additional_indent();
+                let expression_shape = lhs_shape.reset().increment_additional_indent();
 
                 // Modify the parentheses to hang the expression
                 let (start_token, end_token) = contained.tokens();
@@ -1131,7 +1240,7 @@ fn format_hanging_expression_(
                     ])),
                     end_token.update_leading_trivia(FormatTriviaType::Append(vec![
                         create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
+                        create_indent_trivia(ctx, lhs_shape),
                     ])),
                 );
 
@@ -1150,8 +1259,13 @@ fn format_hanging_expression_(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let expression =
-                format_hanging_expression_(ctx, expression, shape, expression_context, lhs_range);
+            let expression = format_hanging_expression_(
+                ctx,
+                expression,
+                shape,
+                ExpressionContext::UnaryOrBinary,
+                lhs_range,
+            );
 
             Expression::UnaryOperator {
                 unop,

@@ -11,7 +11,6 @@ fn format(input: &str) -> String {
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_string() {
     insta::assert_snapshot!(
         format(
@@ -25,7 +24,6 @@ foo"string"
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_omit_parens_string() {
     insta::assert_snapshot!(
         format(
@@ -39,7 +37,6 @@ foo("string")
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_brackets_string() {
     insta::assert_snapshot!(
         format(
@@ -58,7 +55,6 @@ foo [[
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_omit_parens_brackets_string() {
     insta::assert_snapshot!(
         format(
@@ -77,7 +73,6 @@ foo([[
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_singleline_table() {
     insta::assert_snapshot!(
         format(
@@ -91,7 +86,6 @@ foo{bar=true}
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_multiline_table() {
     insta::assert_snapshot!(
         format(
@@ -110,7 +104,6 @@ foo{
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_keep_parens_binop_string() {
     insta::assert_snapshot!(
         format(
@@ -124,7 +117,6 @@ foo("foo" .. "bar")
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_method_chain_1() {
     insta::assert_snapshot!(
         format(
@@ -138,7 +130,6 @@ foo("foo"):andThen()
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_method_chain_2() {
     insta::assert_snapshot!(
         format(
@@ -159,7 +150,6 @@ Job:new({
 }
 
 #[test]
-#[cfg_attr(feature = "luau", ignore)]
 fn test_no_parens_large_example() {
     insta::assert_snapshot!(
         format(

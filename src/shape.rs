@@ -1,4 +1,11 @@
 use crate::context::Context;
+#[cfg(feature = "luau")]
+use crate::formatters::{
+    trivia::{FormatTriviaType, UpdateTrivia},
+    trivia_util::trivia_is_comment,
+};
+#[cfg(feature = "luau")]
+use full_moon::node::Node;
 use std::fmt::Display;
 use std::ops::Add;
 
@@ -95,6 +102,9 @@ pub struct Shape {
     offset: usize,
     /// The maximum number of characters we want to fit on a line. This is inferred from the configuration
     column_width: usize,
+    /// Whether we should use simple heuristic checking.
+    /// This is enabled when we are calling within a heuristic itself, to reduce the exponential blowup
+    simple_heuristics: bool,
 }
 
 impl Shape {
@@ -104,6 +114,7 @@ impl Shape {
             indent: Indent::new(ctx),
             offset: 0,
             column_width: ctx.config().column_width,
+            simple_heuristics: false,
         }
     }
 
@@ -172,12 +183,25 @@ impl Shape {
         }
     }
 
+    /// Whether simple heuristics should be used when calculating formatting shape
+    /// This is to reduce the expontential blowup of discarded test formatting
+    pub fn using_simple_heuristics(&self) -> bool {
+        self.simple_heuristics
+    }
+
+    pub fn with_simple_heuristics(&self) -> Shape {
+        Self {
+            simple_heuristics: true,
+            ..*self
+        }
+    }
+
     /// Resets the offset for the shape
     pub fn reset(&self) -> Shape {
         Self { offset: 0, ..*self }
     }
 
-    /// Takes the first line from an item which can be converted into a string, and sets that to the the shape
+    /// Takes the first line from an item which can be converted into a string, and sets that to the shape
     pub fn take_first_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{}", item);
         let mut lines = string.lines();
@@ -201,6 +225,45 @@ impl Shape {
             // Continue adding to the current shape
             self.add_width(last_item.len())
         }
+    }
+
+    /// Takes in a new node, and tests whether adding it in will force any lines over the budget.
+    /// This function attempts to ignore the impact of comments by removing them, which makes this function more expensive.
+    /// NOTE: This function does not update state/return a new shape
+    #[cfg(feature = "luau")]
+    pub fn test_over_budget<T: Node>(&self, item: &T) -> bool {
+        // Converts the node into a string, removing any comments present
+        // We strip leading/trailing comments of each token present, but keep whitespace
+        let string = item
+            .tokens()
+            .map(|token| {
+                token
+                    .update_trivia(
+                        FormatTriviaType::Replace(
+                            token
+                                .leading_trivia()
+                                .filter(|token| !trivia_is_comment(token))
+                                .map(|x| x.to_owned())
+                                .collect(),
+                        ),
+                        FormatTriviaType::Replace(
+                            token
+                                .trailing_trivia()
+                                .filter(|token| !trivia_is_comment(token))
+                                .map(|x| x.to_owned())
+                                .collect(),
+                        ),
+                    )
+                    .to_string()
+            })
+            .collect::<String>();
+
+        let lines = string.lines();
+
+        lines.enumerate().any(|(idx, line)| {
+            let shape = if idx == 0 { *self } else { self.reset() };
+            shape.add_width(line.len()).over_budget()
+        })
     }
 }
 

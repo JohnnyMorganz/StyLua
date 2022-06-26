@@ -4,6 +4,16 @@ use full_moon::{
     tokenizer::{Token, TokenType},
 };
 
+#[derive(Debug, PartialEq)]
+pub enum FormatNode {
+    /// The formatting is completely blocked via an ignore comment, so this node should be skipped
+    Skip,
+    /// This node is outside the range, but we should still look to format internally to find items within the range
+    NotInRange,
+    /// There is no restriction, the node should be formatted normally
+    Normal,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Context {
     /// The configuration passed to the formatter
@@ -34,33 +44,36 @@ impl Context {
     // To preserve immutability of Context, we return a new Context with the `formatting_disabled` field toggled or left the same
     // where necessary. Context is cheap so this is reasonable to do.
     pub fn check_toggle_formatting(&self, node: &impl Node) -> Self {
-        // Check comments
+        // Load all the leading comments from the token
         let leading_trivia = node.surrounding_trivia().0;
-        for trivia in leading_trivia {
-            let comment_lines = match trivia.token_type() {
-                TokenType::SingleLineComment { comment } => comment,
-                TokenType::MultiLineComment { comment, .. } => comment,
-                _ => continue,
-            }
-            .lines()
-            .map(|line| line.trim());
-
-            for line in comment_lines {
-                if line == "stylua: ignore start" && !self.formatting_disabled {
-                    return Self {
-                        formatting_disabled: true,
-                        ..*self
-                    };
-                } else if line == "stylua: ignore end" && self.formatting_disabled {
-                    return Self {
-                        formatting_disabled: false,
-                        ..*self
-                    };
+        let comment_lines = leading_trivia
+            .iter()
+            .filter_map(|trivia| {
+                match trivia.token_type() {
+                    TokenType::SingleLineComment { comment } => Some(comment),
+                    TokenType::MultiLineComment { comment, .. } => Some(comment),
+                    _ => None,
                 }
+                .map(|comment| comment.lines().map(|line| line.trim()))
+            })
+            .flatten();
+
+        // Load the current formatting disabled state
+        let mut formatting_disabled = self.formatting_disabled;
+
+        // Work through all the lines and update the state as necessary
+        for line in comment_lines {
+            if line == "stylua: ignore start" {
+                formatting_disabled = true;
+            } else if line == "stylua: ignore end" {
+                formatting_disabled = false;
             }
         }
 
-        *self
+        Self {
+            formatting_disabled,
+            ..*self
+        }
     }
 
     /// Checks whether we should format the given node.
@@ -68,10 +81,10 @@ impl Context {
     /// If not, determine whether the node has an ignore comment present.
     /// If not, checks whether the provided node is outside the formatting range.
     /// If not, the node should be formatted.
-    pub fn should_format_node(&self, node: &impl Node) -> bool {
+    pub fn should_format_node(&self, node: &impl Node) -> FormatNode {
         // If formatting is disabled we should immediately bailed out.
         if self.formatting_disabled {
-            return false;
+            return FormatNode::Skip;
         }
 
         // Check comments
@@ -87,35 +100,28 @@ impl Context {
 
             for line in comment_lines {
                 if line == "stylua: ignore" {
-                    return false;
+                    return FormatNode::Skip;
                 }
             }
         }
 
         if let Some(range) = self.range {
-            let mut in_range = true;
-
-            if let Some(start_bound) = range.start {
-                if let Some(node_start) = node.start_position() {
-                    if node_start.bytes() < start_bound {
-                        in_range = false;
-                    }
+            match (range.start, node.start_position()) {
+                (Some(start_bound), Some(node_start)) if node_start.bytes() < start_bound => {
+                    return FormatNode::NotInRange
                 }
-            }
+                _ => (),
+            };
 
-            if let Some(end_bound) = range.end {
-                if let Some(node_end) = node.end_position() {
-                    if node_end.bytes() > end_bound {
-                        in_range = false;
-                    }
+            match (range.end, node.end_position()) {
+                (Some(end_bound), Some(node_end)) if node_end.bytes() > end_bound => {
+                    return FormatNode::NotInRange
                 }
+                _ => (),
             }
-
-            in_range
-        } else {
-            // No range provided, therefore always in formatting range
-            true
         }
+
+        FormatNode::Normal
     }
 
     pub fn should_omit_string_parens(&self) -> bool {
@@ -129,15 +135,6 @@ impl Context {
             || self.config().call_parentheses == CallParenType::None
             || self.config().call_parentheses == CallParenType::NoSingleTable
     }
-}
-
-#[macro_export]
-macro_rules! check_should_format {
-    ($ctx:expr, $token:expr) => {
-        if !$ctx.should_format_node($token) {
-            return $token.to_owned();
-        }
-    };
 }
 
 /// Returns the relevant line ending string from the [`LineEndings`] enum

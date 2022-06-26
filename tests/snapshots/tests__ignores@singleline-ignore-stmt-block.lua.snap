@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+assertion_line: 56
+expression: format(&contents)
+
+---
+local x = 1
+-- stylua: ignore
+function foo   ()
+    return    x +    1
+end
+

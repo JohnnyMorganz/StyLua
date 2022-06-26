@@ -6,7 +6,7 @@ use crate::formatters::luau::{
     format_type_specifier,
 };
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
         assignment::{format_assignment, format_local_assignment},
@@ -25,7 +25,8 @@ use crate::{
     shape::Shape,
 };
 use full_moon::ast::{
-    Do, ElseIf, Expression, FunctionCall, GenericFor, If, NumericFor, Repeat, Stmt, Value, While,
+    punctuated::Punctuated, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall, GenericFor,
+    If, NumericFor, Repeat, Stmt, Suffix, Value, While,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 
@@ -45,7 +46,13 @@ macro_rules! fmt_stmt {
 /// Called only for condition expression (if ... then, while ... do, etc.)
 pub fn remove_condition_parentheses(expression: Expression) -> Expression {
     match expression.to_owned() {
-        Expression::Parentheses { expression, .. } => *expression,
+        Expression::Parentheses {
+            expression: inner_expression,
+            ..
+        } => {
+            let (_, comments) = trivia_util::take_expression_trailing_comments(&expression);
+            inner_expression.update_trailing_trivia(FormatTriviaType::Append(comments))
+        }
         Expression::Value { value, .. } => match *value {
             Value::ParenthesesExpression(expression) => remove_condition_parentheses(expression),
             _ => expression,
@@ -74,6 +81,68 @@ pub fn format_do_block(ctx: &Context, do_block: &Do, shape: Shape) -> Do {
         .with_end_token(end_token)
 }
 
+/// Determine if we should hug the generic for.
+/// This should only happen when there is a single expression, which is a function call containing
+/// a single table, and there are no comments which will affect it
+fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
+    if expressions.len() != 1 {
+        return false;
+    }
+
+    let expression = expressions.iter().next().unwrap();
+
+    // Ensure no comments
+    if trivia_util::trivia_contains_comments(
+        trivia_util::get_expression_leading_trivia(expression).iter(),
+        trivia_util::CommentSearch::All,
+    ) || trivia_util::trivia_contains_comments(
+        trivia_util::get_expression_trailing_trivia(expression).iter(),
+        trivia_util::CommentSearch::All,
+    ) {
+        return false;
+    }
+
+    match expression {
+        Expression::Value { value, .. } => {
+            match &**value {
+                // Ensure is function call
+                Value::FunctionCall(function_call) => {
+                    let mut suffixes = function_call.suffixes();
+                    // Test next 2 available suffixes
+                    match (suffixes.next(), suffixes.next()) {
+                        // Ensure at least one suffix, and only one suffix
+                        (Some(suffix), None) => match suffix {
+                            // Ensure suffix is a call with a single table constructor as argument
+                            Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(
+                                _,
+                            ))) => true,
+                            Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
+                                arguments,
+                                ..
+                            })) => {
+                                let mut arguments = arguments.iter();
+                                // Test next 2 available arguments
+                                match (arguments.next(), arguments.next()) {
+                                    // Ensure at least one argument, and only one argument
+                                    // And that the argument is a table constructor
+                                    (Some(Expression::Value { value, .. }), None) => {
+                                        matches!(**value, Value::TableConstructor(_))
+                                    }
+                                    _ => false,
+                                }
+                            }
+                            _ => false,
+                        },
+                        _ => false,
+                    }
+                }
+                _ => false,
+            }
+        }
+        _ => false,
+    }
+}
+
 /// Format a GenericFor node
 pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape) -> GenericFor {
     // Create trivia
@@ -89,6 +158,21 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let singleline_names =
         format_punctuated(ctx, generic_for.names(), shape, format_token_reference);
     let singleline_shape = shape.take_first_line(&singleline_names);
+
+    // Format the type specifiers, if present, and add them to the shape
+    #[cfg(feature = "luau")]
+    let type_specifiers: Vec<_> = generic_for
+        .type_specifiers()
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
+        .collect();
+
+    #[cfg(feature = "luau")]
+    let singleline_shape = singleline_shape
+        + type_specifiers.iter().fold(0, |acc, x| {
+            acc + x
+                .as_ref()
+                .map_or(0, |type_specifier| type_specifier.to_string().len())
+        });
 
     let require_names_multiline = trivia_util::contains_comments(generic_for.names())
         || trivia_util::spans_multiple_lines(&singleline_names)
@@ -123,19 +207,14 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         false => singleline_shape + 4, // 4 = " in "
     };
 
-    #[cfg(feature = "luau")]
-    let type_specifiers = generic_for
-        .type_specifiers()
-        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
-        .collect();
-
     // Format the expression list on a single line, and see if it needs expanding
     let singleline_expr =
         format_punctuated(ctx, generic_for.expressions(), shape, format_expression);
     let singleline_expr_shape = shape.take_first_line(&singleline_expr);
-    let requires_expr_multiline = trivia_util::contains_comments(generic_for.expressions())
+    let requires_expr_multiline = (trivia_util::contains_comments(generic_for.expressions())
         || trivia_util::spans_multiple_lines(&singleline_expr)
-        || singleline_expr_shape.over_budget();
+        || singleline_expr_shape.over_budget())
+        && !hug_generic_for(generic_for.expressions());
 
     let in_token = match (require_names_multiline, requires_expr_multiline) {
         (true, true) => fmt_symbol!(ctx, generic_for.in_token(), "in", shape)
@@ -824,7 +903,11 @@ pub(crate) mod stmt_block {
 }
 
 pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
-    if !ctx.should_format_node(stmt) {
+    let should_format = ctx.should_format_node(stmt);
+
+    if let FormatNode::Skip = should_format {
+        return stmt.to_owned();
+    } else if let FormatNode::NotInRange = should_format {
         return stmt_block::format_stmt_block(ctx, stmt, shape);
     }
 

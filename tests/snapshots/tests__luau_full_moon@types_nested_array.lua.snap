@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+type Foo = { { string } }
+type Foo = { { Name: string, Foo: number } }
+

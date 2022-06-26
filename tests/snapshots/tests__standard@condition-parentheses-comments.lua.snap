@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+assertion_line: 12
+expression: format(&contents)
+
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/389
+repeat
+	x = x + 1
+until x + y < 2 -- comment
+

@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+return {
+	["Noob Attack: Periastron"] = "Noob Attack - Periastron",
+	["Noob Attack꞉ Periastron"] = "Noob Attack - Periastron",
+}
+

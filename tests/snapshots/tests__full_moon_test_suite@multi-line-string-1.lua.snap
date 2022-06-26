@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+local x = [[Full Moon
+is a
+lossless
+Lua parser]]
+

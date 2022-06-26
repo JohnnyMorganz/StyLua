@@ -4,7 +4,7 @@ use full_moon::ast::{
     Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
     LocalFunction, MethodCall, Parameter, Suffix, Value,
 };
-use full_moon::tokenizer::{Symbol, Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -16,8 +16,8 @@ use crate::{
         block::format_block,
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
-            format_contained_span, format_end_token, format_punctuated, format_symbol,
-            format_token_reference, EndTokenType,
+            format_contained_punctuated_multiline, format_contained_span, format_end_token,
+            format_punctuated, format_token_reference, EndTokenType,
         },
         table::format_table_constructor,
         trivia::{
@@ -93,6 +93,248 @@ fn is_complex_arg(value: &Value) -> bool {
     value.to_string().trim().contains('\n')
 }
 
+/// Determines whether a parenthesised function call contains comments, forcing it to go multiline
+fn function_args_contains_comments(
+    parentheses: &ContainedSpan,
+    arguments: &Punctuated<Expression>,
+) -> bool {
+    let (start_parens, end_parens) = parentheses.tokens();
+
+    if trivia_util::trivia_contains_comments(
+        start_parens.trailing_trivia(),
+        trivia_util::CommentSearch::Single,
+    ) || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
+    {
+        true
+    } else {
+        arguments.pairs().any(|argument| {
+            // Leading / Trailing trivia of expression (ignore inline comments)
+            trivia_util::get_expression_leading_trivia(argument.value())
+                .iter()
+                .chain(trivia_util::get_expression_trailing_trivia(argument.value()).iter())
+                .any(trivia_util::trivia_is_comment)
+            // Punctuation contains comments
+            || argument
+                .punctuation()
+                .map_or(false, trivia_util::token_contains_comments)
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ArgumentState {
+    /// No special arguments have been seen
+    None,
+    /// Whether a multiline table/function has been seen
+    SeenMultilineArguments,
+    /// Whether a normal argument has been seen after a multiline table/function
+    SeenNonMultilineArgumentAfterMultiline,
+}
+
+impl ArgumentState {
+    fn new() -> ArgumentState {
+        ArgumentState::None
+    }
+
+    /// Record that a multiline argument has been seen.
+    #[must_use]
+    fn record_multiline_arg(self) -> ArgumentState {
+        match self {
+            // Move from standard state to "seen multiline arguments state"
+            ArgumentState::None => ArgumentState::SeenMultilineArguments,
+            _ => self,
+        }
+    }
+
+    /// Records that a normal (non-multiline) argument has been seen
+    #[must_use]
+    fn record_standard_arg(self) -> ArgumentState {
+        match self {
+            // If we have already seen a multiline argument, move from that state
+            ArgumentState::SeenMultilineArguments => {
+                ArgumentState::SeenNonMultilineArgumentAfterMultiline
+            }
+            _ => self,
+        }
+    }
+
+    /// If we are in the [`ArgumentState::SeenNonMultilineArgumentAfterMultiline`] state, then we need to hang.
+    fn should_hang(self) -> bool {
+        matches!(self, ArgumentState::SeenNonMultilineArgumentAfterMultiline)
+    }
+}
+
+/// Applies heuristics to determine whether a parenthesised function call should be expanded onto multiple lines.
+/// These heuristics are subject to change.
+fn function_args_multiline_heuristic(
+    ctx: &Context,
+    arguments: &Punctuated<Expression>,
+    shape: Shape,
+) -> bool {
+    const PAREN_LEN: usize = "(".len();
+    const COMMA_SPACE_LEN: usize = ", ".len();
+    const SPACE_LEN: usize = " ".len();
+    const BRACKET_LEN: usize = "}".len();
+    const END_LEN: usize = "end".len();
+
+    // If we have no arguments, then we don't need to do anything
+    if arguments.is_empty() {
+        return false;
+    }
+
+    // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
+    // need expanding. We will ignore punctuation for now
+    let first_iter_formatted_arguments = arguments.iter().map(|argument| {
+        if shape.using_simple_heuristics() {
+            argument.to_owned()
+        } else {
+            format_expression(
+                ctx,
+                argument,
+                shape.with_simple_heuristics().with_infinite_width(),
+            )
+        }
+    });
+
+    // Apply some heuristics to determine whether we should expand the function call
+    let mut singleline_shape = shape + PAREN_LEN;
+
+    // Find how far we are currently indented, we can use this to determine when to expand
+    // We will expand on two occasions:
+    // 1) If a group of arguments fall on a single line, and they surpass the column width setting
+    // 2) If we have a mixture of multiline (tables/anonymous functions) and other values. For
+    //    example, call({ ... }, foo, { ... }), should be expanded, but
+    //    call(foo, { ... }) or call(foo, { ... }, foo) can stay on one line, provided the
+    //    single line arguments don't surpass the column width setting
+
+    // Use state values to determine the type of arguments we have seen so far
+    let mut current_state = ArgumentState::new();
+
+    for argument in first_iter_formatted_arguments {
+        match argument {
+            Expression::Value { ref value, .. } => {
+                match &**value {
+                    // Check to see if we have a table constructor, or anonymous function
+                    Value::Function((_, function_body)) => {
+                        // Check to see whether it has been expanded
+                        let is_expanded = !trivia_util::is_function_empty(function_body);
+                        if is_expanded {
+                            // If we have a mixture of multiline args, and other arguments
+                            // Then the function args should be expanded
+                            if current_state.should_hang() {
+                                return true;
+                            }
+
+                            current_state = current_state.record_multiline_arg();
+
+                            // First check the top line of the anonymous function (i.e. the function token and any parameters)
+                            // If this is over budget, then we should expand
+                            singleline_shape = singleline_shape.take_first_line(&value);
+                            if singleline_shape.over_budget() {
+                                return true;
+                            }
+
+                            // Reset the shape onto a new line, and include the `end` token
+                            singleline_shape = singleline_shape.reset() + END_LEN;
+                        } else {
+                            // Update the width with the collapsed function (normally indicative of a noop function)
+                            singleline_shape = singleline_shape + argument.to_string().len();
+                        }
+                    }
+                    Value::TableConstructor(table) => {
+                        // Check to see whether it has been expanded (there is a newline after the start brace)
+                        let is_expanded = trivia_util::trivia_contains_newline(
+                            table.braces().tokens().0.trailing_trivia(),
+                        );
+
+                        if is_expanded {
+                            // If we have a mixture of multiline args, and other arguments
+                            // Then the function args should be expanded
+                            if current_state.should_hang() {
+                                return true;
+                            }
+
+                            current_state = current_state.record_multiline_arg();
+
+                            // Reset the shape onto a new line
+                            singleline_shape = singleline_shape.reset() + BRACKET_LEN;
+                        } else {
+                            // Update the shape with the size of the collapsed table constructor
+                            singleline_shape = singleline_shape + argument.to_string().len();
+                        }
+                    }
+
+                    _ => {
+                        current_state = current_state.record_standard_arg();
+
+                        // If the argument is complex (spans multiple lines), then we will immediately
+                        // exit and span multiline - it is most likely too complex to keep going forward.
+                        if is_complex_arg(value) && arguments.len() > 1 {
+                            return true;
+                        }
+
+                        // Take the first line to see if we are over budget
+                        if singleline_shape.take_first_line(&argument).over_budget() {
+                            return true;
+                        }
+
+                        // Update the shape with the last line (which may be different from the first)
+                        singleline_shape = singleline_shape.take_last_line(&argument);
+                    }
+                }
+            }
+            // TODO: Parentheses/UnOp, do we need to do more checking?
+            // We will continue counting on the width_passed
+            _ => {
+                current_state = current_state.record_standard_arg();
+
+                // Take the first line to see if we are over budget
+                if singleline_shape.take_first_line(&argument).over_budget() {
+                    return true;
+                }
+
+                // Update the shape with the last line (which may be different from the first)
+                singleline_shape = singleline_shape.take_last_line(&argument);
+            }
+        }
+
+        // Check the current shape to see if it has fallen over budget.
+        // If it has, we can bail out and force the arguments onto multiple lines.
+        if singleline_shape.over_budget() {
+            return true;
+        }
+
+        // Add width which would be taken up by comma and space
+        singleline_shape = singleline_shape + COMMA_SPACE_LEN;
+    }
+
+    // Check the final shape to see if its over budget, if it isn't, then we can leave it
+    // -1 because we added +2 for ", " in the last iteration, but we don't want a trailing
+    // space and the comma is replaced with a parentheses
+    singleline_shape.sub_width(SPACE_LEN).over_budget()
+}
+
+/// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion
+fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape) -> Expression {
+    // First format the argument assuming infinite width
+    let infinite_width_argument = format_expression(ctx, argument, shape.with_infinite_width());
+
+    // If the argument fits, great! Otherwise, see if we can hang the expression
+    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
+    if shape
+        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+        .over_budget()
+    {
+        if trivia_util::can_hang_expression(argument) {
+            hang_expression(ctx, argument, shape, Some(1))
+        } else {
+            format_expression(ctx, argument, shape)
+        }
+    } else {
+        infinite_width_argument
+    }
+}
+
 /// Formats a FunctionArgs node.
 /// [`call_next_node`] provides information about the node after the FunctionArgs. This only matters if the configuration specifies no call parentheses.
 pub fn format_function_args(
@@ -112,13 +354,19 @@ pub fn format_function_args(
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
                 let argument = arguments.iter().next().unwrap();
+
+                // Take any trailing trivia from the end parentheses, in case we need to keep it
+                let trailing_comments = parentheses.tokens().1.trailing_trivia().cloned().collect();
+
                 if let Expression::Value { value, .. } = argument {
                     match &**value {
                         Value::String(token_reference) => {
                             if ctx.should_omit_string_parens() {
                                 return format_function_args(
                                     ctx,
-                                    &FunctionArgs::String(token_reference.to_owned()),
+                                    &FunctionArgs::String(token_reference.update_trailing_trivia(
+                                        FormatTriviaType::Append(trailing_comments),
+                                    )),
                                     shape,
                                     call_next_node,
                                 );
@@ -128,7 +376,11 @@ pub fn format_function_args(
                             if ctx.should_omit_table_parens() {
                                 return format_function_args(
                                     ctx,
-                                    &FunctionArgs::TableConstructor(table_constructor.to_owned()),
+                                    &FunctionArgs::TableConstructor(
+                                        table_constructor.update_trailing_trivia(
+                                            FormatTriviaType::Append(trailing_comments),
+                                        ),
+                                    ),
                                     shape,
                                     call_next_node,
                                 );
@@ -139,215 +391,13 @@ pub fn format_function_args(
                 }
             }
 
-            let (start_parens, end_parens) = parentheses.tokens();
-
-            // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
-            // need expanding. We will ignore punctuation for now
-            let mut first_iter_formatted_arguments = Vec::new();
-            let infinite_shape = shape.with_infinite_width();
-            for argument in arguments.iter() {
-                let argument = format_expression(ctx, argument, infinite_shape);
-                first_iter_formatted_arguments.push(argument);
-            }
-
-            // Apply some heuristics to determine whether we should expand the function call
-            // TODO: These are subject to change
+            // Determine whether we should format the function call onto multiple lines
 
             // If there is a comment present anywhere in between the start parentheses and end parentheses, we should keep it multiline
-            let force_mutliline: bool =
-                if trivia_util::token_trivia_contains_comments(start_parens.trailing_trivia())
-                    || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
-                {
-                    true
-                } else {
-                    let mut contains_comments = false;
-                    for argument in arguments.pairs() {
-                        // Only check the leading and trailing trivia of the expression
-                        // If the expression has inline comments, it should be handled elsewhere
-                        // Allow this, as this is what rustfmt creates
-                        #[allow(clippy::blocks_in_if_conditions)]
-                        if trivia_util::get_expression_leading_trivia(argument.value())
-                            .iter()
-                            .chain(
-                                trivia_util::get_expression_trailing_trivia(argument.value())
-                                    .iter(),
-                            )
-                            .any(trivia_util::trivia_is_comment)
-                        {
-                            contains_comments = true;
-                        } else if let Some(punctuation) = argument.punctuation() {
-                            if trivia_util::token_contains_comments(punctuation) {
-                                contains_comments = true;
-                            }
-                        };
+            let force_mutliline = function_args_contains_comments(parentheses, arguments);
 
-                        if contains_comments {
-                            break;
-                        }
-                    }
-
-                    contains_comments
-                };
-
-            let mut is_multiline = force_mutliline;
-            let mut singleline_shape = shape + 1; // 1 = opening parentheses
-
-            if !force_mutliline {
-                // If we have no arguments, then we can skip hanging multiline
-                if first_iter_formatted_arguments.is_empty() {
-                    is_multiline = false;
-                } else {
-                    // Find how far we are currently indented, we can use this to determine when to expand
-                    // We will expand on two occasions:
-                    // 1) If a group of arguments fall on a single line, and they surpass the column width setting
-                    // 2) If we have a mixture of multiline (tables/anonymous functions) and other values. For
-                    //    example, call({ ... }, foo, { ... }), should be expanded, but
-                    //    call(foo, { ... }) or call(foo, { ... }, foo) can stay on one line, provided the
-                    //    single line arguments dont surpass the column width setting
-
-                    // Use state values to determine the type of arguments we have seen so far
-                    let mut seen_multiline_arg = false; // Whether we have seen a multiline table/function already
-                    let mut seen_other_arg_after_multiline = false; // Whether we have seen a non multiline table/function after a multiline one. In this case, we should expand
-
-                    for argument in first_iter_formatted_arguments.iter() {
-                        match argument {
-                            Expression::Value { value, .. } => {
-                                match &**value {
-                                    // Check to see if we have a table constructor, or anonymous function
-                                    Value::Function((_, function_body)) => {
-                                        // Check to see whether it has been expanded
-                                        let is_expanded =
-                                            !trivia_util::is_function_empty(function_body);
-                                        if is_expanded {
-                                            // If we have a mixture of multiline args, and other arguments
-                                            // Then the function args should be expanded
-                                            if seen_multiline_arg && seen_other_arg_after_multiline
-                                            {
-                                                is_multiline = true;
-                                                break;
-                                            }
-
-                                            seen_multiline_arg = true;
-
-                                            // First check the top line of the anonymous function (i.e. the function token and any parameters)
-                                            // If this is over budget, then we should expand
-                                            singleline_shape =
-                                                singleline_shape.take_first_line(value);
-                                            if singleline_shape.over_budget() {
-                                                is_multiline = true;
-                                                break;
-                                            }
-
-                                            // Reset the shape onto a new line // 3 = "end" for the function line
-                                            singleline_shape = singleline_shape.reset() + 3;
-                                        } else {
-                                            // We have a collapsed function (normally indicitive of a noop function)
-                                            // add the width, and if it fails, we need to expand
-                                            singleline_shape =
-                                                singleline_shape + argument.to_string().len();
-                                            if singleline_shape.over_budget() {
-                                                is_multiline = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    Value::TableConstructor(table) => {
-                                        // Check to see whether it has been expanded
-                                        let start_brace = table.braces().tokens().0;
-                                        let is_expanded = trivia_util::trivia_contains_newline(
-                                            start_brace.trailing_trivia(),
-                                        );
-                                        if is_expanded {
-                                            // If we have a mixture of multiline args, and other arguments
-                                            // Then the function args should be expanded
-                                            if seen_multiline_arg && seen_other_arg_after_multiline
-                                            {
-                                                is_multiline = true;
-                                                break;
-                                            }
-
-                                            seen_multiline_arg = true;
-
-                                            // Reset the shape onto a new line
-                                            singleline_shape = singleline_shape.reset() + 1;
-                                        // 1 = "}"
-                                        } else {
-                                            // We have a collapsed table constructor - add the width, and if it fails,
-                                            // we need to expand
-                                            singleline_shape =
-                                                singleline_shape + argument.to_string().len();
-                                            if singleline_shape.over_budget() {
-                                                is_multiline = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    _ => {
-                                        // If we previously had a table/anonymous function, and we have something else
-                                        // in the mix, update the state to respond to this
-                                        if seen_multiline_arg {
-                                            seen_other_arg_after_multiline = true;
-                                        }
-
-                                        // If the argument is complex (spans multiple lines), then we will immediately
-                                        // exit and span multiline - it is most likely too complex to keep going forward.
-                                        if is_complex_arg(value) && arguments.len() > 1 {
-                                            is_multiline = true;
-                                            break;
-                                        }
-
-                                        // Take the first line to see if we are over budget
-                                        if singleline_shape.take_first_line(argument).over_budget()
-                                        {
-                                            is_multiline = true;
-                                            break;
-                                        }
-
-                                        // Set the shape to the last line, then examine if over budget
-                                        singleline_shape =
-                                            singleline_shape.take_last_line(argument);
-                                        if singleline_shape.over_budget() {
-                                            is_multiline = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            // TODO: Parentheses/UnOp, do we need to do more checking?
-                            // We will continue counting on the width_passed
-                            _ => {
-                                // If we previously had a table/anonymous function, and we have something else
-                                // in the mix, update the state to respond to this
-                                if seen_multiline_arg {
-                                    seen_other_arg_after_multiline = true;
-                                }
-
-                                // Take the first line to see if we are over budget
-                                if singleline_shape.take_first_line(argument).over_budget() {
-                                    is_multiline = true;
-                                    break;
-                                }
-
-                                // Set the shape to the last line, then examine if over budget
-                                singleline_shape = singleline_shape.take_last_line(argument);
-                                if singleline_shape.over_budget() {
-                                    is_multiline = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Add width which would be taken up by comment and space
-                        singleline_shape = singleline_shape + 2;
-                    }
-
-                    // Check the final shape to see if its over budget
-                    // -1 because we added +2 for ", " in the last iteration, but we don't want a trailing space and the comma is replaced with a parentheses
-                    if singleline_shape.sub_width(1).over_budget() {
-                        is_multiline = true;
-                    }
-                }
-            }
+            let is_multiline =
+                force_mutliline || function_args_multiline_heuristic(ctx, arguments, shape);
 
             // Handle special case: we want to go multiline, but we have a single argument which is a table constructor
             // In this case, we want to hug the table braces with the parentheses.
@@ -358,86 +408,25 @@ pub fn format_function_args(
                 && is_table_constructor(arguments.iter().next().unwrap());
 
             if is_multiline && !hug_table_constructor {
-                // Format start and end brace properly with correct trivia
-                // Calculate to see if the end parentheses requires any additional indentation
-                let end_parens_leading_trivia = vec![create_indent_trivia(ctx, shape)];
-
-                // Add new_line trivia to start_parens
-                let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(
-                        ctx,
-                    )]));
-
-                let end_parens_token =
-                    format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
-                        .update_leading_trivia(FormatTriviaType::Append(end_parens_leading_trivia));
-
-                let parentheses = ContainedSpan::new(start_parens_token, end_parens_token);
-
-                let mut formatted_arguments = Punctuated::new();
-                let shape = shape.increment_additional_indent();
-
-                for argument in arguments.pairs() {
-                    let shape = shape.reset(); // Argument is on a new line, so reset the shape
-
-                    // First format the argument assuming infinite width
-                    let infinite_width_argument =
-                        format_expression(ctx, argument.value(), shape.with_infinite_width());
-
-                    // If the argument fits, great! Otherwise, see if we can hang the expression
-                    // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
-                    let formatted_argument = if shape
-                        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
-                        .over_budget()
-                    {
-                        if trivia_util::can_hang_expression(argument.value()) {
-                            hang_expression(ctx, argument.value(), shape, Some(1))
-                        } else {
-                            format_expression(ctx, argument.value(), shape)
-                        }
-                    } else {
-                        infinite_width_argument
-                    }
-                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-                        ctx, shape,
-                    )]));
-
-                    // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
-                    let (formatted_argument, mut trailing_comments) =
-                        trivia_util::take_expression_trailing_comments(&formatted_argument);
-
-                    let punctuation = match argument.punctuation() {
-                        Some(punctuation) => {
-                            // Continue adding a comma and a new line for multiline function args
-                            // Also add any trailing comments we have taken from the expression
-                            trailing_comments.push(create_newline_trivia(ctx));
-                            let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                                .update_trailing_trivia(FormatTriviaType::Append(
-                                    trailing_comments,
-                                ));
-
-                            Some(symbol)
-                        }
-                        None => Some(TokenReference::new(
-                            trailing_comments,
-                            create_newline_trivia(ctx),
-                            vec![],
-                        )),
-                    };
-
-                    formatted_arguments.push(Pair::new(formatted_argument, punctuation))
-                }
+                let (parentheses, arguments) = format_contained_punctuated_multiline(
+                    ctx,
+                    parentheses,
+                    arguments,
+                    format_argument_multiline,
+                    trivia_util::take_expression_trailing_comments,
+                    shape,
+                );
 
                 FunctionArgs::Parentheses {
                     parentheses,
-                    arguments: formatted_arguments,
+                    arguments,
                 }
             } else {
                 // We don't need to worry about comments here, as if there were comments present, we would have
                 // multiline function args
 
                 // If we are hugging a table constructor with the parentheses, we use a shape increment of 2 to include the closing
-                // parentheses aswell. Otherwise, we just use 1 = opening parentheses.
+                // parentheses as well. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
                 let parentheses = format_contained_span(ctx, parentheses, shape);
@@ -658,39 +647,18 @@ pub fn format_function_body(
             || should_parameters_format_multiline(ctx, function_body, shape, block_empty)
     };
 
-    let (formatted_parameters, mut parameters_parentheses) = match multiline_params {
-        true => {
-            // TODO: This is similar to multiline in FunctionArgs, can we resolve?
-            // Format start and end brace properly with correct trivia
-            let (start_parens, end_parens) = function_body.parameters_parentheses().tokens();
-
-            // Calculate to see if the end parentheses requires any additional indentation
-            let end_parens_leading_trivia =
-                vec![create_newline_trivia(ctx), create_indent_trivia(ctx, shape)];
-
-            // Add new_line trivia to start_parens
-            let start_parens_token = fmt_symbol!(ctx, start_parens, "(", shape)
-                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
-
-            let end_parens_token = TokenReference::new(
-                end_parens_leading_trivia,
-                Token::new(TokenType::Symbol {
-                    symbol: Symbol::RightParen,
-                }),
-                vec![],
-            );
-
-            (
-                format_multiline_parameters(ctx, function_body, shape),
-                ContainedSpan::new(
-                    start_parens_token,
-                    format_symbol(ctx, end_parens, &end_parens_token, shape),
-                ),
-            )
-        }
+    let (mut parameters_parentheses, formatted_parameters) = match multiline_params {
+        true => format_contained_punctuated_multiline(
+            ctx,
+            function_body.parameters_parentheses(),
+            function_body.parameters(),
+            format_parameter,
+            trivia_util::take_parameter_trailing_comments,
+            shape,
+        ),
         false => (
-            format_singleline_parameters(ctx, function_body, shape),
             format_contained_span(ctx, function_body.parameters_parentheses(), shape),
+            format_singleline_parameters(ctx, function_body, shape),
         ),
     };
 
@@ -781,8 +749,31 @@ pub fn format_function_call(
     let formatted_prefix = format_prefix(ctx, function_call.prefix(), shape);
 
     let num_suffixes = function_call.suffixes().count();
+
+    // If there are comments within the chain, then we must hang the chain otherwise it can lead to an issue
+    let must_hang = {
+        let mut peekable_suffixes = function_call.suffixes().peekable();
+        let mut must_hang = false;
+        while let Some(suffix) = peekable_suffixes.next() {
+            must_hang =
+                // Check for a leading comment
+                trivia_util::suffix_leading_trivia(suffix).any(trivia_util::trivia_is_comment)
+                // Check for a trailing comment (iff there is still a suffix after this)
+                || (peekable_suffixes.peek().is_some()
+                    && trivia_util::suffix_trailing_trivia(suffix)
+                        .iter()
+                        .any(trivia_util::trivia_is_comment));
+
+            if must_hang {
+                break;
+            }
+        }
+
+        must_hang
+    };
+
     let should_hang = {
-        // Hang if there is atleast more than one method call suffix
+        // Hang if there is at least more than one method call suffix
         if function_call
             .suffixes()
             .filter(|x| matches!(x, Suffix::Call(Call::MethodCall(_))))
@@ -833,9 +824,12 @@ pub fn format_function_call(
     let mut shape = shape.take_last_line(&strip_leading_trivia(&formatted_prefix));
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
     let mut suffixes = function_call.suffixes().peekable();
+    let mut previous_suffix_was_index = true; // The index is a name, so we treat that as an index so `A()` doesn't hang
+
     while let Some(suffix) = suffixes.next() {
         // Only hang if this is a method call
-        let should_hang = should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_)));
+        let should_hang =
+            must_hang || (should_hang && matches!(suffix, Suffix::Call(Call::MethodCall(_))));
         let current_shape = if should_hang {
             // Reset the shape as the call will be on a newline
             shape = shape.reset();
@@ -857,13 +851,20 @@ pub fn format_function_call(
 
         let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
-        if should_hang {
-            suffix = suffix.update_leading_trivia(FormatTriviaType::Append(vec![
-                create_newline_trivia(ctx),
-                create_indent_trivia(ctx, current_shape),
-            ]));
+        // Hang the call, but don't hang if the previous suffix was an index and this is an anonymous call, i.e. `.foo()`
+        if should_hang
+            && !(previous_suffix_was_index
+                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
+        {
+            suffix = trivia_util::prepend_newline_indent(
+                ctx,
+                &suffix,
+                trivia_util::suffix_leading_trivia(&suffix),
+                current_shape,
+            );
         }
 
+        previous_suffix_was_index = matches!(suffix, Suffix::Index(_));
         shape = shape.take_last_line(&suffix);
         formatted_suffixes.push(suffix);
     }
@@ -1002,53 +1003,5 @@ fn format_singleline_parameters(
         formatted_parameters.push(Pair::new(parameter, punctuation));
     }
 
-    formatted_parameters
-}
-
-/// Formats the [`Parameters`] in the provided [`FunctionBody`], split across multiple lines.
-fn format_multiline_parameters(
-    ctx: &Context,
-    function_body: &FunctionBody,
-    shape: Shape,
-) -> Punctuated<Parameter> {
-    let mut formatted_parameters = Punctuated::new();
-
-    for pair in function_body.parameters().pairs() {
-        // Reset the shape (as the parameter is on a newline), and increment the additional indent level
-        let shape = shape.reset().increment_additional_indent();
-
-        let mut parameter = format_parameter(ctx, pair.value(), shape).update_leading_trivia(
-            FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-        );
-
-        let punctuation = match pair.punctuation() {
-            Some(punctuation) => {
-                // Remove any trailing comments from the parameter if present
-                let mut trailing_comments: Vec<Token> = match &parameter {
-                    Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
-                    other => panic!("unknown node {:?}", other),
-                }
-                .filter(|token| trivia_util::trivia_is_comment(token))
-                .map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .flatten()
-                .collect();
-
-                parameter = parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-                // Add a newline to the end of the trailing comments, then append them all to the end of the comma
-                trailing_comments.push(create_newline_trivia(ctx));
-                Some(
-                    fmt_symbol!(ctx, punctuation, ",", shape)
-                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
-                )
-            }
-            None => None,
-        };
-
-        formatted_parameters.push(Pair::new(parameter, punctuation))
-    }
     formatted_parameters
 }

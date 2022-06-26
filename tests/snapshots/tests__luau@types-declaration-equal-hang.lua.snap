@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+assertion_line: 30
+expression: format(&contents)
+
+---
+type SubscribeToMoreOptions<TData, TSubscriptionVariables, TSubscriptionData> =
+	watchQueryOptionsModule.SubscribeToMoreOptions<TData, TSubscriptionVariables, TSubscriptionData>
+

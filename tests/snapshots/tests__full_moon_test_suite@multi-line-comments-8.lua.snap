@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+
+---
+--[[👨🏾‍💻]]
+local more_code = here
+

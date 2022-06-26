@@ -1,8 +1,7 @@
 use crate::{
-    check_should_format,
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     formatters::{
-        trivia::{FormatTriviaType, UpdateTrailingTrivia},
+        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util,
     },
     shape::Shape,
@@ -119,7 +118,7 @@ fn format_token(
                     quote_type: StringLiteralQuoteType::Brackets,
                 }
             } else {
-                // Match all escapes within the the string
+                // Match all escapes within the string
                 // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
                 lazy_static::lazy_static! {
                     static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
@@ -443,6 +442,74 @@ where
     }
 }
 
+/// Formats a Punctuated sequence contained within parentheses onto multiple lines
+/// In particular, it handles the indentation of the sequence within the parentheses, and comments
+pub fn format_contained_punctuated_multiline<T, F1, F2>(
+    ctx: &Context,
+    parentheses: &ContainedSpan,
+    arguments: &Punctuated<T>,
+    argument_formatter: F1,              // Function to format the argument
+    argument_take_trailing_comments: F2, // Function to separate trailing comments from the argument - so they can be placed after the comma
+    shape: Shape,
+) -> (ContainedSpan, Punctuated<T>)
+where
+    T: UpdateLeadingTrivia,
+    F1: Fn(&Context, &T, Shape) -> T,
+    F2: Fn(&T) -> (T, Vec<Token>),
+{
+    // Format start and end brace properly with correct trivia
+    let (start_parens, end_parens) = parentheses.tokens();
+    let start_parens = format_token_reference(ctx, start_parens, shape)
+        .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
+
+    let end_parens = format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
+        .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+            ctx, shape,
+        )]));
+
+    let parentheses = ContainedSpan::new(start_parens, end_parens);
+
+    let mut formatted_arguments = Punctuated::new();
+    let shape = shape.increment_additional_indent();
+
+    for argument in arguments.pairs() {
+        let shape = shape.reset(); // Argument is on a new line, so reset the shape
+
+        let formatted_argument = argument_formatter(ctx, argument.value(), shape)
+            .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                ctx, shape,
+            )]));
+
+        // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
+        let (formatted_argument, mut trailing_comments) =
+            argument_take_trailing_comments(&formatted_argument);
+
+        let punctuation = match argument.punctuation() {
+            Some(punctuation) => {
+                // Continue adding a comma and a new line for multiline function args
+                // Also add any trailing comments we have taken from the expression
+                trailing_comments.push(create_newline_trivia(ctx));
+                let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
+
+                Some(symbol)
+            }
+            // TODO/HACK: we create a phantom comma which is just actually a new line
+            // We need to do this because in function declarations, we format parameters but if they have a type
+            // specifier we don't have access to put it after the type specifier
+            None => Some(TokenReference::new(
+                trailing_comments,
+                create_newline_trivia(ctx),
+                vec![],
+            )),
+        };
+
+        formatted_arguments.push(Pair::new(formatted_argument, punctuation))
+    }
+
+    (parentheses, formatted_arguments)
+}
+
 pub fn format_contained_span(
     ctx: &Context,
     contained_span: &ContainedSpan,
@@ -577,7 +644,9 @@ fn pop_until_no_whitespace(trivia: &mut Vec<Token>) {
 /// This is done by removing any leading whitespace, whilst preserving leading comments.
 /// An EOF token has no trailing trivia
 pub fn format_eof(ctx: &Context, eof: &TokenReference, shape: Shape) -> TokenReference {
-    check_should_format!(ctx, eof);
+    if ctx.should_format_node(eof) != FormatNode::Normal {
+        return eof.to_owned();
+    }
 
     // Need to preserve any comments in leading_trivia if present
     let mut formatted_leading_trivia: Vec<Token> = load_token_trivia(
