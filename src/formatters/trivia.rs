@@ -6,8 +6,8 @@ use full_moon::ast::types::{
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
-    FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix, Stmt,
-    Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
+    FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix,
+    Return, Stmt, Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
 };
 use full_moon::tokenizer::{Token, TokenReference};
 
@@ -360,26 +360,25 @@ define_update_trivia!(Index, |this, leading, trailing| {
     }
 });
 
-define_update_trailing_trivia!(LastStmt, |this, trailing| {
+define_update_trivia!(Return, |this, leading, trailing| {
+    if this.returns().is_empty() {
+        return this
+            .to_owned()
+            .with_token(this.token().update_trivia(leading, trailing));
+    } else {
+        return this
+            .to_owned()
+            .with_token(this.token().update_leading_trivia(leading))
+            .with_returns(this.returns().update_trailing_trivia(trailing));
+    }
+});
+
+define_update_trivia!(LastStmt, |this, leading, trailing| {
     match this {
-        LastStmt::Break(token) => LastStmt::Break(token.update_trailing_trivia(trailing)),
+        LastStmt::Break(token) => LastStmt::Break(token.update_trivia(leading, trailing)),
         #[cfg(feature = "luau")]
-        LastStmt::Continue(token) => LastStmt::Continue(token.update_trailing_trivia(trailing)),
-        LastStmt::Return(r#return) => {
-            if r#return.returns().is_empty() {
-                LastStmt::Return(
-                    r#return
-                        .to_owned()
-                        .with_token(r#return.token().update_trailing_trivia(trailing)),
-                )
-            } else {
-                LastStmt::Return(
-                    r#return
-                        .to_owned()
-                        .with_returns(r#return.returns().update_trailing_trivia(trailing)),
-                )
-            }
-        }
+        LastStmt::Continue(token) => LastStmt::Continue(token.update_trivia(leading, trailing)),
+        LastStmt::Return(r#return) => LastStmt::Return(r#return.update_trivia(leading, trailing)),
         other => panic!("unknown node {:?}", other),
     }
 });
