@@ -102,6 +102,9 @@ pub struct Shape {
     offset: usize,
     /// The maximum number of characters we want to fit on a line. This is inferred from the configuration
     column_width: usize,
+    /// Whether we should use simple heuristic checking.
+    /// This is enabled when we are calling within a heuristic itself, to reduce the exponential blowup
+    simple_heuristics: bool,
 }
 
 impl Shape {
@@ -111,6 +114,7 @@ impl Shape {
             indent: Indent::new(ctx),
             offset: 0,
             column_width: ctx.config().column_width,
+            simple_heuristics: false,
         }
     }
 
@@ -175,6 +179,19 @@ impl Shape {
     pub fn sub_width(&self, width: usize) -> Shape {
         Self {
             offset: self.offset.saturating_sub(width),
+            ..*self
+        }
+    }
+
+    /// Whether simple heuristics should be used when calculating formatting shape
+    /// This is to reduce the expontential blowup of discarded test formatting
+    pub fn using_simple_heuristics(&self) -> bool {
+        self.simple_heuristics
+    }
+
+    pub fn with_simple_heuristics(&self) -> Shape {
+        Self {
+            simple_heuristics: true,
             ..*self
         }
     }

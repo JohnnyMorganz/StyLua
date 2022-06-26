@@ -184,9 +184,17 @@ fn function_args_multiline_heuristic(
 
     // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
     // need expanding. We will ignore punctuation for now
-    let first_iter_formatted_arguments = arguments
-        .iter()
-        .map(|argument| format_expression(ctx, argument, shape.with_infinite_width()));
+    let first_iter_formatted_arguments = arguments.iter().map(|argument| {
+        if shape.using_simple_heuristics() {
+            argument.to_owned()
+        } else {
+            format_expression(
+                ctx,
+                argument,
+                shape.with_simple_heuristics().with_infinite_width(),
+            )
+        }
+    });
 
     // Apply some heuristics to determine whether we should expand the function call
     let mut singleline_shape = shape + PAREN_LEN;
