@@ -60,3 +60,7 @@ harness = false
 [[bench]]
 name = "nested_tables"
 harness = false
+
+[[bench]]
+name = "docgen"
+harness = false
