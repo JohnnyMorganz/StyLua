@@ -764,6 +764,8 @@ pub fn format_function_call(
         must_hang
     };
 
+    let mut keep_first_call_inlined = false;
+
     let should_hang = {
         // Hang if there is at least more than one function call suffix
         // We can't just directly test for Suffix::Call(_) since we want to ignore calls like foo()()
@@ -789,12 +791,26 @@ pub fn format_function_call(
             // Or b), one of the INTERNAL (not the last call) method call's arguments is multiline [function/table]
 
             // Create a temporary formatted version of suffixes to use for this check
-            let formatted_suffixes = function_call
+            let formatted_suffixes: Vec<_> = function_call
                 .suffixes()
                 .map(|x| format_suffix(ctx, x, shape, FunctionCallNextNode::None)) // TODO: is this the right shape to use?
                 .collect();
-            let preliminary_function_call =
-                FunctionCall::new(formatted_prefix.to_owned()).with_suffixes(formatted_suffixes);
+            let preliminary_function_call = FunctionCall::new(formatted_prefix.to_owned())
+                .with_suffixes(formatted_suffixes.to_owned());
+
+            // If the prefix starts with an uppercase character, or is smaller than the indent width
+            // we can inline the first call. BUT, inlining overall should still be under the column width
+            keep_first_call_inlined = (strip_leading_trivia(function_call.prefix())
+                .to_string()
+                .as_str()
+                .chars()
+                .next()
+                .unwrap()
+                .is_uppercase()
+                || function_call.prefix().to_string().len() <= ctx.config().indent_width)
+                && !shape
+                    .take_last_line(&strip_leading_trivia(&formatted_prefix))
+                    .test_over_budget(&formatted_suffixes.into_iter().next().unwrap());
 
             let outcome = if shape
                 .take_first_line(&strip_trivia(&preliminary_function_call))
@@ -830,6 +846,7 @@ pub fn format_function_call(
     let mut formatted_suffixes = Vec::with_capacity(num_suffixes);
     let mut suffixes = function_call.suffixes().peekable();
     let mut previous_suffix_was_index = true; // The index is a name, so we treat that as an index so `A()` doesn't hang
+    let mut idx = 0; // Is the first suffix
 
     while let Some(suffix) = suffixes.next() {
         // Only hang if this is a method call or function call
@@ -837,14 +854,16 @@ pub fn format_function_call(
             || (should_hang
                 && (matches!(suffix, Suffix::Call(Call::MethodCall(_)))
                     || (matches!(suffix, Suffix::Index(_))
-                        && matches!(suffixes.peek(), Some(Suffix::Call(Call::AnonymousCall(_)))))));
+                        && matches!(suffixes.peek(), Some(Suffix::Call(Call::AnonymousCall(_))))))
+                && !(keep_first_call_inlined && idx == 0));
 
         // Update the shape depending on if we will hang
         // We also need to increment the shape if we hung the previous index and this is an anonymous call, so that the arguments are correctly indented
         let current_shape = if will_hang
             || (should_hang
                 && previous_suffix_was_index
-                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
+                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_)))
+                && !(keep_first_call_inlined && idx == 1))
         {
             // Reset the shape as the call will be on a newline
             shape = shape.reset();
@@ -882,6 +901,7 @@ pub fn format_function_call(
         previous_suffix_was_index = matches!(suffix, Suffix::Index(_));
         shape = shape.take_last_line(&suffix);
         formatted_suffixes.push(suffix);
+        idx += 1;
     }
 
     FunctionCall::new(formatted_prefix).with_suffixes(formatted_suffixes)

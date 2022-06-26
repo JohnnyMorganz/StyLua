@@ -140,10 +140,9 @@ Job:new({
 "###
         ),
         @r###"
-    Job
-    	:new({
-    		foo = "bar",
-    	})
+    Job:new({
+    	foo = "bar",
+    })
     	:sync()
     "###
     );
