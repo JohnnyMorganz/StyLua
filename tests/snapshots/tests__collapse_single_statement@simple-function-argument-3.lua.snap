@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n            Config::default().with_collapse_mode(CollapseMode::Functions),\n            None, OutputVerification::None).unwrap()"
+---
+local _, tag_section = toc_entry.parent:has_descendant(
+	function(x) return type(x) == "table" and x.type == "section" and x.info.id == "@tag" end
+)
+

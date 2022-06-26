@@ -551,7 +551,8 @@ fn should_parameters_format_multiline(
     shape: Shape,
 ) -> bool {
     // Check the length of the parameters. We need to format them first onto a single line to check if required
-    let line_length = format_singleline_parameters(ctx, function_body, shape)
+    #[allow(unused_mut)]
+    let mut line_length = format_singleline_parameters(ctx, function_body, shape)
         .to_string()
         .len()
         + 2; // Account for the parentheses around the parameters
@@ -643,17 +644,11 @@ pub fn format_function_body(
     };
 
     // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
-    let singleline_function = !require_multiline_function
+    let mut singleline_function = !require_multiline_function
         && !multiline_params
         && (trivia_util::is_block_empty(function_body.block())
             || (trivia_util::is_block_simple(function_body.block())
                 && ctx.should_collapse_simple_functions()));
-
-    let trailing_trivia = if singleline_function {
-        vec![Token::new(TokenType::spaces(1))]
-    } else {
-        vec![create_newline_trivia(ctx)]
-    };
 
     #[cfg(feature = "luau")]
     let generics = function_body
@@ -678,7 +673,7 @@ pub fn format_function_body(
     };
 
     #[cfg(feature = "luau")]
-    let (type_specifiers, return_type) = {
+    let (type_specifiers, mut return_type) = {
         let parameters_shape = if multiline_params {
             shape.increment_additional_indent()
         } else {
@@ -689,23 +684,17 @@ pub fn format_function_body(
             function_body
                 .type_specifiers()
                 .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
-                .collect(),
-            function_body.return_type().map(|return_type| {
-                format_type_specifier(ctx, return_type, shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
-            }),
+                .collect::<Vec<_>>(),
+            function_body
+                .return_type()
+                .map(|return_type| format_type_specifier(ctx, return_type, shape)),
         )
     };
 
-    #[cfg(feature = "luau")]
-    let added_trailing_trivia = function_body.return_type().is_some();
-    #[cfg(not(feature = "luau"))]
-    let added_trailing_trivia = false;
-
-    if !added_trailing_trivia {
-        parameters_parentheses =
-            parameters_parentheses.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
-    }
+    let create_normal_block = || {
+        let block_shape = shape.reset().increment_block_indent();
+        format_block(ctx, function_body.block(), block_shape)
+    };
 
     let block = if singleline_function {
         if trivia_util::is_block_empty(function_body.block()) {
@@ -716,23 +705,57 @@ pub fn format_function_body(
 
             #[cfg(feature = "luau")]
             let block_shape = block_shape
-                .take_first_line(&type_specifiers)
-                .take_first_line(&return_type);
+                + type_specifiers.iter().fold(0, |acc, x| {
+                    acc + x.as_ref().map_or(0, |x| x.to_string().len())
+                })
+                + return_type.as_ref().map_or(0, |x| x.to_string().len());
 
             let last_stmt = function_body
                 .block()
                 .last_stmt()
                 .expect("no last stmt in singleline function");
+
             let last_stmt = format_last_stmt_(ctx, last_stmt, block_shape).update_trailing_trivia(
                 FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
             );
 
-            Block::new().with_last_stmt(Some((last_stmt, None)))
+            // If the last statement is multiline (either because it returns a function / table or it is too large)
+            // then bail out of singleline formatting, and format multiline
+            if trivia_util::spans_multiple_lines(&last_stmt) {
+                singleline_function = false;
+                create_normal_block()
+            } else {
+                Block::new().with_last_stmt(Some((last_stmt, None)))
+            }
         }
     } else {
-        let block_shape = shape.reset().increment_block_indent();
-        format_block(ctx, function_body.block(), block_shape)
+        create_normal_block()
     };
+
+    // Add trailing trivia to the first line of the function body
+    let trailing_trivia = if singleline_function {
+        vec![Token::new(TokenType::spaces(1))]
+    } else {
+        vec![create_newline_trivia(ctx)]
+    };
+
+    #[cfg(feature = "luau")]
+    let add_trivia_to_return_type = function_body.return_type().is_some();
+    #[cfg(not(feature = "luau"))]
+    let add_trivia_to_return_type = false;
+
+    if add_trivia_to_return_type {
+        #[cfg(feature = "luau")]
+        {
+            return_type = return_type.map(|return_type| {
+                return_type
+                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+            });
+        }
+    } else {
+        parameters_parentheses = parameters_parentheses
+            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+    }
 
     let mut end_token = format_end_token(
         ctx,
