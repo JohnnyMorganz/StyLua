@@ -19,7 +19,8 @@ local function useMutation<TData, TVariables, TContext, TCache>(
 ): MutationTuple<TData, TVariables, TContext, TCache>
 	local context = useContext(getApolloContext())
 	local result, setResult = useState({ called = false, loading = false })
-	local updatedOptions =
-		if options then Object.assign({}, options, { mutation = mutation }) else { mutation = mutation }
+	local updatedOptions = if options
+		then Object.assign({}, options, { mutation = mutation })
+		else { mutation = mutation }
 end
 

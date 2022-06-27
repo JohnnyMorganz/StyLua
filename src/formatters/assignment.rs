@@ -116,6 +116,18 @@ pub fn hang_equal_token(
     equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
 }
 
+/// Determines whether we should prevent hanging at the equals token depending on the RHS expression
+fn prevent_equals_hanging(expression: &Expression) -> bool {
+    match expression {
+        Expression::Value { value, .. } => match &**value {
+            #[cfg(feature = "luau")]
+            Value::IfExpression(_) => true,
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
 /// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
 /// formatting output.
 fn attempt_assignment_tactics(
@@ -246,6 +258,8 @@ fn attempt_assignment_tactics(
                 // TODO: should we hang at equals token?
                 (expr_list, equal_token)
             }
+        } else if prevent_equals_hanging(expression) {
+            (expr_list, equal_token)
         } else {
             // Try both formatting normally, and hanging at the equals token
             let hanging_equal_token = hang_equal_token(ctx, &equal_token, shape, true);

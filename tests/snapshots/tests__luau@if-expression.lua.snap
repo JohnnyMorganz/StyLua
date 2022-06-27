@@ -4,8 +4,9 @@ expression: format(&contents)
 ---
 local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName() then foo else bar
 
-local scale =
-	if someReallyLongFlagName() or someOtherReallyLongFlagName() then foooooooooooooBarrrrrrrrr else barrrrrrrrrBazzzzzz
+local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName()
+	then foooooooooooooBarrrrrrrrr
+	else barrrrrrrrrBazzzzzz
 
 local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName()
 	then Vector2.new(1, 1) + someVectorOffset + someOtherVector
