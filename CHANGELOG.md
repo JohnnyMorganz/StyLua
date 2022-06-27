@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - We now attempt to first hang the equals token in an assignment before expanding the RHS expression ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292))
+- Comments preceding an `elseif`/`else` token in an if statement will now be inlined with the token if the previous block contains contents. This should resolve issues where the comment was meant to be on the elseif condition. If the previous block is empty, the comment will be indented ([#254](https://github.com/JohnnyMorganz/StyLua/issues/254))
 
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))

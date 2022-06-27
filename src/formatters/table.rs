@@ -222,7 +222,7 @@ pub fn create_table_braces(
                 .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
 
             let end_brace_token =
-                format_end_token(ctx, end_brace, EndTokenType::ClosingBrace, shape)
+                format_end_token(ctx, end_brace, EndTokenType::IndentComments, shape)
                     .update_leading_trivia(FormatTriviaType::Append(end_brace_leading_trivia));
 
             ContainedSpan::new(start_brace_token, end_brace_token)
