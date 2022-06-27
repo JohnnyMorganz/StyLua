@@ -2,8 +2,8 @@ use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
     Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
-    FunctionName, LastStmt, LocalFunction, MethodCall, Parameter, Suffix, TableConstructor, Value,
-    Var,
+    FunctionName, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Suffix, TableConstructor,
+    Value, Var,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -635,14 +635,26 @@ fn contains_nested_function(expression: &Expression) -> bool {
     match expression {
         Expression::Value { value, .. } => match &**value {
             Value::Function(_) => true,
-            Value::FunctionCall(call) => call.suffixes().any(suffix_contains_nested_function),
+            Value::FunctionCall(call) => {
+                call.suffixes().any(suffix_contains_nested_function)
+                    || match call.prefix() {
+                        Prefix::Expression(expression) => contains_nested_function(expression),
+                        _ => false,
+                    }
+            }
             Value::ParenthesesExpression(expression) => contains_nested_function(expression),
             Value::TableConstructor(table_constructor) => {
                 table_constructor_contains_nested_function(table_constructor)
             }
-            Value::Var(Var::Expression(var_expression)) => var_expression
-                .suffixes()
-                .any(suffix_contains_nested_function),
+            Value::Var(Var::Expression(var_expression)) => {
+                var_expression
+                    .suffixes()
+                    .any(suffix_contains_nested_function)
+                    || match var_expression.prefix() {
+                        Prefix::Expression(expression) => contains_nested_function(expression),
+                        _ => false,
+                    }
+            }
             _ => false,
         },
         Expression::BinaryOperator { lhs, rhs, .. } => {
