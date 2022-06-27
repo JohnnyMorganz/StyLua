@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656337428933,
+  "lastUpdate": 1656337844934,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -209,6 +209,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 71780141,
             "range": "± 2045530",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "c9f00015e7fe60e7457a760dd89e3190305859c5",
+          "message": "Re-include zombie strike",
+          "timestamp": "2022-06-27T14:40:28+01:00",
+          "tree_id": "c89586ac066fc2207b24c9a4b596a0fe325817dc",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c9f00015e7fe60e7457a760dd89e3190305859c5"
+        },
+        "date": 1656337844462,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 64696634,
+            "range": "± 729839",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2747420557,
+            "range": "± 4911025",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 53937522,
+            "range": "± 607852",
             "unit": "ns/iter"
           }
         ]
