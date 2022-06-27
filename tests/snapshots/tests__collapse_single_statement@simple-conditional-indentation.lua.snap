@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),\n            None, OutputVerification::None).unwrap()"
+---
+for i = 1, 10 do
+	if true then return end
+end
+

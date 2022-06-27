@@ -421,7 +421,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
 
         let singleline_if = if_node
             .to_owned()
-            .with_if_token(singleline_if_token.clone())
+            .with_if_token(
+                singleline_if_token
+                    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone())),
+            )
             .with_condition(singleline_condition.clone())
             .with_then_token(singleline_then_token.clone())
             .with_block(block)
