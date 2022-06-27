@@ -745,7 +745,7 @@ pub fn format_function_body(
     #[cfg(feature = "luau")]
     let shape = shape + generics.as_ref().map_or(0, |x| x.to_string().len());
 
-    let (mut parameters_parentheses, formatted_parameters) = match multiline_params {
+    let (parameters_parentheses, formatted_parameters) = match multiline_params {
         true => format_contained_punctuated_multiline(
             ctx,
             function_body.parameters_parentheses(),
@@ -761,7 +761,7 @@ pub fn format_function_body(
     };
 
     #[cfg(feature = "luau")]
-    let (type_specifiers, mut return_type) = {
+    let (type_specifiers, return_type) = {
         let parameters_shape = if multiline_params {
             shape.increment_additional_indent()
         } else {
@@ -821,28 +821,37 @@ pub fn format_function_body(
     };
 
     // Add trailing trivia to the first line of the function body
-    let mut apply_trailing_trivia = || {
+    #[allow(clippy::never_loop)]
+    #[allow(unused_variables)]
+    let (parameters_parentheses, return_type) = loop {
         let trailing_trivia = if singleline_function {
             vec![Token::new(TokenType::spaces(1))]
         } else {
             vec![create_newline_trivia(ctx)]
         };
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "luau")] {
-                if function_body.return_type().is_some() {
-                    return_type = return_type.map(|return_type| {
-                        return_type
-                            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
-                    });
-                    return;
-                }
+
+        #[cfg(feature = "luau")]
+        {
+            if function_body.return_type().is_some() {
+                break (
+                    parameters_parentheses,
+                    return_type.as_ref().map(|return_type| {
+                        return_type.update_trailing_trivia(FormatTriviaType::Append(
+                            trailing_trivia.to_owned(),
+                        ))
+                    }),
+                );
             }
         }
 
-        parameters_parentheses = parameters_parentheses
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+        #[cfg(not(feature = "luau"))]
+        let return_type = ();
+        break (
+            parameters_parentheses
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
+            return_type,
+        );
     };
-    apply_trailing_trivia();
 
     let mut end_token = format_end_token(
         ctx,

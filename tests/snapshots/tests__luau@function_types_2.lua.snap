@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local function foo(
 	bar: Instance,
@@ -16,5 +15,6 @@ local function foo(
 	plugh: Instance,
 	xyzzy: Instance,
 	thud: Instance
-) end
+)
+end
 
