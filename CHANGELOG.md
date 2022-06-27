@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added WASM build support. Stylua is available on npm for consumption in Node.js or a browser (using a bundler) - https://www.npmjs.com/package/@johnnymorganz/stylua
 - Ignore comments will now be respected before fields inside tables ([#448](https://github.com/JohnnyMorganz/StyLua/issues/448))
 - Stylua library (`stylua_lib`) now exposes a `format_ast(ast, config, range, verification)` function to format a full-moon AST directly ([#482](https://github.com/JohnnyMorganz/StyLua/issues/482))
+- Added `collapse_simple_statement` option. It can take the values `Never` (default), `FunctionOnly`, `ConditionalOnly` or `Always`. When enabled, "simple" functions or if statements (ones where they only return a value) will be collapsed onto a single line where possible.
 
 ### Changed
 - We now attempt to first hang the equals token in an assignment before expanding the RHS expression ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292))
