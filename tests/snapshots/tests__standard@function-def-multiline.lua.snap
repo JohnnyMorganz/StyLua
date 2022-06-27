@@ -1,14 +1,14 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 function foo(foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo, barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr) end
 
 function foo(
 	foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo,
 	barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
-) end
+)
+end
 
 function foobar(
 	fooooo,
@@ -34,7 +34,8 @@ do
 	function bar(
 		foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo,
 		barrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
-	) end
+	)
+	end
 end
 
 local x = {
