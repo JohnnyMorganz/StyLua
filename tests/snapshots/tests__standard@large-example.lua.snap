@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 12
 expression: format(&contents)
-
 ---
 --[[
 	Taken from: https://github.com/evaera/roblox-lua-promise
@@ -472,8 +470,7 @@ function Promise.fold(list, callback, initialValue)
 		accumulator = accumulator:andThen(function(previousValueResolved)
 			return callback(previousValueResolved, resolvedElement, i)
 		end)
-	end)
-		:andThenReturn(accumulator)
+	end):andThenReturn(accumulator)
 end
 
 function Promise.some(promises, amount)

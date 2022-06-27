@@ -142,8 +142,7 @@ Job:new({
         @r###"
     Job:new({
     	foo = "bar",
-    })
-    	:sync()
+    }):sync()
     "###
     );
 }
