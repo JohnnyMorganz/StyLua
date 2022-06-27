@@ -212,7 +212,7 @@ impl Config {
         }
     }
 
-    /// Returns a new config with the given value for [`no_call_parentheses`]
+    /// Returns a new config with the given value for `no_call_parentheses`
     pub fn with_no_call_parentheses(self, no_call_parentheses: bool) -> Self {
         Self {
             no_call_parentheses,
@@ -252,6 +252,7 @@ pub enum OutputVerification {
     None,
 }
 
+/// A formatting error
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
@@ -265,7 +266,7 @@ pub enum Error {
     VerificationAstDifference,
 }
 
-/// Formats given [`full_moon::ast::Ast`]
+/// Formats given [`Ast`]
 pub fn format_ast(
     input_ast: Ast,
     config: Config,
