@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ignore comments will now be respected before fields inside tables ([#448](https://github.com/JohnnyMorganz/StyLua/issues/448))
 
 ### Changed
+- We now attempt to first hang the equals token in an assignment before expanding the RHS expression ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292))
+- Comments preceding an `elseif`/`else` token in an if statement will now be inlined with the token if the previous block contains contents. This should resolve issues where the comment was meant to be on the elseif condition. If the previous block is empty, the comment will be indented ([#254](https://github.com/JohnnyMorganz/StyLua/issues/254))
 - Static chained function calls (i.e., `foo.bar().baz()`) will now hang if necessary ([#368](https://github.com/JohnnyMorganz/StyLua/issues/368))
 - The first call in a chained function call will now inline with the prefix if the prefix begins with an uppercase letter or the prefix is smaller (in length) than the indent width
+- A chained function call will not expand if the first call gets inlined
 
 ### Fixed
 - [**Luau**] Fixed spacing lost before a comment within a type generic ([#446](https://github.com/JohnnyMorganz/StyLua/issues/446))
@@ -21,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [**Luau**] Increased the shape size of the expression in a type assertion so that it will correctly hang if over width ([#466](https://github.com/JohnnyMorganz/StyLua/issues/466))
 - Fixed binary expression in a table field containing a comment being collapsed leading to malformed formatted ([#471](https://github.com/JohnnyMorganz/StyLua/issues/471))
 - Fixed end parentheses of a function call with a multiline comment internally being expanded onto a new line unnecessarily ([#473](https://github.com/JohnnyMorganz/StyLua/issues/473))
+- Fixed severe performance regression with complex nested function calls ([#477](https://github.com/JohnnyMorganz/StyLua/issues/477))
 
 ## [0.13.1] - 2022-04-11
 ### Fixed

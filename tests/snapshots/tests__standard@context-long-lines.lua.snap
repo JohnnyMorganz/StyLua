@@ -19,8 +19,6 @@ end
 
 local gamemodes, keysById, idsByKey = createDataIndex(script.AllGamemodes, validateGamemodeSchema)
 
-HealthRegen.ValidateInstance = t.intersection(
-	ComponentUtil.HasComponentValidator("Health"),
-	ComponentUtil.HasComponentValidator("Target")
-)
+HealthRegen.ValidateInstance =
+	t.intersection(ComponentUtil.HasComponentValidator("Health"), ComponentUtil.HasComponentValidator("Target"))
 
