@@ -40,7 +40,7 @@ jobs:
             artifact-name: stylua-macos-aarch64
             cargo-target: x86_64-apple-darwin
 
-    name: Build (${{ matrix.target }})
+    name: Build (${{ matrix.artifact-name }})
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -126,7 +126,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Build WASM
-        run: ./wasm/build-wasm
+        run: ./wasm/build-wasm.sh
 
       - name: Publish to npm
         working-directory: wasm
