@@ -548,13 +548,16 @@ fn should_parameters_format_multiline(
     ctx: &Context,
     function_body: &FunctionBody,
     shape: Shape,
+    should_collapse: bool,
 ) -> bool {
+    const PARENS_LEN: usize = "()".len();
+    const SINGLELINE_END_LEN: usize = " end".len();
+
     // Check the length of the parameters. We need to format them first onto a single line to check if required
-    #[allow(unused_mut)]
     let mut line_length = format_singleline_parameters(ctx, function_body, shape)
         .to_string()
         .len()
-        + 2; // Account for the parentheses around the parameters
+        + PARENS_LEN;
 
     // If we are in Luau mode, take into account the types
     // If a type specifier is multiline, the whole parameters should be formatted multiline UNLESS there is only a single parameter.
@@ -588,6 +591,10 @@ fn should_parameters_format_multiline(
 
         // Add the extra length
         line_length += extra_line_length
+    }
+
+    if should_collapse {
+        line_length += SINGLELINE_END_LEN;
     }
 
     let singleline_shape = shape + line_length;
@@ -687,6 +694,8 @@ pub fn format_function_body(
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
+    let should_collapse = should_collapse_function_body(ctx, function_body);
+
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
         #[cfg(feature = "luau")]
@@ -710,12 +719,12 @@ pub fn format_function_body(
             contains_comments || type_specifier_comments
         });
 
-        contains_comments || should_parameters_format_multiline(ctx, function_body, shape)
+        contains_comments
+            || should_parameters_format_multiline(ctx, function_body, shape, should_collapse)
     };
 
     // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
-    let mut singleline_function =
-        !multiline_params && should_collapse_function_body(ctx, function_body);
+    let mut singleline_function = !multiline_params && should_collapse;
 
     #[cfg(feature = "luau")]
     let generics = function_body
