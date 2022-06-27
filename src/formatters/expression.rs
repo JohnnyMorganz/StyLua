@@ -312,7 +312,7 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
                             create_indent_trivia(ctx, indent_shape),
                         ]),
                     ),
-                    format_end_token(ctx, end_bracket, EndTokenType::ClosingBrace, shape)
+                    format_end_token(ctx, end_bracket, EndTokenType::IndentComments, shape)
                         .update_leading_trivia(FormatTriviaType::Append(vec![
                             create_indent_trivia(ctx, shape),
                         ])),

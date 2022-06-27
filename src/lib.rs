@@ -1,3 +1,4 @@
+use full_moon::ast::Ast;
 use serde::Deserialize;
 use thiserror::Error;
 #[cfg(target_arch = "wasm32")]
@@ -239,7 +240,7 @@ impl Config {
         }
     }
 
-    /// Returns a new config with the given value for [`no_call_parentheses`]
+    /// Returns a new config with the given value for `no_call_parentheses`
     pub fn with_no_call_parentheses(self, no_call_parentheses: bool) -> Self {
         Self {
             no_call_parentheses,
@@ -290,6 +291,7 @@ pub enum OutputVerification {
     None,
 }
 
+/// A formatting error
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
@@ -301,6 +303,42 @@ pub enum Error {
     /// The output AST after formatting differs from the input AST.
     #[error("INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues")]
     VerificationAstDifference,
+}
+
+/// Formats given [`Ast`]
+pub fn format_ast(
+    input_ast: Ast,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<Ast, Error> {
+    // Clone the input AST only if we are verifying, to later use for checking
+    let input_ast_for_verification = if let OutputVerification::Full = verify_output {
+        Some(input_ast.to_owned())
+    } else {
+        None
+    };
+
+    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let ast = code_formatter.format(input_ast);
+
+    // If we are verifying, reparse the output then check it matches the original input
+    if let Some(input_ast) = input_ast_for_verification {
+        let output = full_moon::print(&ast);
+        let reparsed_output = match full_moon::parse(&output) {
+            Ok(ast) => ast,
+            Err(error) => {
+                return Err(Error::VerificationAstError(error));
+            }
+        };
+
+        let mut ast_verifier = verify_ast::AstVerifier::new();
+        if !ast_verifier.compare(input_ast, reparsed_output) {
+            return Err(Error::VerificationAstDifference);
+        }
+    }
+
+    Ok(ast)
 }
 
 /// Formats given Lua code
@@ -317,31 +355,8 @@ pub fn format_code(
         }
     };
 
-    // Clone the input AST only if we are verifying, to later use for checking
-    let input_ast_for_verification = if let OutputVerification::Full = verify_output {
-        Some(input_ast.to_owned())
-    } else {
-        None
-    };
-
-    let code_formatter = formatters::CodeFormatter::new(config, range);
-    let ast = code_formatter.format(input_ast);
+    let ast = format_ast(input_ast, config, range, verify_output)?;
     let output = full_moon::print(&ast);
-
-    // If we are verifying, reparse the output then check it matches the original input
-    if let Some(input_ast) = input_ast_for_verification {
-        let reparsed_output = match full_moon::parse(&output) {
-            Ok(ast) => ast,
-            Err(error) => {
-                return Err(Error::VerificationAstError(error));
-            }
-        };
-
-        let mut ast_verifier = verify_ast::AstVerifier::new();
-        if !ast_verifier.compare(input_ast, reparsed_output) {
-            return Err(Error::VerificationAstDifference);
-        }
-    }
 
     Ok(output)
 }

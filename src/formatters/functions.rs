@@ -856,7 +856,7 @@ pub fn format_function_body(
     let mut end_token = format_end_token(
         ctx,
         function_body.end_token(),
-        EndTokenType::BlockEnd,
+        EndTokenType::IndentComments,
         shape,
     );
 

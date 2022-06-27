@@ -73,8 +73,13 @@ pub fn format_do_block(ctx: &Context, do_block: &Do, shape: Shape) -> Do {
         .update_trivia(leading_trivia.to_owned(), trailing_trivia.to_owned());
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, do_block.block(), block_shape);
-    let end_token = format_end_token(ctx, do_block.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trivia(leading_trivia, trailing_trivia);
+    let end_token = format_end_token(
+        ctx,
+        do_block.end_token(),
+        EndTokenType::IndentComments,
+        shape,
+    )
+    .update_trivia(leading_trivia, trailing_trivia);
 
     do_block
         .to_owned()
@@ -266,11 +271,16 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, generic_for.block(), block_shape);
 
-    let end_token = format_end_token(ctx, generic_for.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trivia(
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(vec![create_newline_trivia(ctx)]), // trailing_trivia was emptied when it was appended to names_comment_buf
-        );
+    let end_token = format_end_token(
+        ctx,
+        generic_for.end_token(),
+        EndTokenType::IndentComments,
+        shape,
+    )
+    .update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(vec![create_newline_trivia(ctx)]), // trailing_trivia was emptied when it was appended to names_comment_buf
+    );
 
     let generic_for = generic_for.to_owned();
     #[cfg(feature = "luau")]
@@ -286,7 +296,12 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
 }
 
 /// Formats an ElseIf node - This must always reside within format_if
-fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf {
+fn format_else_if(
+    ctx: &Context,
+    else_if_node: &ElseIf,
+    shape: Shape,
+    last_block_empty: bool,
+) -> ElseIf {
     // Calculate trivia
     let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -298,7 +313,11 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     let elseif_token = format_end_token(
         ctx,
         else_if_node.else_if_token(),
-        EndTokenType::BlockEnd,
+        if last_block_empty {
+            EndTokenType::IndentComments
+        } else {
+            EndTokenType::InlineComments
+        },
         shape,
     );
     let singleline_condition = format_expression(ctx, &condition, shape + 7);
@@ -334,7 +353,7 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         true => format_end_token(
             ctx,
             else_if_node.then_token(),
-            EndTokenType::BlockEnd,
+            EndTokenType::IndentComments,
             shape,
         )
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia)),
@@ -457,8 +476,13 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     };
 
     let then_token = match require_multiline_expression {
-        true => format_end_token(ctx, if_node.then_token(), EndTokenType::BlockEnd, shape)
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        true => format_end_token(
+            ctx,
+            if_node.then_token(),
+            EndTokenType::IndentComments,
+            shape,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
         false => singleline_then_token,
     }
     .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
@@ -466,26 +490,45 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, if_node.block(), block_shape);
 
-    let end_token = format_end_token(ctx, if_node.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trivia(
-            FormatTriviaType::Append(leading_trivia.to_owned()),
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        );
+    let end_token = format_end_token(
+        ctx,
+        if_node.end_token(),
+        EndTokenType::IndentComments,
+        shape,
+    )
+    .update_trivia(
+        FormatTriviaType::Append(leading_trivia.to_owned()),
+        FormatTriviaType::Append(trailing_trivia.to_owned()),
+    );
 
-    let else_if = if_node.else_if().map(|else_if| {
-        else_if
-            .iter()
-            .map(|else_if| format_else_if(ctx, else_if, shape))
-            .collect()
+    // Determine how to format the leading trivia on the `elseif` / `else` tokens
+    // If the last block was empty, then the comment inside the previous block should be indented,
+    let mut last_block_empty = trivia_util::is_block_empty(if_node.block());
+    let else_if = if_node.else_if().map(|else_ifs| {
+        let mut new_else_ifs = Vec::with_capacity(else_ifs.len());
+        for else_if in else_ifs {
+            new_else_ifs.push(format_else_if(ctx, else_if, shape, last_block_empty));
+            last_block_empty = trivia_util::is_block_empty(else_if.block())
+        }
+        new_else_ifs
     });
 
     let (else_token, else_block) = match (if_node.else_token(), if_node.else_block()) {
         (Some(else_token), Some(else_block)) => {
-            let else_token = format_end_token(ctx, else_token, EndTokenType::BlockEnd, shape)
-                .update_trivia(
-                    FormatTriviaType::Append(leading_trivia),
-                    FormatTriviaType::Append(trailing_trivia),
-                );
+            let else_token = format_end_token(
+                ctx,
+                else_token,
+                if last_block_empty {
+                    EndTokenType::IndentComments
+                } else {
+                    EndTokenType::InlineComments
+                },
+                shape,
+            )
+            .update_trivia(
+                FormatTriviaType::Append(leading_trivia),
+                FormatTriviaType::Append(trailing_trivia),
+            );
             let else_block_shape = shape.reset().increment_block_indent();
             let else_block = format_block(ctx, else_block, else_block_shape);
 
@@ -541,11 +584,16 @@ pub fn format_numeric_for(ctx: &Context, numeric_for: &NumericFor, shape: Shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, numeric_for.block(), block_shape);
-    let end_token = format_end_token(ctx, numeric_for.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trivia(
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+    let end_token = format_end_token(
+        ctx,
+        numeric_for.end_token(),
+        EndTokenType::IndentComments,
+        shape,
+    )
+    .update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(trailing_trivia),
+    );
 
     let numeric_for = numeric_for.to_owned();
     #[cfg(feature = "luau")]
@@ -645,8 +693,13 @@ pub fn format_while_block(ctx: &Context, while_block: &While, shape: Shape) -> W
     };
 
     let do_token = match require_multiline_expression {
-        true => format_end_token(ctx, while_block.do_token(), EndTokenType::BlockEnd, shape)
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        true => format_end_token(
+            ctx,
+            while_block.do_token(),
+            EndTokenType::IndentComments,
+            shape,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
         false => singleline_do_token,
     }
     .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
@@ -654,11 +707,16 @@ pub fn format_while_block(ctx: &Context, while_block: &While, shape: Shape) -> W
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, while_block.block(), block_shape);
 
-    let end_token = format_end_token(ctx, while_block.end_token(), EndTokenType::BlockEnd, shape)
-        .update_trivia(
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
+    let end_token = format_end_token(
+        ctx,
+        while_block.end_token(),
+        EndTokenType::IndentComments,
+        shape,
+    )
+    .update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(trailing_trivia),
+    );
 
     while_block
         .to_owned()

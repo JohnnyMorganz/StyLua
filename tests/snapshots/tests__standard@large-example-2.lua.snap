@@ -1552,20 +1552,8 @@ script.Parent.Parent.Humanoid.Health = 0
 				if player[i].Character ~= nil then
 					local torso = player[i].Character:FindFirstChild("Torso")
 					if torso ~= nil then
-						torso.CFrame = CFrame.new(
-							torso.Position.x,
-							torso.Position.y,
-							torso.Position.z,
-							0,
-							0,
-							1,
-							0,
-							-1,
-							0,
-							1,
-							0,
-							0
-						) --math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
+						torso.CFrame =
+							CFrame.new(torso.Position.x, torso.Position.y, torso.Position.z, 0, 0, 1, 0, -1, 0, 1, 0, 0) --math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
 					end
 				end
 			end

@@ -12,10 +12,10 @@ REPOS = {
         "url": "https://github.com/neovim/neovim.git",
         "command": "."
     },
-    # "zombie-strike": {
-    #     "url": "https://github.com/Kampfkarren/zombie-strike.git",
-    #     "command": "src"
-    # },
+    "zombie-strike": {
+        "url": "https://github.com/Kampfkarren/zombie-strike.git",
+        "command": "src"
+    },
     "nvim-lspconfig": {
         "url": "https://github.com/neovim/nvim-lspconfig.git",
         "command": "."
@@ -79,7 +79,7 @@ for repo, data in REPOS.items():
     print(f"Master tool executed", file=sys.stderr)
 
     # Commit the current changes
-    commitProcess = subprocess.Popen(["git", "commit", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    commitProcess = subprocess.Popen(["git", "commit", "-a", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     commitProcessStderr = commitProcess.communicate()[1].decode()
     if commitProcess.wait() != 0:
         print(f"**Error when committing master changes on `{repo}`**:")

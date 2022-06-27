@@ -703,7 +703,7 @@ fn attempt_assigned_type_tactics(
         )
     {
         // We will hang at the equals token, and then format the declaration as necessary
-        let equal_token = hang_equal_token(ctx, equal_token, shape, false);
+        let equal_token = hang_equal_token(ctx, &equal_token, shape, false);
 
         let shape = shape.reset().increment_additional_indent();
 
@@ -755,7 +755,7 @@ fn attempt_assigned_type_tactics(
                 type_definition = proper_type_definition;
             } else {
                 // Use a hanging equal token
-                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+                equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
                 let shape = shape.reset().increment_additional_indent();
                 let hanging_type_definition = hang_type_info(ctx, type_info, shape, 0);
@@ -766,7 +766,7 @@ fn attempt_assigned_type_tactics(
             // If so, hang at the equals token and reformat
             if shape.test_over_budget(&proper_type_definition) {
                 // Hang at the equal token
-                equal_token = hang_equal_token(ctx, equal_token, shape, true);
+                equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
                 // Add the expression list into the indent range, as it will be indented by one
                 let shape = shape.reset().increment_additional_indent();
