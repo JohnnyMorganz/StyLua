@@ -1,8 +1,9 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Block, Call, Expression, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
-    FunctionName, LocalFunction, MethodCall, Parameter, Suffix, Value,
+    Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
+    FunctionName, LastStmt, LocalFunction, MethodCall, Parameter, Suffix, TableConstructor, Value,
+    Var,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -595,6 +596,69 @@ fn should_parameters_format_multiline(
     singleline_shape.over_budget()
 }
 
+fn table_constructor_contains_nested_function(table_constructor: &TableConstructor) -> bool {
+    table_constructor.fields().iter().any(|field| match field {
+        Field::NoKey(expression) => contains_nested_function(expression),
+        Field::ExpressionKey { key, value, .. } => {
+            contains_nested_function(key) || contains_nested_function(value)
+        }
+        Field::NameKey { value, .. } => contains_nested_function(value),
+        other => unreachable!("unknown node {:?}", other),
+    })
+}
+
+fn suffix_contains_nested_function(suffix: &Suffix) -> bool {
+    let test_function_args = |function_args: &FunctionArgs| match function_args {
+        FunctionArgs::Parentheses { arguments, .. } => {
+            arguments.iter().any(contains_nested_function)
+        }
+        FunctionArgs::TableConstructor(table_constructor) => {
+            table_constructor_contains_nested_function(table_constructor)
+        }
+        _ => false,
+    };
+
+    match suffix {
+        Suffix::Call(Call::AnonymousCall(function_args)) => test_function_args(function_args),
+        Suffix::Call(Call::MethodCall(method_call)) => test_function_args(method_call.args()),
+        _ => false,
+    }
+}
+
+/// Checks whether an expression contains a function body - in this case, we shouldn't collapse
+fn contains_nested_function(expression: &Expression) -> bool {
+    match expression {
+        Expression::Value { value, .. } => match &**value {
+            Value::Function(_) => true,
+            Value::FunctionCall(call) => call.suffixes().any(suffix_contains_nested_function),
+            Value::ParenthesesExpression(expression) => contains_nested_function(expression),
+            Value::TableConstructor(table_constructor) => {
+                table_constructor_contains_nested_function(table_constructor)
+            }
+            Value::Var(Var::Expression(var_expression)) => var_expression
+                .suffixes()
+                .any(suffix_contains_nested_function),
+            _ => false,
+        },
+        Expression::BinaryOperator { lhs, rhs, .. } => {
+            contains_nested_function(lhs) || contains_nested_function(rhs)
+        }
+        Expression::Parentheses { expression, .. } => contains_nested_function(expression),
+        Expression::UnaryOperator { expression, .. } => contains_nested_function(expression),
+
+        other => unreachable!("unknown node {:?}", other),
+    }
+}
+
+fn block_contains_nested_function(block: &Block) -> bool {
+    debug_assert!(block.stmts().next().is_none());
+
+    match block.last_stmt().unwrap() {
+        LastStmt::Return(r#return) => r#return.returns().iter().any(contains_nested_function),
+        _ => false,
+    }
+}
+
 /// Formats a FunctionBody node
 pub fn format_function_body(
     ctx: &Context,
@@ -648,7 +712,8 @@ pub fn format_function_body(
         && !multiline_params
         && (trivia_util::is_block_empty(function_body.block())
             || (trivia_util::is_block_simple(function_body.block())
-                && ctx.should_collapse_simple_functions()));
+                && ctx.should_collapse_simple_functions()
+                && !block_contains_nested_function(function_body.block())));
 
     #[cfg(feature = "luau")]
     let generics = function_body
