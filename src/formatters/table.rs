@@ -3,6 +3,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, hang_expression, is_brackets_string},
+        functions::should_collapse_function_body,
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util::{self, table_field_trailing_trivia},
@@ -376,9 +377,7 @@ where
 fn expression_is_multiline_function(ctx: &Context, expression: &Expression) -> bool {
     if let Expression::Value { value, .. } = expression {
         if let Value::Function((_, function_body)) = &**value {
-            return !(trivia_util::is_block_empty(function_body.block())
-                || ctx.should_collapse_simple_functions()
-                    && trivia_util::is_block_simple(function_body.block()));
+            return !should_collapse_function_body(ctx, function_body);
         }
     }
     false

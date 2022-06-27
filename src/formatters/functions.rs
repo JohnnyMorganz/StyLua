@@ -218,9 +218,7 @@ fn function_args_multiline_heuristic(
                     // Check to see if we have a table constructor, or anonymous function
                     Value::Function((_, function_body)) => {
                         // Check to see whether it has been expanded
-                        let is_expanded = !(trivia_util::is_block_empty(function_body.block())
-                            || ctx.should_collapse_simple_functions()
-                                && trivia_util::is_block_simple(function_body.block()));
+                        let is_expanded = !should_collapse_function_body(ctx, function_body);
                         if is_expanded {
                             // If we have a mixture of multiline args, and other arguments
                             // Then the function args should be expanded
@@ -659,15 +657,7 @@ fn block_contains_nested_function(block: &Block) -> bool {
     }
 }
 
-/// Formats a FunctionBody node
-pub fn format_function_body(
-    ctx: &Context,
-    function_body: &FunctionBody,
-    shape: Shape,
-) -> FunctionBody {
-    // Calculate trivia
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-
+pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody) -> bool {
     // Test for presence of any comments
     let require_multiline_function = function_body
         .parameters_parentheses()
@@ -680,6 +670,22 @@ pub fn format_function_body(
             .leading_trivia()
             .any(trivia_util::trivia_is_comment)
         || trivia_util::contains_comments(function_body.block());
+
+    !require_multiline_function
+        && (trivia_util::is_block_empty(function_body.block())
+            || (trivia_util::is_block_simple(function_body.block())
+                && ctx.should_collapse_simple_functions()
+                && !block_contains_nested_function(function_body.block())))
+}
+
+/// Formats a FunctionBody node
+pub fn format_function_body(
+    ctx: &Context,
+    function_body: &FunctionBody,
+    shape: Shape,
+) -> FunctionBody {
+    // Calculate trivia
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
@@ -708,12 +714,8 @@ pub fn format_function_body(
     };
 
     // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
-    let mut singleline_function = !require_multiline_function
-        && !multiline_params
-        && (trivia_util::is_block_empty(function_body.block())
-            || (trivia_util::is_block_simple(function_body.block())
-                && ctx.should_collapse_simple_functions()
-                && !block_contains_nested_function(function_body.block())));
+    let mut singleline_function =
+        !multiline_params && should_collapse_function_body(ctx, function_body);
 
     #[cfg(feature = "luau")]
     let generics = function_body
