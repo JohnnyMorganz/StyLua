@@ -821,29 +821,28 @@ pub fn format_function_body(
     };
 
     // Add trailing trivia to the first line of the function body
-    let trailing_trivia = if singleline_function {
-        vec![Token::new(TokenType::spaces(1))]
-    } else {
-        vec![create_newline_trivia(ctx)]
-    };
-
-    #[cfg(feature = "luau")]
-    let add_trivia_to_return_type = function_body.return_type().is_some();
-    #[cfg(not(feature = "luau"))]
-    let add_trivia_to_return_type = false;
-
-    if add_trivia_to_return_type {
-        #[cfg(feature = "luau")]
-        {
-            return_type = return_type.map(|return_type| {
-                return_type
-                    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
-            });
+    let mut apply_trailing_trivia = || {
+        let trailing_trivia = if singleline_function {
+            vec![Token::new(TokenType::spaces(1))]
+        } else {
+            vec![create_newline_trivia(ctx)]
+        };
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "luau")] {
+                if function_body.return_type().is_some() {
+                    return_type = return_type.map(|return_type| {
+                        return_type
+                            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()))
+                    });
+                    return;
+                }
+            }
         }
-    } else {
+
         parameters_parentheses = parameters_parentheses
             .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-    }
+    };
+    apply_trailing_trivia();
 
     let mut end_token = format_end_token(
         ctx,

@@ -45,3 +45,5 @@ local x = function()
 	y[function() end] = z
 end
 
+local x = function() break end
+
