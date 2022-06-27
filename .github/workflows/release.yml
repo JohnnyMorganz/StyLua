@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags: ["*"]
-  workflow-dispatch:
+  workflow_dispatch:
 
 jobs:
   create-release:
