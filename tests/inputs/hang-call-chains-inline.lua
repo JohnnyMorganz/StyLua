@@ -10,3 +10,7 @@ local function interpolateVariables(title, template, index)
         1
     )
 end
+
+do
+	TweenService:Create(music, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Volume = 0 }):Play()
+end

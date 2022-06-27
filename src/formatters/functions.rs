@@ -820,9 +820,14 @@ pub fn format_function_call(
                     .take_last_line(&strip_leading_trivia(&formatted_prefix))
                     .test_over_budget(&formatted_suffixes.into_iter().next().unwrap());
 
+            if shape
+                .take_first_line(&strip_trivia(&preliminary_function_call))
+                .over_budget()
+            {
+                true
             // If we want to inline the first call, and there is only 2 (indexing) suffixes overall,
             // then just inline the whole thing
-            if keep_first_call_inlined
+            } else if keep_first_call_inlined
                 && function_call
                     .suffixes()
                     .filter(|x| matches!(x, Suffix::Index(_) | Suffix::Call(Call::MethodCall(_))))
@@ -830,11 +835,6 @@ pub fn format_function_call(
                     == 2
             {
                 false
-            } else if shape
-                .take_first_line(&strip_trivia(&preliminary_function_call))
-                .over_budget()
-            {
-                true
             } else {
                 let suffixes = preliminary_function_call.suffixes().enumerate();
                 let mut contains_newline = false;
