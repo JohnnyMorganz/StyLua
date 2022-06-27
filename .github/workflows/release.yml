@@ -5,109 +5,130 @@ on:
     tags: ["*"]
 
 jobs:
-  windows:
-    runs-on: windows-latest
-
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-    - uses: actions/checkout@v1
-
-    - name: Build (All features)
-      run: cargo build --verbose --locked --release --all-features
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: stylua-win64
-        path: target/release/stylua.exe
-
-  macos:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Install Rust
-      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-
-    - name: Build (All features)
-      run: |
-        source $HOME/.cargo/env
-        cargo build --verbose --locked --release --all-features
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: stylua-macos
-        path: target/release/stylua
-
-  linux:
-    runs-on: ubuntu-18.04
-
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: true
-
-    - name: Build (All features)
-      run: cargo build --locked --verbose --release --all-features
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: stylua-linux
-        path: target/release/stylua
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
 
   release:
-    runs-on: ubuntu-18.04
-    needs: ['windows', 'macos', 'linux']
+    needs: ["create-release"]
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact-name: stylua-win64
+            cargo-target: x86_64-pc-windows-msvc
+          - os: ubuntu-18.04
+            artifact-name: stylua-linux
+            cargo-target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            artifact-name: stylua-macos
+            cargo-target: x86_64-apple-darwin
+          - os: macos-latest
+            artifact-name: stylua-macos-aarch64
+            cargo-target: x86_64-apple-darwin
+
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
-    - name: Download artifacts
-      uses: actions/download-artifact@v2
-      with:
-        path: artifacts
-    - run: |
-        zip -rj stylua-win64.zip ./artifacts/stylua-win64/*
-        zip -rj stylua-macos.zip ./artifacts/stylua-macos/*
-        zip -rj stylua-linux.zip ./artifacts/stylua-linux/*
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: true
+      - uses: actions/checkout@v3
 
-    - name: Upload windows build
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./stylua-win64.zip
-        asset_name: stylua-win64.zip
-        asset_content_type: application/zip
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.cargo-target }}
+          override: true
+          profile: minimal
 
-    - name: Upload macos build
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./stylua-macos.zip
-        asset_name: stylua-macos.zip
-        asset_content_type: application/zip
+      - name: Build Binary (All features)
+        run: cargo build --verbose --locked --release --all-features
+        env:
+          CARGO_TARGET_DIR: output
 
-    - name: Upload linux build
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./stylua-linux.zip
-        asset_name: stylua-linux.zip
-        asset_content_type: application/zip
+      - name: Setup Archive + Extension
+        shell: bash
+        run: |
+          mkdir -p staging
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp "output/release/stylua.exe" staging/
+            cd staging
+            7z a ../release.zip *
+          else
+            cp "output/release/stylua" staging/
+            cd staging
+            zip ../release.zip *
+          fi
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: release.zip
+
+      - name: Upload Binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: release.zip
+          asset_name: ${{ matrix.artifact-name }}.zip
+          asset_content_type: application/octet-stream
+
+  release_cargo:
+    name: Publish to cargo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Publish to cargo
+        run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
+
+  release_npm:
+    name: Publish wasm to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+          profile: minimal
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Build WASM
+        run: ./wasm/build-wasm
+
+      - name: Publish to npm
+        working-directory: wasm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
