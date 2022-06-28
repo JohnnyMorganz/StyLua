@@ -435,8 +435,13 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         );
         let block = Block::new().with_last_stmt(Some((last_stmt, None)));
 
-        let end_token = format_end_token(ctx, if_node.end_token(), EndTokenType::BlockEnd, shape)
-            .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()));
+        let end_token = format_end_token(
+            ctx,
+            if_node.end_token(),
+            EndTokenType::IndentComments,
+            shape,
+        )
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()));
 
         let singleline_if = if_node
             .to_owned()
