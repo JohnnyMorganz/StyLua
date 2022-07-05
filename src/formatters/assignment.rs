@@ -22,7 +22,7 @@ use crate::{
         },
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
-            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
