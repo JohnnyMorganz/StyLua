@@ -721,7 +721,7 @@ pub fn format_function_body(
     let end_token = format_end_token(
         ctx,
         function_body.end_token(),
-        EndTokenType::IndentComments,
+        EndTokenType::BlockEnd,
         shape,
     )
     .update_trivia(end_token_leading_trivia, end_token_trailing_trivia);

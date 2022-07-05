@@ -24,11 +24,15 @@ enum FormatTokenType {
 /// The type of end token being used to format
 #[derive(Debug)]
 pub enum EndTokenType {
-    /// Indent the leading comments of the token.
-    /// This typically occurs when the token is used to close an indented block scope
-    IndentComments,
-    /// Keep the comments at the same level as the end token
-    InlineComments,
+    /// A token ending a block, i.e. the `end` symbol
+    /// This means that the indent block it was closing is at the current block indent level
+    BlockEnd,
+    /// A closing brace at the end of a table.
+    /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
+    ClosingBrace,
+    /// A closing parentheses at the end of e.g. a function call
+    /// This means that the indent block that it was closing is formed from an indent range, rather than the current block indent level.
+    ClosingParens,
 }
 
 #[macro_export]
@@ -458,7 +462,7 @@ where
     let start_parens = format_token_reference(ctx, start_parens, shape)
         .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]));
 
-    let end_parens = format_end_token(ctx, end_parens, EndTokenType::IndentComments, shape)
+    let end_parens = format_end_token(ctx, end_parens, EndTokenType::ClosingParens, shape)
         .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
             ctx, shape,
         )]));
@@ -568,7 +572,7 @@ pub fn format_symbol(
 pub fn format_end_token(
     ctx: &Context,
     current_token: &TokenReference,
-    token_type: EndTokenType,
+    _token_type: EndTokenType,
     shape: Shape,
 ) -> TokenReference {
     // Indent any comments leading a token, as these comments are technically part of the function body block
@@ -578,11 +582,7 @@ pub fn format_end_token(
         FormatTokenType::LeadingTrivia,
         // The indent level we are currently at is one less (as we are at the block closing token, not the indented block).
         // The comment is present inside the indented block
-        if let EndTokenType::IndentComments = token_type {
-            shape.increment_additional_indent()
-        } else {
-            shape
-        },
+        shape.increment_additional_indent(),
     );
     let formatted_trailing_trivia: Vec<Token> = load_token_trivia(
         ctx,
