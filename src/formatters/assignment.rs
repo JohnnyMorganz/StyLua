@@ -22,7 +22,7 @@ use crate::{
         },
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
-            UpdateLeadingTrivia, UpdateTrailingTrivia,
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia
         },
         trivia_util,
     },
@@ -284,12 +284,11 @@ fn attempt_assignment_tactics(
     }
 }
 
-pub fn format_assignment(ctx: &Context, assignment: &Assignment, shape: Shape) -> Assignment {
-    // Calculate trivia
-    // Leading trivia added to before the var_list, trailing trivia added to the end of the expr_list
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
-
+pub fn format_assignment_no_trivia(
+    ctx: &Context,
+    assignment: &Assignment,
+    shape: Shape,
+) -> Assignment {
     // Check if the assignment expressions or equal token contain comments. If they do, we bail out of determining any tactics
     // and format multiline
     let contains_comments = trivia_util::token_contains_comments(assignment.equal_token())
@@ -331,24 +330,27 @@ pub fn format_assignment(ctx: &Context, assignment: &Assignment, shape: Shape) -
         equal_token = new_equal_token;
     }
 
-    // Add necessary trivia
-    let var_list = var_list.update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-
     Assignment::new(var_list, expr_list).with_equal_token(equal_token)
+}
+
+pub fn format_assignment(ctx: &Context, assignment: &Assignment, shape: Shape) -> Assignment {
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+
+    format_assignment_no_trivia(ctx, assignment, shape).update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(trailing_trivia),
+    )
 }
 
 fn format_local_no_assignment(
     ctx: &Context,
     assignment: &LocalAssignment,
     shape: Shape,
-    leading_trivia: Vec<Token>,
-    trailing_trivia: Vec<Token>,
 ) -> LocalAssignment {
-    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape);
     let shape = shape + 6; // 6 = "local "
-    let mut name_list = try_format_punctuated(
+    let name_list = try_format_punctuated(
         ctx,
         assignment.names(),
         shape,
@@ -357,27 +359,10 @@ fn format_local_no_assignment(
     );
 
     #[cfg(feature = "luau")]
-    let mut type_specifiers: Vec<Option<TypeSpecifier>> = assignment
+    let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
         .type_specifiers()
         .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
-
-    // See if the last variable assigned has a type specifier, and add a new line to that
-    #[allow(unused_mut)]
-    let mut new_line_added = false;
-
-    #[cfg(feature = "luau")]
-    if let Some(Some(specifier)) = type_specifiers.pop() {
-        type_specifiers.push(Some(specifier.update_trailing_trivia(
-            FormatTriviaType::Append(trailing_trivia.to_owned()),
-        )));
-        new_line_added = true;
-    }
-
-    // Add any trailing trivia to the end of the expression list, if we haven't already added a newline
-    if !new_line_added {
-        name_list = name_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia))
-    }
 
     let local_assignment = LocalAssignment::new(name_list);
     #[cfg(feature = "luau")]
@@ -389,18 +374,13 @@ fn format_local_no_assignment(
         .with_expressions(Punctuated::new())
 }
 
-pub fn format_local_assignment(
+pub fn format_local_assignment_no_trivia(
     ctx: &Context,
     assignment: &LocalAssignment,
     shape: Shape,
 ) -> LocalAssignment {
-    // Calculate trivia
-    // Leading trivia added to before the local token, and trailing trivia added to the end of the expr_list, or name_list if no expr_list provided
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
-
     if assignment.expressions().is_empty() {
-        format_local_no_assignment(ctx, assignment, shape, leading_trivia, trailing_trivia)
+        format_local_no_assignment(ctx, assignment, shape)
     } else {
         // Check if the assignment expression or equals token contain comments. If they do, we bail out of determining any tactics
         // and format multiline
@@ -414,8 +394,7 @@ pub fn format_local_assignment(
             });
 
         // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
-        let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape)
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+        let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape);
 
         let mut name_list = try_format_punctuated(
             ctx,
@@ -475,9 +454,6 @@ pub fn format_local_assignment(
             equal_token = new_equal_token;
         }
 
-        // Add necessary trivia
-        let expr_list = expr_list.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-
         let local_assignment = LocalAssignment::new(name_list);
         #[cfg(feature = "luau")]
         let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
@@ -486,4 +462,19 @@ pub fn format_local_assignment(
             .with_equal_token(Some(equal_token))
             .with_expressions(expr_list)
     }
+}
+
+pub fn format_local_assignment(
+    ctx: &Context,
+    assignment: &LocalAssignment,
+    shape: Shape,
+) -> LocalAssignment {
+    // Calculate trivia
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+
+    format_local_assignment_no_trivia(ctx, assignment, shape).update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(trailing_trivia),
+    )
 }

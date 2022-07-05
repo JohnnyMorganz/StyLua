@@ -2,8 +2,8 @@ use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
     Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
-    FunctionName, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Suffix, TableConstructor,
-    Value, Var,
+    FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Stmt, Suffix,
+    TableConstructor, Value, Var,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
@@ -14,12 +14,13 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        block::{format_block, format_last_stmt_},
+        block::{format_block, format_last_stmt_no_trivia},
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
             format_punctuated, format_token_reference, EndTokenType,
         },
+        stmt::format_stmt_no_trivia,
         table::format_table_constructor,
         trivia::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
@@ -624,6 +625,7 @@ fn suffix_contains_nested_function(suffix: &Suffix) -> bool {
     };
 
     match suffix {
+        Suffix::Index(Index::Brackets { expression, .. }) => contains_nested_function(expression),
         Suffix::Call(Call::AnonymousCall(function_args)) => test_function_args(function_args),
         Suffix::Call(Call::MethodCall(method_call)) => test_function_args(method_call.args()),
         _ => false,
@@ -635,26 +637,12 @@ fn contains_nested_function(expression: &Expression) -> bool {
     match expression {
         Expression::Value { value, .. } => match &**value {
             Value::Function(_) => true,
-            Value::FunctionCall(call) => {
-                call.suffixes().any(suffix_contains_nested_function)
-                    || match call.prefix() {
-                        Prefix::Expression(expression) => contains_nested_function(expression),
-                        _ => false,
-                    }
-            }
+            Value::FunctionCall(call) => function_call_contains_nested_function(call),
             Value::ParenthesesExpression(expression) => contains_nested_function(expression),
             Value::TableConstructor(table_constructor) => {
                 table_constructor_contains_nested_function(table_constructor)
             }
-            Value::Var(Var::Expression(var_expression)) => {
-                var_expression
-                    .suffixes()
-                    .any(suffix_contains_nested_function)
-                    || match var_expression.prefix() {
-                        Prefix::Expression(expression) => contains_nested_function(expression),
-                        _ => false,
-                    }
-            }
+            Value::Var(var) => var_contains_nested_function(var),
             _ => false,
         },
         Expression::BinaryOperator { lhs, rhs, .. } => {
@@ -667,11 +655,41 @@ fn contains_nested_function(expression: &Expression) -> bool {
     }
 }
 
-fn block_contains_nested_function(block: &Block) -> bool {
-    debug_assert!(block.stmts().next().is_none());
+fn var_contains_nested_function(var: &Var) -> bool {
+    match var {
+        Var::Expression(var_expression) => {
+            var_expression
+                .suffixes()
+                .any(suffix_contains_nested_function)
+                || matches!(var_expression.prefix(), Prefix::Expression(expression) if contains_nested_function(expression))
+        }
+        _ => false,
+    }
+}
 
-    match block.last_stmt().unwrap() {
-        LastStmt::Return(r#return) => r#return.returns().iter().any(contains_nested_function),
+fn function_call_contains_nested_function(call: &FunctionCall) -> bool {
+    call.suffixes().any(suffix_contains_nested_function)
+        || matches!(call.prefix(), Prefix::Expression(expression) if contains_nested_function(expression))
+}
+
+fn block_contains_nested_function(block: &Block) -> bool {
+    debug_assert!(block.stmts().count() <= 1);
+
+    if let Some(stmt) = block.stmts().next() {
+        let contains_nested_function = match stmt {
+            Stmt::Assignment(assignment) => assignment.variables().iter().any(var_contains_nested_function) || assignment.expressions().iter().any(contains_nested_function),
+            Stmt::LocalAssignment(assignment) => assignment.expressions().iter().any(contains_nested_function),
+            Stmt::FunctionCall(function_call) => function_call_contains_nested_function(function_call),
+            _ => unreachable!("testing block_contains_nested_function on a stmt which isn't an assignment/function call"),
+        };
+
+        if contains_nested_function {
+            return true;
+        }
+    }
+
+    match block.last_stmt() {
+        Some(LastStmt::Return(r#return)) => r#return.returns().iter().any(contains_nested_function),
         _ => false,
     }
 }
@@ -798,22 +816,30 @@ pub fn format_function_body(
                 })
                 + return_type.as_ref().map_or(0, |x| x.to_string().len());
 
-            let last_stmt = function_body
-                .block()
-                .last_stmt()
-                .expect("no last stmt in singleline function");
+            let trailing_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
 
-            let last_stmt = format_last_stmt_(ctx, last_stmt, block_shape).update_trailing_trivia(
-                FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
-            );
+            let block = if let Some(last_stmt) = function_body.block().last_stmt() {
+                Block::new().with_last_stmt(Some((
+                    format_last_stmt_no_trivia(ctx, last_stmt, block_shape)
+                        .update_trailing_trivia(trailing_trivia),
+                    None,
+                )))
+            } else if let Some(stmt) = function_body.block().stmts().next() {
+                let stmt = format_stmt_no_trivia(ctx, stmt, block_shape)
+                    .update_trailing_trivia(trailing_trivia);
+                Block::new().with_stmts(vec![(stmt, None)])
+            } else {
+                unreachable!("Got a empty block but is_block_empty was false");
+            };
 
-            // If the last statement is multiline (either because it returns a function / table or it is too large)
-            // then bail out of singleline formatting, and format multiline
-            if trivia_util::spans_multiple_lines(&last_stmt) {
+            // If the block forces multiline or goes over width, then bail out of singleline formatting and format multiline
+            if block_shape.take_first_line(&block).over_budget()
+                || trivia_util::spans_multiple_lines(&block)
+            {
                 singleline_function = false;
                 create_normal_block()
             } else {
-                Block::new().with_last_stmt(Some((last_stmt, None)))
+                block
             }
         }
     } else {

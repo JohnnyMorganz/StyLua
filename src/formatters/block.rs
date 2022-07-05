@@ -167,7 +167,7 @@ fn format_last_stmt_block(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> 
     }
 }
 
-pub fn format_last_stmt_(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
+pub fn format_last_stmt_no_trivia(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
     match last_stmt {
         LastStmt::Break(token) => LastStmt::Break(fmt_symbol!(ctx, token, "break", shape)),
 
@@ -202,7 +202,7 @@ pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> La
     let leading_trivia = FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]);
     let trailing_trivia = FormatTriviaType::Append(vec![create_newline_trivia(ctx)]);
 
-    format_last_stmt_(ctx, last_stmt, shape).update_trivia(leading_trivia, trailing_trivia)
+    format_last_stmt_no_trivia(ctx, last_stmt, shape).update_trivia(leading_trivia, trailing_trivia)
 }
 
 fn trivia_remove_leading_newlines(trivia: Vec<&Token>) -> Vec<Token> {

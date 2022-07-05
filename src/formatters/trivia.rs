@@ -4,12 +4,12 @@ use full_moon::ast::types::{
     IfExpression, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo,
     TypeSpecifier,
 };
-use full_moon::ast::If;
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
     FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix,
     Return, Stmt, Suffix, TableConstructor, UnOp, Value, Var, VarExpression,
 };
+use full_moon::ast::{Assignment, If, LocalAssignment};
 use full_moon::tokenizer::{Token, TokenReference};
 
 /// Enum to determine how trivia should be added when using trivia formatter functions
@@ -459,23 +459,46 @@ define_update_trivia!(If, |this, leading, trailing| {
         .with_end_token(this.end_token().update_trailing_trivia(trailing))
 });
 
+define_update_trivia!(Assignment, |this, leading, trailing| {
+    this.to_owned()
+        .with_variables(this.variables().update_leading_trivia(leading))
+        .with_expressions(this.expressions().update_trailing_trivia(trailing))
+});
+
+define_update_trivia!(LocalAssignment, |this, leading, trailing| {
+    if this.expressions().is_empty() {
+        // Handle if the last item had a type specifier set
+        cfg_if::cfg_if!(
+            if #[cfg(feature = "luau")] {
+                let mut type_specifiers = this.type_specifiers().map(|x| x.cloned()).collect::<Vec<_>>();
+
+                if let Some(Some(type_specifier)) = type_specifiers.pop() {
+                    type_specifiers.push(Some(type_specifier.update_trailing_trivia(trailing)));
+
+                    return this.clone()
+                        .with_local_token(this.local_token().update_leading_trivia(leading))
+                        .with_type_specifiers(type_specifiers);
+                }
+            }
+        );
+
+        this.clone()
+            .with_local_token(this.local_token().update_leading_trivia(leading))
+            .with_names(this.names().update_trailing_trivia(trailing))
+    } else {
+        this.clone()
+            .with_local_token(this.local_token().update_leading_trivia(leading))
+            .with_expressions(this.expressions().update_trailing_trivia(trailing))
+    }
+});
+
 define_update_trailing_trivia!(Stmt, |this, trailing| {
     match this {
         Stmt::Assignment(assignment) => {
-            let expressions = assignment.expressions().update_trailing_trivia(trailing);
-            Stmt::Assignment(assignment.to_owned().with_expressions(expressions))
+            Stmt::Assignment(assignment.update_trailing_trivia(trailing))
         }
-
         Stmt::LocalAssignment(local_assignment) => {
-            if local_assignment.expressions().is_empty() {
-                let names = local_assignment.names().update_trailing_trivia(trailing);
-                Stmt::LocalAssignment(local_assignment.to_owned().with_names(names))
-            } else {
-                let expressions = local_assignment
-                    .expressions()
-                    .update_trailing_trivia(trailing);
-                Stmt::LocalAssignment(local_assignment.to_owned().with_expressions(expressions))
-            }
+            Stmt::LocalAssignment(local_assignment.update_trailing_trivia(trailing))
         }
         Stmt::FunctionCall(function_call) => {
             Stmt::FunctionCall(function_call.update_trailing_trivia(trailing))

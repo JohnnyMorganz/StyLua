@@ -9,8 +9,11 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
-        assignment::{format_assignment, format_local_assignment},
-        block::format_block,
+        assignment::{
+            format_assignment, format_assignment_no_trivia, format_local_assignment,
+            format_local_assignment_no_trivia,
+        },
+        block::{format_block, format_last_stmt_no_trivia},
         expression::{format_expression, hang_expression_trailing_newline},
         functions::{format_function_call, format_function_declaration, format_local_function},
         general::{
@@ -29,8 +32,6 @@ use full_moon::ast::{
     GenericFor, If, NumericFor, Repeat, Stmt, Suffix, Value, While,
 };
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
-
-use super::block::format_last_stmt_;
 
 macro_rules! fmt_stmt {
     ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
@@ -421,7 +422,7 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         // Rather than deferring to `format_block()`, since we know that there is only a single LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this
-        let last_stmt = format_last_stmt_(
+        let last_stmt = format_last_stmt_no_trivia(
             ctx,
             if_node
                 .block()
@@ -1060,4 +1061,25 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         #[cfg(feature = "lua52")] Goto = format_goto,
         #[cfg(feature = "lua52")] Label = format_label,
     })
+}
+
+pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
+    let should_format = ctx.should_format_node(stmt);
+
+    if let FormatNode::Skip = should_format {
+        return stmt.to_owned();
+    } else if let FormatNode::NotInRange = should_format {
+        return stmt_block::format_stmt_block(ctx, stmt, shape);
+    }
+
+    match stmt {
+        Stmt::LocalAssignment(stmt) => {
+            Stmt::LocalAssignment(format_local_assignment_no_trivia(ctx, stmt, shape))
+        }
+        Stmt::Assignment(stmt) => Stmt::Assignment(format_assignment_no_trivia(ctx, stmt, shape)),
+        Stmt::FunctionCall(stmt) => Stmt::FunctionCall(format_function_call(ctx, stmt, shape)),
+        _ => unreachable!(
+            "attempted to format a stmt without trivia which isn't an assignment/function call"
+        ),
+    }
 }
