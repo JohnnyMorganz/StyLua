@@ -492,76 +492,121 @@ define_update_trivia!(LocalAssignment, |this, leading, trailing| {
     }
 });
 
-define_update_trailing_trivia!(Stmt, |this, trailing| {
+define_update_trivia!(Stmt, |this, leading, trailing| {
     match this {
         Stmt::Assignment(assignment) => {
-            Stmt::Assignment(assignment.update_trailing_trivia(trailing))
+            Stmt::Assignment(assignment.update_trivia(leading, trailing))
         }
         Stmt::LocalAssignment(local_assignment) => {
-            Stmt::LocalAssignment(local_assignment.update_trailing_trivia(trailing))
+            Stmt::LocalAssignment(local_assignment.update_trivia(leading, trailing))
         }
         Stmt::FunctionCall(function_call) => {
-            Stmt::FunctionCall(function_call.update_trailing_trivia(trailing))
+            Stmt::FunctionCall(function_call.update_trivia(leading, trailing))
         }
         Stmt::Repeat(repeat_block) => {
+            let repeat_token = repeat_block.repeat_token().update_leading_trivia(leading);
             let until = repeat_block.until().update_trailing_trivia(trailing);
-            Stmt::Repeat(repeat_block.to_owned().with_until(until))
+            Stmt::Repeat(
+                repeat_block
+                    .to_owned()
+                    .with_repeat_token(repeat_token)
+                    .with_until(until),
+            )
         }
         Stmt::Do(stmt) => {
+            let do_token = stmt.do_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::Do(stmt.to_owned().with_end_token(end_token))
+            Stmt::Do(
+                stmt.to_owned()
+                    .with_do_token(do_token)
+                    .with_end_token(end_token),
+            )
         }
         Stmt::GenericFor(stmt) => {
+            let for_token = stmt.for_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::GenericFor(stmt.to_owned().with_end_token(end_token))
+            Stmt::GenericFor(
+                stmt.to_owned()
+                    .with_for_token(for_token)
+                    .with_end_token(end_token),
+            )
         }
-        Stmt::If(stmt) => Stmt::If(stmt.update_trailing_trivia(trailing)),
+        Stmt::If(stmt) => Stmt::If(stmt.update_trivia(leading, trailing)),
         Stmt::FunctionDeclaration(stmt) => {
+            let function_token = stmt.function_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);
-            Stmt::FunctionDeclaration(stmt.to_owned().with_body(body))
+            Stmt::FunctionDeclaration(
+                stmt.to_owned()
+                    .with_function_token(function_token)
+                    .with_body(body),
+            )
         }
         Stmt::LocalFunction(stmt) => {
+            let local_token = stmt.local_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);
-            Stmt::LocalFunction(stmt.to_owned().with_body(body))
+            Stmt::LocalFunction(
+                stmt.to_owned()
+                    .with_local_token(local_token)
+                    .with_body(body),
+            )
         }
         Stmt::NumericFor(stmt) => {
+            let for_token = stmt.for_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::NumericFor(stmt.to_owned().with_end_token(end_token))
+            Stmt::NumericFor(
+                stmt.to_owned()
+                    .with_for_token(for_token)
+                    .with_end_token(end_token),
+            )
         }
         Stmt::While(stmt) => {
+            let while_token = stmt.while_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::While(stmt.to_owned().with_end_token(end_token))
+            Stmt::While(
+                stmt.to_owned()
+                    .with_while_token(while_token)
+                    .with_end_token(end_token),
+            )
         }
 
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(stmt) => {
+            let lhs = stmt.rhs().update_leading_trivia(leading);
             let rhs = stmt.rhs().update_trailing_trivia(trailing);
-            Stmt::CompoundAssignment(stmt.to_owned().with_rhs(rhs))
+            Stmt::CompoundAssignment(stmt.to_owned().with_lhs(lhs).with_rhs(rhs))
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
+            let export_token = stmt.export_token().update_leading_trivia(leading);
             let type_declaration = stmt.type_declaration().to_owned().with_type_definition(
                 stmt.type_declaration()
                     .type_definition()
                     .update_trailing_trivia(trailing),
             );
-            Stmt::ExportedTypeDeclaration(stmt.to_owned().with_type_declaration(type_declaration))
+            Stmt::ExportedTypeDeclaration(
+                stmt.to_owned()
+                    .with_export_token(export_token)
+                    .with_type_declaration(type_declaration),
+            )
         }
         #[cfg(feature = "luau")]
         Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(
             stmt.to_owned()
+                .with_type_token(stmt.type_token().update_leading_trivia(leading))
                 .with_type_definition(stmt.type_definition().update_trailing_trivia(trailing)),
         ),
         #[cfg(feature = "lua52")]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
+                .with_goto_token(stmt.goto_token().update_leading_trivia(leading))
                 .with_label_name(stmt.label_name().update_trailing_trivia(trailing)),
         ),
         #[cfg(feature = "lua52")]
         Stmt::Label(stmt) => Stmt::Label(
             stmt.to_owned()
+                .with_left_colons(stmt.left_colons().update_leading_trivia(leading))
                 .with_right_colons(stmt.right_colons().update_trailing_trivia(trailing)),
         ),
         other => panic!("unknown node {:?}", other),

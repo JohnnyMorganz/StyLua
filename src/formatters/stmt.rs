@@ -385,8 +385,7 @@ fn format_else_if(
 fn is_if_guard(if_node: &If) -> bool {
     if_node.else_if().is_none()
         && if_node.else_block().is_none()
-        && if_node.block().stmts().next().is_none()
-        && if_node.block().last_stmt().is_some()
+        && trivia_util::is_block_simple(if_node.block())
         && !trivia_util::contains_comments(if_node.block())
         && !trivia_util::contains_comments(if_node.then_token())
 }
@@ -419,22 +418,25 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         && ctx.should_collapse_simple_conditionals()
         && is_if_guard(if_node)
     {
-        // Rather than deferring to `format_block()`, since we know that there is only a single LastStmt in the block, we can format it immediately
+        // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this
-        let last_stmt = format_last_stmt_no_trivia(
-            ctx,
-            if_node
-                .block()
-                .last_stmt()
-                .expect("no last stmt in singleline if"),
-            singleline_shape,
-        )
-        .update_trivia(
-            FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
-            FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
-        );
-        let block = Block::new().with_last_stmt(Some((last_stmt, None)));
+        let stmt_leading_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+        let stmt_trailing_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+
+        let block = if let Some(stmt) = if_node.block().stmts().next() {
+            let stmt = format_stmt_no_trivia(ctx, stmt, singleline_shape)
+                .update_trivia(stmt_leading_trivia, stmt_trailing_trivia);
+
+            Block::new().with_stmts(vec![(stmt, None)])
+        } else if let Some(last_stmt) = if_node.block().last_stmt() {
+            let last_stmt = format_last_stmt_no_trivia(ctx, last_stmt, singleline_shape)
+                .update_trivia(stmt_leading_trivia, stmt_trailing_trivia);
+
+            Block::new().with_last_stmt(Some((last_stmt, None)))
+        } else {
+            panic!("'if guard' conditional but has no body");
+        };
 
         let end_token = format_end_token(
             ctx,
