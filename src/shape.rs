@@ -1,10 +1,8 @@
 use crate::context::Context;
-#[cfg(feature = "luau")]
 use crate::formatters::{
     trivia::{FormatTriviaType, UpdateTrivia},
     trivia_util::trivia_is_comment,
 };
-#[cfg(feature = "luau")]
 use full_moon::node::Node;
 use std::fmt::Display;
 use std::ops::Add;
@@ -38,6 +36,11 @@ impl Indent {
     /// The current additional indentation level
     pub fn additional_indent(&self) -> usize {
         self.additional_indent
+    }
+
+    /// The configured width of a single indent
+    pub fn configured_indent_width(&self) -> usize {
+        self.indent_width
     }
 
     /// The current width (characters) taken up by indentation
@@ -230,7 +233,6 @@ impl Shape {
     /// Takes in a new node, and tests whether adding it in will force any lines over the budget.
     /// This function attempts to ignore the impact of comments by removing them, which makes this function more expensive.
     /// NOTE: This function does not update state/return a new shape
-    #[cfg(feature = "luau")]
     pub fn test_over_budget<T: Node>(&self, item: &T) -> bool {
         // Converts the node into a string, removing any comments present
         // We strip leading/trailing comments of each token present, but keep whitespace
