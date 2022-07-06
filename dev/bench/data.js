@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657050887836,
+  "lastUpdate": 1657132677520,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -419,6 +419,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 65888386,
             "range": "± 627572",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "69c9278e551be7681578e01e6ab16cf6b05c82c5",
+          "message": "Use initial comment indentation level for elseif/else comments (#488)\n\n* Use input formatting to determine indent level of elseif/else comments\r\n\r\n* Update changelog\r\n\r\n* Add another test case\r\n\r\n* Fix snapshot\r\n\r\n* Change code",
+          "timestamp": "2022-07-06T19:32:23+01:00",
+          "tree_id": "05a756ced5eca858dfeb369f5b2c04135687604b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/69c9278e551be7681578e01e6ab16cf6b05c82c5"
+        },
+        "date": 1657132676933,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58008260,
+            "range": "± 604617",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2427619407,
+            "range": "± 2563436",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 48942147,
+            "range": "± 330437",
             "unit": "ns/iter"
           }
         ]
