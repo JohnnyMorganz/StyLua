@@ -319,18 +319,21 @@ fn should_indent_further<'a>(trivia: impl Iterator<Item = &'a Token>, shape: Sha
                     next_trivia.token_kind(),
                     TokenKind::SingleLineComment | TokenKind::MultiLineComment
                 ) {
-                    // Only use the "last line" of the whitespace, to ignore newlines
-                    if let Some(last_line) = characters.lines().last() {
-                        let indent_level = if last_line.contains('\t') {
-                            last_line.matches('\t').count()
-                        } else {
-                            last_line.matches(' ').count()
-                                / shape.indent().configured_indent_width()
-                        };
+                    // Only use the "last line" of the whitespace, i.e. after all newlines
+                    let last_line = characters
+                        .chars()
+                        .rev()
+                        .take_while(|c| !matches!(c, '\n' | '\r'));
 
-                        if indent_level > current_indent_level {
-                            return true;
-                        }
+                    let indent_level = if last_line.clone().any(|c| matches!(c, '\t')) {
+                        last_line.filter(|c| matches!(c, '\t')).count()
+                    } else {
+                        last_line.filter(|c| matches!(c, ' ')).count()
+                            / shape.indent().configured_indent_width()
+                    };
+
+                    if indent_level > current_indent_level {
+                        return true;
                     }
                 }
             }
