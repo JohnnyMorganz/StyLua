@@ -1102,13 +1102,10 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
 }
 
 pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
-    let should_format = ctx.should_format_node(stmt);
-
-    if let FormatNode::Skip = should_format {
-        return stmt.to_owned();
-    } else if let FormatNode::NotInRange = should_format {
-        return stmt_block::format_stmt_block(ctx, stmt, shape);
-    }
+    assert!(
+        matches!(ctx.should_format_node(stmt), FormatNode::Normal),
+        "!FormatNode::None for format_stmt_no_trivia"
+    );
 
     match stmt {
         Stmt::LocalAssignment(stmt) => {
@@ -1116,8 +1113,6 @@ pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         }
         Stmt::Assignment(stmt) => Stmt::Assignment(format_assignment_no_trivia(ctx, stmt, shape)),
         Stmt::FunctionCall(stmt) => Stmt::FunctionCall(format_function_call(ctx, stmt, shape)),
-        _ => unreachable!(
-            "attempted to format a stmt without trivia which isn't an assignment/function call"
-        ),
+        _ => unreachable!("format_stmt_no_trivia: node != assignment/function call"),
     }
 }
