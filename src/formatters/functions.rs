@@ -40,7 +40,7 @@ pub fn format_anonymous_function(
     shape: Shape,
 ) -> (TokenReference, FunctionBody) {
     let function_token = fmt_symbol!(ctx, function_token, "function", shape);
-    let function_body = format_function_body(ctx, function_body, shape.reset()); // TODO: do we want to reset this shape?
+    let function_body = format_function_body(ctx, function_body, shape);
 
     (function_token, function_body)
 }
