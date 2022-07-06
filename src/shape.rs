@@ -38,6 +38,11 @@ impl Indent {
         self.additional_indent
     }
 
+    /// The configured width of a single indent
+    pub fn configured_indent_width(&self) -> usize {
+        self.indent_width
+    }
+
     /// The current width (characters) taken up by indentation
     pub fn indent_width(&self) -> usize {
         (self.block_indent + self.additional_indent) * self.indent_width

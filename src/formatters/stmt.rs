@@ -24,11 +24,14 @@ use crate::{
     },
     shape::Shape,
 };
-use full_moon::ast::{
-    punctuated::Punctuated, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall, GenericFor,
-    If, NumericFor, Repeat, Stmt, Suffix, Value, While,
-};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
+use full_moon::{
+    ast::{
+        punctuated::Punctuated, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
+        GenericFor, If, NumericFor, Repeat, Stmt, Suffix, Value, While,
+    },
+    tokenizer::TokenKind,
+};
 
 macro_rules! fmt_stmt {
     ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
@@ -293,13 +296,52 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
         .with_end_token(end_token)
 }
 
+/// Given some trivia (particularly comments), this function computes whether we should
+/// indent leading comments on a elseif/else token, one level further. i.e.:
+/// ```lua
+/// -- comment
+/// elseif
+///     -- comment
+/// else
+/// ```
+/// If the comment was originally indented at a level higher than the current level,
+/// then we will indent it one level further.
+fn should_indent_further<'a>(trivia: impl Iterator<Item = &'a Token>, shape: Shape) -> bool {
+    let current_indent_level = shape.indent().block_indent() + shape.indent().additional_indent();
+    let mut iter = trivia.peekable();
+
+    while let Some(trivia) = iter.next() {
+        let next_trivia = iter.peek();
+
+        if let Some(next_trivia) = next_trivia {
+            if let TokenType::Whitespace { characters } = trivia.token_type() {
+                if matches!(
+                    next_trivia.token_kind(),
+                    TokenKind::SingleLineComment | TokenKind::MultiLineComment
+                ) {
+                    // Only use the "last line" of the whitespace, to ignore newlines
+                    if let Some(last_line) = characters.lines().last() {
+                        let indent_level = if last_line.contains('\t') {
+                            last_line.matches('\t').count()
+                        } else {
+                            last_line.matches(' ').count()
+                                / shape.indent().configured_indent_width()
+                        };
+
+                        if indent_level > current_indent_level {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    false
+}
+
 /// Formats an ElseIf node - This must always reside within format_if
-fn format_else_if(
-    ctx: &Context,
-    else_if_node: &ElseIf,
-    shape: Shape,
-    last_block_empty: bool,
-) -> ElseIf {
+fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf {
     // Calculate trivia
     let shape = shape.reset();
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
@@ -308,16 +350,15 @@ fn format_else_if(
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
-    let elseif_token = format_end_token(
-        ctx,
-        else_if_node.else_if_token(),
-        if last_block_empty {
+    // Compute the indent
+    let end_token_type =
+        if should_indent_further(else_if_node.else_if_token().leading_trivia(), shape) {
             EndTokenType::IndentComments
         } else {
             EndTokenType::InlineComments
-        },
-        shape,
-    );
+        };
+
+    let elseif_token = format_end_token(ctx, else_if_node.else_if_token(), end_token_type, shape);
     let singleline_condition = format_expression(ctx, &condition, shape + 7);
     let singleline_then_token = fmt_symbol!(ctx, else_if_node.then_token(), " then", shape);
 
@@ -433,34 +474,27 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         FormatTriviaType::Append(trailing_trivia.to_owned()),
     );
 
-    // Determine how to format the leading trivia on the `elseif` / `else` tokens
-    // If the last block was empty, then the comment inside the previous block should be indented,
-    let mut last_block_empty = trivia_util::is_block_empty(if_node.block());
-    let else_if = if_node.else_if().map(|else_ifs| {
-        let mut new_else_ifs = Vec::with_capacity(else_ifs.len());
-        for else_if in else_ifs {
-            new_else_ifs.push(format_else_if(ctx, else_if, shape, last_block_empty));
-            last_block_empty = trivia_util::is_block_empty(else_if.block())
-        }
-        new_else_ifs
+    let else_if = if_node.else_if().map(|else_if| {
+        else_if
+            .iter()
+            .map(|else_if| format_else_if(ctx, else_if, shape))
+            .collect()
     });
 
     let (else_token, else_block) = match (if_node.else_token(), if_node.else_block()) {
         (Some(else_token), Some(else_block)) => {
-            let else_token = format_end_token(
-                ctx,
-                else_token,
-                if last_block_empty {
-                    EndTokenType::IndentComments
-                } else {
-                    EndTokenType::InlineComments
-                },
-                shape,
-            )
-            .update_trivia(
-                FormatTriviaType::Append(leading_trivia),
-                FormatTriviaType::Append(trailing_trivia),
-            );
+            // Compute the indent level on else token
+            let end_token_type = if should_indent_further(else_token.leading_trivia(), shape) {
+                EndTokenType::IndentComments
+            } else {
+                EndTokenType::InlineComments
+            };
+
+            let else_token = format_end_token(ctx, else_token, end_token_type, shape)
+                .update_trivia(
+                    FormatTriviaType::Append(leading_trivia),
+                    FormatTriviaType::Append(trailing_trivia),
+                );
             let else_block_shape = shape.reset().increment_block_indent();
             let else_block = format_block(ctx, else_block, else_block_shape);
 
