@@ -122,7 +122,7 @@ fn is_complex_function_call(function_call: &FunctionCall) -> bool {
             let mut complexity_count = 0;
 
             for argument in arguments {
-                if let Expression::Value { value } = argument {
+                if let Expression::Value { value, .. } = argument {
                     match &**value {
                         Value::Function(_) => return true,
                         Value::TableConstructor(_) => complexity_count += 1,
