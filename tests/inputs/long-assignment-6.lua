@@ -6,3 +6,7 @@ do
 		options
 	)
 end
+
+do
+	local diff = createANewTableFromThisOne { thisIsAField = true, thisIsAnotherField = true, thisIsAFinalField = true, x = y }
+end
