@@ -32,7 +32,7 @@ use full_moon::{
         punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
         GenericFor, If, NumericFor, Repeat, Stmt, Suffix, Value, While,
     },
-    tokenizer::{Token, TokenReference, TokenType},
+    tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
 macro_rules! fmt_stmt {
