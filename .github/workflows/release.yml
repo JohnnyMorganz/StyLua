@@ -126,7 +126,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Build WASM
-        run: ./wasm/build-wasm.sh
+        run: |
+          chmod u+x ./wasm/build-wasm.sh
+          ./wasm/build-wasm.sh
 
       - name: Publish to npm
         working-directory: wasm
