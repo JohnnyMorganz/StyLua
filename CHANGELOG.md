@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stylua library (`stylua_lib`) now exposes a `format_ast(ast, config, range, verification)` function to format a full-moon AST directly ([#482](https://github.com/JohnnyMorganz/StyLua/issues/482))
 
 ### Changed
-- We now attempt to first hang the equals token in an assignment before expanding the RHS expression ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292))
+- We now attempt to first hang the equals token in an assignment before expanding the RHS expression, provided the expression is not "complex" ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292), [#489](https://github.com/JohnnyMorganz/StyLua/issues/489))
 - We now use the current indent level of comments preceding an `elseif`/`else` token to determine whether they should still be indented one level or inlined with the `elseif`/`else` token. ([#254](https://github.com/JohnnyMorganz/StyLua/issues/254))
 - Static chained function calls (i.e., `foo.bar().baz()`) will now hang if necessary ([#368](https://github.com/JohnnyMorganz/StyLua/issues/368))
 - The first call in a chained function call will now inline with the prefix if the prefix begins with an uppercase letter or the prefix is smaller (in length) than the indent width
