@@ -68,7 +68,7 @@ It is usable in Node.js, or the in the browser (using a bundler).
 - [Aftman](https://github.com/LPGhatguy/aftmann)
 
 ```sh
-aftman add johnnymorganz/stylua@0.13.1
+aftman add johnnymorganz/stylua@0.14.0
 ```
 
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
