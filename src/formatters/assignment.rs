@@ -4,7 +4,7 @@ use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        Assignment, Expression, LocalAssignment, Value,
+        Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix, Value,
     },
     tokenizer::TokenType,
 };
@@ -116,10 +116,38 @@ pub fn hang_equal_token(
     equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
 }
 
+fn is_complex_function_call(function_call: &FunctionCall) -> bool {
+    let test_function_args = |function_args: &FunctionArgs| match function_args {
+        FunctionArgs::Parentheses { arguments, .. } => {
+            let mut complexity_count = 0;
+
+            for argument in arguments {
+                if let Expression::Value { value } = argument {
+                    match &**value {
+                        Value::Function(_) => return true,
+                        Value::TableConstructor(_) => complexity_count += 1,
+                        _ => (),
+                    }
+                }
+            }
+
+            complexity_count > 1
+        }
+        _ => false,
+    };
+
+    function_call.suffixes().any(|suffix| match suffix {
+        Suffix::Call(Call::AnonymousCall(function_args)) => test_function_args(function_args),
+        Suffix::Call(Call::MethodCall(method_call)) => test_function_args(method_call.args()),
+        _ => false,
+    })
+}
+
 /// Determines whether we should prevent hanging at the equals token depending on the RHS expression
 fn prevent_equals_hanging(expression: &Expression) -> bool {
     match expression {
         Expression::Value { value, .. } => match &**value {
+            Value::FunctionCall(function_call) => is_complex_function_call(function_call),
             #[cfg(feature = "luau")]
             Value::IfExpression(_) => true,
             _ => false,
