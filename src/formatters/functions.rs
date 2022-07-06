@@ -571,8 +571,10 @@ fn should_parameters_format_multiline(
             .map(|x| {
                 x.map_or((0, false), |specifier| {
                     let formatted = format_type_specifier(ctx, specifier, shape).to_string();
+                    let length = formatted.lines().next_back().unwrap_or("").len();
+                    let contains_newline = formatted.lines().count() > 1;
 
-                    (formatted.len(), formatted.lines().count() > 1)
+                    (length, contains_newline)
                 })
             })
             .fold(
