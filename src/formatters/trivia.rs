@@ -573,7 +573,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
 
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(stmt) => {
-            let lhs = stmt.rhs().update_leading_trivia(leading);
+            let lhs = stmt.lhs().update_leading_trivia(leading);
             let rhs = stmt.rhs().update_trailing_trivia(trailing);
             Stmt::CompoundAssignment(stmt.to_owned().with_lhs(lhs).with_rhs(rhs))
         }
