@@ -87,10 +87,20 @@ pub fn is_block_simple(block: &Block) -> bool {
     (block.stmts().next().is_none() && block.last_stmt().is_some())
         || (block.stmts().count() == 1
             && block.last_stmt().is_none()
-            && matches!(
-                block.stmts().next().unwrap(),
-                Stmt::LocalAssignment(_) | Stmt::Assignment(_) | Stmt::FunctionCall(_)
-            ))
+            && match block.stmts().next().unwrap() {
+                Stmt::LocalAssignment(assignment)
+                    if assignment.names().len() == 1 && assignment.expressions().len() <= 1 =>
+                {
+                    true
+                }
+                Stmt::Assignment(assignment)
+                    if assignment.variables().len() == 1 && assignment.expressions().len() <= 1 =>
+                {
+                    true
+                }
+                Stmt::FunctionCall(_) => true,
+                _ => false,
+            })
 }
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
