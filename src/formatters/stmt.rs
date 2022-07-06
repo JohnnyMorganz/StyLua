@@ -9,8 +9,11 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
-        assignment::{format_assignment, format_local_assignment},
-        block::format_block,
+        assignment::{
+            format_assignment, format_assignment_no_trivia, format_local_assignment,
+            format_local_assignment_no_trivia,
+        },
+        block::{format_block, format_last_stmt_no_trivia},
         expression::{format_expression, hang_expression_trailing_newline},
         functions::{format_function_call, format_function_declaration, format_local_function},
         general::{
@@ -24,13 +27,12 @@ use crate::{
     },
     shape::Shape,
 };
-use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use full_moon::{
     ast::{
-        punctuated::Punctuated, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
+        punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
         GenericFor, If, NumericFor, Repeat, Stmt, Suffix, Value, While,
     },
-    tokenizer::TokenKind,
+    tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
 macro_rules! fmt_stmt {
@@ -414,8 +416,28 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         .with_block(block)
 }
 
+/// Checks to see whether an [`If`] statement matches the structure of an "if guard".
+/// ```lua
+/// if condition then return expr end
+/// ```
+/// If we have an if guard, we can keep the statement single line - provided that a few key observations hold:
+/// - There is no elseif/else block
+/// - The body of the if block only contains a single [`LastStmt`] (note, this LastStmt may have multiple expressions e.g. `return foo, bar`)
+/// - There are no internal comments within the block
+/// We will also check if the statement surpasses the column width, or if the condition required multilining (handled outside of this function)
+fn is_if_guard(if_node: &If) -> bool {
+    if_node.else_if().is_none()
+        && if_node.else_block().is_none()
+        && trivia_util::is_block_simple(if_node.block())
+        && !trivia_util::contains_comments(if_node.block())
+        && !trivia_util::contains_comments(if_node.then_token())
+}
+
 /// Format an If node
 pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
+    const IF_LEN: usize = "if ".len();
+    const THEN_LEN: usize = " then".len();
+
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
@@ -424,15 +446,68 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
 
     let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
-    let singleline_condition = format_expression(ctx, &condition, shape + 6);
+    let singleline_condition = format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
 
     // Determine if we need to hang the condition
-    let singleline_shape = shape + (3 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 3 = "if ", 5 = " then"
+    let singleline_shape =
+        shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
     let require_multiline_expression = singleline_shape.over_budget()
         || trivia_util::token_contains_trailing_comments(if_node.if_token())
         || trivia_util::token_contains_leading_comments(if_node.then_token())
         || trivia_util::contains_comments(&condition);
+
+    if !require_multiline_expression
+        && ctx.should_collapse_simple_conditionals()
+        && is_if_guard(if_node)
+    {
+        // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
+        // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
+        // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this
+        let stmt_leading_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+        let stmt_trailing_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+
+        let block = if let Some(stmt) = if_node.block().stmts().next() {
+            let stmt = format_stmt_no_trivia(ctx, stmt, singleline_shape)
+                .update_trivia(stmt_leading_trivia, stmt_trailing_trivia);
+
+            Block::new().with_stmts(vec![(stmt, None)])
+        } else if let Some(last_stmt) = if_node.block().last_stmt() {
+            let last_stmt = format_last_stmt_no_trivia(ctx, last_stmt, singleline_shape)
+                .update_trivia(stmt_leading_trivia, stmt_trailing_trivia);
+
+            Block::new().with_last_stmt(Some((last_stmt, None)))
+        } else {
+            panic!("'if guard' conditional but has no body");
+        };
+
+        let end_token = format_end_token(
+            ctx,
+            if_node.end_token(),
+            EndTokenType::IndentComments,
+            shape,
+        )
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()));
+
+        let singleline_if = if_node
+            .to_owned()
+            .with_if_token(
+                singleline_if_token
+                    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone())),
+            )
+            .with_condition(singleline_condition.clone())
+            .with_then_token(singleline_then_token.clone())
+            .with_block(block)
+            .with_end_token(end_token);
+
+        // See if it fits under the column width. If it does, bail early and return this singleline if
+        if !shape
+            .add_width(strip_trivia(&singleline_if).to_string().len())
+            .over_budget()
+        {
+            return singleline_if;
+        }
+    }
 
     let if_token = match require_multiline_expression {
         true => fmt_symbol!(ctx, if_node.if_token(), "if", shape)
@@ -1024,4 +1099,20 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         #[cfg(feature = "lua52")] Goto = format_goto,
         #[cfg(feature = "lua52")] Label = format_label,
     })
+}
+
+pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
+    assert!(
+        matches!(ctx.should_format_node(stmt), FormatNode::Normal),
+        "!FormatNode::None for format_stmt_no_trivia"
+    );
+
+    match stmt {
+        Stmt::LocalAssignment(stmt) => {
+            Stmt::LocalAssignment(format_local_assignment_no_trivia(ctx, stmt, shape))
+        }
+        Stmt::Assignment(stmt) => Stmt::Assignment(format_assignment_no_trivia(ctx, stmt, shape)),
+        Stmt::FunctionCall(stmt) => Stmt::FunctionCall(format_function_call(ctx, stmt, shape)),
+        _ => unreachable!("format_stmt_no_trivia: node != assignment/function call"),
+    }
 }

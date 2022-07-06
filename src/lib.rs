@@ -83,6 +83,26 @@ impl Default for CallParenType {
     }
 }
 
+/// What mode to use if we want to collapse simple functions / guard statements
+#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub enum CollapseSimpleStatement {
+    /// Never collapse
+    Never,
+    /// Collapse simple functions onto a single line
+    FunctionOnly,
+    /// Collapse simple if guards onto a single line
+    ConditionalOnly,
+    /// Collapse all simple statements onto a single line
+    Always,
+}
+
+impl Default for CollapseSimpleStatement {
+    fn default() -> Self {
+        CollapseSimpleStatement::Never
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -133,6 +153,10 @@ pub struct Config {
     /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
     /// function is called with only one table or string argument (same as no_call_parentheses).
     call_parentheses: CallParenType,
+    /// Whether we should collapse simple structures like functions or guard statements
+    /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
+    /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
+    collapse_simple_statement: CollapseSimpleStatement,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -170,6 +194,10 @@ impl Config {
     /// Returns the current configured call parentheses style
     pub fn call_parentheses(&self) -> CallParenType {
         self.call_parentheses
+    }
+
+    pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
+        self.collapse_simple_statement
     }
 
     /// Returns a new config with the given column width
@@ -226,6 +254,16 @@ impl Config {
             ..self
         }
     }
+
+    pub fn with_collapse_simple_statement(
+        self,
+        collapse_simple_statement: CollapseSimpleStatement,
+    ) -> Self {
+        Self {
+            collapse_simple_statement,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -238,6 +276,7 @@ impl Default for Config {
             quote_style: QuoteStyle::default(),
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
+            collapse_simple_statement: CollapseSimpleStatement::default(),
         }
     }
 }

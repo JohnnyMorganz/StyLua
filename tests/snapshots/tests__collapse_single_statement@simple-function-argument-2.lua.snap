@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n            Config::default().with_collapse_mode(CollapseSimpleStatement::FunctionOnly),\n            None, OutputVerification::None).unwrap()"
+---
+Helpers.expect.match = MiniTest.new_expectation(
+	"string matching",
+	function(str, pattern) return str:find(pattern) ~= nil end,
+	function(str, pattern) return string.format("Pattern: %s\nObserved string: %s", vim.inspect(pattern), str) end
+)
+

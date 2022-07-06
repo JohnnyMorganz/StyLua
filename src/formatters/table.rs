@@ -3,6 +3,7 @@ use crate::{
     fmt_symbol,
     formatters::{
         expression::{format_expression, hang_expression, is_brackets_string},
+        functions::should_collapse_function_body,
         general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util::{self, table_field_trailing_trivia},
@@ -373,10 +374,10 @@ where
     (braces, fields)
 }
 
-fn expression_is_multiline_function(expression: &Expression) -> bool {
+fn expression_is_multiline_function(ctx: &Context, expression: &Expression) -> bool {
     if let Expression::Value { value, .. } = expression {
         if let Value::Function((_, function_body)) = &**value {
-            return !trivia_util::is_function_empty(function_body);
+            return !should_collapse_function_body(ctx, function_body);
         }
     }
     false
@@ -386,7 +387,7 @@ fn expression_is_multiline_function(expression: &Expression) -> bool {
 /// This will only happen if either:
 ///  1) There are comments within the table
 ///  2) There are anonymous functions defined within the table [As these will expand multiline]
-fn should_expand(table_constructor: &TableConstructor) -> bool {
+fn should_expand(ctx: &Context, table_constructor: &TableConstructor) -> bool {
     let (start_brace, end_brace) = table_constructor.braces().tokens();
     let contains_comments = start_brace
         .trailing_trivia()
@@ -402,10 +403,11 @@ fn should_expand(table_constructor: &TableConstructor) -> bool {
         for field in table_constructor.fields() {
             let should_expand = match field {
                 Field::ExpressionKey { key, value, .. } => {
-                    expression_is_multiline_function(key) || expression_is_multiline_function(value)
+                    expression_is_multiline_function(ctx, key)
+                        || expression_is_multiline_function(ctx, value)
                 }
-                Field::NameKey { value, .. } => expression_is_multiline_function(value),
-                Field::NoKey(expression) => expression_is_multiline_function(expression),
+                Field::NameKey { value, .. } => expression_is_multiline_function(ctx, value),
+                Field::NoKey(expression) => expression_is_multiline_function(ctx, expression),
                 other => panic!("unknown node {:?}", other),
             };
 
@@ -428,7 +430,7 @@ pub fn format_table_constructor(
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
     // Determine if we need to force the table multiline
-    let should_expand = should_expand(table_constructor);
+    let should_expand = should_expand(ctx, table_constructor);
 
     let table_type = match (should_expand, table_constructor.fields().iter().next()) {
         // We should expand, so force multiline

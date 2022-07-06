@@ -40,22 +40,13 @@ fn is_function_or_table_constructor(expression: &Expression) -> bool {
 }
 
 pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Return {
-    // Calculate trivia
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
-
     if return_node.returns().is_empty() {
-        let token = fmt_symbol!(ctx, return_node.token(), "return", shape).update_trivia(
-            FormatTriviaType::Append(leading_trivia),
-            FormatTriviaType::Append(trailing_trivia),
-        );
-
-        Return::new().with_token(token)
+        Return::new().with_token(fmt_symbol!(ctx, return_node.token(), "return", shape))
     } else {
-        let token = fmt_symbol!(ctx, return_node.token(), "return ", shape)
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+        const RETURN_LEN: usize = "return ".len();
 
-        let shape = shape + (strip_trivia(return_node.token()).to_string().len() + 1); // 1 = " "
+        let token = fmt_symbol!(ctx, return_node.token(), "return ", shape);
+        let shape = shape + RETURN_LEN;
 
         let returns = return_node.returns();
 
@@ -149,10 +140,6 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
             singleline_returns
         };
 
-        // Add a newline at the end of the list
-        let formatted_returns =
-            formatted_returns.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-
         Return::new()
             .with_token(token)
             .with_returns(formatted_returns)
@@ -180,6 +167,29 @@ fn format_last_stmt_block(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> 
     }
 }
 
+pub fn format_last_stmt_no_trivia(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
+    match last_stmt {
+        LastStmt::Break(token) => LastStmt::Break(fmt_symbol!(ctx, token, "break", shape)),
+
+        LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node, shape)),
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(token) => LastStmt::Continue(format_symbol(
+            ctx,
+            token,
+            &TokenReference::new(
+                vec![],
+                Token::new(TokenType::Identifier {
+                    identifier: "continue".into(),
+                }),
+                vec![],
+            ),
+            shape,
+        )),
+
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> LastStmt {
     let should_format = ctx.should_format_node(last_stmt);
     if let FormatNode::Skip = should_format {
@@ -188,37 +198,11 @@ pub fn format_last_stmt(ctx: &Context, last_stmt: &LastStmt, shape: Shape) -> La
         return format_last_stmt_block(ctx, last_stmt, shape);
     }
 
-    match last_stmt {
-        LastStmt::Break(token) => {
-            LastStmt::Break(fmt_symbol!(ctx, token, "break", shape).update_trivia(
-                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-            ))
-        }
+    // Calculate trivia
+    let leading_trivia = FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]);
+    let trailing_trivia = FormatTriviaType::Append(vec![create_newline_trivia(ctx)]);
 
-        LastStmt::Return(return_node) => LastStmt::Return(format_return(ctx, return_node, shape)),
-        #[cfg(feature = "luau")]
-        LastStmt::Continue(token) => LastStmt::Continue(
-            format_symbol(
-                ctx,
-                token,
-                &TokenReference::new(
-                    vec![],
-                    Token::new(TokenType::Identifier {
-                        identifier: "continue".into(),
-                    }),
-                    vec![],
-                ),
-                shape,
-            )
-            .update_trivia(
-                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-                FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
-            ),
-        ),
-
-        other => panic!("unknown node {:?}", other),
-    }
+    format_last_stmt_no_trivia(ctx, last_stmt, shape).update_trivia(leading_trivia, trailing_trivia)
 }
 
 fn trivia_remove_leading_newlines(trivia: Vec<&Token>) -> Vec<Token> {
