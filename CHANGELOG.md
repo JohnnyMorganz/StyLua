@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - We now attempt to first hang the equals token in an assignment before expanding the RHS expression ([#292](https://github.com/JohnnyMorganz/StyLua/issues/292))
-- Comments preceding an `elseif`/`else` token in an if statement will now be inlined with the token if the previous block contains contents. This should resolve issues where the comment was meant to be on the elseif condition. If the previous block is empty, the comment will be indented ([#254](https://github.com/JohnnyMorganz/StyLua/issues/254))
+- We now use the current indent level of comments preceding an `elseif`/`else` token to determine whether they should still be indented one level or inlined with the `elseif`/`else` token. ([#254](https://github.com/JohnnyMorganz/StyLua/issues/254))
 - Static chained function calls (i.e., `foo.bar().baz()`) will now hang if necessary ([#368](https://github.com/JohnnyMorganz/StyLua/issues/368))
 - The first call in a chained function call will now inline with the prefix if the prefix begins with an uppercase letter or the prefix is smaller (in length) than the indent width
 - A chained function call will not expand if the first call gets inlined
