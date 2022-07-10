@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::StructOpt;
 use console::style;
-use ignore::{overrides::OverrideBuilder, WalkBuilder};
+use ignore::{gitignore::Gitignore, overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
 use std::fs;
@@ -14,6 +14,8 @@ use thiserror::Error;
 use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
+
+use crate::config::find_ignore_file_path;
 
 mod config;
 mod opt;
@@ -179,9 +181,13 @@ fn format_string(
     range: Option<Range>,
     opt: &opt::Opt,
     verify_output: OutputVerification,
+    should_skip: bool,
 ) -> Result<FormatResult> {
-    let formatted_contents =
-        format_code(&input, config, range, verify_output).context("failed to format from stdin")?;
+    let formatted_contents = if should_skip {
+        input.clone()
+    } else {
+        format_code(&input, config, range, verify_output).context("failed to format from stdin")?
+    };
 
     if opt.check {
         let diff = create_diff(opt, &input, &formatted_contents, "stdin")
@@ -195,6 +201,23 @@ fn format_string(
         Ok(FormatResult::SuccessBufferedOutput(
             formatted_contents.into_bytes(),
         ))
+    }
+}
+
+fn get_ignore(
+    directory: &Path,
+    search_parent_directories: bool,
+) -> Result<Gitignore, ignore::Error> {
+    let file_path = find_ignore_file_path(directory.to_path_buf(), search_parent_directories);
+    if let Some(file_path) = file_path {
+        let (ignore, err) = Gitignore::new(file_path);
+        if let Some(err) = err {
+            Err(err)
+        } else {
+            Ok(ignore)
+        }
+    } else {
+        Ok(Gitignore::empty())
     }
 }
 
@@ -341,12 +364,30 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let tx = tx.clone();
                     let opt = opt.clone();
 
+                    let should_skip_format = match &opt.stdin_filepath {
+                        Some(filepath) => {
+                            let ignore = get_ignore(
+                                filepath.parent().expect("cannot get parent directory"),
+                                opt.search_parent_directories,
+                            )
+                            .context("failed to parse ignore file")?;
+
+                            matches!(ignore.matched(&filepath, false), ignore::Match::Ignore(_))
+                        }
+                        None => false,
+                    };
+
                     pool.execute(move || {
                         let mut buf = String::new();
                         match stdin().read_to_string(&mut buf) {
-                            Ok(_) => {
-                                tx.send(format_string(buf, config, range, &opt, verify_output))
-                            }
+                            Ok(_) => tx.send(format_string(
+                                buf,
+                                config,
+                                range,
+                                &opt,
+                                verify_output,
+                                should_skip_format,
+                            )),
                             Err(error) => tx.send(
                                 Err(ErrorFileWrapper {
                                     file: "stdin".to_string(),
