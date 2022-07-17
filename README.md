@@ -65,7 +65,7 @@ It is usable in Node.js, or the in the browser (using a bundler).
 ### Other Installation Methods
 
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
-- [Aftman](https://github.com/LPGhatguy/aftmann)
+- [Aftman](https://github.com/LPGhatguy/aftman)
 
 ```sh
 aftman add johnnymorganz/stylua@0.14.0
