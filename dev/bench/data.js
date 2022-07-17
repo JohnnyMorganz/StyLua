@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657143216255,
+  "lastUpdate": 1658098678750,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -671,6 +671,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54628326,
             "range": "± 248789",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47758296+Wyatt-Stanke@users.noreply.github.com",
+            "name": "Wyatt Stanke",
+            "username": "Wyatt-Stanke"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eb29c03eec0f7ef81e38bac03ea1735b0b62fee8",
+          "message": "Fix README typo (#498)",
+          "timestamp": "2022-07-17T23:52:15+01:00",
+          "tree_id": "63866e3c05e916277f73b07b7c06e50838d54d6e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/eb29c03eec0f7ef81e38bac03ea1735b0b62fee8"
+        },
+        "date": 1658098677845,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 72220998,
+            "range": "± 914145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2508746135,
+            "range": "± 3007967",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 57050964,
+            "range": "± 360337",
             "unit": "ns/iter"
           }
         ]
