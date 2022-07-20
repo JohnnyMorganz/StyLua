@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Chained var expression formatting will now follow the exact same steps as chained function call formatting
+
+### Fixed
+- Fixed var expression with comments collapsing leading to malformed formatting ([#500](https://github.com/JohnnyMorganz/StyLua/issues/500))
 
 ## [0.14.0] - 2022-07-06
 ### Added
