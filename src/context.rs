@@ -7,7 +7,7 @@ use full_moon::{
     tokenizer::{Token, TokenType},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FormatNode {
     /// The formatting is completely blocked via an ignore comment, so this node should be skipped
     Skip,

@@ -92,7 +92,7 @@ pub struct Opt {
     pub files: Vec<PathBuf>,
 }
 
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
 #[clap(rename_all = "PascalCase")]
 pub enum Color {
     /// Always use colour
