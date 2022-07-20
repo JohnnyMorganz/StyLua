@@ -860,21 +860,24 @@ pub fn format_function_body(
 
         #[cfg(feature = "luau")]
         {
-            break (
-                parameters_parentheses,
-                return_type.as_ref().map(|return_type| {
-                    return_type.update_trailing_trivia(FormatTriviaType::Append(
-                        trailing_trivia.to_owned(),
-                    ))
-                }),
-            );
+            if function_body.return_type().is_some() {
+                break (
+                    parameters_parentheses,
+                    return_type.as_ref().map(|return_type| {
+                        return_type.update_trailing_trivia(FormatTriviaType::Append(
+                            trailing_trivia.to_owned(),
+                        ))
+                    }),
+                );
+            }
         }
 
         #[cfg(not(feature = "luau"))]
+        let return_type = ();
         break (
             parameters_parentheses
                 .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
-            (),
+            return_type,
         );
     };
 
