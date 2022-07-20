@@ -2,8 +2,8 @@
 use full_moon::ast::types::{ElseIfExpression, IfExpression};
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Call, Expression, Index, Prefix, Suffix, UnOp, Value, Var,
-        VarExpression,
+        span::ContainedSpan, BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Value,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
@@ -729,29 +729,16 @@ pub fn format_var_expression(
     var_expression: &VarExpression,
     shape: Shape,
 ) -> VarExpression {
-    let formatted_prefix = format_prefix(ctx, var_expression.prefix(), shape);
-    let mut shape = shape + strip_leading_trivia(&formatted_prefix).to_string().len();
-
-    let mut formatted_suffixes = Vec::new();
-    let mut suffixes = var_expression.suffixes().peekable();
-
-    while let Some(suffix) = suffixes.next() {
-        // If the suffix after this one is something like `.foo` or `:foo` - this affects removing parentheses
-        let ambiguous_next_suffix = if matches!(
-            suffixes.peek(),
-            Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
-        ) {
-            FunctionCallNextNode::ObscureWithoutParens
-        } else {
-            FunctionCallNextNode::None
-        };
-
-        let suffix = format_suffix(ctx, suffix, shape, ambiguous_next_suffix);
-        shape = shape.take_last_line(&suffix);
-        formatted_suffixes.push(suffix);
-    }
-
-    VarExpression::new(formatted_prefix).with_suffixes(formatted_suffixes)
+    // A VarExpression is pretty much exactly the same as FunctionCall, so we repurpose
+    // format_function_call for that, and reuse its output
+    let function_call = format_function_call(
+        ctx,
+        &FunctionCall::new(var_expression.prefix().clone())
+            .with_suffixes(var_expression.suffixes().cloned().collect()),
+        shape,
+    );
+    VarExpression::new(function_call.prefix().clone())
+        .with_suffixes(function_call.suffixes().cloned().collect())
 }
 
 /// Formats an UnOp Node
