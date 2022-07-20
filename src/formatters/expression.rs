@@ -1043,7 +1043,7 @@ fn hang_binop_expression(
                             ),
                             format_expression_internal(
                                 ctx,
-                                &*rhs,
+                                &rhs,
                                 ExpressionContext::UnaryOrBinary,
                                 rhs_shape,
                             ),
@@ -1051,7 +1051,7 @@ fn hang_binop_expression(
                         ExpressionSide::Right => (
                             format_expression_internal(
                                 ctx,
-                                &*lhs,
+                                &lhs,
                                 ExpressionContext::UnaryOrBinary,
                                 lhs_shape,
                             ),
@@ -1077,7 +1077,7 @@ fn hang_binop_expression(
                     } else {
                         format_expression_internal(
                             ctx,
-                            &*lhs,
+                            &lhs,
                             ExpressionContext::UnaryOrBinary,
                             shape,
                         )
@@ -1088,7 +1088,7 @@ fn hang_binop_expression(
                     } else {
                         format_expression_internal(
                             ctx,
-                            &*rhs,
+                            &rhs,
                             ExpressionContext::UnaryOrBinary,
                             shape,
                         )

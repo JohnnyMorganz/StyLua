@@ -872,12 +872,10 @@ pub fn format_function_body(
             }
         }
 
-        #[cfg(not(feature = "luau"))]
-        let return_type = ();
         break (
             parameters_parentheses
                 .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia)),
-            return_type,
+            (),
         );
     };
 
