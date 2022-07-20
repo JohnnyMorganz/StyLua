@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658346438621,
+  "lastUpdate": 1658346730900,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -755,6 +755,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54537721,
             "range": "± 525173",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fe8c8e338133665eabf1a20f78c7a977b77bad6f",
+          "message": "Fix var expression collapsing when containing comments (#502)\n\n* Add test\r\n\r\n* Repurpose function call formatting for var expression\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2022-07-20T20:46:27+01:00",
+          "tree_id": "b3ff03a5e23f44ebbc04c32ea18fd53692c18391",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/fe8c8e338133665eabf1a20f78c7a977b77bad6f"
+        },
+        "date": 1658346730432,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66009219,
+            "range": "± 991687",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2498998247,
+            "range": "± 5405296",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 54040035,
+            "range": "± 218811",
             "unit": "ns/iter"
           }
         ]
