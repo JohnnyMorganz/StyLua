@@ -34,7 +34,7 @@ pub enum EndTokenType {
 #[macro_export]
 macro_rules! fmt_symbol {
     ($ctx:expr, $token:expr, $x:expr, $shape:expr) => {
-        crate::formatters::general::format_symbol(
+        $crate::formatters::general::format_symbol(
             $ctx,
             $token,
             &TokenReference::symbol($x).unwrap(),

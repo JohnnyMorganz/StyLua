@@ -11,7 +11,7 @@ mod shape;
 mod verify_ast;
 
 /// The type of indents to use when indenting
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
@@ -27,7 +27,7 @@ impl Default for IndentType {
 }
 
 /// The type of line endings to use at the end of a line
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum LineEndings {
     // Auto,
@@ -44,7 +44,7 @@ impl Default for LineEndings {
 }
 
 /// The style of quotes to use within string literals
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
@@ -64,7 +64,7 @@ impl Default for QuoteStyle {
 }
 
 /// When to use call parentheses
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum CallParenType {
     /// Use call parentheses all the time
@@ -84,7 +84,7 @@ impl Default for CallParenType {
 }
 
 /// What mode to use if we want to collapse simple functions / guard statements
-#[derive(Debug, Copy, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub enum CollapseSimpleStatement {
     /// Never collapse
