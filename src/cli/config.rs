@@ -48,6 +48,18 @@ fn find_config_file(mut directory: PathBuf, recursive: bool) -> Result<Option<Co
     }
 }
 
+pub fn find_ignore_file_path(mut directory: PathBuf, recursive: bool) -> Option<PathBuf> {
+    debug!("config: looking for ignore file in {}", directory.display());
+    let file_path = directory.join(".styluaignore");
+    if file_path.is_file() {
+        Some(file_path)
+    } else if recursive && directory.pop() {
+        find_ignore_file_path(directory, recursive)
+    } else {
+        None
+    }
+}
+
 /// Looks for a configuration file at either `$XDG_CONFIG_HOME`, `$XDG_CONFIG_HOME/stylua`, `$HOME/.config` or `$HOME/.config/stylua`
 fn search_config_locations() -> Result<Option<Config>> {
     // Look in `$XDG_CONFIG_HOME`

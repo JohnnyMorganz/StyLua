@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed var expression with comments collapsing leading to malformed formatting ([#500](https://github.com/JohnnyMorganz/StyLua/issues/500))
+- Fixed ignore behavior for `--stdin-filepath` ([#495](https://github.com/JohnnyMorganz/StyLua/issues/495))
 
 ## [0.14.0] - 2022-07-06
 ### Added
