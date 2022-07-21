@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658346730900,
+  "lastUpdate": 1658412555651,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -797,6 +797,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54040035,
             "range": "± 218811",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "hello@muniftanjim.dev",
+            "name": "Munif Tanjim",
+            "username": "MunifTanjim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bd577e0fee4e10f81b79f4663d1154fad62dbd09",
+          "message": "Fix ignore behavior for --stdin-filepath (#495)",
+          "timestamp": "2022-07-21T15:03:29+01:00",
+          "tree_id": "caf09e3b53b7b45127822cef9fbf6c254521be41",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/bd577e0fee4e10f81b79f4663d1154fad62dbd09"
+        },
+        "date": 1658412554620,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 67179851,
+            "range": "± 800280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2511918928,
+            "range": "± 4916914",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 54614363,
+            "range": "± 226864",
             "unit": "ns/iter"
           }
         ]
