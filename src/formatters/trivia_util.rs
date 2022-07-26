@@ -122,6 +122,14 @@ fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
     }
 }
 
+pub fn prefix_trailing_trivia(prefix: &Prefix) -> Vec<Token> {
+    match prefix {
+        Prefix::Name(name) => name.trailing_trivia().cloned().collect(),
+        Prefix::Expression(expression) => get_expression_trailing_trivia(expression),
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
 pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
     match suffix {
         Suffix::Index(index) => match index {
