@@ -1,3 +1,4 @@
+use formatters::Formatter;
 use full_moon::ast::Ast;
 use serde::Deserialize;
 use thiserror::Error;
@@ -355,10 +356,10 @@ pub fn format_code(
         }
     };
 
-    let ast = format_ast(input_ast, config, range, verify_output)?;
-    let output = full_moon::print(&ast);
+    let doc = input_ast.to_doc();
+    let output = doc.pretty(config.column_width());
 
-    Ok(output)
+    Ok(output.to_string())
 }
 
 #[cfg(target_arch = "wasm32")]
