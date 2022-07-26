@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658513367180,
+  "lastUpdate": 1658859812796,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -923,6 +923,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54340199,
             "range": "± 312757",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f8afdf81d8e6460a819f46f3d2aba2cddcdc97f",
+          "message": "Set content type of release assets to zip (#510)",
+          "timestamp": "2022-07-26T19:15:55+01:00",
+          "tree_id": "04b12cd08224dd27f1fb05f94624b35c5df37b70",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4f8afdf81d8e6460a819f46f3d2aba2cddcdc97f"
+        },
+        "date": 1658859811102,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 90209329,
+            "range": "± 2446164",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 3473539399,
+            "range": "± 132338469",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 75254697,
+            "range": "± 1993792",
             "unit": "ns/iter"
           }
         ]
