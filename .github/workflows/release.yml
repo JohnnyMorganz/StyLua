@@ -87,7 +87,7 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: release.zip
           asset_name: ${{ matrix.artifact-name }}.zip
-          asset_content_type: application/octet-stream
+          asset_content_type: application/zip
 
   release_cargo:
     name: Publish to cargo
