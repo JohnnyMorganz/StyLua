@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed var expression with trailing comments on initial prefix being collapsed leading to malformed formatting ([#509](https://github.com/JohnnyMorganz/StyLua/issues/509))
+
 ## [0.14.1] - 2022-07-21
 ### Changed
 - Chained var expression formatting will now follow the exact same steps as chained function call formatting

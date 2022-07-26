@@ -917,7 +917,10 @@ pub fn format_function_call(
     let num_suffixes = function_call.suffixes().count();
 
     // If there are comments within the chain, then we must hang the chain otherwise it can lead to an issue
-    let must_hang = {
+    let must_hang = trivia_util::trivia_contains_comments(
+        trivia_util::prefix_trailing_trivia(function_call.prefix()).iter(),
+        trivia_util::CommentSearch::Single,
+    ) || {
         let mut peekable_suffixes = function_call.suffixes().peekable();
         let mut must_hang = false;
         while let Some(suffix) = peekable_suffixes.next() {
