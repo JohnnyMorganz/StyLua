@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed var expression with trailing comments on initial prefix being collapsed leading to malformed formatting ([#509](https://github.com/JohnnyMorganz/StyLua/issues/509))
 - Fixed return with comment between return and expression being collapsed leading to malformed formatting ([#504](https://github.com/JohnnyMorganz/StyLua/issues/504))
+- Fixed release assets for precommit by marking release artifacts as application/zip ([#496](https://github.com/JohnnyMorganz/StyLua/issues/496))
 
 ## [0.14.1] - 2022-07-21
 ### Changed
