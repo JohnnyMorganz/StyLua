@@ -87,8 +87,12 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
             }
         };
 
+        let comment_between_token_and_returns = return_token_trailing_comments
+            || !trivia_util::get_expression_leading_trivia(returns.iter().next().unwrap())
+                .is_empty();
+
         // TODO: this is similar to assignment tactics - can we abstract them into a common function?
-        let token = if contains_comments {
+        let token = if comment_between_token_and_returns {
             // TODO: fix this name...
             hang_equal_token(
                 ctx,
@@ -101,7 +105,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         };
 
         let formatted_returns = if should_format_multiline {
-            if returns.len() > 1 || contains_comments {
+            if returns.len() > 1 || comment_between_token_and_returns {
                 // Format the punctuated onto multiple lines
                 let hang_level = Some(1);
                 let multiline_returns =
@@ -114,7 +118,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                     multiline_returns.into_pairs().zip(returns).enumerate()
                 {
                     // Recreate the shape
-                    let shape = if idx == 0 && !contains_comments {
+                    let shape = if idx == 0 && !comment_between_token_and_returns {
                         shape
                     } else {
                         shape
@@ -131,7 +135,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                     }
 
                     // Handle comments
-                    if contains_comments && idx == 0 {
+                    if comment_between_token_and_returns && idx == 0 {
                         // We need to take all the leading trivia from the expr_list
                         let (first_return_expression, leading_comments) =
                             trivia_util::take_expression_leading_comments(formatted.value());
