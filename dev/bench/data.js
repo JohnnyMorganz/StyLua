@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658861161028,
+  "lastUpdate": 1658954933553,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1007,6 +1007,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 59361649,
             "range": "± 1395652",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ec67af42d0a154e8c23c4bd1ecaebdd6a4f5487b",
+          "message": "Fix collapsing when comment between return and expr (#513)\n\n* Add snapshot\r\n\r\n* Handle comments between return and expr\r\n\r\n* Fix eager comment check\r\n\r\n* Update snapshot\r\n\r\n* Update changelog\r\n\r\n* Fix snap",
+          "timestamp": "2022-07-27T21:43:25+01:00",
+          "tree_id": "0aed7a86c065c934ba4e03f90e3fb221726eee99",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ec67af42d0a154e8c23c4bd1ecaebdd6a4f5487b"
+        },
+        "date": 1658954932778,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 73002263,
+            "range": "± 574608",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2258526387,
+            "range": "± 3533810",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 52380252,
+            "range": "± 472132",
             "unit": "ns/iter"
           }
         ]
