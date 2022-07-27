@@ -4,7 +4,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
     formatters::{
-        assignment::hang_punctuated_list,
+        assignment::{hang_equal_token, hang_punctuated_list},
         expression::{format_expression, hang_expression},
         general::{format_punctuated, format_punctuated_multiline},
         stmt::format_stmt,
@@ -49,10 +49,15 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         let shape = shape + RETURN_LEN;
 
         let returns = return_node.returns();
-
-        let contains_comments = trivia_util::contains_comments(
-            returns.update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
+        let return_token_trailing_comments = trivia_util::trivia_contains_comments(
+            return_node.token().trailing_trivia(),
+            trivia_util::CommentSearch::Single,
         );
+
+        let contains_comments = return_token_trailing_comments
+            || trivia_util::contains_comments(
+                returns.update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
+            );
 
         // See if we need to format multiline
         // If we contain comments, we immediately force multiline, and return an empty Punctuated sequence as a placeholder (it will never be used)
@@ -82,9 +87,25 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
             }
         };
 
+        let comment_between_token_and_returns = return_token_trailing_comments
+            || !trivia_util::get_expression_leading_trivia(returns.iter().next().unwrap())
+                .is_empty();
+
         // TODO: this is similar to assignment tactics - can we abstract them into a common function?
+        let token = if comment_between_token_and_returns {
+            // TODO: fix this name...
+            hang_equal_token(
+                ctx,
+                &fmt_symbol!(ctx, return_node.token(), "return", shape),
+                shape,
+                false,
+            )
+        } else {
+            token
+        };
+
         let formatted_returns = if should_format_multiline {
-            if returns.len() > 1 {
+            if returns.len() > 1 || comment_between_token_and_returns {
                 // Format the punctuated onto multiple lines
                 let hang_level = Some(1);
                 let multiline_returns =
@@ -93,11 +114,11 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                 let mut output_returns = Punctuated::new();
 
                 // Look through each punctuated sequence to see if we need to hang the item further
-                for (idx, (formatted, original)) in
+                for (idx, (mut formatted, original)) in
                     multiline_returns.into_pairs().zip(returns).enumerate()
                 {
                     // Recreate the shape
-                    let shape = if idx == 0 {
+                    let shape = if idx == 0 && !comment_between_token_and_returns {
                         shape
                     } else {
                         shape
@@ -109,12 +130,37 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                         || shape.take_first_line(&formatted).over_budget()
                     {
                         // Hang the pair, using the original expression for formatting
-                        output_returns
-                            .push(formatted.map(|_| hang_expression(ctx, original, shape, Some(1))))
-                    } else {
-                        // Add the pair as it is
-                        output_returns.push(formatted);
+                        formatted =
+                            formatted.map(|_| hang_expression(ctx, original, shape, Some(1)))
                     }
+
+                    // Handle comments
+                    if comment_between_token_and_returns && idx == 0 {
+                        // We need to take all the leading trivia from the expr_list
+                        let (first_return_expression, leading_comments) =
+                            trivia_util::take_expression_leading_comments(formatted.value());
+
+                        // Indent each comment and trail them with a newline
+                        let leading_comments = leading_comments
+                            .iter()
+                            .flat_map(|x| {
+                                println!("{x}");
+                                vec![
+                                    create_indent_trivia(ctx, shape),
+                                    x.to_owned(),
+                                    create_newline_trivia(ctx),
+                                ]
+                            })
+                            .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+                            .collect();
+
+                        formatted = formatted.map(|_| {
+                            first_return_expression
+                                .update_leading_trivia(FormatTriviaType::Replace(leading_comments))
+                        });
+                    }
+
+                    output_returns.push(formatted);
                 }
 
                 output_returns
