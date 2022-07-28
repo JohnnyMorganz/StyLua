@@ -1,5 +1,5 @@
 use full_moon::{
-    ast::{Assignment, Stmt},
+    ast::{Assignment, LocalAssignment, Stmt},
     tokenizer::TokenReference,
 };
 use pretty::{docs, DocAllocator, DocBuilder};
@@ -43,6 +43,32 @@ impl Formatter for Assignment {
     }
 }
 
+impl Formatter for LocalAssignment {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        if let Some(equal_token) = self.equal_token() {
+            docs![
+                allocator,
+                "local ",
+                self.names().to_doc(ctx, allocator).group(),
+                equals_token(ctx, allocator, equal_token),
+                self.expressions().to_doc(ctx, allocator).group(),
+            ]
+            .group()
+        } else {
+            docs![
+                allocator,
+                "local ",
+                self.names().to_doc(ctx, allocator).group()
+            ]
+        }
+    }
+}
+
 impl Formatter for Stmt {
     fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
     where
@@ -57,7 +83,7 @@ impl Formatter for Stmt {
             Stmt::FunctionDeclaration(_) => todo!(),
             Stmt::GenericFor(_) => todo!(),
             Stmt::If(_) => todo!(),
-            Stmt::LocalAssignment(_) => todo!(),
+            Stmt::LocalAssignment(assignment) => assignment.to_doc(ctx, allocator),
             Stmt::LocalFunction(_) => todo!(),
             Stmt::NumericFor(_) => todo!(),
             Stmt::Repeat(_) => todo!(),
