@@ -96,7 +96,7 @@ impl Formatter for Ast {
         let block = self.nodes().to_doc(ctx, allocator);
 
         // TODO: handle eof comments
-        let eof = allocator.hardline();
+        let eof = allocator.nil();
 
         block.append(eof)
     }
