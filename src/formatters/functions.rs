@@ -1,10 +1,13 @@
 use full_moon::{
     ast::{
-        FunctionBody, FunctionCall, FunctionDeclaration, FunctionName, LocalFunction, Parameter,
+        Call, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration, FunctionName,
+        LocalFunction, MethodCall, Parameter,
     },
     tokenizer::TokenReference,
 };
-use pretty::docs;
+use pretty::{docs, DocAllocator, DocBuilder};
+
+use crate::context::Context;
 
 use super::{base::contained_span, Formatter};
 
@@ -27,6 +30,64 @@ impl Formatter for FunctionCall {
                 allocator.line_()
             ),
         ]
+    }
+}
+
+impl Formatter for Call {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        match self {
+            Call::AnonymousCall(function_args) => function_args.to_doc(ctx, allocator),
+            Call::MethodCall(method_call) => method_call.to_doc(ctx, allocator),
+            other => unreachable!("unknown node: {:?}", other),
+        }
+    }
+}
+
+impl Formatter for MethodCall {
+    fn to_doc<'a, D, A>(
+        &'a self,
+        ctx: &crate::context::Context,
+        allocator: &'a D,
+    ) -> pretty::DocBuilder<'a, D, A>
+    where
+        D: pretty::DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        docs![
+            allocator,
+            self.colon_token().to_doc(ctx, allocator),
+            self.name().to_doc(ctx, allocator),
+            self.args().to_doc(ctx, allocator)
+        ]
+    }
+}
+
+impl Formatter for FunctionArgs {
+    fn to_doc<'a, D, A>(
+        &'a self,
+        ctx: &crate::context::Context,
+        allocator: &'a D,
+    ) -> pretty::DocBuilder<'a, D, A>
+    where
+        D: pretty::DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        match self {
+            FunctionArgs::Parentheses {
+                parentheses,
+                arguments,
+            } => contained_span(ctx, allocator, parentheses, arguments),
+            FunctionArgs::String(string) => string.to_doc(ctx, allocator),
+            FunctionArgs::TableConstructor(table) => table.to_doc(ctx, allocator),
+            other => unreachable!("unknown node: {:?}", other),
+        }
     }
 }
 
