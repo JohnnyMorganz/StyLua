@@ -1,6 +1,5 @@
 use crate::{
-    shape::Shape, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
-    Range as FormatRange,
+    CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings, Range as FormatRange,
 };
 use full_moon::{
     node::Node,
@@ -152,36 +151,4 @@ impl Context {
             CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
         )
     }
-}
-
-/// Returns the relevant line ending string from the [`LineEndings`] enum
-fn line_ending_character(line_endings: LineEndings) -> String {
-    match line_endings {
-        LineEndings::Unix => String::from("\n"),
-        LineEndings::Windows => String::from("\r\n"),
-    }
-}
-
-/// Creates a new Token containing whitespace for indents, used for trivia
-pub fn create_indent_trivia(ctx: &Context, shape: Shape) -> Token {
-    let indent_level = shape.indent().block_indent() + shape.indent().additional_indent();
-    create_plain_indent_trivia(ctx, indent_level)
-}
-
-/// Creates indent trivia without including `ctx.indent_level()`.
-/// You should pass the exact amount of indent you require to this function
-pub fn create_plain_indent_trivia(ctx: &Context, indent_level: usize) -> Token {
-    match ctx.config().indent_type {
-        IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
-        IndentType::Spaces => {
-            Token::new(TokenType::spaces(indent_level * ctx.config().indent_width))
-        }
-    }
-}
-
-/// Creates a new Token containing new line whitespace, used for trivia
-pub fn create_newline_trivia(ctx: &Context) -> Token {
-    Token::new(TokenType::Whitespace {
-        characters: line_ending_character(ctx.config().line_endings).into(),
-    })
 }
