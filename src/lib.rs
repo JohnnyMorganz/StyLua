@@ -1,5 +1,7 @@
+use context::Context;
 use formatters::Formatter;
 use full_moon::ast::Ast;
+use pretty::BoxAllocator;
 use serde::Deserialize;
 use thiserror::Error;
 #[cfg(target_arch = "wasm32")]
@@ -8,7 +10,6 @@ use wasm_bindgen::prelude::*;
 #[macro_use]
 mod context;
 mod formatters;
-mod shape;
 mod verify_ast;
 
 /// The type of indents to use when indenting
@@ -307,40 +308,40 @@ pub enum Error {
 }
 
 /// Formats given [`Ast`]
-pub fn format_ast(
-    input_ast: Ast,
-    config: Config,
-    range: Option<Range>,
-    verify_output: OutputVerification,
-) -> Result<Ast, Error> {
-    // Clone the input AST only if we are verifying, to later use for checking
-    let input_ast_for_verification = if let OutputVerification::Full = verify_output {
-        Some(input_ast.to_owned())
-    } else {
-        None
-    };
+// pub fn format_ast(
+//     input_ast: Ast,
+//     config: Config,
+//     range: Option<Range>,
+//     verify_output: OutputVerification,
+// ) -> Result<Ast, Error> {
+//     // Clone the input AST only if we are verifying, to later use for checking
+//     let input_ast_for_verification = if let OutputVerification::Full = verify_output {
+//         Some(input_ast.to_owned())
+//     } else {
+//         None
+//     };
 
-    let code_formatter = formatters::CodeFormatter::new(config, range);
-    let ast = code_formatter.format(input_ast);
+//     let code_formatter = formatters::CodeFormatter::new(config, range);
+//     let ast = code_formatter.format(input_ast);
 
-    // If we are verifying, reparse the output then check it matches the original input
-    if let Some(input_ast) = input_ast_for_verification {
-        let output = full_moon::print(&ast);
-        let reparsed_output = match full_moon::parse(&output) {
-            Ok(ast) => ast,
-            Err(error) => {
-                return Err(Error::VerificationAstError(error));
-            }
-        };
+//     // If we are verifying, reparse the output then check it matches the original input
+//     if let Some(input_ast) = input_ast_for_verification {
+//         let output = full_moon::print(&ast);
+//         let reparsed_output = match full_moon::parse(&output) {
+//             Ok(ast) => ast,
+//             Err(error) => {
+//                 return Err(Error::VerificationAstError(error));
+//             }
+//         };
 
-        let mut ast_verifier = verify_ast::AstVerifier::new();
-        if !ast_verifier.compare(input_ast, reparsed_output) {
-            return Err(Error::VerificationAstDifference);
-        }
-    }
+//         let mut ast_verifier = verify_ast::AstVerifier::new();
+//         if !ast_verifier.compare(input_ast, reparsed_output) {
+//             return Err(Error::VerificationAstDifference);
+//         }
+//     }
 
-    Ok(ast)
-}
+//     Ok(ast)
+// }
 
 /// Formats given Lua code
 pub fn format_code(
@@ -356,8 +357,12 @@ pub fn format_code(
         }
     };
 
-    let doc = input_ast.to_doc();
+    let allocator = BoxAllocator;
+    let ctx = Context::new(config, range);
+    let doc = input_ast.to_doc::<_, ()>(&ctx, &allocator);
     let output = doc.pretty(config.column_width());
+
+    // TODO: normalise line endings and indent type
 
     Ok(output.to_string())
 }
