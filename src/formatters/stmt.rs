@@ -1,5 +1,8 @@
 use full_moon::{
-    ast::{Assignment, LocalAssignment, Stmt},
+    ast::{
+        Assignment, Do, GenericFor, If, LastStmt, LocalAssignment, NumericFor, Repeat, Return,
+        Stmt, While,
+    },
     tokenizer::TokenReference,
 };
 use pretty::{docs, DocAllocator, DocBuilder};
@@ -53,7 +56,8 @@ impl Formatter for LocalAssignment {
         if let Some(equal_token) = self.equal_token() {
             docs![
                 allocator,
-                "local ",
+                self.local_token().to_doc(ctx, allocator),
+                " ",
                 self.names().to_doc(ctx, allocator).group(),
                 equals_token(ctx, allocator, equal_token),
                 self.expressions().to_doc(ctx, allocator).group(),
@@ -62,10 +66,85 @@ impl Formatter for LocalAssignment {
         } else {
             docs![
                 allocator,
-                "local ",
+                self.local_token().to_doc(ctx, allocator),
+                " ",
                 self.names().to_doc(ctx, allocator).group()
             ]
         }
+    }
+}
+
+impl Formatter for Do {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        docs![
+            allocator,
+            self.do_token().to_doc(ctx, allocator),
+            allocator.hardline(),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.end_token().to_doc(ctx, allocator),
+        ]
+    }
+}
+
+impl Formatter for GenericFor {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        todo!()
+    }
+}
+
+impl Formatter for NumericFor {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        todo!()
+    }
+}
+
+impl Formatter for Repeat {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        todo!()
+    }
+}
+
+impl Formatter for While {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        todo!()
+    }
+}
+
+impl Formatter for If {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        todo!()
     }
 }
 
@@ -78,16 +157,54 @@ impl Formatter for Stmt {
     {
         match self {
             Stmt::Assignment(assignment) => assignment.to_doc(ctx, allocator),
-            Stmt::Do(_) => todo!(),
-            Stmt::FunctionCall(_) => todo!(),
-            Stmt::FunctionDeclaration(_) => todo!(),
-            Stmt::GenericFor(_) => todo!(),
-            Stmt::If(_) => todo!(),
+            Stmt::Do(r#do) => r#do.to_doc(ctx, allocator),
+            Stmt::FunctionCall(function_call) => function_call.to_doc(ctx, allocator),
+            Stmt::FunctionDeclaration(function_declaration) => {
+                function_declaration.to_doc(ctx, allocator)
+            }
+            Stmt::GenericFor(generic_for) => generic_for.to_doc(ctx, allocator),
+            Stmt::If(r#if) => r#if.to_doc(ctx, allocator),
             Stmt::LocalAssignment(assignment) => assignment.to_doc(ctx, allocator),
-            Stmt::LocalFunction(_) => todo!(),
-            Stmt::NumericFor(_) => todo!(),
-            Stmt::Repeat(_) => todo!(),
-            Stmt::While(_) => todo!(),
+            Stmt::LocalFunction(local_function) => local_function.to_doc(ctx, allocator),
+            Stmt::NumericFor(numeric_for) => numeric_for.to_doc(ctx, allocator),
+            Stmt::Repeat(repeat) => repeat.to_doc(ctx, allocator),
+            Stmt::While(r#while) => r#while.to_doc(ctx, allocator),
+            other => unreachable!("unknown node: {:?}", other),
+        }
+    }
+}
+
+impl Formatter for Return {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        if self.returns().is_empty() {
+            self.token().to_doc(ctx, allocator)
+        } else {
+            docs![
+                allocator,
+                self.token().to_doc(ctx, allocator),
+                allocator.softline(),
+                self.returns().to_doc(ctx, allocator).group(),
+            ]
+            .group()
+        }
+    }
+}
+
+impl Formatter for LastStmt {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        match self {
+            LastStmt::Break(r#break) => r#break.to_doc(ctx, allocator),
+            LastStmt::Return(r#return) => r#return.to_doc(ctx, allocator),
             other => unreachable!("unknown node: {:?}", other),
         }
     }
