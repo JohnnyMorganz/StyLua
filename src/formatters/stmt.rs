@@ -1,7 +1,7 @@
 use full_moon::{
     ast::{
-        Assignment, Do, GenericFor, If, LastStmt, LocalAssignment, NumericFor, Repeat, Return,
-        Stmt, While,
+        Assignment, Do, ElseIf, GenericFor, If, LastStmt, LocalAssignment, NumericFor, Repeat,
+        Return, Stmt, While,
     },
     tokenizer::TokenReference,
 };
@@ -100,7 +100,29 @@ impl Formatter for GenericFor {
         D::Doc: Clone,
         A: Clone,
     {
-        todo!()
+        docs![
+            allocator,
+            self.for_token().to_doc(ctx, allocator),
+            docs![
+                allocator,
+                allocator.line(),
+                self.names().to_doc(ctx, allocator),
+                allocator.line()
+            ]
+            .group(),
+            self.in_token().to_doc(ctx, allocator),
+            docs![
+                allocator,
+                allocator.line(),
+                self.expressions().to_doc(ctx, allocator),
+                allocator.line()
+            ],
+            self.do_token().to_doc(ctx, allocator),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.end_token().to_doc(ctx, allocator),
+        ]
     }
 }
 
@@ -111,7 +133,26 @@ impl Formatter for NumericFor {
         D::Doc: Clone,
         A: Clone,
     {
-        todo!()
+        docs![
+            allocator,
+            self.for_token().to_doc(ctx, allocator),
+            self.index_variable().to_doc(ctx, allocator),
+            allocator.space(),
+            self.equal_token().to_doc(ctx, allocator),
+            allocator.space(),
+            self.start().to_doc(ctx, allocator),
+            self.start_end_comma().to_doc(ctx, allocator),
+            self.end().to_doc(ctx, allocator),
+            self.end_step_comma()
+                .map_or_else(|| allocator.nil(), |token| token.to_doc(ctx, allocator)),
+            self.step()
+                .map_or_else(|| allocator.nil(), |expr| expr.to_doc(ctx, allocator)),
+            self.do_token().to_doc(ctx, allocator),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.end_token().to_doc(ctx, allocator),
+        ]
     }
 }
 
@@ -122,7 +163,16 @@ impl Formatter for Repeat {
         D::Doc: Clone,
         A: Clone,
     {
-        todo!()
+        docs![
+            allocator,
+            self.repeat_token().to_doc(ctx, allocator),
+            allocator.hardline(),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.until_token().to_doc(ctx, allocator),
+            self.until().to_doc(ctx, allocator),
+        ]
     }
 }
 
@@ -133,7 +183,22 @@ impl Formatter for While {
         D::Doc: Clone,
         A: Clone,
     {
-        todo!()
+        docs![
+            allocator,
+            self.while_token().to_doc(ctx, allocator),
+            docs![
+                allocator,
+                allocator.line(),
+                self.condition().to_doc(ctx, allocator),
+                allocator.line()
+            ]
+            .group(),
+            self.do_token().to_doc(ctx, allocator),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.end_token().to_doc(ctx, allocator),
+        ]
     }
 }
 
@@ -144,7 +209,63 @@ impl Formatter for If {
         D::Doc: Clone,
         A: Clone,
     {
-        todo!()
+        docs![
+            allocator,
+            self.if_token().to_doc(ctx, allocator),
+            docs![
+                allocator,
+                allocator.line(),
+                self.condition().to_doc(ctx, allocator),
+                allocator.line()
+            ]
+            .group(),
+            self.then_token().to_doc(ctx, allocator),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+            self.else_if().map_or_else(
+                || allocator.nil(),
+                |else_ifs| allocator.concat(
+                    else_ifs
+                        .iter()
+                        .map(|else_if| else_if.to_doc(ctx, allocator))
+                )
+            ),
+            self.else_token()
+                .map_or_else(|| allocator.nil(), |token| token.to_doc(ctx, allocator)),
+            self.else_block().map_or_else(
+                || allocator.nil(),
+                |block| block
+                    .to_doc(ctx, allocator)
+                    .indent(ctx.config().indent_width()),
+            ),
+            self.end_token().to_doc(ctx, allocator),
+        ]
+    }
+}
+
+impl Formatter for ElseIf {
+    fn to_doc<'a, D, A>(&'a self, ctx: &Context, allocator: &'a D) -> DocBuilder<'a, D, A>
+    where
+        D: DocAllocator<'a, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        docs![
+            allocator,
+            self.else_if_token().to_doc(ctx, allocator),
+            docs![
+                allocator,
+                allocator.line(),
+                self.condition().to_doc(ctx, allocator),
+                allocator.line()
+            ]
+            .group(),
+            self.then_token().to_doc(ctx, allocator),
+            self.block()
+                .to_doc(ctx, allocator)
+                .indent(ctx.config().indent_width()),
+        ]
     }
 }
 
