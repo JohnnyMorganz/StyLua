@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use context::Context;
 use formatters::Formatter;
 use full_moon::ast::Ast;
@@ -188,6 +190,12 @@ impl Config {
         self.indent_width
     }
 
+    pub(crate) fn indent_width_signed(&self) -> isize {
+        self.indent_width
+            .try_into()
+            .expect("failed to convert indent width")
+    }
+
     /// Returns the current configured quote style
     pub fn quote_style(&self) -> QuoteStyle {
         self.quote_style
@@ -360,11 +368,28 @@ pub fn format_code(
     let allocator = BoxAllocator;
     let ctx = Context::new(config, range);
     let doc = input_ast.to_doc::<_, ()>(&ctx, &allocator);
-    let output = doc.pretty(config.column_width());
+    let output = doc.pretty(config.column_width()).to_string();
 
-    // TODO: normalise line endings and indent type
+    let newline = match config.line_endings() {
+        LineEndings::Unix => "\n",
+        LineEndings::Windows => "\r\n",
+    };
+    let indent = match config.indent_type() {
+        IndentType::Spaces => " ".repeat(config.indent_width()),
+        IndentType::Tabs => "\t".to_string(),
+    };
 
-    Ok(output.to_string())
+    // Normalise line endings and input type
+    let normalised = output
+        .lines()
+        .map(|line| {
+            let indent_level =
+                line.chars().take_while(|c| *c == ' ').count() / config.indent_width();
+            format!("{}{}{}", indent.repeat(indent_level), line.trim(), newline)
+        })
+        .collect();
+
+    Ok(normalised)
 }
 
 #[cfg(target_arch = "wasm32")]
