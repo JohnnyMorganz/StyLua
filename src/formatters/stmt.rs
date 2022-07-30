@@ -25,7 +25,7 @@ where
         allocator,
         allocator.space(),
         token.to_doc(ctx, allocator),
-        allocator.line()
+        allocator.space()
     ]
 }
 
@@ -81,13 +81,16 @@ impl Formatter for Do {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.do_token().to_doc(ctx, allocator),
+            body,
             allocator.hardline(),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
             self.end_token().to_doc(ctx, allocator),
         ]
     }
@@ -100,6 +103,11 @@ impl Formatter for GenericFor {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.for_token().to_doc(ctx, allocator),
@@ -118,9 +126,8 @@ impl Formatter for GenericFor {
                 allocator.line()
             ],
             self.do_token().to_doc(ctx, allocator),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
+            body,
+            allocator.hardline(),
             self.end_token().to_doc(ctx, allocator),
         ]
     }
@@ -133,6 +140,11 @@ impl Formatter for NumericFor {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.for_token().to_doc(ctx, allocator),
@@ -148,9 +160,8 @@ impl Formatter for NumericFor {
             self.step()
                 .map_or_else(|| allocator.nil(), |expr| expr.to_doc(ctx, allocator)),
             self.do_token().to_doc(ctx, allocator),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
+            body,
+            allocator.hardline(),
             self.end_token().to_doc(ctx, allocator),
         ]
     }
@@ -163,14 +174,18 @@ impl Formatter for Repeat {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.repeat_token().to_doc(ctx, allocator),
+            body,
             allocator.hardline(),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
             self.until_token().to_doc(ctx, allocator),
+            allocator.space(),
             self.until().to_doc(ctx, allocator),
         ]
     }
@@ -183,6 +198,11 @@ impl Formatter for While {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.while_token().to_doc(ctx, allocator),
@@ -194,9 +214,8 @@ impl Formatter for While {
             ]
             .group(),
             self.do_token().to_doc(ctx, allocator),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
+            body,
+            allocator.hardline(),
             self.end_token().to_doc(ctx, allocator),
         ]
     }
@@ -209,6 +228,22 @@ impl Formatter for If {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
+        let else_body = self.else_block().map_or_else(
+            || allocator.nil(),
+            |block| {
+                allocator
+                    .hardline()
+                    .append(block.to_doc(ctx, allocator))
+                    .nest(ctx.config().indent_width_signed())
+                    .append(allocator.hardline())
+            },
+        );
+
         docs![
             allocator,
             self.if_token().to_doc(ctx, allocator),
@@ -220,9 +255,8 @@ impl Formatter for If {
             ]
             .group(),
             self.then_token().to_doc(ctx, allocator),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
+            body,
+            allocator.hardline(),
             self.else_if().map_or_else(
                 || allocator.nil(),
                 |else_ifs| allocator.concat(
@@ -233,12 +267,7 @@ impl Formatter for If {
             ),
             self.else_token()
                 .map_or_else(|| allocator.nil(), |token| token.to_doc(ctx, allocator)),
-            self.else_block().map_or_else(
-                || allocator.nil(),
-                |block| block
-                    .to_doc(ctx, allocator)
-                    .indent(ctx.config().indent_width()),
-            ),
+            else_body,
             self.end_token().to_doc(ctx, allocator),
         ]
     }
@@ -251,6 +280,11 @@ impl Formatter for ElseIf {
         D::Doc: Clone,
         A: Clone,
     {
+        let body = allocator
+            .hardline()
+            .append(self.block().to_doc(ctx, allocator))
+            .nest(ctx.config().indent_width_signed());
+
         docs![
             allocator,
             self.else_if_token().to_doc(ctx, allocator),
@@ -262,9 +296,8 @@ impl Formatter for ElseIf {
             ]
             .group(),
             self.then_token().to_doc(ctx, allocator),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
+            body,
+            allocator.hardline(),
         ]
     }
 }
@@ -308,10 +341,9 @@ impl Formatter for Return {
             docs![
                 allocator,
                 self.token().to_doc(ctx, allocator),
-                allocator.softline(),
-                self.returns().to_doc(ctx, allocator).group(),
+                allocator.space(),
+                self.returns().to_doc(ctx, allocator).nest(4).group(),
             ]
-            .group()
         }
     }
 }

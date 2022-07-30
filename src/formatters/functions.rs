@@ -5,7 +5,7 @@ use full_moon::{
     },
     tokenizer::TokenReference,
 };
-use pretty::{docs, DocAllocator, DocBuilder};
+use pretty::{docs, DocAllocator, DocBuilder, RcDoc};
 
 use crate::context::Context;
 
@@ -126,20 +126,21 @@ impl Formatter for FunctionBody {
         D::Doc: Clone,
         A: Clone,
     {
-        docs![
+        contained_span(
+            ctx,
             allocator,
-            contained_span(
-                ctx,
-                allocator,
-                self.parameters_parentheses(),
-                self.parameters()
-            ),
-            allocator.hardline(),
-            self.block()
-                .to_doc(ctx, allocator)
-                .indent(ctx.config().indent_width()),
-            self.end_token().to_doc(ctx, allocator),
-        ]
+            self.parameters_parentheses(),
+            self.parameters(),
+        )
+        .append(
+            allocator
+                .hardline()
+                .append(self.block().to_doc(ctx, allocator))
+                .nest(ctx.config().indent_width_signed()),
+        )
+        .append(allocator.hardline())
+        .append(self.end_token().to_doc(ctx, allocator))
+        .group()
     }
 }
 
@@ -221,4 +222,48 @@ where
         token.to_doc(ctx, allocator),
         body.to_doc(ctx, allocator),
     ]
+}
+
+#[test]
+fn test() {
+    let params = [
+        "laaaaaaaaaaaarge",
+        "laaaaaaaaaaaarge",
+        "laaaaaaaaaaaarge",
+        "laaaaaaaaaaaarge",
+        "laaaaaaaaaaaarge",
+    ];
+
+    let params = RcDoc::text("(")
+        .append(
+            RcDoc::line_()
+                .append(RcDoc::intersperse(
+                    params,
+                    RcDoc::text(",").append(RcDoc::line()),
+                ))
+                .nest(4),
+        )
+        .append(RcDoc::line_())
+        .append(RcDoc::text(")"))
+        .group();
+
+    let body = RcDoc::hardline()
+        .append(RcDoc::text("x"))
+        .append(RcDoc::space())
+        .append(RcDoc::text("="))
+        .append(RcDoc::space())
+        .append(RcDoc::text("1"))
+        .nest(4);
+
+    println!(
+        "{}",
+        RcDoc::<()>::text("function")
+            .append(RcDoc::space())
+            .append(RcDoc::text("name"))
+            .append(params)
+            .append(body)
+            .append(RcDoc::hardline())
+            .append(RcDoc::text("end"))
+            .pretty(80)
+    )
 }

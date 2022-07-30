@@ -65,21 +65,21 @@ impl Formatter for Block {
                 if let Some(next_stmt) = next_stmt && requires_semicolon(stmt, &next_stmt.0) {
                     doc = doc.append(semicolon.to_doc(ctx, allocator))
                 } else {
-                    todo!("keep trivia on semicolon");
+                    // todo!("keep trivia on semicolon");
                 }
             }
 
-            doc = doc.append(allocator.hardline());
+            if next_stmt.is_some() || self.last_stmt().is_some() {
+                doc = doc.append(allocator.hardline());
+            }
         }
 
         if let Some((last_stmt, semicolon)) = self.last_stmt_with_semicolon() {
             doc = doc.append(last_stmt.to_doc(ctx, allocator));
 
             if let Some(_semicolon) = semicolon {
-                todo!("keep trivia on semicolon")
+                // todo!("keep trivia on semicolon")
             }
-
-            doc = doc.append(allocator.hardline());
         }
 
         doc

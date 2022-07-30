@@ -87,17 +87,18 @@ where
     A: Clone,
 {
     let (begin, end) = contained.tokens();
-    let doc = item.to_doc(ctx, allocator);
 
-    docs![
-        allocator,
-        begin.to_doc(ctx, allocator),
-        allocator.line_(),
-        doc,
-        allocator.line_(),
-        end.to_doc(ctx, allocator)
-    ]
-    .group()
+    begin
+        .to_doc(ctx, allocator)
+        .append(
+            allocator
+                .line_()
+                .append(item.to_doc(ctx, allocator))
+                .nest(ctx.config().indent_width_signed()),
+        )
+        .append(allocator.line_())
+        .append(end.to_doc(ctx, allocator))
+        .group()
 }
 
 impl<T: Formatter> Formatter for Pair<T> {
