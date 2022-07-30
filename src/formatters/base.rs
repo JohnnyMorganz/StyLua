@@ -125,7 +125,7 @@ impl Formatter for TokenType {
 
                 match quotes {
                     StringLiteralQuoteType::Single => docs![allocator, "'", literal_doc, "'"],
-                    StringLiteralQuoteType::Double => docs![allocator, "\"", literal_doc, "\'"],
+                    StringLiteralQuoteType::Double => docs![allocator, "\"", literal_doc, "\""],
                     StringLiteralQuoteType::Brackets => docs![
                         allocator,
                         format!(
