@@ -92,8 +92,15 @@ impl Formatter for TokenType {
     {
         match self {
             TokenType::Number { text } => {
-                // TODO: number formatting
-                docs![allocator, text.to_string()]
+                let text = if text.starts_with('.') {
+                    String::from("0") + text.as_str()
+                } else if text.starts_with("-.") {
+                    String::from("-0") + text.get(1..).expect("unknown number literal")
+                } else {
+                    text.to_string()
+                };
+
+                allocator.text(text)
             }
             TokenType::Identifier { identifier } => allocator.text(identifier.to_string()),
             TokenType::Symbol { symbol } => allocator.text(symbol.to_string()),
