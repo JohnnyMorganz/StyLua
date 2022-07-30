@@ -141,13 +141,18 @@ impl Formatter for TokenType {
                     other => unreachable!("unknown node: {:?}", other),
                 }
             }
-            TokenType::SingleLineComment { comment: _ } => todo!(),
-            TokenType::MultiLineComment {
-                blocks: _,
-                comment: _,
-            } => todo!(),
-            TokenType::Whitespace { .. } => todo!(),
-            TokenType::Eof => todo!(),
+            TokenType::SingleLineComment { comment } => allocator
+                .text("--")
+                .append(allocator.text(comment.trim_end()))
+                .append(allocator.hardline()), // Enforce newline after comment
+            TokenType::MultiLineComment { blocks, comment } => docs![
+                allocator,
+                format!("--[{}[", "=".repeat(*blocks)),
+                allocator.intersperse(comment.lines(), allocator.hardline()),
+                format!("]{}]", "=".repeat(*blocks))
+            ],
+            TokenType::Whitespace { .. } => allocator.nil(),
+            TokenType::Eof => unreachable!("attempted to format eof"),
             other => unreachable!("unknown node: {:?}", other),
         }
     }
@@ -160,8 +165,15 @@ impl Formatter for TokenReference {
         D::Doc: Clone,
         A: Clone,
     {
-        // TODO: handle trivia
-        self.token_type().to_doc(ctx, allocator)
+        allocator.concat(
+            self.leading_trivia()
+                .map(|trivia| trivia.token_type().to_doc(ctx, allocator))
+                .chain(std::iter::once(self.token_type().to_doc(ctx, allocator)))
+                .chain(
+                    self.trailing_trivia()
+                        .map(|trivia| trivia.token_type().to_doc(ctx, allocator)),
+                ),
+        )
     }
 }
 
