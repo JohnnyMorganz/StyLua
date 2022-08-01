@@ -1,8 +1,11 @@
-use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    Field, TableConstructor,
+use full_moon::{
+    ast::{
+        punctuated::{Pair, Punctuated},
+        Field, TableConstructor,
+    },
+    tokenizer::TokenType,
 };
-use pretty::{docs, DocAllocator, DocBuilder, RcDoc};
+use pretty::{docs, DocAllocator, DocBuilder};
 
 use crate::context::Context;
 
@@ -51,44 +54,44 @@ impl Formatter for Field {
     }
 }
 
-// fn fields<'a, D, A>(
-//     ctx: &Context,
-//     allocator: &'a D,
-//     fields: Punctuated<&'a Field>,
-// ) -> DocBuilder<'a, D, A>
-// where
-//     D: DocAllocator<'a, A>,
-//     D::Doc: Clone,
-//     A: Clone,
-// {
-//     let mut doc = allocator.nil();
-//     let fields = fields.pairs();
-//     let mut peekable_fields = fields.peekable();
+fn fields<'a, D, A>(
+    ctx: &Context,
+    allocator: &'a D,
+    fields: &'a Punctuated<Field>,
+) -> DocBuilder<'a, D, A>
+where
+    D: DocAllocator<'a, A>,
+    D::Doc: Clone,
+    A: Clone,
+{
+    let mut doc = allocator.nil();
+    let fields = fields.pairs();
+    let mut peekable_fields = fields.peekable();
 
-//     while let Some(field) = peekable_fields.next() {
-//         let d = match field {
-//             Pair::Punctuated(node, punctuation) => {
-//                 let comma = punctuation.to_doc(ctx, allocator);
-//                 docs![
-//                     allocator,
-//                     node.to_doc(ctx, allocator),
-//                     if peekable_fields.peek().is_some() {
-//                         comma
-//                     } else {
-//                         comma.flat_alt(allocator.nil())
-//                     }
-//                 ]
-//             }
-//             Pair::End(node) => node
-//                 .to_doc(ctx, allocator)
-//                 .append(allocator.text(",").flat_alt(allocator.nil())),
-//         };
+    while let Some(field) = peekable_fields.next() {
+        let d = match field {
+            Pair::Punctuated(node, punctuation) => {
+                let comma = punctuation.to_doc(ctx, allocator);
+                docs![
+                    allocator,
+                    node.to_doc(ctx, allocator),
+                    if peekable_fields.peek().is_some() {
+                        comma.append(allocator.line())
+                    } else {
+                        comma.flat_alt(allocator.nil())
+                    }
+                ]
+            }
+            Pair::End(node) => node
+                .to_doc(ctx, allocator)
+                .append(allocator.text(",").flat_alt(allocator.nil())),
+        };
 
-//         doc = doc.append(d);
-//     }
+        doc = doc.append(d);
+    }
 
-//     doc
-// }
+    doc
+}
 
 impl Formatter for TableConstructor {
     fn to_doc<'a, D, A>(
@@ -109,39 +112,50 @@ impl Formatter for TableConstructor {
                 right_brace.to_doc(ctx, allocator)
             ]
         } else {
+            let brace_line = match left_brace.trailing_trivia().any(|trivia|
+                matches!(trivia.token_type(), TokenType::Whitespace { characters } if characters.find('\n').is_some())) {
+                    true => allocator.hardline(),
+                    false => allocator.line()
+                };
+
             left_brace
                 .to_doc(ctx, allocator)
-                .append(allocator.line())
-                .append(self.fields().to_doc(ctx, allocator))
+                .append(brace_line.clone())
+                .append(fields(ctx, allocator, self.fields()))
                 .nest(4)
-                .append(allocator.line())
+                .append(brace_line)
                 .append(right_brace.to_doc(ctx, allocator))
                 .group()
         }
     }
 }
 
-#[test]
-fn test() {
-    let fields = [
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-    ];
-    println!(
-        "{}",
-        RcDoc::<()>::text("{")
-            .append(RcDoc::line())
-            .append(RcDoc::intersperse(
-                fields,
-                RcDoc::text(",").append(RcDoc::line())
-            ))
-            .nest(4)
-            .append(RcDoc::line())
-            .append(RcDoc::text("}"))
-            .group()
-            .pretty(200)
-    )
+#[cfg(test)]
+mod tests {
+    use pretty::RcDoc;
+
+    #[test]
+    fn test() {
+        let fields = [
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+        ];
+        println!(
+            "{}",
+            RcDoc::<()>::text("{")
+                .append(RcDoc::line())
+                .append(RcDoc::intersperse(
+                    fields,
+                    RcDoc::text(",").append(RcDoc::line())
+                ))
+                .nest(4)
+                .append(RcDoc::line())
+                .append(RcDoc::text("}"))
+                .group()
+                .pretty(200)
+        )
+    }
 }
