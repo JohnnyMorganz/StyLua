@@ -5,7 +5,7 @@ use full_moon::{
     },
     tokenizer::TokenReference,
 };
-use pretty::{docs, DocAllocator, DocBuilder, RcDoc};
+use pretty::{docs, DocAllocator, DocBuilder};
 
 use crate::context::Context;
 
@@ -84,8 +84,26 @@ impl Formatter for FunctionArgs {
                 parentheses,
                 arguments,
             } => contained_span(ctx, allocator, parentheses, arguments),
-            FunctionArgs::String(string) => string.to_doc(ctx, allocator),
-            FunctionArgs::TableConstructor(table) => table.to_doc(ctx, allocator),
+            FunctionArgs::String(string) => {
+                if ctx.should_omit_string_parens() {
+                    string.to_doc(ctx, allocator)
+                } else {
+                    allocator
+                        .text("(")
+                        .append(string.to_doc(ctx, allocator))
+                        .append(allocator.text(")"))
+                }
+            }
+            FunctionArgs::TableConstructor(table) => {
+                if ctx.should_omit_table_parens() {
+                    table.to_doc(ctx, allocator)
+                } else {
+                    allocator
+                        .text("(")
+                        .append(table.to_doc(ctx, allocator))
+                        .append(allocator.text(")"))
+                }
+            }
             other => unreachable!("unknown node: {:?}", other),
         }
     }
@@ -224,46 +242,51 @@ where
     ]
 }
 
-#[test]
-fn test() {
-    let params = [
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-        "laaaaaaaaaaaarge",
-    ];
+#[cfg(test)]
+mod tests {
+    use pretty::RcDoc;
 
-    let params = RcDoc::text("(")
-        .append(
-            RcDoc::line_()
-                .append(RcDoc::intersperse(
-                    params,
-                    RcDoc::text(",").append(RcDoc::line()),
-                ))
-                .nest(4),
-        )
-        .append(RcDoc::line_())
-        .append(RcDoc::text(")"))
-        .group();
+    #[test]
+    fn test() {
+        let params = [
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+            "laaaaaaaaaaaarge",
+        ];
 
-    let body = RcDoc::hardline()
-        .append(RcDoc::text("x"))
-        .append(RcDoc::space())
-        .append(RcDoc::text("="))
-        .append(RcDoc::space())
-        .append(RcDoc::text("1"))
-        .nest(4);
+        let params = RcDoc::text("(")
+            .append(
+                RcDoc::line_()
+                    .append(RcDoc::intersperse(
+                        params,
+                        RcDoc::text(",").append(RcDoc::line()),
+                    ))
+                    .nest(4),
+            )
+            .append(RcDoc::line_())
+            .append(RcDoc::text(")"))
+            .group();
 
-    println!(
-        "{}",
-        RcDoc::<()>::text("function")
+        let body = RcDoc::hardline()
+            .append(RcDoc::text("x"))
             .append(RcDoc::space())
-            .append(RcDoc::text("name"))
-            .append(params)
-            .append(body)
-            .append(RcDoc::hardline())
-            .append(RcDoc::text("end"))
-            .pretty(80)
-    )
+            .append(RcDoc::text("="))
+            .append(RcDoc::space())
+            .append(RcDoc::text("1"))
+            .nest(4);
+
+        println!(
+            "{}",
+            RcDoc::<()>::text("function")
+                .append(RcDoc::space())
+                .append(RcDoc::text("name"))
+                .append(params)
+                .append(body)
+                .append(RcDoc::hardline())
+                .append(RcDoc::text("end"))
+                .pretty(80)
+        )
+    }
 }
