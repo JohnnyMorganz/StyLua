@@ -86,7 +86,7 @@ impl Formatter for FunctionArgs {
             } => contained_span(ctx, allocator, parentheses, arguments),
             FunctionArgs::String(string) => {
                 if ctx.should_omit_string_parens() {
-                    string.to_doc(ctx, allocator)
+                    allocator.space().append(string.to_doc(ctx, allocator))
                 } else {
                     allocator
                         .text("(")
@@ -96,7 +96,7 @@ impl Formatter for FunctionArgs {
             }
             FunctionArgs::TableConstructor(table) => {
                 if ctx.should_omit_table_parens() {
-                    table.to_doc(ctx, allocator)
+                    allocator.space().append(table.to_doc(ctx, allocator))
                 } else {
                     allocator
                         .text("(")
