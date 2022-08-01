@@ -194,11 +194,11 @@ where
         .to_doc(ctx, allocator)
         .append(
             allocator
-                .line_()
+                .softline_()
                 .append(item.to_doc(ctx, allocator))
                 .nest(ctx.config().indent_width_signed()),
         )
-        .append(allocator.line_())
+        .append(allocator.softline_())
         .append(end.to_doc(ctx, allocator))
         .group()
 }
