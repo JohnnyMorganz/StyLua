@@ -23,6 +23,18 @@ REPOS = {
     "nvim-treesitter": {
         "url": "https://github.com/nvim-treesitter/nvim-treesitter.git",
         "command": "."
+    },
+    "luvit": {
+        "url": "https://github.com/luvit/luvit/",
+        "command": "."
+    },
+    "lit": {
+        "url": "https://github.com/luvit/lit/",
+        "command": "libs commands deps"
+    },
+    "BlizzardInterfaceCode": {
+        "url": "https://github.com/tomrus88/BlizzardInterfaceCode",
+        "command": "."
     }
 }
 
@@ -37,7 +49,7 @@ os.system('git config --global user.name "github-actions[bot]"')
 
 def executeTool(toolPath: str, command: str):
     # toolPath = os.path.join("../", tool)
-    return subprocess.Popen([toolPath, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.Popen([toolPath, *command.split()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 diffs: List[str] = []
 
