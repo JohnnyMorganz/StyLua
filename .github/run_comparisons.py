@@ -49,7 +49,7 @@ os.system('git config --global user.name "github-actions[bot]"')
 
 def executeTool(toolPath: str, command: str):
     # toolPath = os.path.join("../", tool)
-    return subprocess.Popen([toolPath, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.Popen([toolPath, *command.split()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 diffs: List[str] = []
 
