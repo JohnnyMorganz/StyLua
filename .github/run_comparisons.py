@@ -23,6 +23,18 @@ REPOS = {
     "nvim-treesitter": {
         "url": "https://github.com/nvim-treesitter/nvim-treesitter.git",
         "command": "."
+    },
+    "luvit": {
+        "url": "https://github.com/luvit/luvit/",
+        "command": "."
+    },
+    "lit": {
+        "url": "https://github.com/luvit/lit/",
+        "command": "."
+    },
+    "BlizzardInterfaceCode": {
+        "url": "https://github.com/tomrus88/BlizzardInterfaceCode",
+        "command": "."
     }
 }
 
