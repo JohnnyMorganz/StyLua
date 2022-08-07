@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658955473835,
+  "lastUpdate": 1659877401166,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1091,6 +1091,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54227889,
             "range": "± 447893",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "86fae140327ed92f7b975283d75632740c34f04a",
+          "message": "Expand regression test suite (#523)\n\n* Expand regression suite\r\n\r\n* Limit folder\r\n\r\n* Handle multi arg commands",
+          "timestamp": "2022-08-07T13:56:42+01:00",
+          "tree_id": "66589b4a4e1ad2d5badc751ee9b0979d70133513",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/86fae140327ed92f7b975283d75632740c34f04a"
+        },
+        "date": 1659877400423,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 78728298,
+            "range": "± 843250",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2904264889,
+            "range": "± 19959233",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 66552978,
+            "range": "± 640388",
             "unit": "ns/iter"
           }
         ]
