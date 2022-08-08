@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659877401166,
+  "lastUpdate": 1659997905635,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1133,6 +1133,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 66552978,
             "range": "± 640388",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mvllow@icloud.com",
+            "name": "not",
+            "username": "mvllow"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f4706e809bbf6a916711393d9b5780969ba61d72",
+          "message": "Fix aarch64 target (#529)",
+          "timestamp": "2022-08-08T23:25:43+01:00",
+          "tree_id": "67a3654c4c239d1069e34213688e7555730d6706",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f4706e809bbf6a916711393d9b5780969ba61d72"
+        },
+        "date": 1659997905089,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 72474913,
+            "range": "± 432781",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2540034257,
+            "range": "± 8632534",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 57197811,
+            "range": "± 256966",
             "unit": "ns/iter"
           }
         ]
