@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed aarch64 target in release workflow ([#528](https://github.com/JohnnyMorganz/StyLua/issues/528))
+- Fixed macOS aarch64 target in release workflow ([#528](https://github.com/JohnnyMorganz/StyLua/issues/528))
 
 ## [0.14.2] - 2022-07-27
 
