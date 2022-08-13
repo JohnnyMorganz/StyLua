@@ -436,3 +436,41 @@ For example, using `stylua -g *.lua -g !*.spec.lua .` will format all Lua files 
 
 ## [0.1.0-alpha] - 2020-12-22
 Initial alpha release
+
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.14.2...HEAD
+[0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.2
+[0.14.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.1
+[0.14.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.0
+[0.13.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.13.1
+[0.13.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.13.0
+[0.12.5]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.5
+[0.12.4]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.4
+[0.12.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.3
+[0.12.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.2
+[0.12.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.1
+[0.12.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.12.0
+[0.11.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.11.3
+[0.11.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.11.2
+[0.11.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.11.1
+[0.11.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.11.0
+[0.10.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.10.1
+[0.10.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.10.0
+[0.9.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.9.3
+[0.9.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.9.2
+[0.9.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.9.1
+[0.9.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.9.0
+[0.8.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.8.1
+[0.8.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.8.0
+[0.7.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.7.1
+[0.7.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.7.0
+[0.6.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.6.0
+[0.5.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.5.0
+[0.4.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.4.1
+[0.4.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.4.0
+[0.3.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.3.0
+[0.2.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.2.1
+[0.2.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.2.0
+[0.1.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.1.0
+[0.1.0-alpha.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.1.0-alpha.3
+[0.1.0-alpha.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.1.0-alpha.2
+[0.1.0-alpha]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.1.0-alpha
