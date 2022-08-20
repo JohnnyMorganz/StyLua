@@ -454,7 +454,15 @@ fn format_token_expression_sequence(
             expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         ); // Remove trailing trivia (comments) before checking, as they shouldn't have an impact
 
-    let token = match requires_multiline_expression {
+    let newline_after_token = trivia_util::trivia_contains_comments(
+        token.trailing_trivia(),
+        trivia_util::CommentSearch::Single,
+    ) || trivia_util::trivia_contains_comments(
+        trivia_util::get_expression_leading_trivia(expression).iter(),
+        trivia_util::CommentSearch::Single,
+    );
+
+    let token = match newline_after_token {
         // `<token>\n`
         true => format_token_reference(ctx, token, shape)
             .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
@@ -465,12 +473,15 @@ fn format_token_expression_sequence(
     };
 
     let expression = match requires_multiline_expression {
-        true => {
-            let shape = shape.reset().increment_additional_indent();
-            hang_expression(ctx, expression, shape, None).update_leading_trivia(
-                FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-            )
-        }
+        true => match newline_after_token {
+            true => {
+                let shape = shape.reset().increment_additional_indent();
+                hang_expression(ctx, expression, shape, None).update_leading_trivia(
+                    FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
+                )
+            }
+            false => hang_expression(ctx, expression, shape, None),
+        },
         false => formatted_expression,
     };
 
