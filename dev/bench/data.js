@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661005726807,
+  "lastUpdate": 1661007488507,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1259,6 +1259,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 62739991,
             "range": "± 2345601",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6cb6848325b854ee96706f2e21c6fe0ac999df7b",
+          "message": "Keep leading comments when removing excess parentheses (#537)\n\n* Add test case\r\n\r\n* Keep leading comments when removing excess parens\r\n\r\n* Snapshot\r\n\r\n* Changelog\r\n\r\n* Add another test case",
+          "timestamp": "2022-08-20T15:51:21+01:00",
+          "tree_id": "cbc3d7fdfc128756f1c564fba2fd5fb41094a2cd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/6cb6848325b854ee96706f2e21c6fe0ac999df7b"
+        },
+        "date": 1661007486843,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 79774180,
+            "range": "± 717094",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2914906984,
+            "range": "± 10633703",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 66135673,
+            "range": "± 480669",
             "unit": "ns/iter"
           }
         ]
