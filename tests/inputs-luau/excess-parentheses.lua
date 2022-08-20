@@ -28,3 +28,9 @@ end
 if fiber.actualStartTime ~= nil and (fiber.actualStartTime :: number) < 0 then
     fiber.actualStartTime = now()
 end
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/530
+foo(
+	-- testing
+	(x :: string) -- testing
+)
