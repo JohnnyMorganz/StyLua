@@ -1038,24 +1038,36 @@ fn hang_binop_expression(
                             hang_binop_expression(
                                 ctx,
                                 *lhs,
-                                if same_op_level { top_binop } else { binop },
+                                if same_op_level {
+                                    top_binop
+                                } else {
+                                    binop.clone()
+                                },
                                 lhs_shape,
                                 lhs_range,
                             ),
-                            format_expression_internal(
-                                ctx,
-                                &rhs,
-                                ExpressionContext::UnaryOrBinary,
-                                rhs_shape,
-                            ),
+                            if contains_comments(&*rhs) {
+                                hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                            } else {
+                                format_expression_internal(
+                                    ctx,
+                                    &rhs,
+                                    ExpressionContext::UnaryOrBinary,
+                                    rhs_shape,
+                                )
+                            },
                         ),
                         ExpressionSide::Right => (
-                            format_expression_internal(
-                                ctx,
-                                &lhs,
-                                ExpressionContext::UnaryOrBinary,
-                                lhs_shape,
-                            ),
+                            if contains_comments(&*lhs) {
+                                hang_binop_expression(ctx, *lhs, binop.clone(), shape, lhs_range)
+                            } else {
+                                format_expression_internal(
+                                    ctx,
+                                    &lhs,
+                                    ExpressionContext::UnaryOrBinary,
+                                    lhs_shape,
+                                )
+                            },
                             hang_binop_expression(
                                 ctx,
                                 *rhs,
