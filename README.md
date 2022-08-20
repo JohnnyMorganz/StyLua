@@ -57,10 +57,17 @@ Add the following to your `.pre-commit-config.yaml` file:
     - id: stylua # or stylua-system / stylua-github
 ```
 
-### npm (wasm build)
+### npm
 
-StyLua is available as a wasm package, and is [published to npm](https://www.npmjs.com/package/@johnnymorganz/stylua).
-It is usable in Node.js, or the in the browser (using a bundler).
+StyLua is available as a binary [published to npm](https://www.npmjs.com/package/@johnnymorganz/stylua-bin) as `@johnnymorganz/stylua-bin`.
+This is a thin wrapper which installs the binary and allows it to be run through npm.
+
+```sh
+npx @johnnymorganz/stylua-bin --help
+```
+
+StyLua is also available as a WASM library at [@johnnymorganz/stylua](https://www.npmjs.com/package/@johnnymorganz/stylua).
+It is usable in Node.js, or in the browser (using a bundler).
 
 ### Other Installation Methods
 
