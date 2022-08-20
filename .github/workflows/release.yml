@@ -151,6 +151,11 @@ jobs:
       - run: npm ci
         working-directory: stylua-npm-bin
 
+      - name: Setup README and LICENSE
+        run: |
+          cp README.md stylua-npm-bin/
+          cp LICENSE.md stylua-npm-bin/
+
       - name: Publish to npm
         working-directory: stylua-npm-bin
         run: npm publish
