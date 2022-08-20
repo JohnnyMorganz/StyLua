@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661008272169,
+  "lastUpdate": 1661009863687,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1343,6 +1343,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 49228228,
             "range": "± 6099793",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8dd59e5dcba43f1a1096be3e3480840c66602e4",
+          "message": "Remove unnecessary else break in if expression comments (#539)\n\n* Add test case\r\n\r\n* Don't break on else if it is not necessary\r\n\r\n* Snapshot\r\n\r\n* Changelog",
+          "timestamp": "2022-08-20T16:30:48+01:00",
+          "tree_id": "61840e1c492468cf4ef5ff4bd5db64e26751973b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a8dd59e5dcba43f1a1096be3e3480840c66602e4"
+        },
+        "date": 1661009863150,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 84516975,
+            "range": "± 648287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2969678807,
+            "range": "± 7782039",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 68051773,
+            "range": "± 1328325",
             "unit": "ns/iter"
           }
         ]
