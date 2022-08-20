@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661009863687,
+  "lastUpdate": 1661015341921,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1385,6 +1385,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 68051773,
             "range": "± 1328325",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c9d2b35e08d9f4df79f158b809649f17b9b0862d",
+          "message": "Create `@johnnymorganz/stylua-bin` installable through npm (#540)\n\n* Create binary installable through npm\r\n\r\n* Add workflow to publish npm bin\r\n\r\n* Update README\r\n\r\n* Setup readme in workflow",
+          "timestamp": "2022-08-20T18:03:11+01:00",
+          "tree_id": "f176dfaacd0886147156f40ea2064f867d3e6edd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c9d2b35e08d9f4df79f158b809649f17b9b0862d"
+        },
+        "date": 1661015341449,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 68939026,
+            "range": "± 728970",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2535572815,
+            "range": "± 2678984",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 56328803,
+            "range": "± 267301",
             "unit": "ns/iter"
           }
         ]
