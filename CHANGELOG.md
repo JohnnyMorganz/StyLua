@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Long union/interesection types inside of a parentheses will now cause the parentheses to expand multiline ([#531](https://github.com/JohnnyMorganz/StyLua/issues/531))
 - Fixed leading comments lost from an expression when excessive parentheses are removed from it ([#530](https://github.com/JohnnyMorganz/StyLua/issues/530))
 - Fixed comments present in a complex expression not forcing multiline hanging leading to a syntax error ([#524](https://github.com/JohnnyMorganz/StyLua/issues/524))
+- Fixed unnecessary break on `else` in an if-expression when the expression contains a comment ([#520](https://github.com/JohnnyMorganz/StyLua/issues/520))
 
 ## [0.14.2] - 2022-07-27
 
