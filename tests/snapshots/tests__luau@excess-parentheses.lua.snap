@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 30
 expression: format(&contents)
-
 ---
 local foo = (bar :: any) :: number
 
@@ -34,4 +32,10 @@ end
 if fiber.actualStartTime ~= nil and (fiber.actualStartTime :: number) < 0 then
 	fiber.actualStartTime = now()
 end
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/530
+foo(
+	-- testing
+	x :: string -- testing
+)
 
