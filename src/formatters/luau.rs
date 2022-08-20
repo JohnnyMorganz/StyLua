@@ -6,7 +6,7 @@ use crate::{
         expression::{format_expression, format_var},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_punctuated,
-            format_symbol, format_token_reference, try_format_punctuated,
+            format_symbol, format_token_reference,
         },
         table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
         trivia::{
@@ -403,8 +403,31 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         }
 
         TypeInfo::Tuple { parentheses, types } => {
-            let parentheses = format_contained_span(ctx, parentheses, shape);
-            let types = try_format_punctuated(ctx, types, shape + 1, format_type_info, None); // 1 = "("
+            let (start_brace, end_brace) = parentheses.tokens();
+            let should_format_multiline =
+                trivia_contains_comments(start_brace.trailing_trivia(), CommentSearch::Single)
+                    || trivia_contains_comments(end_brace.leading_trivia(), CommentSearch::Single)
+                    || types
+                        .pairs()
+                        .any(|pair| contains_comments(pair.punctuation()));
+
+            let singleline_parentheses = format_contained_span(ctx, parentheses, shape);
+            let singleline_types = format_punctuated(ctx, types, shape + 1, format_type_info); // 1 = "("
+
+            let (parentheses, types) = if should_format_multiline
+                || shape.add_width(2).test_over_budget(&singleline_types)
+            {
+                format_contained_punctuated_multiline(
+                    ctx,
+                    parentheses,
+                    types,
+                    |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
+                    take_type_info_trailing_comments,
+                    shape,
+                )
+            } else {
+                (singleline_parentheses, singleline_types)
+            };
 
             TypeInfo::Tuple { parentheses, types }
         }

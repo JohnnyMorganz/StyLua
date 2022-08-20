@@ -1,0 +1,27 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+---
+type PseudoEnumItemConstructor = (
+	((GuiThemeTypeEnum, string) -> GuiThemeType)
+	& ((GuiBrandTypeEnum, string) -> GuiBrandType)
+	& ((GuiStateModifierEnum, string) -> GuiStateModifier)
+	& ((GuiBrandTypeEnum, string) -> GuiBrandType)
+	& ((GuiStateModifierEnum, string) -> GuiStateModifier)
+	& ((GuiDensityModifierEnum, string) -> GuiDensityModifier)
+	& ((GuiColorPaletteEnum, string) -> GuiColorPalette)
+	& ((GuiTypographyEnum, string) -> GuiTypography)
+	& ((GuiColorTypeEnum, string) -> GuiColorType)
+	& ((ValidityFailTypeEnum, string) -> ValidityFailType)
+	& ((VehicleClassEnum, string) -> VehicleClass)
+	& ((VehiclePurposeEnum, string) -> VehiclePurpose)
+	& ((FuelTypeEnum, string) -> FuelType)
+	& ((LaneTypeEnum, string) -> LaneType)
+	& ((InfrastructureTypeEnum, string) -> InfrastructureType)
+	& ((FoundationTypeEnum, string) -> FoundationType)
+	& ((BiomeTypeEnum, string) -> BiomeType)
+	& ((BuildStateEnum, string) -> BuildState)
+	& ((BuildMethodTypeEnum, string) -> BuildMethodType)
+	& ((CurvePartTypeEnum, string) -> CurvePartType)
+)
+

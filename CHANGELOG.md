@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed macOS aarch64 target in release workflow ([#528](https://github.com/JohnnyMorganz/StyLua/issues/528))
+- Long union/interesection types inside of a parentheses will now cause the parentheses to expand multiline ([#531](https://github.com/JohnnyMorganz/StyLua/issues/531))
 
 ## [0.14.2] - 2022-07-27
 
