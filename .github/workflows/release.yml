@@ -105,7 +105,7 @@ jobs:
       - name: Publish to cargo
         run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
 
-  release_npm:
+  release_npm_wasm:
     name: Publish wasm to npm
     runs-on: ubuntu-latest
     steps:
@@ -132,6 +132,27 @@ jobs:
 
       - name: Publish to npm
         working-directory: wasm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  release_npm_bin:
+    name: Publish binary to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+        working-directory: stylua-npm-bin
+
+      - name: Publish to npm
+        working-directory: stylua-npm-bin
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
