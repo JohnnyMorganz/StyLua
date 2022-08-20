@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661005302710,
+  "lastUpdate": 1661005726807,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1217,6 +1217,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 55352343,
             "range": "± 196829",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0f3dad8abec979dfa07f56c37763d48dbb01944e",
+          "message": "Format type parentheses multiline if long union/intersection (#536)\n\n* Add test case\r\n\r\n* Format parentheses multiline if long\r\n\r\n* Snapshot\r\n\r\n* Changelog",
+          "timestamp": "2022-08-20T15:22:04+01:00",
+          "tree_id": "da5a91047468cb9edf7337ddcf4f375325b30c57",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0f3dad8abec979dfa07f56c37763d48dbb01944e"
+        },
+        "date": 1661005725993,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 75370798,
+            "range": "± 1891311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2763271567,
+            "range": "± 40265865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 62739991,
+            "range": "± 2345601",
             "unit": "ns/iter"
           }
         ]
