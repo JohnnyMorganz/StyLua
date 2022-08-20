@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661007488507,
+  "lastUpdate": 1661008272169,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1301,6 +1301,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 66135673,
             "range": "± 480669",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6bb9c784c5ae175451a9225d72d0506675845de",
+          "message": "Fix collapsing when comment present in complex expr (#538)\n\n* Add test case\r\n\r\n* If expression contains comments, then use hanging version\r\n\r\n* Snapshot\r\n\r\n* changelog",
+          "timestamp": "2022-08-20T16:04:05+01:00",
+          "tree_id": "6be256e6820d324864ebbddf9e9633050d3dcda6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d6bb9c784c5ae175451a9225d72d0506675845de"
+        },
+        "date": 1661008271208,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 57751780,
+            "range": "± 5597639",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2168386852,
+            "range": "± 13050002",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 49228228,
+            "range": "± 6099793",
             "unit": "ns/iter"
           }
         ]
