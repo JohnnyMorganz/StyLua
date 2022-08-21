@@ -300,7 +300,7 @@ fn attempt_assignment_tactics(
             // If hanging at the equal token doesn't go over budget, and it produces less lines than hanging normally
             // then go for that instead
             if !equal_token_shape.over_budget()
-                && format!("{}", hanging_equal_token_expr_list).lines().count()
+                && format!("{}", hanging_equal_token_expr_list).lines().count() + 1 // Add an extra line since we are hanging
                     < format!("{}", expr_list).lines().count()
                 || formatting_shape.over_budget()
             {
