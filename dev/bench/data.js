@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661087945316,
+  "lastUpdate": 1661091037291,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1595,6 +1595,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 56450956,
             "range": "± 267784",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "934393db28fda5415ddfd6903be302b0ffc341c5",
+          "message": "Keep small prefix inlined in call chain (#550)\n\n* Add test case\r\n\r\n* Ensure small prefix is kept inlined\r\n\r\n* Update changelog\r\n\r\n* Update snapshots",
+          "timestamp": "2022-08-21T15:03:33+01:00",
+          "tree_id": "e391a4f290c6238e78513c2c0d3bfdc9b32319a6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/934393db28fda5415ddfd6903be302b0ffc341c5"
+        },
+        "date": 1661091036420,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 80854840,
+            "range": "± 1038544",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2961419328,
+            "range": "± 15233730",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 66653931,
+            "range": "± 598380",
             "unit": "ns/iter"
           }
         ]
