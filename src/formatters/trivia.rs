@@ -410,6 +410,18 @@ define_update_leading_trivia!(Prefix, |this, leading| {
     }
 });
 
+define_update_trailing_trivia!(Prefix, |this, trailing| {
+    match this {
+        Prefix::Name(token_reference) => {
+            Prefix::Name(token_reference.update_trailing_trivia(trailing))
+        }
+        Prefix::Expression(expression) => {
+            Prefix::Expression(expression.update_trailing_trivia(trailing))
+        }
+        other => panic!("unknown node {:?}", other),
+    }
+});
+
 impl<T> UpdateLeadingTrivia for Punctuated<T>
 where
     T: UpdateLeadingTrivia + Clone,

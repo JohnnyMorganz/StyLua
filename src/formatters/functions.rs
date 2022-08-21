@@ -906,6 +906,13 @@ pub fn format_function_body(
         .with_end_token(end_token)
 }
 
+fn should_inline_prefix(ctx: &Context, prefix: &Prefix) -> bool {
+    let prefix = strip_trivia(prefix).to_string();
+
+    prefix.as_str().chars().next().unwrap().is_uppercase()
+        || prefix.len() <= ctx.config().indent_width
+}
+
 /// Formats a FunctionCall node
 pub fn format_function_call(
     ctx: &Context,
@@ -977,14 +984,7 @@ pub fn format_function_call(
 
             // If the prefix starts with an uppercase character, or is smaller than the indent width
             // we can inline the first call. BUT, inlining overall should still be under the column width
-            keep_first_call_inlined = (strip_leading_trivia(function_call.prefix())
-                .to_string()
-                .as_str()
-                .chars()
-                .next()
-                .unwrap()
-                .is_uppercase()
-                || function_call.prefix().to_string().len() <= ctx.config().indent_width)
+            keep_first_call_inlined = should_inline_prefix(ctx, function_call.prefix())
                 && !shape
                     .take_last_line(&strip_leading_trivia(&formatted_prefix))
                     .test_over_budget(&formatted_suffixes.into_iter().next().unwrap());
