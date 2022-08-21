@@ -32,10 +32,10 @@ REPOS = {
         "url": "https://github.com/luvit/lit/",
         "command": "libs commands deps"
     },
-    "BlizzardInterfaceCode": {
-        "url": "https://github.com/tomrus88/BlizzardInterfaceCode",
-        "command": "."
-    }
+    # "BlizzardInterfaceCode": {
+    #     "url": "https://github.com/tomrus88/BlizzardInterfaceCode",
+    #     "command": "."
+    # }
 }
 
 # Get paths to downloaded executables
