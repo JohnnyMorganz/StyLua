@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661079135695,
+  "lastUpdate": 1661084161506,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1469,6 +1469,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 72721435,
             "range": "± 4006719",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "948f1787fb3a9c825786dfc1b72159a79903eaba",
+          "message": "Take into account extra line when hanging assignment (#544)\n\n* Test case\r\n\r\n* Take into account extra line\r\n\r\n* Changelog\r\n\r\n* Snapshot",
+          "timestamp": "2022-08-21T13:09:38+01:00",
+          "tree_id": "e1958a1059afd14d18f2470f267e111bc5e05dc6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/948f1787fb3a9c825786dfc1b72159a79903eaba"
+        },
+        "date": 1661084160649,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 71628859,
+            "range": "± 2996282",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2644905434,
+            "range": "± 55129162",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 58027912,
+            "range": "± 2268044",
             "unit": "ns/iter"
           }
         ]
