@@ -371,7 +371,7 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
 // Checks if this is a string (allows strings wrapped in parentheses)
 fn is_string(expression: &Expression) -> bool {
     match expression {
-        Expression::Value { value } => matches!(&**value, Value::String(_)),
+        Expression::Value { value, .. } => matches!(&**value, Value::String(_)),
         Expression::Parentheses { expression, .. } => is_string(expression),
         _ => false,
     }
