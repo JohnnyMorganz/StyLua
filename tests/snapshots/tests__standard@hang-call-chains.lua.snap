@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 12
 expression: format(&contents)
-
 ---
 Promise.new()
 	:andThen(callThis)
@@ -29,8 +27,7 @@ local f = this:andThen(callThis):andThen({
 	true,
 }).X.Y.Z
 
-this
-	:andThen(callThis)
+this:andThen(callThis)
 	:andThen({
 		true,
 	}).X.Y.Z
