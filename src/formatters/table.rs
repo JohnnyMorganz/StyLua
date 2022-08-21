@@ -4,7 +4,10 @@ use crate::{
     formatters::{
         expression::{format_expression, hang_expression, is_brackets_string},
         functions::should_collapse_function_body,
-        general::{format_contained_span, format_end_token, format_token_reference, EndTokenType},
+        general::{
+            format_contained_span, format_end_token, format_token, format_token_reference,
+            trivia_to_vec, EndTokenType, FormatTokenType,
+        },
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
         trivia_util::{self, table_field_trailing_trivia},
     },
@@ -352,8 +355,10 @@ where
             // Filter trailing trivia for any newlines
             trailing_trivia = trailing_trivia
                 .iter()
-                .filter(|x| !trivia_util::trivia_is_newline(x))
-                .map(|x| x.to_owned())
+                .filter(|x| !trivia_util::trivia_is_whitespace(x))
+                .flat_map(|x| {
+                    trivia_to_vec(format_token(ctx, x, FormatTokenType::TrailingTrivia, shape))
+                })
                 .collect();
         }
 
