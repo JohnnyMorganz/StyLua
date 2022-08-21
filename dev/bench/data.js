@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661084161506,
+  "lastUpdate": 1661085801496,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1511,6 +1511,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 58027912,
             "range": "± 2268044",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "673643f6990fef82cf6fb8c9d75f6c7b7d57520c",
+          "message": "Temporarily disable BlizzardInterfaceCode in LST (#546)\n\n* Empty commit\r\n\r\n* Temporarily disable BlizzardInterfaceCode",
+          "timestamp": "2022-08-21T13:37:31+01:00",
+          "tree_id": "90f97dd309999ffad907cfde6282ad5eb614044e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/673643f6990fef82cf6fb8c9d75f6c7b7d57520c"
+        },
+        "date": 1661085800739,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 65824301,
+            "range": "± 649065",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2514963486,
+            "range": "± 6076973",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 55105159,
+            "range": "± 155194",
             "unit": "ns/iter"
           }
         ]
