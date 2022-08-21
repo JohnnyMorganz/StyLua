@@ -105,8 +105,10 @@ fn function_args_contains_comments(
     if trivia_util::trivia_contains_comments(
         start_parens.trailing_trivia(),
         trivia_util::CommentSearch::Single,
-    ) || trivia_util::token_trivia_contains_comments(end_parens.leading_trivia())
-    {
+    ) || trivia_util::trivia_contains_comments(
+        end_parens.leading_trivia(),
+        trivia_util::CommentSearch::Single,
+    ) {
         true
     } else {
         arguments.pairs().any(|argument| {
@@ -114,11 +116,11 @@ fn function_args_contains_comments(
             trivia_util::get_expression_leading_trivia(argument.value())
                 .iter()
                 .chain(trivia_util::get_expression_trailing_trivia(argument.value()).iter())
-                .any(trivia_util::trivia_is_comment)
+                .any(trivia_util::trivia_is_singleline_comment)
             // Punctuation contains comments
             || argument
                 .punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
+                .map_or(false, |token| trivia_util::token_contains_comments_search(token, trivia_util::CommentSearch::Single))
         })
     }
 }

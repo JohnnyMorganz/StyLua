@@ -353,7 +353,9 @@ where
         match pair {
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
-                let punctuation = fmt_symbol!(ctx, punctuation, ", ", shape);
+                let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
+                    FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+                );
                 shape = shape.take_last_line(&value) + 2; // 2 = ", "
 
                 list.push(Pair::new(value, Some(punctuation)));
