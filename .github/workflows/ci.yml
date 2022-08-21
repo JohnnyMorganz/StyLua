@@ -2,40 +2,38 @@ name: Test StyLua
 on:
   push:
     branches:
-    - master
-    - test-actions
+      - main
   pull_request:
     branches:
-    - master
-    - test-actions
+      - main
 jobs:
   test:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1
+      - uses: actions/checkout@v1
 
-    - name: Test (default)
-      run: cargo test
+      - name: Test (default)
+        run: cargo test
 
-    - name: Test (Luau)
-      run: cargo test --features luau
+      - name: Test (Luau)
+        run: cargo test --features luau
 
-    - name: Test (Lua 5.2)
-      run: cargo test --features lua52
-    
-    - name: Test Build (wasm)
-      run: |
-        rustup target add wasm32-unknown-unknown
-        cargo check --target wasm32-unknown-unknown
+      - name: Test (Lua 5.2)
+        run: cargo test --features lua52
+
+      - name: Test Build (wasm)
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo check --target wasm32-unknown-unknown
 
   lint:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1
+      - uses: actions/checkout@v1
 
-    - name: Clippy
-      run: |
-        cargo clippy --all-features -- -D warnings
-    - name: Rustfmt
-      run: |
-        cargo fmt -- --check
+      - name: Clippy
+        run: |
+          cargo clippy --all-features -- -D warnings
+      - name: Rustfmt
+        run: |
+          cargo fmt -- --check

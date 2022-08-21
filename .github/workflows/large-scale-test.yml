@@ -28,13 +28,13 @@ jobs:
           name: stylua-latest
           path: target/release/stylua
 
-  build-master:
-    name: Build Master
+  build-main:
+    name: Build Main
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: "master"
+          ref: "main"
 
       - name: Build (All features)
         run: cargo build --verbose --locked --release --all-features
@@ -42,12 +42,12 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: stylua-master
+          name: stylua-main
           path: target/release/stylua
 
   run-comparison:
     runs-on: ubuntu-latest
-    needs: ["build-master", "build-latest"]
+    needs: ["build-main", "build-latest"]
     steps:
       - uses: actions/checkout@v3
 
@@ -58,13 +58,13 @@ jobs:
 
       - name: Set up artifacts
         run: |
-          mv ./artifacts/stylua-master/stylua ./stylua-master
+          mv ./artifacts/stylua-main/stylua ./stylua-main
           mv ./artifacts/stylua-latest/stylua ./stylua-latest
 
       - name: Run comparison tool
         id: run_comparison
         run: |
-          body="$(python ./.github/run_comparisons.py ./stylua-master ./stylua-latest)"
+          body="$(python ./.github/run_comparisons.py ./stylua-main ./stylua-latest)"
           body="${body//'%'/'%25'}"
           body="${body//$'\n'/'%0A'}"
           body="${body//$'\r'/'%0D'}"

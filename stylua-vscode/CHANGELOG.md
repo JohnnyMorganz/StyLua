@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Main StyLua
 
-To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/master/CHANGELOG.md)
+To view the changelog of the StyLua binary, see [here](https://github.com/JohnnyMorganz/StyLua/blob/main/CHANGELOG.md)
 
 ## [Unreleased]
 

@@ -3,7 +3,7 @@
   "displayName": "StyLua",
   "description": "A Lua code formatter",
   "publisher": "JohnnyMorganz",
-  "homepage": "https://github.com/JohnnyMorganz/StyLua/blob/master/README.md",
+  "homepage": "https://github.com/JohnnyMorganz/StyLua/blob/main/README.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/JohnnyMorganz/StyLua"

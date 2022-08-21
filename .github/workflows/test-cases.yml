@@ -23,4 +23,4 @@ jobs:
             - Note: **snapshots have not been updated**. You must manually update snapshots for the updated test cases
           branch: auto/update-external-test-cases
           commit-message: Update external test cases
-          base: master
+          base: main
