@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661091602586,
+  "lastUpdate": 1661108171264,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1679,6 +1679,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54461952,
             "range": "± 147958",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "760737fbae0aa62b89b32b405aed4b7c3d0c2976",
+          "message": "Don't attempt to hang a prefix string unnecessarily (#545)\n\n* Add test case\r\n\r\n* Don't hang prefix string as it provides no benefit\r\n\r\n* Update changelog\r\n\r\n* Snapshot\r\n\r\n* Fix luau",
+          "timestamp": "2022-08-21T19:48:56+01:00",
+          "tree_id": "17f8d98d609f686b9d5a3faeeb8e7733149ea413",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/760737fbae0aa62b89b32b405aed4b7c3d0c2976"
+        },
+        "date": 1661108170470,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 83117596,
+            "range": "± 2355676",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 3269076394,
+            "range": "± 41683099",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 68724342,
+            "range": "± 2727080",
             "unit": "ns/iter"
           }
         ]
