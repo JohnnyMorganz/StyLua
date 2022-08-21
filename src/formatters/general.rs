@@ -14,8 +14,8 @@ use full_moon::ast::{
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 
-#[derive(Debug)]
-enum FormatTokenType {
+#[derive(Debug, Clone, Copy)]
+pub enum FormatTokenType {
     Token,
     LeadingTrivia,
     TrailingTrivia,
@@ -76,13 +76,23 @@ fn format_single_line_comment_string(comment: &str) -> &str {
     comment.trim_end()
 }
 
+pub fn trivia_to_vec(
+    (token, leading, trailing): (Token, Option<Vec<Token>>, Option<Vec<Token>>),
+) -> Vec<Token> {
+    let mut output = leading.unwrap_or_default();
+    output.push(token);
+    output.append(&mut trailing.unwrap_or_default());
+
+    output
+}
+
 /// Formats a Token Node
 /// Also returns any extra leading or trailing trivia to add for the Token node
 /// This should only ever be called from format_token_reference
-fn format_token(
+pub fn format_token(
     ctx: &Context,
     token: &Token,
-    format_type: &FormatTokenType,
+    format_type: FormatTokenType,
     shape: Shape,
 ) -> (Token, Option<Vec<Token>>, Option<Vec<Token>>) {
     let mut leading_trivia: Option<Vec<Token>> = None;
@@ -283,7 +293,7 @@ fn load_token_trivia(
         }
 
         let (token, leading_trivia, trailing_trivia) =
-            format_token(ctx, trivia.to_owned(), &format_token_type, shape);
+            format_token(ctx, trivia.to_owned(), format_token_type, shape);
         if let Some(mut trivia) = leading_trivia {
             token_trivia.append(&mut trivia);
         }
@@ -318,7 +328,7 @@ pub fn format_token_reference(
     );
 
     let (token, _leading_trivia, _trailing_trivia) =
-        format_token(ctx, token_reference.token(), &FormatTokenType::Token, shape);
+        format_token(ctx, token_reference.token(), FormatTokenType::Token, shape);
 
     TokenReference::new(formatted_leading_trivia, token, formatted_trailing_trivia)
 }
