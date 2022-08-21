@@ -368,6 +368,15 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
     }
 }
 
+// Checks if this is a string (allows strings wrapped in parentheses)
+fn is_string(expression: &Expression) -> bool {
+    match expression {
+        Expression::Value { value, .. } => matches!(&**value, Value::String(_)),
+        Expression::Parentheses { expression, .. } => is_string(expression),
+        _ => false,
+    }
+}
+
 /// Formats a Prefix Node
 pub fn format_prefix(ctx: &Context, prefix: &Prefix, shape: Shape) -> Prefix {
     match prefix {
@@ -376,7 +385,7 @@ pub fn format_prefix(ctx: &Context, prefix: &Prefix, shape: Shape) -> Prefix {
                 format_expression_internal(ctx, expression, ExpressionContext::Prefix, shape);
             let singeline_shape = shape.take_first_line(&strip_trivia(&singleline_format));
 
-            if singeline_shape.over_budget() {
+            if singeline_shape.over_budget() && !is_string(expression) {
                 Prefix::Expression(format_hanging_expression_(
                     ctx,
                     expression,
