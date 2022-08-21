@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661085801496,
+  "lastUpdate": 1661087945316,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1553,6 +1553,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 55105159,
             "range": "± 155194",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "096bbeb763b789026f5fbbb0a3c182c5698174e9",
+          "message": "Format comments added to new trailing comma (#548)\n\n* Add test case\r\n\r\n* Format trailing trivia added to new trailing comma\r\n\r\n* Update changelog\r\n\r\n* Snapshot",
+          "timestamp": "2022-08-21T14:13:08+01:00",
+          "tree_id": "abfefdd9c3e9c818b2bc61f6469163d15446d57a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/096bbeb763b789026f5fbbb0a3c182c5698174e9"
+        },
+        "date": 1661087944568,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 68428951,
+            "range": "± 475425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2539044210,
+            "range": "± 6940406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 56450956,
+            "range": "± 267784",
             "unit": "ns/iter"
           }
         ]
