@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661091037291,
+  "lastUpdate": 1661091602586,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1637,6 +1637,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 66653931,
             "range": "± 598380",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "78ec64f82a764c43fc74cfa79e5860553d83e45e",
+          "message": "Fix table field shape calculation (#552)\n\n* Add test case\r\n\r\n* Fix table shape computation\r\n\r\n* Changelog\r\n\r\n* Snapshots",
+          "timestamp": "2022-08-21T15:14:11+01:00",
+          "tree_id": "1de2ec12281ccc2e0c95e2a33152a99cd4c7c854",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/78ec64f82a764c43fc74cfa79e5860553d83e45e"
+        },
+        "date": 1661091601720,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66556626,
+            "range": "± 420423",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 2501444583,
+            "range": "± 4531467",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 54461952,
+            "range": "± 147958",
             "unit": "ns/iter"
           }
         ]
