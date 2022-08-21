@@ -1133,7 +1133,7 @@ pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
     match field {
         Field::ExpressionKey { value, .. } => get_expression_trailing_trivia(value),
         Field::NameKey { value, .. } => get_expression_trailing_trivia(value),
-        Field::NoKey(expression) => get_expression_leading_trivia(expression),
+        Field::NoKey(expression) => get_expression_trailing_trivia(expression),
         other => panic!("unknown node {:?}", other),
     }
 }

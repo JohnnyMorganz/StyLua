@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed unnecessary break on `else` in an if-expression when the expression contains a comment ([#520](https://github.com/JohnnyMorganz/StyLua/issues/520))
 - Take into account the extra line created when hanging at equals token in an assignment. This should prevent unnecessary hanging ([#542](https://github.com/JohnnyMorganz/StyLua/issues/542)) 
 - Fixed comments added to a newly created trailing comment not being formatted ([#547](https://github.com/JohnnyMorganz/StyLua/issues/547))
+- Fixed call chain with a small prefix not being kept inlined causing unstable formatting ([#514](https://github.com/JohnnyMorganz/StyLua/issues/514))
+- Fixed shape computation for table fields causing unnecessary expansion ([#551](https://github.com/JohnnyMorganz/StyLua/issues/551))
 - Fixed hanging the prefix string in `("str"):call` unnecessarily when it provides no benefit ([#508](https://github.com/JohnnyMorganz/StyLua/issues/508))
 
 ## [0.14.2] - 2022-07-27
