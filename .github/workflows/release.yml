@@ -148,9 +148,6 @@ jobs:
           node-version: "14.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm ci
-        working-directory: stylua-npm-bin
-
       - name: Setup README and LICENSE
         run: |
           cp README.md stylua-npm-bin/
