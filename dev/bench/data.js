@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661597827076,
+  "lastUpdate": 1661629709978,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1805,6 +1805,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 56100653,
             "range": "± 2071786",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "52a51ced2ea8e026db94519ff6ddb8bf3a4c7a69",
+          "message": "Enforce locked on cargo publish (#557)\n\nEnforce locked on publish",
+          "timestamp": "2022-08-27T20:44:01+01:00",
+          "tree_id": "de34b2e45894b6e66643bb52f41560997e194943",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/52a51ced2ea8e026db94519ff6ddb8bf3a4c7a69"
+        },
+        "date": 1661629709570,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 67546993,
+            "range": "± 865290",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 444440692,
+            "range": "± 3330055",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 41461375,
+            "range": "± 257289",
             "unit": "ns/iter"
           }
         ]
