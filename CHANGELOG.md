@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.3] - 2022-08-27
+
 ### Fixed
 
 - Fixed macOS aarch64 target in release workflow ([#528](https://github.com/JohnnyMorganz/StyLua/issues/528))
@@ -447,7 +449,8 @@ For example, using `stylua -g *.lua -g !*.spec.lua .` will format all Lua files 
 ## [0.1.0-alpha] - 2020-12-22
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.14.2...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.14.3...HEAD
+[0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3
 [0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.2
 [0.14.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.1
 [0.14.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.0
