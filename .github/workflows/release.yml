@@ -103,7 +103,7 @@ jobs:
           override: true
 
       - name: Publish to cargo
-        run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
+        run: cargo publish --verbose --locked --token ${{ secrets.CARGO_TOKEN }}
 
   release_npm_wasm:
     name: Publish wasm to npm
