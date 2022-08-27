@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661108171264,
+  "lastUpdate": 1661592953070,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1721,6 +1721,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 68724342,
             "range": "± 2727080",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c91e97e7c904e3c79aec4cebc444e2e04a1df904",
+          "message": "Prefer hanging table field value over expanding (#553)\n\n* Hang table field value instead of expanding it\r\n\r\n* Changelog\r\n\r\n* Snapshot\r\n\r\n* Rethink strategy to hang table field value",
+          "timestamp": "2022-08-27T10:30:19+01:00",
+          "tree_id": "9a7948dfe12af6e8ef85c313d6d94b616b236a00",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c91e97e7c904e3c79aec4cebc444e2e04a1df904"
+        },
+        "date": 1661592950618,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 78295704,
+            "range": "± 3746028",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 557838431,
+            "range": "± 29480299",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 50925822,
+            "range": "± 1858701",
             "unit": "ns/iter"
           }
         ]
