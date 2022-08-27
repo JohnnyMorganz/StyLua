@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661592953070,
+  "lastUpdate": 1661597827076,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1763,6 +1763,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 50925822,
             "range": "± 1858701",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "834f632f67af6425e7773eaade8d23a880946843",
+          "message": "v0.14.3 - fix lockfile and workflow",
+          "timestamp": "2022-08-27T11:50:39+01:00",
+          "tree_id": "052f995389c4484269558abbb17026ba7190a357",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/834f632f67af6425e7773eaade8d23a880946843"
+        },
+        "date": 1661597824767,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 93773547,
+            "range": "± 2232107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 615548371,
+            "range": "± 17365141",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 56100653,
+            "range": "± 2071786",
             "unit": "ns/iter"
           }
         ]
