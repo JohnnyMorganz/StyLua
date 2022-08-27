@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed call chain with a small prefix not being kept inlined causing unstable formatting ([#514](https://github.com/JohnnyMorganz/StyLua/issues/514))
 - Fixed shape computation for table fields causing unnecessary expansion ([#551](https://github.com/JohnnyMorganz/StyLua/issues/551))
 - Fixed hanging the prefix string in `("str"):call` unnecessarily when it provides no benefit ([#508](https://github.com/JohnnyMorganz/StyLua/issues/508))
+- Fixed table field value being expanded when it could be hanged instead ([#541](https://github.com/JohnnyMorganz/StyLua/issues/541))
 
 ## [0.14.2] - 2022-07-27
 
