@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661629709978,
+  "lastUpdate": 1661980894346,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1847,6 +1847,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 41461375,
             "range": "± 257289",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ian@iamthefij.com",
+            "name": "Ian Fijolek",
+            "username": "IamTheFij"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f5243a1ff2f2a0dd59589706d7dccac03a4128f4",
+          "message": "Update pyproject to support installing on M1 machines (#558)",
+          "timestamp": "2022-08-31T22:15:38+01:00",
+          "tree_id": "3bfdd0b8a4471346c757064f38c9147653dfd352",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f5243a1ff2f2a0dd59589706d7dccac03a4128f4"
+        },
+        "date": 1661980892619,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 93669497,
+            "range": "± 3280631",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 589043179,
+            "range": "± 18421564",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 55967047,
+            "range": "± 2732621",
             "unit": "ns/iter"
           }
         ]
