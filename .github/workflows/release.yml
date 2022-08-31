@@ -33,6 +33,9 @@ jobs:
           - os: ubuntu-18.04
             artifact-name: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
+          - os: ubuntu-18.04
+            artifact-name: stylua-linux-aarch64
+            cargo-target: aarch64-unknown-linux-gnu
           - os: macos-latest
             artifact-name: stylua-macos
             cargo-target: x86_64-apple-darwin
