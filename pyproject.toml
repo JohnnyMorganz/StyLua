@@ -4,8 +4,11 @@ build-backend = "pseudo_builder"
 
 [tool.release-gitter]
 extract-files = ["stylua"]
-format = "stylua-{system}.zip"
+format = "stylua-{system}{arch}.zip"
 exec = "chmod +x stylua"
+[tool.release-gitter.map-arch]
+x86_64 = ""
+arm64 = "-aarch64"
 [tool.release-gitter.map-system]
 Darwin = "macos"
 Windows = "win64"
