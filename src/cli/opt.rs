@@ -92,7 +92,6 @@ pub struct Opt {
     pub files: Vec<PathBuf>,
 
     /// Whether to traverse hidden files/directories.
-    ///
     #[structopt(short, long)]
     pub allow_hidden: bool,
 }
