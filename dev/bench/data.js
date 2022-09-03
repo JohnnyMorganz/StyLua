@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662202796440,
+  "lastUpdate": 1662204589148,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2015,6 +2015,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 39834176,
             "range": "± 94541",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "2e3d0488adc81b49ef9aaebb0b3659035f1b3dec",
+          "message": "Switch to ubuntu-latest runners for everything except release\n\nNeed to investigate release glibc ubuntu problems",
+          "timestamp": "2022-09-03T12:24:10+01:00",
+          "tree_id": "1c4a717bb672c42dce84fe4f3473f0d3ad80615e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2e3d0488adc81b49ef9aaebb0b3659035f1b3dec"
+        },
+        "date": 1662204587485,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 84089765,
+            "range": "± 3053886",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 573778315,
+            "range": "± 23207136",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 52157136,
+            "range": "± 1786595",
             "unit": "ns/iter"
           }
         ]
