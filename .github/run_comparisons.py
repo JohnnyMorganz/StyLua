@@ -41,6 +41,8 @@ REPOS = {
 # Get formatting type
 formattingType: Literal["diffAfterMainFormat", "diffMainVsChangeFormat"] = sys.argv[1] or "diffAfterMainFormat"  # type: ignore
 
+print(f"RUNNING MODE: {formattingType}", file=sys.stderr)
+
 os.chmod("./stylua-main", 0o700)
 os.chmod("./stylua-latest", 0o700)
 os.system('git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"')
@@ -101,6 +103,7 @@ for repo, data in REPOS.items():
 
     # If we are diffing main vs change formatting, then reset to original code
     if formattingType == "diffMainVsChangeFormat":
+        print(f"Restoring original code", file=sys.stderr)
         restoreProcess = subprocess.Popen(["git", "commit", "-a", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         restoreProcessStderr = restoreProcess.communicate()[1].decode()
         if restoreProcess.wait() != 0:
