@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662204589148,
+  "lastUpdate": 1662207377136,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2057,6 +2057,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 52157136,
             "range": "± 1786595",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e4740f9f1460c8483f492e62cee78990267350d3",
+          "message": "Allow alternative way to compute large scale diffs (#564)\n\n* Allow alternative way to compute large scale diffs\r\n\r\n* Update\r\n\r\n* Build with ubuntu-latest\r\n\r\n* Fix commands\r\n\r\n* Fix staging",
+          "timestamp": "2022-09-03T13:11:01+01:00",
+          "tree_id": "834983a2b5285918e4d89b4a2179cff80295c83e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e4740f9f1460c8483f492e62cee78990267350d3"
+        },
+        "date": 1662207376274,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 88486108,
+            "range": "± 4941577",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 551623869,
+            "range": "± 17770697",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 49374604,
+            "range": "± 1870525",
             "unit": "ns/iter"
           }
         ]
