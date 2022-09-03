@@ -104,7 +104,7 @@ for repo, data in REPOS.items():
     # If we are diffing main vs change formatting, then reset to original code
     if formattingType == "diffMainVsChangeFormat":
         print(f"Restoring original code", file=sys.stderr)
-        restoreProcess = subprocess.Popen(["git", "commit", "-a", "--allow-empty", "--no-verify", "-m", "base"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        restoreProcess = subprocess.Popen(["git", "checkout", "HEAD~1", "."], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         restoreProcessStderr = restoreProcess.communicate()[1].decode()
         if restoreProcess.wait() != 0:
             print(f"**Error when restoring original changes on `{repo}`**:")
@@ -119,6 +119,16 @@ for repo, data in REPOS.items():
         printCodeblock(runLatestStderr, "")
 
     print(f"Latest tool executed", file=sys.stderr)
+
+    # If we are diffing main vs change formatting, we need to stage the changes
+    if formattingType == "diffMainVsChangeFormat":
+        print(f"Stage latest changes", file=sys.stderr)
+        stageProcess = subprocess.Popen(["git", "add", "--all"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stageProcessStderr = stageProcess.communicate()[1].decode()
+        if stageProcess.wait() != 0:
+            print(f"**Error when staging new changes on `{repo}`**:")
+            printCodeblock(stageProcessStderr or "<no output>", "")
+            continue
 
     # Compute the diff
     diffProcess = subprocess.Popen(['git', 'diff', f"--src-prefix=ORI/{repo}/", f"--dst-prefix=ALT/{repo}/"], stdout=subprocess.PIPE)
