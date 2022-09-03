@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661980894346,
+  "lastUpdate": 1662197845044,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -1889,6 +1889,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 55967047,
             "range": "± 2732621",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "greg@hurrell.net",
+            "name": "wincent",
+            "username": "wincent"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1ac04240fd934b64d6ed31fdf88101228bccaad9",
+          "message": "feat: add `--allow-hidden` option (#563)",
+          "timestamp": "2022-09-03T10:32:49+01:00",
+          "tree_id": "92cfc156e389c7135a89774effccff6ed536eb8f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1ac04240fd934b64d6ed31fdf88101228bccaad9"
+        },
+        "date": 1662197844321,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 65132077,
+            "range": "± 555792",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 428713894,
+            "range": "± 2977630",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 39617655,
+            "range": "± 121849",
             "unit": "ns/iter"
           }
         ]
