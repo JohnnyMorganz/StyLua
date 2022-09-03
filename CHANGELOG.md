@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `--allow-hidden` flag to entering and formatting hidden files/directories ([#562](https://github.com/JohnnyMorganz/StyLua/issues/562))
+
+### Fixed
+
+- Precommit hook now supports downloading aarch64 binary for M1 macs ([#558](https://github.com/JohnnyMorganz/StyLua/issues/558))
+
 ## [0.14.3] - 2022-08-27
 
 ### Fixed
