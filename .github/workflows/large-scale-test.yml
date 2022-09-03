@@ -6,6 +6,14 @@ on:
         description: "PR #"
         required: true
         type: number
+      type:
+        description: "Diff computation type"
+        required: true
+        default: "diffAfterMainFormat"
+        type: choice
+        options:
+          - diffAfterMainFormat # format using main branch first, then apply PR changes ontop of that
+          - diffMainVsChangeFormat # format using main branch, store. Reset to original then format using PR branch. Compute differences
 
 jobs:
   build-latest:
@@ -64,7 +72,7 @@ jobs:
       - name: Run comparison tool
         id: run_comparison
         run: |
-          body="$(python ./.github/run_comparisons.py ./stylua-main ./stylua-latest)"
+          body="$(python ./.github/run_comparisons.py ${{ github.event.inputs.type }})"
           body="${body//'%'/'%25'}"
           body="${body//$'\n'/'%0A'}"
           body="${body//$'\r'/'%0D'}"
