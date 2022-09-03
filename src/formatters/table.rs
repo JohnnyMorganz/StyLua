@@ -20,7 +20,7 @@ use full_moon::{
         Expression, Field, TableConstructor, Value,
     },
     node::Node,
-    tokenizer::{Token, TokenKind, TokenReference, TokenType},
+    tokenizer::{Token, TokenReference, TokenType},
 };
 
 /// Used to provide information about the table
@@ -40,17 +40,30 @@ fn format_field_expression_value(
     expression: &Expression,
     shape: Shape,
 ) -> Expression {
-    let singleline_value = format_expression(ctx, expression, shape)
-        .update_trailing_trivia(FormatTriviaType::Replace(vec![])); // We will remove all the trivia from this value, and place it after the comma
+    // Remove all trivia from the output expression as it will be moved after the comma
 
-    if trivia_util::can_hang_expression(expression)
-        && shape.take_first_line(&singleline_value).over_budget()
-        || trivia_util::expression_contains_inline_comments(expression)
-    {
-        hang_expression(ctx, expression, shape, Some(1))
-            .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+    if trivia_util::can_hang_expression(expression) {
+        if trivia_util::expression_contains_inline_comments(expression) {
+            hang_expression(ctx, expression, shape, Some(1))
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+        } else {
+            let singleline_value = format_expression(ctx, expression, shape)
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+            let hanging_value = hang_expression(ctx, expression, shape, Some(1))
+                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
+            if shape.test_over_budget(&singleline_value)
+                || format!("{}", hanging_value).lines().count()
+                    < format!("{}", singleline_value).lines().count()
+            {
+                hanging_value
+            } else {
+                singleline_value
+            }
+        }
     } else {
-        singleline_value
+        format_expression(ctx, expression, shape)
+            .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
     }
 }
 
@@ -477,15 +490,15 @@ pub fn format_table_constructor(
                 let additional_shape = match (
                     start_brace
                         .trailing_trivia()
-                        .any(|x| x.token_kind() == TokenKind::Whitespace),
+                        .any(trivia_util::trivia_is_whitespace),
                     // A space will be present on the end of the last field, not the start of the end brace
                     match (last_field.value(), last_field.punctuation()) {
                         (_, Some(token)) => token
                             .trailing_trivia()
-                            .any(|x| x.token_kind() == TokenKind::Whitespace),
+                            .any(trivia_util::trivia_is_whitespace),
                         (field, None) => table_field_trailing_trivia(field)
                             .iter()
-                            .any(|x| x.token_kind() == TokenKind::Whitespace),
+                            .any(trivia_util::trivia_is_whitespace),
                     },
                 ) {
                     (true, true) => 0,
@@ -493,11 +506,8 @@ pub fn format_table_constructor(
                     (false, false) => 2,
                 };
 
-                let singleline_shape = shape
-                    + (braces_range.1 - braces_range.0)
-                    + additional_shape
-                    + BRACE_LEN
-                    + BRACE_LEN;
+                let singleline_shape =
+                    shape + (braces_range.1 - braces_range.0) + additional_shape + BRACE_LEN; // End brace is not included in braces range
 
                 match singleline_shape.over_budget() {
                     true => TableType::MultiLine,
