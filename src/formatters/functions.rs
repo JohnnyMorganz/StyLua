@@ -5,7 +5,7 @@ use full_moon::ast::{
     FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Stmt, Suffix,
     TableConstructor, Value, Var,
 };
-use full_moon::tokenizer::{Token, TokenReference, TokenType};
+use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
@@ -95,6 +95,12 @@ fn is_complex_arg(value: &Value) -> bool {
     value.to_string().trim().contains('\n')
 }
 
+// Test for singleline comments or multiline comments which span more than one line
+fn function_trivia_contains_comments(trivia: &Token) -> bool {
+    matches!(trivia.token_kind(), TokenKind::SingleLineComment)
+        || matches!(trivia.token_type(), TokenType::MultiLineComment { comment, .. } if comment.as_str().lines().count() > 1 )
+}
+
 /// Determines whether a parenthesised function call contains comments, forcing it to go multiline
 fn function_args_contains_comments(
     parentheses: &ContainedSpan,
@@ -116,11 +122,11 @@ fn function_args_contains_comments(
             trivia_util::get_expression_leading_trivia(argument.value())
                 .iter()
                 .chain(trivia_util::get_expression_trailing_trivia(argument.value()).iter())
-                .any(trivia_util::trivia_is_singleline_comment)
+                .any(function_trivia_contains_comments)
             // Punctuation contains comments
             || argument
                 .punctuation()
-                .map_or(false, |token| trivia_util::token_contains_comments_search(token, trivia_util::CommentSearch::Single))
+                .map_or(false, |token| token.leading_trivia().chain(token.trailing_trivia()).any(function_trivia_contains_comments))
         })
     }
 }
