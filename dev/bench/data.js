@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662207377136,
+  "lastUpdate": 1662310287759,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2099,6 +2099,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 49374604,
             "range": "± 1870525",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e44f3eadf947fbf6cd4ccba66a2d0aad739c246",
+          "message": "Don't expand call with nested comment (#549)\n\n* Add test case\r\n\r\n* Don't expand function call with multiline comment\r\n\r\n* Changelog\r\n\r\n* Snapshots",
+          "timestamp": "2022-09-04T17:46:37+01:00",
+          "tree_id": "0c3f14f0378cfbc733eda661d1c43782d463f417",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8e44f3eadf947fbf6cd4ccba66a2d0aad739c246"
+        },
+        "date": 1662310285999,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 71320580,
+            "range": "± 2662878",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 482537774,
+            "range": "± 7610485",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 45302903,
+            "range": "± 1291421",
             "unit": "ns/iter"
           }
         ]
