@@ -432,14 +432,24 @@ pub fn format_function_args(
                     arguments,
                 }
             } else {
-                // We don't need to worry about comments here, as if there were comments present, we would have
-                // multiline function args
-
                 // If we are hugging a table constructor with the parentheses, we use a shape increment of 2 to include the closing
                 // parentheses as well. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
-                let parentheses = format_contained_span(ctx, parentheses, shape);
+                let (start_parens, end_parens) = parentheses.tokens();
+                let start_parens = format_token_reference(ctx, start_parens, shape);
+                let start_parens = start_parens.update_trailing_trivia(FormatTriviaType::Replace(
+                    start_parens
+                        .trailing_trivia()
+                        .filter(|trivia| trivia_util::trivia_is_comment(trivia))
+                        .cloned()
+                        .flat_map(|trivia| vec![trivia, Token::new(TokenType::spaces(1))])
+                        .collect(),
+                ));
+
+                let end_parens = format_token_reference(ctx, end_parens, shape);
+                let parentheses = ContainedSpan::new(start_parens, end_parens);
+
                 let mut arguments =
                     format_punctuated(ctx, arguments, shape + shape_increment, format_expression);
 
