@@ -3,10 +3,7 @@
 
 call(item, --[[param=]] false)
 
-call(
-	--[[ we don't use it ]]
-	true
-)
+call(--[[ we don't use it ]]true)
 
 call(
 	--[[
