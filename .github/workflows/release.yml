@@ -54,7 +54,7 @@ jobs:
           profile: minimal
 
       - name: Build Binary (All features)
-        run: cargo build --verbose --locked --release --all-features
+        run: cargo build --verbose --locked --release --all-features --target ${{ matrix.cargo-target }}
         env:
           CARGO_TARGET_DIR: output
 
