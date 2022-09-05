@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662312032414,
+  "lastUpdate": 1662386086763,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2183,6 +2183,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 40977720,
             "range": "± 197946",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "filip.tibell@gmail.com",
+            "name": "Filip Tibell",
+            "username": "filiptibell"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f18a4aa18e2f593a25fee002fd6faf6db78b5745",
+          "message": "Add search parent dirs config for VSCode extension (#568)",
+          "timestamp": "2022-09-05T14:50:17+01:00",
+          "tree_id": "dee4015ac08d86eb7a5f7e6c46a04dcdc03d105c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f18a4aa18e2f593a25fee002fd6faf6db78b5745"
+        },
+        "date": 1662386086261,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 67293559,
+            "range": "± 1057946",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 436671047,
+            "range": "± 2382643",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 41045238,
+            "range": "± 244394",
             "unit": "ns/iter"
           }
         ]
