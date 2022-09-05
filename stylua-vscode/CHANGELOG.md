@@ -13,6 +13,7 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ### Added
 
+- Added `stylua.searchParentDirectories` to configure whether we look for configuration files in parent directories or not.
 - Added `stylua.disableVersionCheck` to configure whether we call out to GitHub to check for newer versions. Useful if you do not want network requests
 - Added v0.13 to release version setting
 
