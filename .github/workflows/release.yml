@@ -64,11 +64,11 @@ jobs:
           mkdir -p staging
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp "output/release/stylua.exe" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua.exe" staging/
             cd staging
             7z a ../release.zip *
           else
-            cp "output/release/stylua" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua" staging/
             cd staging
             zip ../release.zip *
           fi
