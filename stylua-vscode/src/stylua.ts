@@ -45,6 +45,11 @@ export function formatCode(
       args.push("--range-end");
       args.push(endPos.toString());
     }
+    if (
+      vscode.workspace.getConfiguration("stylua").get("searchParentDirectories")
+    ) {
+      args.push("--search-parent-directories");
+    }
     args.push("-");
 
     const child = spawn(`${path}`, args, {
