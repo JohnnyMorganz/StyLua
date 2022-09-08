@@ -14,12 +14,12 @@ const SUPPORTED_PLATFORMS = [
   {
     platform: "win32",
     arch: "x64",
-    name: "stylua-win64",
+    name: "stylua-win-x86_64",
   },
   {
     platform: "darwin",
     arch: "x64",
-    name: "stylua-macos",
+    name: "stylua-macos-x86_64",
   },
   {
     platform: "darwin",
@@ -29,7 +29,12 @@ const SUPPORTED_PLATFORMS = [
   {
     platform: "linux",
     arch: "x64",
-    name: "stylua-linux",
+    name: "stylua-linux-x86_64",
+  },
+  {
+    platform: "linux",
+    arch: "arm64",
+    name: "stylua-linux-aarch64",
   },
 ];
 
