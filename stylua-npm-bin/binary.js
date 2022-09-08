@@ -14,7 +14,7 @@ const SUPPORTED_PLATFORMS = [
   {
     platform: "win32",
     arch: "x64",
-    name: "stylua-win-x86_64",
+    name: "stylua-windows-x86_64",
   },
   {
     platform: "darwin",
