@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662412912272,
+  "lastUpdate": 1662908991605,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2309,6 +2309,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 50291418,
             "range": "± 2693582",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e8fc6911cec657757b1ba5851cdb4c80553dacbf",
+          "message": "Improve comments within function calls (#566)\n\n* Update test case\r\n\r\n* Expand call if it contains proper multiline comment\r\n\r\n* Update test case\r\n\r\n* Handle trailing comments on start parens\r\n\r\n* Add space after comment in start_parens\r\n\r\n* Handle leading comments on punctuation in Punctuated\r\n\r\n* Update snapshot",
+          "timestamp": "2022-09-11T16:05:10+01:00",
+          "tree_id": "cff279d528e087a2932b7e2de129fcbb4769f835",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e8fc6911cec657757b1ba5851cdb4c80553dacbf"
+        },
+        "date": 1662908990777,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 72648249,
+            "range": "± 2745476",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 496285813,
+            "range": "± 9805492",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 46088676,
+            "range": "± 1093941",
             "unit": "ns/iter"
           }
         ]
