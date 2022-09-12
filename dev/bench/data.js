@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662908991605,
+  "lastUpdate": 1662989936069,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2351,6 +2351,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 46088676,
             "range": "± 1093941",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ian@iamthefij.com",
+            "name": "Ian Fijolek",
+            "username": "IamTheFij"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "133393cbcb2949cc62feff6738d4d72aaa7c11d7",
+          "message": "Rename release targets and add linux-aarch64 (#559)\n\n* Add target for linux-aarch64\r\n\r\nI'm unsure if this will work in the build workflow.\r\n\r\n* Update asset names and update npm and vscode to use new names\r\n\r\n* Fix win name for npm-bin\r\n\r\n* Fix condition for artifact alias\r\n\r\n* Update pyproject to use new formatting\r\n\r\n* Make utils.ts prettier",
+          "timestamp": "2022-09-12T14:33:50+01:00",
+          "tree_id": "4484d16c94974fc5cfea97579183288ab37a0d2f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/133393cbcb2949cc62feff6738d4d72aaa7c11d7"
+        },
+        "date": 1662989934327,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 80626221,
+            "range": "± 910686",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 520330565,
+            "range": "± 11124329",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 48620707,
+            "range": "± 1087132",
             "unit": "ns/iter"
           }
         ]
