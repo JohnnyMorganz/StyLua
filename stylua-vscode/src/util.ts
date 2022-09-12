@@ -17,9 +17,9 @@ export const getDownloadOutputFilename = () => {
 
 export const getAssetFilenamePatternForPlatform = (
   platform: string,
-  machine: string,
+  machine: string
 ) => {
-  var platformPattern: string
+  var platformPattern: string;
   switch (platform) {
     case "win32":
       platformPattern = "(windows|win64)";
@@ -34,7 +34,7 @@ export const getAssetFilenamePatternForPlatform = (
       throw new Error("platform not supported");
   }
 
-  var archPattern: string
+  var archPattern: string;
   switch (machine) {
     case "arm64":
       archPattern = "aarch64";
@@ -43,10 +43,12 @@ export const getAssetFilenamePatternForPlatform = (
       archPattern = "x86_64";
       break;
     default:
-        archPattern = "";
+      archPattern = "";
   }
 
-  return new RegExp("stylua(-[\\d\w\\-\\.]+)?-" + platformPattern + "(-" + archPattern + ")?.zip");
+  return new RegExp(
+    "stylua(-[\\dw\\-\\.]+)?-" + platformPattern + "(-" + archPattern + ")?.zip"
+  );
 };
 
 export const getAssetFilenamePattern = () => {
