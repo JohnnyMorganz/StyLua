@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662990914366,
+  "lastUpdate": 1663006964553,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2435,6 +2435,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 39573009,
             "range": "± 107998",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ian@iamthefij.com",
+            "name": "Ian Fijolek",
+            "username": "IamTheFij"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "91d473745feea4693ec31f02f3e5f3b2d92975c8",
+          "message": "Fix aarch64 linux builds (#572)\n\nAdd c toolchain and instruct cargo to use the right linker for aarch64-linux",
+          "timestamp": "2022-09-12T19:18:21+01:00",
+          "tree_id": "77f213c0c434fed79013cc3920eae96b843da119",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/91d473745feea4693ec31f02f3e5f3b2d92975c8"
+        },
+        "date": 1663006963717,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 63898425,
+            "range": "± 4991875",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 504090930,
+            "range": "± 34337009",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 44348647,
+            "range": "± 2974525",
             "unit": "ns/iter"
           }
         ]
