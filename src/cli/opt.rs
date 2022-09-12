@@ -90,6 +90,10 @@ pub struct Opt {
     /// A list of files to format
     #[structopt(parse(from_os_str))]
     pub files: Vec<PathBuf>,
+
+    /// Whether to traverse hidden files/directories.
+    #[structopt(short, long)]
+    pub allow_hidden: bool,
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]

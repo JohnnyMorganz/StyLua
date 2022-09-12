@@ -8,7 +8,7 @@ on:
       - main
 jobs:
   lint:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - name: Setup node
@@ -28,7 +28,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-18.04, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

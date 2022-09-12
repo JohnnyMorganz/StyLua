@@ -14,6 +14,8 @@ use full_moon::ast::{
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
 
+use super::trivia::UpdateTrivia;
+
 #[derive(Debug, Clone, Copy)]
 pub enum FormatTokenType {
     Token,
@@ -353,7 +355,9 @@ where
         match pair {
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
-                let punctuation = fmt_symbol!(ctx, punctuation, ", ", shape);
+                let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
+                    FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+                );
                 shape = shape.take_last_line(&value) + 2; // 2 = ", "
 
                 list.push(Pair::new(value, Some(punctuation)));
@@ -494,9 +498,28 @@ where
             Some(punctuation) => {
                 // Continue adding a comma and a new line for multiline function args
                 // Also add any trailing comments we have taken from the expression
-                trailing_comments.push(create_newline_trivia(ctx));
-                let symbol = fmt_symbol!(ctx, punctuation, ",", shape)
-                    .update_trailing_trivia(FormatTriviaType::Append(trailing_comments));
+                let symbol = fmt_symbol!(ctx, punctuation, ",", shape);
+
+                let mut trailing_trivia: Vec<_> = symbol
+                    .leading_trivia()
+                    .filter(|trivia| trivia_util::trivia_is_comment(trivia))
+                    .cloned()
+                    .flat_map(|x| {
+                        // Prepend a single space beforehand
+                        vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, shape),
+                            x,
+                        ]
+                    })
+                    .collect();
+                trailing_trivia.append(&mut trailing_comments);
+                trailing_trivia.push(create_newline_trivia(ctx));
+
+                let symbol = symbol.update_trivia(
+                    FormatTriviaType::Replace(vec![]),
+                    FormatTriviaType::Append(trailing_trivia),
+                );
 
                 Some(symbol)
             }

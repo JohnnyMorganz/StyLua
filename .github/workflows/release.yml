@@ -60,7 +60,7 @@ jobs:
           profile: minimal
 
       - name: Build Binary (All features)
-        run: cargo build --verbose --locked --release --all-features
+        run: cargo build --verbose --locked --release --all-features --target ${{ matrix.cargo-target }}
         env:
           CARGO_TARGET_DIR: output
 
@@ -70,11 +70,11 @@ jobs:
           mkdir -p staging
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp "output/release/stylua.exe" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua.exe" staging/
             cd staging
             7z a ../release.zip *
           else
-            cp "output/release/stylua" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua" staging/
             cd staging
             zip ../release.zip *
           fi

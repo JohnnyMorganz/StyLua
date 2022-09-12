@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-from typing import List
+from typing import List, Literal
 
 REPOS = {
     "roact": {
@@ -38,9 +38,10 @@ REPOS = {
     # }
 }
 
-# Get paths to downloaded executables
-# main_tool = sys.argv[1]
-# latest_tool = sys.argv[2]
+# Get formatting type
+formattingType: Literal["diffAfterMainFormat", "diffMainVsChangeFormat"] = sys.argv[1] or "diffAfterMainFormat"  # type: ignore
+
+print(f"RUNNING MODE: {formattingType}", file=sys.stderr)
 
 os.chmod("./stylua-main", 0o700)
 os.chmod("./stylua-latest", 0o700)
@@ -99,6 +100,24 @@ for repo, data in REPOS.items():
         continue
 
     print(f"Main changes committed", file=sys.stderr)
+
+    # If we are diffing main vs change formatting, then reset to original code
+    if formattingType == "diffMainVsChangeFormat":
+        print(f"Restoring original code", file=sys.stderr)
+        restoreProcess = subprocess.Popen(["git", "checkout", "HEAD~1", "."], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        restoreProcessStderr = restoreProcess.communicate()[1].decode()
+        if restoreProcess.wait() != 0:
+            print(f"**Error when restoring original changes on `{repo}`**:")
+            printCodeblock(restoreProcessStderr or "<no output>", "")
+            continue
+
+        print(f"Unstaging original code", file=sys.stderr)
+        unstageProcess = subprocess.Popen(["git", "reset"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        unstageProcessStderr = unstageProcess.communicate()[1].decode()
+        if unstageProcess.wait() != 0:
+            print(f"**Error when restoring original changes on `{repo}`**:")
+            printCodeblock(unstageProcessStderr or "<no output>", "")
+            continue
 
     # Run the latest tool on the repository
     runLatestProcess = executeTool("../stylua-latest", data["command"])
