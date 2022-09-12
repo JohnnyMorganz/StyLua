@@ -28,13 +28,19 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact-name: stylua-win64
+            artifact-name: stylua-windows-x86_64
+            artifact-alias: stylua-win64
             cargo-target: x86_64-pc-windows-msvc
           - os: ubuntu-18.04
-            artifact-name: stylua-linux
+            artifact-name: stylua-linux-x86_64
+            artifact-alias: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
+          - os: ubuntu-18.04
+            artifact-name: stylua-linux-aarch64
+            cargo-target: aarch64-unknown-linux-gnu
           - os: macos-latest
-            artifact-name: stylua-macos
+            artifact-name: stylua-macos-x86_64
+            artifact-alias: stylua-macos
             cargo-target: x86_64-apple-darwin
           - os: macos-latest
             artifact-name: stylua-macos-aarch64
@@ -87,6 +93,18 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: release.zip
           asset_name: ${{ matrix.artifact-name }}.zip
+          asset_content_type: application/zip
+
+      # TODO: Remove this after deprecation notice
+      - name: Upload Binary to Release aliases
+        if: ${{ matrix.artifact-alias != "" }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: release.zip
+          asset_name: ${{ matrix.artifact-alias }}.zip
           asset_content_type: application/zip
 
   release_cargo:
