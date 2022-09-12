@@ -59,6 +59,10 @@ jobs:
           override: true
           profile: minimal
 
+      - name: Install aarch64 c toolchain
+        run: apt-get install -y --force-yes --no-install-recommends gcc-aarch64-linux-gnu libc6-arm64-cross libc6-dev-arm64-cross
+        if: ${{ matrix.cargo-target == "aarch64-unknown-linux-gnu" }}
+
       - name: Build Binary (All features)
         run: cargo build --verbose --locked --release --all-features --target ${{ matrix.cargo-target }}
         env:
