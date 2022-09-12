@@ -97,7 +97,7 @@ jobs:
 
       # TODO: Remove this after deprecation notice
       - name: Upload Binary to Release aliases
-        if: ${{ matrix.artifact-alias != "" }}
+        if: ${{ matrix.artifact-alias != '' }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
