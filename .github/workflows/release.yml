@@ -38,6 +38,7 @@ jobs:
           - os: ubuntu-18.04
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
+            linker: gcc-aarch64-linux-gnu
           - os: macos-latest
             artifact-name: stylua-macos-x86_64
             artifact-alias: stylua-macos
@@ -59,9 +60,11 @@ jobs:
           override: true
           profile: minimal
 
-      - name: Install aarch64 c toolchain
-        if: ${{ matrix.cargo-target == 'aarch64-unknown-linux-gnu' }}
-        run: apt-get install -y --force-yes --no-install-recommends gcc-aarch64-linux-gnu libc6-arm64-cross libc6-dev-arm64-cross
+      - name: Install Linker packages
+        if: ${{ matrix.linker != '' }}
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.linker }}
 
       - name: Build Binary (All features)
         run: cargo build --verbose --locked --release --all-features --target ${{ matrix.cargo-target }}
