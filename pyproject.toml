@@ -6,6 +6,8 @@ build-backend = "pseudo_builder"
 extract-files = ["stylua"]
 format = "stylua-{system}-{arch}.zip"
 exec = "chmod +x stylua"
+[tool.release-gitter.map-arch]
+arm64 = "aarch64"
 [tool.release-gitter.map-system]
 Darwin = "macos"
 Windows = "windows"
