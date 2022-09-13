@@ -7,7 +7,7 @@ use serde_json::json;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
@@ -22,6 +22,7 @@ mod opt;
 mod output_diff;
 
 static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
+static UNFORMATTED_FILE_COUNT: AtomicU32 = AtomicU32::new(0);
 
 enum FormatResult {
     /// Operation was a success, the output was either written to a file or stdout. If diffing, there was no diff to create.
@@ -129,6 +130,13 @@ fn create_diff(
                 })
                 .transpose()
         }
+        opt::OutputFormat::Summary => {
+            if original == expected {
+                Ok(None)
+            } else {
+                Ok(Some(format!("{}\n", file_name).into_bytes()))
+            }
+        }
     }
 }
 
@@ -227,8 +235,13 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     // Check for incompatible options
-    if !opt.check && matches!(opt.output_format, opt::OutputFormat::Unified) {
-        bail!("--output-format=unified can only be used when --check is enabled");
+    if !opt.check
+        && matches!(
+            opt.output_format,
+            opt::OutputFormat::Unified | opt::OutputFormat::Summary
+        )
+    {
+        bail!("--output-format=unified and --output-format=standard can only be used when --check is enabled");
     }
 
     // Load the configuration
@@ -293,6 +306,17 @@ fn format(opt: opt::Opt) -> Result<i32> {
     let output_format = opt.output_format;
     let opt = Arc::new(opt);
 
+    // Output a header if in summary mode
+    if matches!(opt.output_format, opt::OutputFormat::Summary) {
+        println!(
+            "{} Checking formatting...",
+            style("!")
+                .cyan()
+                .bold()
+                .force_styling(opt.color.should_use_color())
+        );
+    }
+
     // Create a thread to handle the formatting output
     pool.execute(move || {
         for output in rx {
@@ -313,6 +337,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         if EXIT_CODE.load(Ordering::SeqCst) != 2 {
                             EXIT_CODE.store(1, Ordering::SeqCst);
                         }
+
+                        UNFORMATTED_FILE_COUNT.fetch_add(1, Ordering::SeqCst);
 
                         let stdout = stdout();
                         let mut handle = stdout.lock();
@@ -455,12 +481,41 @@ fn format(opt: opt::Opt) -> Result<i32> {
     drop(tx);
     pool.join();
 
+    // Output summary
+
+    if matches!(opt.output_format, opt::OutputFormat::Summary) {
+        let file_count = UNFORMATTED_FILE_COUNT.load(Ordering::SeqCst);
+        if file_count == 0 {
+            println!(
+                "{} All files are correctly formatted.",
+                style("✓")
+                    .green()
+                    .bold()
+                    .force_styling(opt.color.should_use_color())
+            );
+        } else {
+            println!(
+                "{} Code style issues found in {} file{} above.",
+                style("✕")
+                    .red()
+                    .bold()
+                    .force_styling(opt.color.should_use_color()),
+                style(file_count)
+                    .yellow()
+                    .bold()
+                    .force_styling(opt.color.should_use_color()),
+                if file_count == 1 { "" } else { "s" }
+            );
+        }
+    }
+
     // Exit with non-zero code if we have a panic
     let output_code = if pool.panic_count() > 0 {
         2
     } else {
         EXIT_CODE.load(Ordering::SeqCst)
     };
+
     Ok(output_code)
 }
 
