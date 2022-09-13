@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663007525281,
+  "lastUpdate": 1663085169580,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2561,6 +2561,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 49298418,
             "range": "± 554502",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5840654037db099324a5c0ff7b203f9b1e1b92e1",
+          "message": "Add `--output-format=summary` (#575)\n\nAdd support for summary output",
+          "timestamp": "2022-09-13T17:01:51+01:00",
+          "tree_id": "4477bed3d85befda24423a68e0a81df9a8e7ea02",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5840654037db099324a5c0ff7b203f9b1e1b92e1"
+        },
+        "date": 1663085168778,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 67234254,
+            "range": "± 588034",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 430800375,
+            "range": "± 651561",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 39856477,
+            "range": "± 275056",
             "unit": "ns/iter"
           }
         ]
