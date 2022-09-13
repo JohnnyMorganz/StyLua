@@ -142,6 +142,8 @@ pub enum OutputFormat {
     Unified,
     /// Outputs in json
     Json,
+    /// Outputs a human-friendly summary
+    Summary,
 }
 
 #[derive(StructOpt, Debug)]
