@@ -41,7 +41,7 @@ pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape)
         PercentEqual = " %= ",
         CaretEqual = " ^= ",
         TwoDotsEqual = " ..= ",
-    })
+    }, |other| panic!("unknown node {:?}", other))
 }
 
 pub fn format_compound_assignment(
