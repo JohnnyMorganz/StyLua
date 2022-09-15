@@ -50,6 +50,24 @@ fn test_lua52() {
 }
 
 #[test]
+#[cfg(feature = "lua53")]
+fn test_lua53() {
+    insta::glob!("inputs-lua53/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format(&contents));
+    })
+}
+
+#[test]
+#[cfg(feature = "lua54")]
+fn test_lua53() {
+    insta::glob!("inputs-lua54/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format(&contents));
+    })
+}
+
+#[test]
 fn test_ignores() {
     insta::glob!("inputs-ignore/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
