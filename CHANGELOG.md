@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added support for Lua 5.3, gated behind the `lua53` feature flag ([#534](https://github.com/JohnnyMorganz/StyLua/issues/534))
+- Added support for Lua 5.4, gated behind the `lua54` feature flag ([#533](https://github.com/JohnnyMorganz/StyLua/issues/533))
 - Added `--allow-hidden` flag to allow entering and formatting hidden files/directories ([#562](https://github.com/JohnnyMorganz/StyLua/issues/562))
 - Added `--output-format=summary` which can be used with `--check` to output a summary of the list of files not correctly formatted ([#573](https://github.com/JohnnyMorganz/StyLua/issues/573))
 
