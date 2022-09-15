@@ -158,9 +158,10 @@ macro_rules! define_update_trailing_trivia {
 }
 
 macro_rules! binop_trivia {
-    ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($operator:ident,)+ }) => {
+    ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($(#[$inner:meta])* $operator:ident,)+ }) => {
         match $value {
             $(
+                $(#[$inner])*
                 $enum::$operator(token) => $enum::$operator(token.update_trivia($leading_trivia, $trailing_trivia)),
             )+
             other => panic!("unknown node {:?}", other),
@@ -185,6 +186,18 @@ define_update_trivia!(BinOp, |this, leading, trailing| {
         TildeEqual,
         TwoDots,
         TwoEqual,
+        #[cfg(feature = "lua53")]
+        Ampersand,
+        #[cfg(feature = "lua53")]
+        DoubleSlash,
+        #[cfg(feature = "lua53")]
+        DoubleLessThan,
+        #[cfg(feature = "lua53")]
+        Pipe,
+        #[cfg(feature = "lua53")]
+        DoubleGreaterThan,
+        #[cfg(feature = "lua53")]
+        Tilde,
     })
 });
 
@@ -643,6 +656,8 @@ define_update_leading_trivia!(UnOp, |this, leading| {
         UnOp::Hash(token_reference) => UnOp::Hash(token_reference.update_leading_trivia(leading)),
         UnOp::Minus(token_reference) => UnOp::Minus(token_reference.update_leading_trivia(leading)),
         UnOp::Not(token_reference) => UnOp::Not(token_reference.update_leading_trivia(leading)),
+        #[cfg(feature = "lua53")]
+        UnOp::Tilde(token_reference) => UnOp::Tilde(token_reference.update_leading_trivia(leading)),
         other => panic!("unknown node {:?}", other),
     }
 });

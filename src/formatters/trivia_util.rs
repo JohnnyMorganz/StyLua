@@ -372,6 +372,8 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
             UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
                 token_ref.leading_trivia().map(|x| x.to_owned()).collect()
             }
+            #[cfg(feature = "lua53")]
+            UnOp::Tilde(token_ref) => token_ref.leading_trivia().cloned().collect(),
             other => panic!("unknown node {:?}", other),
         },
         Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
@@ -441,6 +443,17 @@ pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
             .filter(|token| trivia_is_comment(token))
             .map(|x| x.to_owned())
             .collect(),
+        #[cfg(feature = "lua53")]
+        BinOp::Ampersand(token)
+        | BinOp::DoubleSlash(token)
+        | BinOp::DoubleLessThan(token)
+        | BinOp::Pipe(token)
+        | BinOp::DoubleGreaterThan(token)
+        | BinOp::Tilde(token) => token
+            .leading_trivia()
+            .filter(|token| trivia_is_comment(token))
+            .cloned()
+            .collect(),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -471,6 +484,20 @@ pub fn binop_trailing_comments(binop: &BinOp) -> Vec<Token> {
                 })
                 .collect()
         }
+        #[cfg(feature = "lua53")]
+        BinOp::Ampersand(token)
+        | BinOp::DoubleSlash(token)
+        | BinOp::DoubleLessThan(token)
+        | BinOp::Pipe(token)
+        | BinOp::DoubleGreaterThan(token)
+        | BinOp::Tilde(token) => token
+            .trailing_trivia()
+            .filter(|token| trivia_is_comment(token))
+            .flat_map(|x| {
+                // Prepend a single space beforehand
+                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+            })
+            .collect(),
         other => panic!("unknown node {:?}", other),
     }
 }

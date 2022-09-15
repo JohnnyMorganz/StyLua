@@ -35,9 +35,10 @@ use crate::{
 
 #[macro_export]
 macro_rules! fmt_op {
-    ($ctx:expr, $enum:ident, $value:ident, $shape:expr, { $($operator:ident = $output:expr,)+ }) => {
+    ($ctx:expr, $enum:ident, $value:ident, $shape:expr, { $($(#[$inner:meta])* $operator:ident = $output:expr,)+ }) => {
         match $value {
             $(
+                $(#[$inner])*
                 $enum::$operator(token) => $enum::$operator(fmt_symbol!($ctx, token, $output, $shape)),
             )+
             other => panic!("unknown node {:?}", other),
@@ -79,6 +80,18 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
         TildeEqual = " ~= ",
         TwoDots = " .. ",
         TwoEqual = " == ",
+        #[cfg(feature = "lua53")]
+        Ampersand = " & ",
+        #[cfg(feature = "lua53")]
+        DoubleSlash = " // ",
+        #[cfg(feature = "lua53")]
+        DoubleLessThan = " << ",
+        #[cfg(feature = "lua53")]
+        Pipe = " | ",
+        #[cfg(feature = "lua53")]
+        DoubleGreaterThan = " >> ",
+        #[cfg(feature = "lua53")]
+        Tilde = " ~ ",
     })
 }
 
@@ -781,6 +794,8 @@ pub fn format_unop(ctx: &Context, unop: &UnOp, shape: Shape) -> UnOp {
         Minus = "-",
         Not = "not ",
         Hash = "#",
+        #[cfg(feature = "lua53")]
+        Tilde = "~",
     })
 }
 
