@@ -19,7 +19,7 @@ There are multiple ways to install StyLua:
 
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
 
-By default, these are built with **both Luau and Lua 5.2 features enabled**, to cover all possible codebases.
+By default, these are built with **all syntax variants enabled (Lua 5.2, 5.3, 5.4 and Luau)**, to cover all possible codebases.
 If you would like to format a specific Lua version only, see [installing from crates.io](#from-cratesio).
 
 ### From Crates.io
