@@ -1,3 +1,5 @@
+#[cfg(feature = "lua54")]
+use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
@@ -490,6 +492,12 @@ define_update_trivia!(Assignment, |this, leading, trailing| {
         .with_expressions(this.expressions().update_trailing_trivia(trailing))
 });
 
+#[cfg(feature = "lua54")]
+define_update_trivia!(Attribute, |this, leading, trailing| {
+    this.to_owned()
+        .with_brackets(this.brackets().update_trivia(leading, trailing))
+});
+
 define_update_trivia!(LocalAssignment, |this, leading, trailing| {
     if this.expressions().is_empty() {
         // Handle if the last item had a type specifier set
@@ -503,6 +511,20 @@ define_update_trivia!(LocalAssignment, |this, leading, trailing| {
                     return this.clone()
                         .with_local_token(this.local_token().update_leading_trivia(leading))
                         .with_type_specifiers(type_specifiers);
+                }
+            }
+        );
+
+        cfg_if::cfg_if!(
+            if #[cfg(feature = "lua54")] {
+                let mut attributes = this.attributes().map(|x| x.cloned()).collect::<Vec<_>>();
+
+                if let Some(Some(attribute)) = attributes.pop() {
+                    attributes.push(Some(attribute.update_trailing_trivia(trailing)));
+
+                    return this.clone()
+                        .with_local_token(this.local_token().update_leading_trivia(leading))
+                        .with_attributes(attributes);
                 }
             }
         );

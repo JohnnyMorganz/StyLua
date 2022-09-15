@@ -8,12 +8,12 @@ use full_moon::ast::span::ContainedSpan;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeInfo,
+    TypeDeclaration, TypeInfo, TypeSpecifier,
 };
 use full_moon::{
     ast::{
-        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, Parameter, Prefix,
-        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
+        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
+        Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -884,6 +884,81 @@ fn get_type_declaration_trailing_trivia(
     )
 }
 
+#[cfg(feature = "luau")]
+fn type_specifier_trailing_trivia(type_specifier: &TypeSpecifier) -> Vec<Token> {
+    get_type_info_trailing_trivia(type_specifier.type_info().clone()).1
+}
+
+fn get_empty_local_assignment_trailing_trivia(
+    local_assignment: LocalAssignment,
+) -> (LocalAssignment, Vec<Token>) {
+    let mut trailing_trivia = Vec::new();
+
+    #[cfg(feature = "luau")]
+    {
+        let mut type_specifiers = local_assignment
+            .type_specifiers()
+            .map(|x| x.cloned())
+            .collect::<Vec<_>>();
+
+        if let Some(Some(type_specifier)) = type_specifiers.pop() {
+            trailing_trivia = type_specifier_trailing_trivia(&type_specifier);
+
+            type_specifiers.push(Some(
+                type_specifier.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+            ));
+
+            return (
+                local_assignment.with_type_specifiers(type_specifiers),
+                trailing_trivia,
+            );
+        }
+    }
+
+    #[cfg(feature = "lua54")]
+    {
+        let mut attributes = local_assignment
+            .attributes()
+            .map(|x| x.cloned())
+            .collect::<Vec<_>>();
+
+        if let Some(Some(attribute)) = attributes.pop() {
+            trailing_trivia = attribute
+                .brackets()
+                .tokens()
+                .1
+                .trailing_trivia()
+                .cloned()
+                .collect();
+
+            attributes.push(Some(
+                attribute.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+            ));
+
+            return (
+                local_assignment.with_attributes(attributes),
+                trailing_trivia,
+            );
+        }
+    }
+
+    // Unassigned local variable
+    let mut formatted_name_list = local_assignment.names().to_owned();
+    // Retrieve last item and take its trailing comments
+    if let Some(last_pair) = formatted_name_list.pop() {
+        let pair = last_pair.map(|value| {
+            trailing_trivia = value.trailing_trivia().map(|x| x.to_owned()).collect();
+            value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+        });
+        formatted_name_list.push(pair);
+    }
+
+    (
+        local_assignment.with_names(formatted_name_list),
+        trailing_trivia,
+    )
+}
+
 pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     let (updated_stmt, trailing_trivia) = match stmt {
         Stmt::Assignment(assignment) => {
@@ -906,17 +981,10 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::LocalAssignment(local_assignment) => {
             let mut trailing_trivia = Vec::new();
             let new_assignment = if local_assignment.expressions().is_empty() {
-                // Unassigned local variable
-                let mut formatted_name_list = local_assignment.names().to_owned();
-                // Retrieve last item and take its trailing comments
-                if let Some(last_pair) = formatted_name_list.pop() {
-                    let pair = last_pair.map(|value| {
-                        trailing_trivia = value.trailing_trivia().map(|x| x.to_owned()).collect();
-                        value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
-                    });
-                    formatted_name_list.push(pair);
-                }
-                local_assignment.with_names(formatted_name_list)
+                let (assignment, trivia) =
+                    get_empty_local_assignment_trailing_trivia(local_assignment);
+                trailing_trivia = trivia;
+                assignment
             } else {
                 // Add newline at the end of LocalAssignment expression list
                 // Expression list should already be formatted
