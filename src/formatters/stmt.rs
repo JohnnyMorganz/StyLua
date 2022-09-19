@@ -247,17 +247,19 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let expr_list = match requires_expr_multiline {
         true => {
             let shape = shape.reset().increment_additional_indent();
-            format_punctuated_multiline(
+            let expr_list = format_punctuated_multiline(
                 ctx,
                 generic_for.expressions(),
                 shape,
                 format_expression,
                 None,
+            );
+            trivia_util::prepend_newline_indent(
+                ctx,
+                &expr_list,
+                trivia_util::punctuated_leading_trivia(&expr_list).iter(),
+                shape,
             )
-            .update_leading_trivia(FormatTriviaType::Append(vec![
-                create_newline_trivia(ctx),
-                create_indent_trivia(ctx, shape),
-            ]))
         }
         false => singleline_expr,
     };
