@@ -183,7 +183,6 @@ fn function_args_multiline_heuristic(
 ) -> bool {
     const PAREN_LEN: usize = "(".len();
     const COMMA_SPACE_LEN: usize = ", ".len();
-    const SPACE_LEN: usize = " ".len();
     const BRACKET_LEN: usize = "}".len();
     const END_LEN: usize = "end".len();
 
@@ -198,12 +197,14 @@ fn function_args_multiline_heuristic(
 
     // Format all the arguments on an infinite width, so that we can prepare them and check to see whether they
     // need expanding. We will ignore punctuation for now
-    let first_iter_formatted_arguments = arguments.iter().map(|argument| {
-        format_expression(
-            ctx,
-            argument,
-            shape.with_simple_heuristics().with_infinite_width(),
-        )
+    let first_iter_formatted_arguments = arguments.clone().into_pairs().map(|value| {
+        value.map(|argument| {
+            format_expression(
+                ctx,
+                &argument,
+                shape.with_simple_heuristics().with_infinite_width(),
+            )
+        })
     });
 
     // Apply some heuristics to determine whether we should expand the function call
@@ -220,7 +221,8 @@ fn function_args_multiline_heuristic(
     // Use state values to determine the type of arguments we have seen so far
     let mut current_state = ArgumentState::new();
 
-    for argument in first_iter_formatted_arguments {
+    for pair in first_iter_formatted_arguments {
+        let argument = pair.value();
         match argument {
             Expression::Value { ref value, .. } => {
                 match &**value {
@@ -315,13 +317,20 @@ fn function_args_multiline_heuristic(
         }
 
         // Add width which would be taken up by comma and space
-        singleline_shape = singleline_shape + COMMA_SPACE_LEN;
+        // Strip out any whitespace because we will format it properly, but we need to take into account (multiline) comments
+        if let Some(punctuation) = pair.punctuation() {
+            singleline_shape = singleline_shape
+                + COMMA_SPACE_LEN
+                + punctuation
+                    .trailing_trivia()
+                    .filter(|x| trivia_util::trivia_is_comment(x))
+                    .fold(0, |acc, trivia| acc + trivia.to_string().len());
+        }
     }
 
     // Check the final shape to see if its over budget, if it isn't, then we can leave it
-    // -1 because we added +2 for ", " in the last iteration, but we don't want a trailing
-    // space and the comma is replaced with a parentheses
-    singleline_shape.sub_width(SPACE_LEN).over_budget()
+    // Include closing parentheses
+    singleline_shape.add_width(PAREN_LEN).over_budget()
 }
 
 /// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion

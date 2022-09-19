@@ -178,14 +178,6 @@ impl Shape {
         }
     }
 
-    /// Subtracts a width offset from the current width total
-    pub fn sub_width(&self, width: usize) -> Shape {
-        Self {
-            offset: self.offset.saturating_sub(width),
-            ..*self
-        }
-    }
-
     /// Whether simple heuristics should be used when calculating formatting shape
     /// This is to reduce the expontential blowup of discarded test formatting
     pub fn using_simple_heuristics(&self) -> bool {
