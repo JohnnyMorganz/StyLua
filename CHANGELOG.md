@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Precommit hook now supports downloading aarch64 binary for M1 macs ([#558](https://github.com/JohnnyMorganz/StyLua/issues/558))
+- Fixed mistransformations of generic for loop with comments in the expression list ([#579](https://github.com/JohnnyMorganz/StyLua/issues/579))
 
 ## [0.14.3] - 2022-08-27
 
