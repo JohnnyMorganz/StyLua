@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Precommit hook now supports downloading aarch64 binary for M1 macs ([#558](https://github.com/JohnnyMorganz/StyLua/issues/558))
 - Fixed mistransformations of generic for loop with comments in the expression list ([#579](https://github.com/JohnnyMorganz/StyLua/issues/579))
+- Fixed `then`/`else` token not taken into account when formatting an if-expression ([#582](https://github.com/JohnnyMorganz/StyLua/issues/582))
 
 ## [0.14.3] - 2022-08-27
 
