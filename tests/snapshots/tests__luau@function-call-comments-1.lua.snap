@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+---
+do
+	for _, foo in
+		applyFoooooo(
+			aaaaaaaaaaaaaaaaaaaa, --[[:: Array<aaaaaaaaaaaaaaaaa>]]
+			bbbbbbbbbbbbbbbbbb --[[:: Array<bbbbbbbbbbbbbbb>]]
+		) :: Array<aaaaaaaaaaaaaaaaa | bbbbbbbbbbbbbbb>
+	do
+	end
+end
+
