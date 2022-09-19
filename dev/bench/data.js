@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663085169580,
+  "lastUpdate": 1663614147076,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2603,6 +2603,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 39856477,
             "range": "± 275056",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d4bd31787a8e32d285f61ace45a6e77c1983b7b",
+          "message": "Fix mistransformation of generic for comments (#580)\n\n* Fix incorrect token used in multiline generic for\r\n\r\n* Add test case\r\n\r\n* Fix check for comments in generic_for expr\r\n\r\n* Fix trivia location for multiline generic for\r\n\r\n* Add snapshot\r\n\r\n* Update changelog",
+          "timestamp": "2022-09-19T19:57:00+01:00",
+          "tree_id": "c64e8c97c4d447178f7691744d47839bcbba2ce0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2d4bd31787a8e32d285f61ace45a6e77c1983b7b"
+        },
+        "date": 1663614146200,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 87517743,
+            "range": "± 5930372",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 562116432,
+            "range": "± 18013883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 49938850,
+            "range": "± 1463870",
             "unit": "ns/iter"
           }
         ]
