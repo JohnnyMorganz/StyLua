@@ -221,10 +221,12 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let singleline_expr =
         format_punctuated(ctx, generic_for.expressions(), shape, format_expression);
     let singleline_expr_shape = shape.take_first_line(&singleline_expr);
-    let requires_expr_multiline = (trivia_util::contains_comments(generic_for.expressions())
-        || trivia_util::spans_multiple_lines(&singleline_expr)
-        || singleline_expr_shape.over_budget())
-        && !hug_generic_for(generic_for.expressions());
+    let requires_expr_multiline =
+        (trivia_util::token_contains_trailing_comments(generic_for.in_token())
+            || trivia_util::contains_comments(generic_for.expressions())
+            || trivia_util::spans_multiple_lines(&singleline_expr)
+            || singleline_expr_shape.over_budget())
+            && !hug_generic_for(generic_for.expressions());
 
     let in_token = match (require_names_multiline, requires_expr_multiline) {
         (true, true) => fmt_symbol!(ctx, generic_for.in_token(), "in", shape)
