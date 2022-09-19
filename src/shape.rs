@@ -179,6 +179,7 @@ impl Shape {
     }
 
     /// Subtracts a width offset from the current width total
+    #[allow(dead_code)]
     pub fn sub_width(&self, width: usize) -> Shape {
         Self {
             offset: self.offset.saturating_sub(width),
