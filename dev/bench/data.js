@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663615094285,
+  "lastUpdate": 1663615321948,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2687,6 +2687,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 40865601,
             "range": "± 162615",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dafa8f454f33cab5653f9243a4946b8ff1a2a750",
+          "message": "Consider multiline comment when inlining function call (#581)\n\n* Add test case\r\n\r\n* Consider punctuation trivia in function args formatting\r\n\r\n* Add snapshot\r\n\r\n* Delete dead code",
+          "timestamp": "2022-09-19T20:17:23+01:00",
+          "tree_id": "8eb117b18e48453c13f06ff1ebd544ed12d0a6a1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/dafa8f454f33cab5653f9243a4946b8ff1a2a750"
+        },
+        "date": 1663615320189,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 70220790,
+            "range": "± 1774012",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 440022434,
+            "range": "± 1100618",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 39812845,
+            "range": "± 179676",
             "unit": "ns/iter"
           }
         ]
