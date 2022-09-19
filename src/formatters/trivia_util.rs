@@ -12,8 +12,8 @@ use full_moon::ast::types::{
 };
 use full_moon::{
     ast::{
-        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, Parameter, Prefix,
-        Stmt, Suffix, TableConstructor, UnOp, Value, Var,
+        punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
+        LastStmt, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Value, Var,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -418,6 +418,13 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
         },
         other => panic!("unknown node {:?}", other),
     }
+}
+
+pub fn punctuated_leading_trivia(punctuated: &Punctuated<Expression>) -> Vec<Token> {
+    punctuated
+        .iter()
+        .next()
+        .map_or_else(Vec::new, get_expression_leading_trivia)
 }
 
 pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
