@@ -461,6 +461,7 @@ pub fn format_local_assignment_no_trivia(
             .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
             .collect();
 
+        #[allow(unused_mut)]
         let mut type_specifier_len = 0;
         #[cfg(feature = "lua54")]
         {
