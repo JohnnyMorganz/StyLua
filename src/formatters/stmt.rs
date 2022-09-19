@@ -261,7 +261,7 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     };
 
     let do_token = match requires_expr_multiline {
-        true => fmt_symbol!(ctx, generic_for.in_token(), "do", shape).update_leading_trivia(
+        true => fmt_symbol!(ctx, generic_for.do_token(), "do", shape).update_leading_trivia(
             FormatTriviaType::Append(vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
