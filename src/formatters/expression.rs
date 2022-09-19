@@ -455,7 +455,12 @@ fn format_token_expression_sequence(
     expression: &Expression,
     shape: Shape,
 ) -> (TokenReference, Expression) {
-    let formatted_expression = format_expression(ctx, expression, shape);
+    const SPACE_LEN: usize = " ".len();
+    let formatted_token = format_token_reference(ctx, token, shape);
+    let token_width = formatted_token.to_string().len();
+
+    let formatted_expression =
+        format_expression(ctx, expression, shape.add_width(token_width + SPACE_LEN));
 
     let requires_multiline_expression = shape.take_first_line(&formatted_expression).over_budget()
         || trivia_util::token_contains_trailing_comments(token)
@@ -473,12 +478,14 @@ fn format_token_expression_sequence(
 
     let token = match newline_after_token {
         // `<token>\n`
-        true => format_token_reference(ctx, token, shape)
+        true => formatted_token
             .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         // `<token> `
-        false => format_token_reference(ctx, token, shape).update_trailing_trivia(
-            FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
-        ),
+        false => {
+            formatted_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                TokenType::spaces(1),
+            )]))
+        }
     };
 
     let expression = match requires_multiline_expression {
@@ -489,7 +496,12 @@ fn format_token_expression_sequence(
                     FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
                 )
             }
-            false => hang_expression(ctx, expression, shape, None),
+            false => hang_expression(
+                ctx,
+                expression,
+                shape.add_width(token_width + SPACE_LEN),
+                None,
+            ),
         },
         false => formatted_expression,
     };
