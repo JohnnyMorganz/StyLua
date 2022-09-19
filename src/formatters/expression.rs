@@ -457,7 +457,7 @@ fn format_token_expression_sequence(
 ) -> (TokenReference, Expression) {
     const SPACE_LEN: usize = " ".len();
     let formatted_token = format_token_reference(ctx, token, shape);
-    let token_width = formatted_token.to_string().len();
+    let token_width = strip_trivia(&formatted_token).to_string().len();
 
     let formatted_expression =
         format_expression(ctx, expression, shape.add_width(token_width + SPACE_LEN));
