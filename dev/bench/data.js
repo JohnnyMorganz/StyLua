@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663615321948,
+  "lastUpdate": 1663615344232,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2729,6 +2729,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 39812845,
             "range": "± 179676",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c4c9f363ab40575e787fe548dcdae1803ca2a5b2",
+          "message": "Take into account token width for if expression formatting (#583)\n\n* Add test case\r\n\r\n* Take into account token width for if expression\r\n\r\n* Update changelog\r\n\r\n* Ignore trivia in width calculation\r\n\r\n* Add snapshot",
+          "timestamp": "2022-09-19T20:17:33+01:00",
+          "tree_id": "dace5e27ffe5fd4182d86d21e72b545b54a244d4",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c4c9f363ab40575e787fe548dcdae1803ca2a5b2"
+        },
+        "date": 1663615343451,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 71128223,
+            "range": "± 4880070",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 499474189,
+            "range": "± 28724577",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 44907721,
+            "range": "± 1986740",
             "unit": "ns/iter"
           }
         ]
