@@ -21,6 +21,12 @@ jobs:
       - name: Test (Lua 5.2)
         run: cargo test --features lua52
 
+      - name: Test (Lua 5.3)
+        run: cargo test --features lua53
+
+      - name: Test (Lua 5.4)
+        run: cargo test --features lua54
+
       - name: Test Build (wasm)
         run: |
           rustup target add wasm32-unknown-unknown
