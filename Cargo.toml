@@ -26,6 +26,8 @@ bench = false
 default = []
 luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
+lua53 = ["lua52", "full_moon/lua53"]
+lua54 = ["lua53", "full_moon/lua54"]
 
 [dependencies]
 anyhow = "1.0.53"
@@ -34,7 +36,7 @@ clap = { version = "3.1.6", features = ["derive"] }
 console = "0.15.0"
 crossbeam-channel = "0.5.4"
 env_logger = { version = "0.9.0", default-features = false }
-full_moon = "0.15.1"
+full_moon = "0.16.0"
 globset = "0.4.8"
 ignore = "0.4.18"
 lazy_static = "1.4.0"

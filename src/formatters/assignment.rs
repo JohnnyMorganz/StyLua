@@ -9,6 +9,8 @@ use full_moon::{
     tokenizer::TokenType,
 };
 
+#[cfg(feature = "lua54")]
+use crate::formatters::lua54::format_attribute;
 #[cfg(feature = "luau")]
 use crate::formatters::luau::format_type_specifier;
 use crate::{
@@ -386,6 +388,12 @@ fn format_local_no_assignment(
         Some(1),
     );
 
+    #[cfg(feature = "lua54")]
+    let attributes = assignment
+        .attributes()
+        .map(|x| x.map(|attribute| format_attribute(ctx, attribute, shape)))
+        .collect();
+
     #[cfg(feature = "luau")]
     let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
         .type_specifiers()
@@ -393,6 +401,8 @@ fn format_local_no_assignment(
         .collect();
 
     let local_assignment = LocalAssignment::new(name_list);
+    #[cfg(feature = "lua54")]
+    let local_assignment = local_assignment.with_attributes(attributes);
     #[cfg(feature = "luau")]
     let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
 
@@ -439,21 +449,31 @@ pub fn format_local_assignment_no_trivia(
             format_expression,
         );
 
+        #[cfg(feature = "lua54")]
+        let attributes: Vec<Option<_>> = assignment
+            .attributes()
+            .map(|x| x.map(|attribute| format_attribute(ctx, attribute, shape)))
+            .collect();
+
         #[cfg(feature = "luau")]
         let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
             .type_specifiers()
             .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
             .collect();
-        let type_specifier_len;
-        #[cfg(feature = "luau")]
+
+        #[allow(unused_mut)]
+        let mut type_specifier_len = 0;
+        #[cfg(feature = "lua54")]
         {
-            type_specifier_len = type_specifiers.iter().fold(0, |acc, x| {
+            type_specifier_len += attributes.iter().fold(0, |acc, x| {
                 acc + x.as_ref().map_or(0, |y| y.to_string().len())
             });
         }
-        #[cfg(not(feature = "luau"))]
+        #[cfg(feature = "luau")]
         {
-            type_specifier_len = 0;
+            type_specifier_len += type_specifiers.iter().fold(0, |acc, x| {
+                acc + x.as_ref().map_or(0, |y| y.to_string().len())
+            });
         }
 
         // Test the assignment to see if its over width
@@ -483,6 +503,8 @@ pub fn format_local_assignment_no_trivia(
         }
 
         let local_assignment = LocalAssignment::new(name_list);
+        #[cfg(feature = "lua54")]
+        let local_assignment = local_assignment.with_attributes(attributes);
         #[cfg(feature = "luau")]
         let local_assignment = local_assignment.with_type_specifiers(type_specifiers);
         local_assignment

@@ -1,3 +1,5 @@
+#[cfg(feature = "lua54")]
+use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
@@ -158,9 +160,10 @@ macro_rules! define_update_trailing_trivia {
 }
 
 macro_rules! binop_trivia {
-    ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($operator:ident,)+ }) => {
+    ($enum:ident, $value:ident, $leading_trivia:ident, $trailing_trivia:ident, { $($(#[$inner:meta])* $operator:ident,)+ }) => {
         match $value {
             $(
+                $(#[$inner])*
                 $enum::$operator(token) => $enum::$operator(token.update_trivia($leading_trivia, $trailing_trivia)),
             )+
             other => panic!("unknown node {:?}", other),
@@ -185,6 +188,18 @@ define_update_trivia!(BinOp, |this, leading, trailing| {
         TildeEqual,
         TwoDots,
         TwoEqual,
+        #[cfg(feature = "lua53")]
+        Ampersand,
+        #[cfg(feature = "lua53")]
+        DoubleSlash,
+        #[cfg(feature = "lua53")]
+        DoubleLessThan,
+        #[cfg(feature = "lua53")]
+        Pipe,
+        #[cfg(feature = "lua53")]
+        DoubleGreaterThan,
+        #[cfg(feature = "lua53")]
+        Tilde,
     })
 });
 
@@ -477,6 +492,12 @@ define_update_trivia!(Assignment, |this, leading, trailing| {
         .with_expressions(this.expressions().update_trailing_trivia(trailing))
 });
 
+#[cfg(feature = "lua54")]
+define_update_trivia!(Attribute, |this, leading, trailing| {
+    this.to_owned()
+        .with_brackets(this.brackets().update_trivia(leading, trailing))
+});
+
 define_update_trivia!(LocalAssignment, |this, leading, trailing| {
     if this.expressions().is_empty() {
         // Handle if the last item had a type specifier set
@@ -490,6 +511,20 @@ define_update_trivia!(LocalAssignment, |this, leading, trailing| {
                     return this.clone()
                         .with_local_token(this.local_token().update_leading_trivia(leading))
                         .with_type_specifiers(type_specifiers);
+                }
+            }
+        );
+
+        cfg_if::cfg_if!(
+            if #[cfg(feature = "lua54")] {
+                let mut attributes = this.attributes().map(|x| x.cloned()).collect::<Vec<_>>();
+
+                if let Some(Some(attribute)) = attributes.pop() {
+                    attributes.push(Some(attribute.update_trailing_trivia(trailing)));
+
+                    return this.clone()
+                        .with_local_token(this.local_token().update_leading_trivia(leading))
+                        .with_attributes(attributes);
                 }
             }
         );
@@ -643,6 +678,8 @@ define_update_leading_trivia!(UnOp, |this, leading| {
         UnOp::Hash(token_reference) => UnOp::Hash(token_reference.update_leading_trivia(leading)),
         UnOp::Minus(token_reference) => UnOp::Minus(token_reference.update_leading_trivia(leading)),
         UnOp::Not(token_reference) => UnOp::Not(token_reference.update_leading_trivia(leading)),
+        #[cfg(feature = "lua53")]
+        UnOp::Tilde(token_reference) => UnOp::Tilde(token_reference.update_leading_trivia(leading)),
         other => panic!("unknown node {:?}", other),
     }
 });

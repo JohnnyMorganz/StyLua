@@ -9,6 +9,8 @@ pub mod expression;
 pub mod functions;
 #[cfg(feature = "lua52")]
 pub mod lua52;
+#[cfg(feature = "lua54")]
+pub mod lua54;
 #[cfg(feature = "luau")]
 pub mod luau;
 pub mod stmt;

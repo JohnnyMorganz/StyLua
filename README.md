@@ -7,7 +7,7 @@
 	</h1>
 </div>
 
-An opinionated code formatter for Lua 5.1, Lua 5.2 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
+An opinionated code formatter for Lua 5.1, 5.2, 5.3, 5.4 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
 StyLua is inspired by the likes of [prettier](https://github.com/prettier/prettier), it parses your Lua codebase, and prints it back out from scratch,
 enforcing a consistent code style.
 
@@ -19,18 +19,20 @@ There are multiple ways to install StyLua:
 
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
 
-By default, these are built with **both Luau and Lua 5.2 features enabled**, to cover all possible codebases.
+By default, these are built with **all syntax variants enabled (Lua 5.2, 5.3, 5.4 and Luau)**, to cover all possible codebases.
 If you would like to format a specific Lua version only, see [installing from crates.io](#from-cratesio).
 
 ### From Crates.io
 
 If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo.
 By default, this builds for just Lua 5.1.
-You can pass the `--features <flag>` argument to build for Lua 5.2 (`lua52`) or Luau (`luau`)
+You can pass the `--features <flag>` argument to build for Lua 5.2 (`lua52`), Lua 5.3 (`lua53`), Lua 5.4 (`lua54`) or Luau (`luau`)
 
 ```sh
 cargo install stylua
 cargo install stylua --features lua52
+cargo install stylua --features lua53
+cargo install stylua --features lua54
 cargo install stylua --features luau
 ```
 
