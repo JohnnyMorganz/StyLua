@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2022-09-21
+
 ### Added
 
 - Added support for Lua 5.3, gated behind the `lua53` feature flag ([#534](https://github.com/JohnnyMorganz/StyLua/issues/534))
@@ -567,8 +569,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.14.3...HEAD
-[0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.0
+[0.14.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3
 [0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.2
 [0.14.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.1
 [0.14.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.0
