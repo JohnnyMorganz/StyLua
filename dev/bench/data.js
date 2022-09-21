@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663615344232,
+  "lastUpdate": 1663782151629,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2771,6 +2771,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 44907721,
             "range": "± 1986740",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "120ef08ceddbdeea94973a9971775aa81d0cfa99",
+          "message": "Add Lua 5.3 and 5.4 support with full-moon update (#576)\n\n* Add feature flags\r\n\r\n* Update README\r\n\r\n* Update flags\r\n\r\n* Add test cases\r\n\r\n* Fix test name\r\n\r\n* Handle Lua 5.3 introductions\r\n\r\n* Update Lua 5.3 tests\r\n\r\n* Handle 5.4 attributes\r\n\r\n* Update snapshot\r\n\r\n* Update changelog\r\n\r\n* Update readme\r\n\r\n* Handle DoubleGreaterThan change\r\n\r\n* Allow unused mut\r\n\r\n* Run tests in CI\r\n\r\n* Temp full moon version\r\n\r\n* Use published full-moon",
+          "timestamp": "2022-09-21T18:37:44+01:00",
+          "tree_id": "a81588f51d016ceb9410dd2232f6503cf6c173f2",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/120ef08ceddbdeea94973a9971775aa81d0cfa99"
+        },
+        "date": 1663782150833,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66841276,
+            "range": "± 805668",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 418590236,
+            "range": "± 2075906",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 41239637,
+            "range": "± 437382",
             "unit": "ns/iter"
           }
         ]
