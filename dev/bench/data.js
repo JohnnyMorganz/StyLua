@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663782650576,
+  "lastUpdate": 1663861399183,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2897,6 +2897,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 51630427,
             "range": "± 2637389",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf397fe963b10c00232cdcf404041e77d34f24bb",
+          "message": "Update full-moon to fix parsing issues (#586)\n\n* Update full-moon\r\n\r\n* Temp full-moon\r\n\r\n* Proper full moon",
+          "timestamp": "2022-09-22T16:38:36+01:00",
+          "tree_id": "35f37ef8a4af5947649db0026219ce30bcf15d94",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/cf397fe963b10c00232cdcf404041e77d34f24bb"
+        },
+        "date": 1663861397418,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58491484,
+            "range": "± 2506636",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 410797439,
+            "range": "± 349370",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 37320737,
+            "range": "± 229569",
             "unit": "ns/iter"
           }
         ]
