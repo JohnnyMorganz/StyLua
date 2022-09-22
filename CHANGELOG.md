@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated parser to fix comments parsing issues ([#585](https://github.com/JohnnyMorganz/StyLua/issues/585), [#587](https://github.com/JohnnyMorganz/StyLua/issues/587))
+
 ## [0.15.0] - 2022-09-21
 
 ### Added
