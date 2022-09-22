@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663861399183,
+  "lastUpdate": 1663861468843,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -2939,6 +2939,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37320737,
             "range": "± 229569",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "d90c14dcdc6e4d7c438a32070101afb0a140ea8a",
+          "message": "Parallelise test workflow jobs",
+          "timestamp": "2022-09-22T16:38:51+01:00",
+          "tree_id": "0972aef50fd804d7542b31661fddbf0866babce6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d90c14dcdc6e4d7c438a32070101afb0a140ea8a"
+        },
+        "date": 1663861468391,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 79416549,
+            "range": "± 3786463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 553695606,
+            "range": "± 21444519",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 48223219,
+            "range": "± 1855674",
             "unit": "ns/iter"
           }
         ]
