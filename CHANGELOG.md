@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] - 2022-09-22
+
 ### Fixed
 
 - Updated parser to fix comments parsing issues ([#585](https://github.com/JohnnyMorganz/StyLua/issues/585), [#587](https://github.com/JohnnyMorganz/StyLua/issues/587))
@@ -573,7 +575,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.1
 [0.15.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.0
 [0.14.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3
 [0.14.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.2
