@@ -1195,8 +1195,9 @@ pub fn token_contains_comments(token: &TokenReference) -> bool {
     token_contains_comments_search(token, CommentSearch::All)
 }
 
+/// CAUTION: VERY EXPENSIVE FUNCTION FOR LARGE NODES
 pub fn contains_comments(node: impl Node) -> bool {
-    node.tokens().into_iter().any(token_contains_comments)
+    node.tokens().any(token_contains_comments)
 }
 
 #[allow(dead_code)]
