@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time
+
 ## [0.15.1] - 2022-09-22
 
 ### Fixed
