@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663861762988,
+  "lastUpdate": 1663942465694,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3023,6 +3023,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37799634,
             "range": "± 240973",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "41898282+github-actions[bot]@users.noreply.github.com",
+            "name": "github-actions[bot]",
+            "username": "github-actions[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7bf884cc16efdaa4db75d7ceb2888bc161adbf55",
+          "message": "Update external test cases (#589)\n\n* Update external test cases\r\n\r\n* Update snapshots\r\n\r\nCo-authored-by: JohnnyMorganz <JohnnyMorganz@users.noreply.github.com>\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2022-09-23T15:08:41+01:00",
+          "tree_id": "a120d9808f0bca99dcadc50eb41199a829ba0f51",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7bf884cc16efdaa4db75d7ceb2888bc161adbf55"
+        },
+        "date": 1663942463878,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 80430483,
+            "range": "± 4126227",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 544081127,
+            "range": "± 20277591",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 47450237,
+            "range": "± 1840393",
             "unit": "ns/iter"
           }
         ]
