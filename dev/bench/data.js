@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663942465694,
+  "lastUpdate": 1663951455271,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3065,6 +3065,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 47450237,
             "range": "± 1840393",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "82267684+uga-rosa@users.noreply.github.com",
+            "name": "uga-rosa",
+            "username": "uga-rosa"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4ad48d0a95b0324a64f6f58194dc26f7e84894ca",
+          "message": "Update readme (collapse_simple_statement) (#590)",
+          "timestamp": "2022-09-23T17:38:29+01:00",
+          "tree_id": "fcc65a11e57ea1b91f54e05bf9cd43f47399e4f0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4ad48d0a95b0324a64f6f58194dc26f7e84894ca"
+        },
+        "date": 1663951453327,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 75293361,
+            "range": "± 4516281",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 526805554,
+            "range": "± 9486672",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 47586817,
+            "range": "± 2183134",
             "unit": "ns/iter"
           }
         ]
