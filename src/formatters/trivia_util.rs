@@ -1277,7 +1277,7 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
             }
             _ => false,
         },
-        _ => false,
+        other => panic!("unknown node {:?}", other),
     }
 }
 
