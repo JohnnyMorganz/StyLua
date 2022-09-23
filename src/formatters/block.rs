@@ -588,8 +588,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
         None => None,
     };
 
-    block
-        .to_owned()
+    Block::new()
         .with_stmts(formatted_statements)
         .with_last_stmt(formatted_last_stmt)
 }
