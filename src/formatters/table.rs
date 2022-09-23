@@ -447,14 +447,8 @@ pub fn format_table_constructor(
 
     let (start_brace, end_brace) = table_constructor.braces().tokens();
 
-    // Determine if we need to force the table multiline
-    let should_expand = should_expand(ctx, table_constructor);
-
-    let table_type = match (should_expand, table_constructor.fields().iter().next()) {
-        // We should expand, so force multiline
-        (true, _) => TableType::MultiLine,
-
-        (false, Some(_)) => {
+    let table_type = match table_constructor.fields().iter().next() {
+        Some(_) => {
             // Determine if there was a new line at the end of the start brace
             // If so, then we should always be multiline
             if start_brace
@@ -511,12 +505,15 @@ pub fn format_table_constructor(
 
                 match singleline_shape.over_budget() {
                     true => TableType::MultiLine,
-                    false => TableType::SingleLine,
+                    false => match should_expand(ctx, table_constructor) {
+                        true => TableType::SingleLine,
+                        false => TableType::SingleLine,
+                    },
                 }
             }
         }
 
-        (false, None) => TableType::Empty,
+        None => TableType::Empty,
     };
 
     let (braces, fields) = match table_type {
