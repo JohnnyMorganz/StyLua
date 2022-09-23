@@ -506,14 +506,17 @@ pub fn format_table_constructor(
                 match singleline_shape.over_budget() {
                     true => TableType::MultiLine,
                     false => match should_expand(ctx, table_constructor) {
-                        true => TableType::SingleLine,
+                        true => TableType::MultiLine,
                         false => TableType::SingleLine,
                     },
                 }
             }
         }
 
-        None => TableType::Empty,
+        None => match should_expand(ctx, table_constructor) {
+            true => TableType::MultiLine,
+            false => TableType::Empty,
+        },
     };
 
     let (braces, fields) = match table_type {
