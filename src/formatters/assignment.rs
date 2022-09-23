@@ -319,8 +319,6 @@ pub fn format_assignment_no_trivia(
     assignment: &Assignment,
     shape: Shape,
 ) -> Assignment {
-    const EQUALS_LEN: usize = " = ".len();
-
     // Check if the assignment expressions or equal token contain comments. If they do, we bail out of determining any tactics
     // and format multiline
     let contains_comments = trivia_util::token_contains_comments(assignment.equal_token())
@@ -344,13 +342,13 @@ pub fn format_assignment_no_trivia(
 
     // Test the assignment to see if its over width
     let singleline_shape = shape
-        .take_last_line(&strip_leading_trivia(&var_list))
-        .take_first_line(&strip_trailing_trivia(&expr_list))
-        + EQUALS_LEN;
+        + (strip_leading_trivia(&var_list).to_string().len()
+            + 3
+            + strip_trailing_trivia(&expr_list).to_string().len());
     if contains_comments || singleline_shape.over_budget() {
         // We won't attempt anything else with the var_list. Format it normally
         var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var, Some(1));
-        let shape = shape.take_last_line(&strip_leading_trivia(&var_list)) + EQUALS_LEN;
+        let shape = shape + (strip_leading_trivia(&var_list).to_string().len() + 3);
 
         let (new_expr_list, new_equal_token) =
             attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
