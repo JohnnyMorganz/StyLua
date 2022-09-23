@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+---
+--[comment
+--(comment)
+--[=comment
+--
+
