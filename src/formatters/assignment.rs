@@ -322,11 +322,7 @@ pub fn format_assignment_no_trivia(
     // Check if the assignment expressions or equal token contain comments. If they do, we bail out of determining any tactics
     // and format multiline
     let contains_comments = trivia_util::token_contains_comments(assignment.equal_token())
-        || assignment.expressions().pairs().any(|pair| {
-            pair.punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
-                || trivia_util::expression_contains_inline_comments(pair.value())
-        });
+        || trivia_util::punctuated_expression_inline_comments(assignment.expressions());
 
     // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
     let mut var_list = try_format_punctuated(
