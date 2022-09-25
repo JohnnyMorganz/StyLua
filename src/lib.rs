@@ -14,6 +14,7 @@ mod verify_ast;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
     Tabs,
@@ -31,6 +32,7 @@ impl Default for IndentType {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum LineEndings {
     // Auto,
     /// Unix Line Endings (LF) - `\n`
@@ -49,6 +51,7 @@ impl Default for LineEndings {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
     AutoPreferDouble,
@@ -70,6 +73,7 @@ impl Default for QuoteStyle {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CallParenType {
     /// Use call parentheses all the time
     Always,
@@ -91,6 +95,7 @@ impl Default for CallParenType {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CollapseSimpleStatement {
     /// Never collapse
     Never,
