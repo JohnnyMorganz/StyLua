@@ -1,7 +1,7 @@
 use full_moon::ast::Ast;
 use serde::Deserialize;
 use thiserror::Error;
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
 use wasm_bindgen::prelude::*;
 
 #[macro_use]
@@ -12,7 +12,7 @@ mod verify_ast;
 
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum IndentType {
@@ -30,7 +30,7 @@ impl Default for IndentType {
 
 /// The type of line endings to use at the end of a line
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum LineEndings {
@@ -49,7 +49,7 @@ impl Default for LineEndings {
 
 /// The style of quotes to use within string literals
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum QuoteStyle {
@@ -71,7 +71,7 @@ impl Default for QuoteStyle {
 
 /// When to use call parentheses
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CallParenType {
@@ -93,7 +93,7 @@ impl Default for CallParenType {
 
 /// What mode to use if we want to collapse simple functions / guard statements
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CollapseSimpleStatement {
@@ -117,13 +117,13 @@ impl Default for CollapseSimpleStatement {
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
 #[derive(Debug, Copy, Clone, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 pub struct Range {
     start: Option<usize>,
     end: Option<usize>,
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 impl Range {
     /// Creates a new formatting range from the given start and end point.
     /// All content within these boundaries (inclusive) will be formatted.
@@ -135,7 +135,7 @@ impl Range {
 /// The configuration to use when formatting.
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct Config {
     /// The approximate line length to use when printing the code.
@@ -170,7 +170,7 @@ pub struct Config {
     collapse_simple_statement: CollapseSimpleStatement,
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 impl Config {
     /// Creates a new Config with the default values
     pub fn new() -> Self {
@@ -294,7 +294,7 @@ impl Default for Config {
 
 /// The type of verification to perform to validate that the output AST is still correct.
 #[derive(Debug, Copy, Clone, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 pub enum OutputVerification {
     /// Reparse the generated output to detect any changes to code correctness.
     Full,
@@ -372,7 +372,7 @@ pub fn format_code(
     Ok(output)
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
 #[wasm_bindgen(js_name = formatCode)]
 pub fn format_code_wasm(
     code: &str,
