@@ -13,6 +13,7 @@ mod verify_ast;
 /// The type of indents to use when indenting
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
     Tabs,
@@ -29,6 +30,7 @@ impl Default for IndentType {
 /// The type of line endings to use at the end of a line
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub enum LineEndings {
     // Auto,
     /// Unix Line Endings (LF) - `\n`
@@ -46,6 +48,7 @@ impl Default for LineEndings {
 /// The style of quotes to use within string literals
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
     AutoPreferDouble,
@@ -66,6 +69,7 @@ impl Default for QuoteStyle {
 /// When to use call parentheses
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub enum CallParenType {
     /// Use call parentheses all the time
     Always,
@@ -86,6 +90,7 @@ impl Default for CallParenType {
 /// What mode to use if we want to collapse simple functions / guard statements
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub enum CollapseSimpleStatement {
     /// Never collapse
     Never,
@@ -126,6 +131,7 @@ impl Range {
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct Config {
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
