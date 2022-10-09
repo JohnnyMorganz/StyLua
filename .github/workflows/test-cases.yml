@@ -13,6 +13,11 @@ jobs:
       - name: Pull latest tests
         run: python ./.github/retrieve_test_cases.py
 
+      - name: Update insta snapshots
+        run: |
+          cargo install cargo-insta
+          cargo insta test --accept-unseen
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3.12.1
         with:
@@ -20,7 +25,6 @@ jobs:
           body: |
             Pulls in new changes from external repositories for test cases
             - This pull request is **auto-generated**
-            - Note: **snapshots have not been updated**. You must manually update snapshots for the updated test cases
           branch: auto/update-external-test-cases
           commit-message: Update external test cases
           base: main
