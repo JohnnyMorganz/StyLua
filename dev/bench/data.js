@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663951455271,
+  "lastUpdate": 1665322999076,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3107,6 +3107,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 47586817,
             "range": "± 2183134",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "silas.groh@t-online.de",
+            "name": "Silas Groh",
+            "username": "RubixDev"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ffec45427b20c73711006f74b66d3ec7816b91cc",
+          "message": "Add `serialize`, `fromstr` and `wasm-bindgen` features (#592)\n\n* Add `serialize` feature\r\n\r\n* Add `fromstr` feature\r\n\r\n* Add `wasm-bindgen` feature\r\n\r\n* Don't enable `serialize` and `fromstr` features in release builds\r\n\r\n* Fix typo: lua53 -> lua52",
+          "timestamp": "2022-10-09T14:37:41+01:00",
+          "tree_id": "60d413f94b200b0464e462f95d1cbabd86f79f75",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ffec45427b20c73711006f74b66d3ec7816b91cc"
+        },
+        "date": 1665322997411,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 70729518,
+            "range": "± 6035238",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 492819938,
+            "range": "± 16479354",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 44737890,
+            "range": "± 1618471",
             "unit": "ns/iter"
           }
         ]
