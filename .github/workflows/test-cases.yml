@@ -17,6 +17,10 @@ jobs:
         run: |
           cargo install cargo-insta
           cargo insta test --accept-unseen
+          cargo insta test --features lua52 --accept-unseen
+          cargo insta test --features lua53 --accept-unseen
+          cargo insta test --features lua54 --accept-unseen
+          cargo insta test --features luau --accept-unseen
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3.12.1
