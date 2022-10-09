@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665322999076,
+  "lastUpdate": 1665324208882,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3149,6 +3149,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 44737890,
             "range": "± 1618471",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e4d6fd6b69cd0fd86400955cd6e6beea9289a1b7",
+          "message": "Update insta snapshots when pulling test cases (#594)\n\n* Update insta snapshots when pulling test cases\r\n\r\n* Run on all features separately",
+          "timestamp": "2022-10-09T14:58:32+01:00",
+          "tree_id": "685401eb0a7baa84c368a203ee26544caa335c0e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e4d6fd6b69cd0fd86400955cd6e6beea9289a1b7"
+        },
+        "date": 1665324208434,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 59558756,
+            "range": "± 500654",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 411421859,
+            "range": "± 6987484",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 37263685,
+            "range": "± 83140",
             "unit": "ns/iter"
           }
         ]
