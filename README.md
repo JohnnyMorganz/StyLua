@@ -231,4 +231,5 @@ indent_type = "Tabs"
 indent_width = 4
 quote_style = "AutoPreferDouble"
 call_parentheses = "Always"
+collapse_simple_statement = "Never"
 ```
