@@ -513,7 +513,7 @@ fn format_token_expression_sequence(
         true => match newline_after_token {
             true => {
                 let shape = shape.reset().increment_additional_indent();
-                hang_expression(ctx, expression, shape, None).update_leading_trivia(
+                hang_expression(ctx, expression, shape, Some(1)).update_leading_trivia(
                     FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
                 )
             }
@@ -521,7 +521,7 @@ fn format_token_expression_sequence(
                 ctx,
                 expression,
                 shape.add_width(token_width + SPACE_LEN),
-                None,
+                Some(1),
             ),
         },
         false => formatted_expression,
