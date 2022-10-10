@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 Roact.createElement("ImageLabel", {
 	Size = UDim2.new(

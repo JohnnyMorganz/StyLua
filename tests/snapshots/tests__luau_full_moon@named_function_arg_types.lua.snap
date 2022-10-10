@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 type MyCallbackType = (cost: number, name: string) -> string
 

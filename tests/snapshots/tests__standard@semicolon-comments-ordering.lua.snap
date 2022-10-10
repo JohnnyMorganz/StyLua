@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 12
 expression: format(&contents)
-
 ---
 local foo = a <= b --[[ some block comment ]] -- inline comment
 fn() --[[ some block comment 2 ]] -- inline comment 2

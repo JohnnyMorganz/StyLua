@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 30
 expression: format(&contents)
-
 ---
 -- Shouldn't hang since multiline comments arent an issue
 

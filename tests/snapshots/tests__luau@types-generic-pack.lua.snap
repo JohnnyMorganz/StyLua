@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 30
 expression: format(&contents)
-
 ---
 type X = {
 	useMemo: <T...>(nextCreate: () -> T..., deps: Array<any> | nil) -> T...,
