@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 -- standard escapes
 local a = "foo \a \b \f \n \r \t \v \\ \" '"

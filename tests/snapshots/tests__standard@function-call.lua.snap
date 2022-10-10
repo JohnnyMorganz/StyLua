@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 call("string")
 call({ foo = "bar", baz = 1 })

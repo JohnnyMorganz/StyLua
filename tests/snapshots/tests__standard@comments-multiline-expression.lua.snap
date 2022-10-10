@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local val = 1 + 2 + 1 -- add
 foo = bar or #baz -- test

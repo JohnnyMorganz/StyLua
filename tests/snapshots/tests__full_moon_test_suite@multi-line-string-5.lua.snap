@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local emoji = [[🧓🏽]]
 local more_code = here
