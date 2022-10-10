@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 39
 expression: format(&contents)
-
 ---
 local x: module.Foo = nil
 local x: module.Array<string> = { "bar" }
