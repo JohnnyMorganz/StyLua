@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665399341798,
+  "lastUpdate": 1665405045249,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3233,6 +3233,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37323861,
             "range": "± 1625937",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47138aa82652a82b68c5b29037c740bbbe85aac4",
+          "message": "Cleanup all snapshots (#601)\n\n* Cleanup all snapshots\r\n\r\n* More snapshots cleanup",
+          "timestamp": "2022-10-10T13:25:09+01:00",
+          "tree_id": "5a7aaf981b8cd173834d3a29044ba88e315a5f25",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/47138aa82652a82b68c5b29037c740bbbe85aac4"
+        },
+        "date": 1665405044410,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 73893884,
+            "range": "± 2215273",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 483679176,
+            "range": "± 8109245",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 48523466,
+            "range": "± 446816",
             "unit": "ns/iter"
           }
         ]
