@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665324208882,
+  "lastUpdate": 1665399341798,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3191,6 +3191,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37263685,
             "range": "± 83140",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kawarimidoll+git@gmail.com",
+            "name": "カワリミ人形",
+            "username": "kawarimidoll"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "62db6d84947d3710ef11e7fc8ce5f1a7d2ec7d65",
+          "message": "Add default collapse_simple_statement to README.md (#598)\n\nUpdate README.md",
+          "timestamp": "2022-10-10T11:50:51+01:00",
+          "tree_id": "9961c51b0c07818d1844dc245bd33dc42ffa73e7",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/62db6d84947d3710ef11e7fc8ce5f1a7d2ec7d65"
+        },
+        "date": 1665399341342,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58751818,
+            "range": "± 968956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 410575780,
+            "range": "± 472315",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 37323861,
+            "range": "± 1625937",
             "unit": "ns/iter"
           }
         ]
