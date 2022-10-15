@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665405045249,
+  "lastUpdate": 1665843693287,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3275,6 +3275,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 48523466,
             "range": "± 446816",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b8c32f7ca79aa56f3585455fd664ea24cee19ff0",
+          "message": "Add hang level to hanging if expression (#599)\n\n* Add test case\r\n\r\n* Add a hang level for hanging if expression\r\n\r\n* Update snapshot\r\n\r\n* Add test case\r\n\r\n* Calculate hang level properly\r\n\r\n* Update snapshot\r\n\r\n* Update changelog\r\n\r\n* Add negated assigns test",
+          "timestamp": "2022-10-15T15:15:28+01:00",
+          "tree_id": "054ebcda954f61326b9f609308fbaa1e2f170343",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b8c32f7ca79aa56f3585455fd664ea24cee19ff0"
+        },
+        "date": 1665843691553,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 75672658,
+            "range": "± 4720604",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 516601882,
+            "range": "± 22372061",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 46542351,
+            "range": "± 2262830",
             "unit": "ns/iter"
           }
         ]
