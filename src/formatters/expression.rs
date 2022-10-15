@@ -11,7 +11,10 @@ use full_moon::{
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
-use crate::formatters::{luau::format_type_assertion, stmt::remove_condition_parentheses};
+use crate::formatters::{
+    assignment::calculate_hang_level, luau::format_type_assertion,
+    stmt::remove_condition_parentheses,
+};
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
@@ -513,15 +516,16 @@ fn format_token_expression_sequence(
         true => match newline_after_token {
             true => {
                 let shape = shape.reset().increment_additional_indent();
-                hang_expression(ctx, expression, shape, Some(1)).update_leading_trivia(
-                    FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-                )
+                hang_expression(ctx, expression, shape, calculate_hang_level(expression))
+                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                        ctx, shape,
+                    )]))
             }
             false => hang_expression(
                 ctx,
                 expression,
                 shape.add_width(token_width + SPACE_LEN),
-                Some(1),
+                calculate_hang_level(expression),
             ),
         },
         false => formatted_expression,

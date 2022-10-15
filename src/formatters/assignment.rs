@@ -32,14 +32,15 @@ use crate::{
 };
 
 /// Calculates the hanging level to use when hanging an expression.
-/// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses
+/// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses (or a unary operation on them)
 /// https://github.com/JohnnyMorganz/StyLua/issues/274
-fn calculate_hang_level(expression: &Expression) -> Option<usize> {
+pub fn calculate_hang_level(expression: &Expression) -> Option<usize> {
     match expression {
         Expression::Value { value, .. } => match **value {
             Value::ParenthesesExpression(_) => None,
             _ => Some(1),
         },
+        Expression::UnaryOperator { expression, .. } => calculate_hang_level(expression),
         _ => Some(1),
     }
 }
