@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix incorrect indentation level used for hanging expressions in if expression syntax ([#596](https://github.com/JohnnyMorganz/StyLua/issues/596))
+
 ## [0.15.1] - 2022-09-22
 
 ### Fixed
