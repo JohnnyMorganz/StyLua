@@ -1,0 +1,18 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+---
+function foo(): (
+	nil -- Some comment
+)
+	return nil
+end
+
+type X = (
+	string,
+	number -- testing
+) -> (
+	number,
+	string -- testing
+)
+
