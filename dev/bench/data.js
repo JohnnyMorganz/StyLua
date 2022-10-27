@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1666872087217,
+  "lastUpdate": 1666872913271,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3359,6 +3359,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 45226950,
             "range": "± 1252190",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d681afb314e52eb4850211ebf06acc3cd709b681",
+          "message": "Don't remove excess parentheses which are highlighting precedence (#610)\n\n* Add test case\r\n\r\n* Don't remove parentheses when highlighting precedence\r\n\r\n* Update snapshots\r\n\r\n* Update changelog\r\n\r\n* Update snapshots",
+          "timestamp": "2022-10-27T13:10:07+01:00",
+          "tree_id": "7a3c0dfc264761caca846e1d66e1974aa2048f95",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d681afb314e52eb4850211ebf06acc3cd709b681"
+        },
+        "date": 1666872912735,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 59504544,
+            "range": "± 507525",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 410359000,
+            "range": "± 2273403",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 37229401,
+            "range": "± 178629",
             "unit": "ns/iter"
           }
         ]
