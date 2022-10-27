@@ -407,9 +407,16 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             let should_format_multiline =
                 trivia_contains_comments(start_brace.trailing_trivia(), CommentSearch::Single)
                     || trivia_contains_comments(end_brace.leading_trivia(), CommentSearch::Single)
-                    || types
-                        .pairs()
-                        .any(|pair| contains_comments(pair.punctuation()));
+                    || types.pairs().any(|pair| {
+                        pair.punctuation().map_or_else(
+                            || {
+                                type_info_trailing_trivia(pair.value())
+                                    .iter()
+                                    .any(trivia_is_comment)
+                            },
+                            contains_comments,
+                        )
+                    });
 
             let singleline_parentheses = format_contained_span(ctx, parentheses, shape);
             let singleline_types = format_punctuated(ctx, types, shape + 1, format_type_info); // 1 = "("
