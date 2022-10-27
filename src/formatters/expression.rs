@@ -61,6 +61,12 @@ enum ExpressionContext {
     /// as for cases like `(expr) :: any) :: type`
     #[cfg(feature = "luau")]
     TypeAssertion,
+
+    /// The internal expression is on the RHS of a binary operation
+    /// e.g. `(not X) and Y` or `(not X) == Y`, where internal_expression = `not X`
+    /// We should keep parentheses in this case to highlight precedence
+    BinaryLHS,
+
     /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
     /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
     UnaryOrBinary,
@@ -113,7 +119,17 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
         // Parentheses inside parentheses, not necessary
         Expression::Parentheses { .. } => true,
         // Check whether the expression relating to the UnOp is safe
-        Expression::UnaryOperator { expression, .. } => {
+        Expression::UnaryOperator {
+            expression, unop, ..
+        } => {
+            // If the expression is of the format `(not X) and Y` or `(not X) == Y` etc.
+            // Where internal_expression = not X, we should keep the parentheses
+            if let ExpressionContext::BinaryLHS = context {
+                if let UnOp::Not(_) = unop {
+                    return false;
+                }
+            }
+
             check_excess_parentheses(expression, context)
         }
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
@@ -127,7 +143,12 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
             // we should always keep parentheses
             // [e.g. #(value :: Array<string>) or -(value :: number)]
             #[cfg(feature = "luau")]
-            if type_assertion.is_some() && matches!(context, ExpressionContext::UnaryOrBinary) {
+            if type_assertion.is_some()
+                && matches!(
+                    context,
+                    ExpressionContext::UnaryOrBinary | ExpressionContext::BinaryLHS
+                )
+            {
                 return false;
             }
 
@@ -293,7 +314,7 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::UnaryOrBinary, shape);
+            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::BinaryLHS, shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
@@ -1123,7 +1144,7 @@ fn hang_binop_expression(
                                 format_expression_internal(
                                     ctx,
                                     &lhs,
-                                    ExpressionContext::UnaryOrBinary,
+                                    ExpressionContext::BinaryLHS,
                                     lhs_shape,
                                 )
                             },
@@ -1147,12 +1168,7 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression_internal(
-                            ctx,
-                            &lhs,
-                            ExpressionContext::UnaryOrBinary,
-                            shape,
-                        )
+                        format_expression_internal(ctx, &lhs, ExpressionContext::BinaryLHS, shape)
                     };
 
                     let rhs = if contains_comments(&*rhs) {
