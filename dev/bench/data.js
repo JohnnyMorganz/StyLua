@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665843693287,
+  "lastUpdate": 1666872087217,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3317,6 +3317,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 46542351,
             "range": "± 2262830",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bee202b6fdaffdf4a19a84f75746b796a063a764",
+          "message": "Don't collapse when comment present in typeinfo tuple (#612)\n\n* Add test case\r\n\r\n* Check for comments in type info tuple\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2022-10-27T12:55:17+01:00",
+          "tree_id": "e59736a40d75fad3bf63556ce5a35f0de8e36d68",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/bee202b6fdaffdf4a19a84f75746b796a063a764"
+        },
+        "date": 1666872085206,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 71053838,
+            "range": "± 1695900",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 464721088,
+            "range": "± 9058656",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 45226950,
+            "range": "± 1252190",
             "unit": "ns/iter"
           }
         ]
