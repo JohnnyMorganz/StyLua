@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1666872913271,
+  "lastUpdate": 1666976174171,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3401,6 +3401,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37229401,
             "range": "± 178629",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "k.trzesniewski@gmail.com",
+            "name": "Chris Trześniewski",
+            "username": "ktrz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c3136e0a60568da1ce86a136b02b93e7b80535bd",
+          "message": "fix: 614 support all features in wasm (#615)\n\n* fix: 614 support all features in wasm\r\n\r\n* pass all --features to cargo build in build-wasm.sh\r\n\r\n* update changelog\r\n\r\n* Update CHANGELOG.md\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2022-10-28T17:50:10+01:00",
+          "tree_id": "0e6d031e78bbdec8564d271a166855f3ad56f398",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c3136e0a60568da1ce86a136b02b93e7b80535bd"
+        },
+        "date": 1666976173291,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 71192621,
+            "range": "± 3683823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 511578202,
+            "range": "± 14727649",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 45845043,
+            "range": "± 2378686",
             "unit": "ns/iter"
           }
         ]
