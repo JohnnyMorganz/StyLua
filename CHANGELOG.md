@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix incorrect indentation level used for hanging expressions in if expression syntax ([#596](https://github.com/JohnnyMorganz/StyLua/issues/596))
 - Fixed Luau return type in parentheses containing a comment on the last item being collapsed causing a syntax error ([#608](https://github.com/JohnnyMorganz/StyLua/issues/608))
 - Fix parentheses removed which highlight precedence in `(not X) == Y` causing linting errors ([#609](https://github.com/JohnnyMorganz/StyLua/issues/609))
+- Fix build script for `@johnnymorganz/stylua` to include all lua and luau features ([#614](https://github.com/JohnnyMorganz/StyLua/issues/614))
 
 ## [0.15.1] - 2022-09-22
 
