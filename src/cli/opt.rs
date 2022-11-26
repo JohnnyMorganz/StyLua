@@ -1,6 +1,8 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
-use stylua_lib::{CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle};
+use stylua_lib::{
+    BraceSpacing, CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle,
+};
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
@@ -169,6 +171,9 @@ pub struct FormatOpts {
     /// Specify whether to collapse simple statements.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub collapse_simple_statement: Option<ArgCollapseSimpleStatement>,
+    /// Specify whether to add spacing inside the curly brackets around the content of a table literal.
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub brace_spacing: Option<ArgBraceSpacing>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -232,6 +237,11 @@ convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Never,
     FunctionOnly,
     ConditionalOnly,
+    Always,
+});
+
+convert_enum!(BraceSpacing, ArgBraceSpacing, {
+    Never,
     Always,
 });
 

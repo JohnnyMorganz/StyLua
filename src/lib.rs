@@ -113,6 +113,24 @@ impl Default for CollapseSimpleStatement {
     }
 }
 
+/// Whether we add spacing inside the curly brackets around the content of a table literal.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum BraceSpacing {
+    /// Never add spaces around content in a table literal
+    Never,
+    /// Always add spaces around content in a table literal
+    Always,
+}
+
+impl Default for BraceSpacing {
+    fn default() -> Self {
+        BraceSpacing::Always
+    }
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -168,6 +186,8 @@ pub struct Config {
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     collapse_simple_statement: CollapseSimpleStatement,
+    /// Whether we add spacing inside the curly brackets around the content of a table literal.
+    brace_spacing: BraceSpacing,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -209,6 +229,10 @@ impl Config {
 
     pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
         self.collapse_simple_statement
+    }
+
+    pub fn brace_spacing(&self) -> BraceSpacing {
+        self.brace_spacing
     }
 
     /// Returns a new config with the given column width
@@ -275,6 +299,14 @@ impl Config {
             ..self
         }
     }
+
+    /// Returns a new config with the given bracket space configuration
+    pub fn with_brace_spacing(self, brace_spacing: BraceSpacing) -> Self {
+        Self {
+            brace_spacing,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -288,6 +320,7 @@ impl Default for Config {
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
             collapse_simple_statement: CollapseSimpleStatement::default(),
+            brace_spacing: BraceSpacing::default(),
         }
     }
 }
