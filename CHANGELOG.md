@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed necessary parentheses removed in `(-X) ^ Y` causing change in semantics ([#623](https://github.com/JohnnyMorganz/StyLua/issues/623))
+- Take into account `function` token size when formatting an anonymous function `function() end` (particularly relevant when collapsing simple statements) ([#619](https://github.com/JohnnyMorganz/StyLua/issues/619))
 
 ## [0.15.2] - 2022-10-31
 
