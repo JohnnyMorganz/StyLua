@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed necessary parentheses removed in `(-X) ^ Y` causing change in semantics ([#623](https://github.com/JohnnyMorganz/StyLua/issues/623))
+
 ## [0.15.2] - 2022-10-31
 
 ### Fixed
