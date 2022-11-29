@@ -67,6 +67,12 @@ enum ExpressionContext {
     /// We should keep parentheses in this case to highlight precedence
     BinaryLHS,
 
+    /// The internal expression is on the LHS of a binary expression involving ^
+    /// e.g. `(-X) ^ Y`
+    /// We need to keep parentheses here because ^ has higher precedence and is right associative
+    /// and removing parentheses changes meaning
+    BinaryLHSExponent,
+
     /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
     /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
     UnaryOrBinary,
@@ -124,7 +130,9 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
         } => {
             // If the expression is of the format `(not X) and Y` or `(not X) == Y` etc.
             // Where internal_expression = not X, we should keep the parentheses
-            if let ExpressionContext::BinaryLHS = context {
+            if let ExpressionContext::BinaryLHSExponent = context {
+                return false;
+            } else if let ExpressionContext::BinaryLHS = context {
                 if let UnOp::Not(_) = unop {
                     return false;
                 }
@@ -146,7 +154,9 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
             if type_assertion.is_some()
                 && matches!(
                     context,
-                    ExpressionContext::UnaryOrBinary | ExpressionContext::BinaryLHS
+                    ExpressionContext::UnaryOrBinary
+                        | ExpressionContext::BinaryLHS
+                        | ExpressionContext::BinaryLHSExponent
                 )
             {
                 return false;
@@ -314,7 +324,12 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::BinaryLHS, shape);
+            let context = if let BinOp::Caret(_) = binop {
+                ExpressionContext::BinaryLHSExponent
+            } else {
+                ExpressionContext::BinaryLHS
+            };
+            let lhs = format_expression_internal(ctx, lhs, context, shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
@@ -1141,12 +1156,12 @@ fn hang_binop_expression(
                             if contains_comments(&*lhs) {
                                 hang_binop_expression(ctx, *lhs, binop.clone(), shape, lhs_range)
                             } else {
-                                format_expression_internal(
-                                    ctx,
-                                    &lhs,
-                                    ExpressionContext::BinaryLHS,
-                                    lhs_shape,
-                                )
+                                let context = if let BinOp::Caret(_) = binop {
+                                    ExpressionContext::BinaryLHSExponent
+                                } else {
+                                    ExpressionContext::BinaryLHS
+                                };
+                                format_expression_internal(ctx, &lhs, context, lhs_shape)
                             },
                             hang_binop_expression(
                                 ctx,
@@ -1168,7 +1183,12 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression_internal(ctx, &lhs, ExpressionContext::BinaryLHS, shape)
+                        let context = if let BinOp::Caret(_) = binop {
+                            ExpressionContext::BinaryLHSExponent
+                        } else {
+                            ExpressionContext::BinaryLHS
+                        };
+                        format_expression_internal(ctx, &lhs, context, shape)
                     };
 
                     let rhs = if contains_comments(&*rhs) {
