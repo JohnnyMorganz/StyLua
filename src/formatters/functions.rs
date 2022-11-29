@@ -903,6 +903,7 @@ pub fn format_function_body(
         }
 
         #[cfg(not(feature = "luau"))]
+        #[allow(clippy::let_unit_value)]
         let return_type = ();
         break (
             parameters_parentheses

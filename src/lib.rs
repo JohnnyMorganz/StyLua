@@ -317,6 +317,7 @@ pub enum Error {
 }
 
 /// Formats given [`Ast`]
+#[allow(clippy::result_large_err)]
 pub fn format_ast(
     input_ast: Ast,
     config: Config,
@@ -353,6 +354,7 @@ pub fn format_ast(
 }
 
 /// Formats given Lua code
+#[allow(clippy::result_large_err)]
 pub fn format_code(
     code: &str,
     config: Config,
