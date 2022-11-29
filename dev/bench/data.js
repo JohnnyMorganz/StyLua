@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1667210535057,
+  "lastUpdate": 1669749944119,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3485,6 +3485,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 45793828,
             "range": "± 550056",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "56d1f9a1bcc801274cac8a5597e02fcd15ee936a",
+          "message": "Fix necessary parentheses removed in `(-X) ^ Y` (#624)\n\n* Add test case\r\n\r\n* Handle exponent precedence\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2022-11-29T19:20:41Z",
+          "tree_id": "96f9380e4de9f6129c43a6dd50115972b2b5f11d",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/56d1f9a1bcc801274cac8a5597e02fcd15ee936a"
+        },
+        "date": 1669749943606,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 61525087,
+            "range": "± 579134",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 412701666,
+            "range": "± 794279",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 36329202,
+            "range": "± 162677",
             "unit": "ns/iter"
           }
         ]
