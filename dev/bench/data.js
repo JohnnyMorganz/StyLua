@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1669753832844,
+  "lastUpdate": 1669758407559,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3569,6 +3569,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 43435325,
             "range": "± 2255334",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b91829c7986fe363a288a2ec5a64493c61ee1702",
+          "message": "Luau: Handle comments inside of array types (#626)\n\n* Add test case\r\n\r\n* Handle comments inside of array types\r\n\r\n* Update changelog\r\n\r\n* Update snapshot",
+          "timestamp": "2022-11-29T21:40:38Z",
+          "tree_id": "c72c834a3f878599358e61d382f945d2cc1e9b9b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b91829c7986fe363a288a2ec5a64493c61ee1702"
+        },
+        "date": 1669758406420,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 75350684,
+            "range": "± 2742104",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 527444083,
+            "range": "± 17818168",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 45148361,
+            "range": "± 1317743",
             "unit": "ns/iter"
           }
         ]
