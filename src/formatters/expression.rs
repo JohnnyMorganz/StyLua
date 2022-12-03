@@ -11,7 +11,10 @@ use full_moon::{
 use std::boxed::Box;
 
 #[cfg(feature = "luau")]
-use crate::formatters::{luau::format_type_assertion, stmt::remove_condition_parentheses};
+use crate::formatters::{
+    assignment::calculate_hang_level, luau::format_type_assertion,
+    stmt::remove_condition_parentheses,
+};
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
@@ -58,6 +61,18 @@ enum ExpressionContext {
     /// as for cases like `(expr) :: any) :: type`
     #[cfg(feature = "luau")]
     TypeAssertion,
+
+    /// The internal expression is on the RHS of a binary operation
+    /// e.g. `(not X) and Y` or `(not X) == Y`, where internal_expression = `not X`
+    /// We should keep parentheses in this case to highlight precedence
+    BinaryLHS,
+
+    /// The internal expression is on the LHS of a binary expression involving ^
+    /// e.g. `(-X) ^ Y`
+    /// We need to keep parentheses here because ^ has higher precedence and is right associative
+    /// and removing parentheses changes meaning
+    BinaryLHSExponent,
+
     /// The internal expression is having a unary operation applied to it: the `expr` part of #expr.
     /// If this occurs, and `expr` is a type assertion, then we need to keep the parentheses
     UnaryOrBinary,
@@ -110,7 +125,19 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
         // Parentheses inside parentheses, not necessary
         Expression::Parentheses { .. } => true,
         // Check whether the expression relating to the UnOp is safe
-        Expression::UnaryOperator { expression, .. } => {
+        Expression::UnaryOperator {
+            expression, unop, ..
+        } => {
+            // If the expression is of the format `(not X) and Y` or `(not X) == Y` etc.
+            // Where internal_expression = not X, we should keep the parentheses
+            if let ExpressionContext::BinaryLHSExponent = context {
+                return false;
+            } else if let ExpressionContext::BinaryLHS = context {
+                if let UnOp::Not(_) = unop {
+                    return false;
+                }
+            }
+
             check_excess_parentheses(expression, context)
         }
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
@@ -124,7 +151,14 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
             // we should always keep parentheses
             // [e.g. #(value :: Array<string>) or -(value :: number)]
             #[cfg(feature = "luau")]
-            if type_assertion.is_some() && matches!(context, ExpressionContext::UnaryOrBinary) {
+            if type_assertion.is_some()
+                && matches!(
+                    context,
+                    ExpressionContext::UnaryOrBinary
+                        | ExpressionContext::BinaryLHS
+                        | ExpressionContext::BinaryLHSExponent
+                )
+            {
                 return false;
             }
 
@@ -290,7 +324,12 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let lhs = format_expression_internal(ctx, lhs, ExpressionContext::UnaryOrBinary, shape);
+            let context = if let BinOp::Caret(_) = binop {
+                ExpressionContext::BinaryLHSExponent
+            } else {
+                ExpressionContext::BinaryLHS
+            };
+            let lhs = format_expression_internal(ctx, lhs, context, shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
@@ -513,15 +552,16 @@ fn format_token_expression_sequence(
         true => match newline_after_token {
             true => {
                 let shape = shape.reset().increment_additional_indent();
-                hang_expression(ctx, expression, shape, None).update_leading_trivia(
-                    FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
-                )
+                hang_expression(ctx, expression, shape, calculate_hang_level(expression))
+                    .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                        ctx, shape,
+                    )]))
             }
             false => hang_expression(
                 ctx,
                 expression,
                 shape.add_width(token_width + SPACE_LEN),
-                None,
+                calculate_hang_level(expression),
             ),
         },
         false => formatted_expression,
@@ -1116,12 +1156,12 @@ fn hang_binop_expression(
                             if contains_comments(&*lhs) {
                                 hang_binop_expression(ctx, *lhs, binop.clone(), shape, lhs_range)
                             } else {
-                                format_expression_internal(
-                                    ctx,
-                                    &lhs,
-                                    ExpressionContext::UnaryOrBinary,
-                                    lhs_shape,
-                                )
+                                let context = if let BinOp::Caret(_) = binop {
+                                    ExpressionContext::BinaryLHSExponent
+                                } else {
+                                    ExpressionContext::BinaryLHS
+                                };
+                                format_expression_internal(ctx, &lhs, context, lhs_shape)
                             },
                             hang_binop_expression(
                                 ctx,
@@ -1143,12 +1183,12 @@ fn hang_binop_expression(
                     let lhs = if contains_comments(&*lhs) {
                         hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
                     } else {
-                        format_expression_internal(
-                            ctx,
-                            &lhs,
-                            ExpressionContext::UnaryOrBinary,
-                            shape,
-                        )
+                        let context = if let BinOp::Caret(_) = binop {
+                            ExpressionContext::BinaryLHSExponent
+                        } else {
+                            ExpressionContext::BinaryLHS
+                        };
+                        format_expression_internal(ctx, &lhs, context, shape)
                     };
 
                     let rhs = if contains_comments(&*rhs) {

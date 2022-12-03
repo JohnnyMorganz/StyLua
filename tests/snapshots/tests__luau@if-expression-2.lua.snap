@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 30
 expression: format(&contents)
-
 ---
 -- from full-moon tests: https://github.com/Kampfkarren/full-moon/blob/main/full-moon/tests/roblox_cases/pass/if_expression/source.lua
 local x = if foo then foo.x else 5

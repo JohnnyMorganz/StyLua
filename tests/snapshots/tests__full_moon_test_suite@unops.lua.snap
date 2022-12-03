@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local negativeLiteral = -3
 local negativeVariable = -x

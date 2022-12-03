@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 12
 expression: format(&contents)
-
 ---
 -- https://github.com/JohnnyMorganz/StyLua/issues/274
 local tbl = {
@@ -79,4 +77,18 @@ local test, test2 =
 		+ long_variable_name
 		+ long_variable_name
 	)
+
+-- Negated Assigns
+local test = not (
+	long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+)
 

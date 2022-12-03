@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
-assertion_line: 30
 expression: format(&contents)
-
 ---
 export type ObservableQueryFields<TData, TVariables> = ObservableQueryPick<TData, TVariables> & {
 	fetchMore: ((

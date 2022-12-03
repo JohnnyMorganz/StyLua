@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time
 
+### Fixed
+
+- Fixed necessary parentheses removed in `(-X) ^ Y` causing change in semantics ([#623](https://github.com/JohnnyMorganz/StyLua/issues/623))
+- Take into account `function` token size when formatting an anonymous function `function() end` (particularly relevant when collapsing simple statements) ([#619](https://github.com/JohnnyMorganz/StyLua/issues/619))
+- Support hanging inside of Luau type arrays `{ T }` to fix formatting issues when comments are present ([#617](https://github.com/JohnnyMorganz/StyLua/issues/617))
+
+## [0.15.2] - 2022-10-31
+
+### Fixed
+
+- Fix incorrect indentation level used for hanging expressions in if expression syntax ([#596](https://github.com/JohnnyMorganz/StyLua/issues/596))
+- Fixed Luau return type in parentheses containing a comment on the last item being collapsed causing a syntax error ([#608](https://github.com/JohnnyMorganz/StyLua/issues/608))
+- Fix parentheses removed which highlight precedence in `(not X) == Y` causing linting errors ([#609](https://github.com/JohnnyMorganz/StyLua/issues/609))
+- Fix build script for `@johnnymorganz/stylua` to include all lua and luau features ([#614](https://github.com/JohnnyMorganz/StyLua/issues/614))
+
 ## [0.15.1] - 2022-09-22
 
 ### Fixed
@@ -579,7 +594,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.2...HEAD
+[0.15.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.2
 [0.15.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.1
 [0.15.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.0
 [0.14.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3

@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local num1 = 1_048_576
 local num2 = 0xFFFF_FFFF

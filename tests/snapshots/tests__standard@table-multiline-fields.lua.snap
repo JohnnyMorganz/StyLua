@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local obj = { method1 = function(self) end, method2 = function(self, name) end }
 

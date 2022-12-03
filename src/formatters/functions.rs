@@ -39,8 +39,10 @@ pub fn format_anonymous_function(
     function_body: &FunctionBody,
     shape: Shape,
 ) -> (TokenReference, FunctionBody) {
+    const FUNCTION_LEN: usize = "function".len();
+
     let function_token = fmt_symbol!(ctx, function_token, "function", shape);
-    let function_body = format_function_body(ctx, function_body, shape);
+    let function_body = format_function_body(ctx, function_body, shape.add_width(FUNCTION_LEN));
 
     (function_token, function_body)
 }
@@ -901,6 +903,7 @@ pub fn format_function_body(
         }
 
         #[cfg(not(feature = "luau"))]
+        #[allow(clippy::let_unit_value)]
         let return_type = ();
         break (
             parameters_parentheses

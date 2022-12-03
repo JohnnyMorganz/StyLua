@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local options = if useDisposableConcast
 	-- Disposable Concast fetches receive a shallow copy of this.options

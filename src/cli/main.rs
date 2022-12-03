@@ -398,7 +398,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             )
                             .context("failed to parse ignore file")?;
 
-                            matches!(ignore.matched(&filepath, false), ignore::Match::Ignore(_))
+                            matches!(ignore.matched(filepath, false), ignore::Match::Ignore(_))
                         }
                         None => false,
                     };

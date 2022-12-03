@@ -14,7 +14,7 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, contains_singleline_comments,
+            contains_comments, contains_singleline_comments, spans_multiple_lines,
             take_generic_parameter_trailing_comments, take_type_argument_trailing_comments,
             take_type_info_trailing_comments, token_contains_comments,
             token_trivia_contains_comments, trivia_contains_comments, trivia_is_comment,
@@ -165,14 +165,56 @@ fn format_type_info_generics(
 pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
-            let (start_brace, end_brace) = braces.tokens().to_owned();
-            let braces = ContainedSpan::new(
-                fmt_symbol!(ctx, start_brace, "{ ", shape),
-                fmt_symbol!(ctx, end_brace, " }", shape),
-            );
-            let type_info = Box::new(format_type_info(ctx, type_info, shape + 2)); // 2 = "{ "
+            const BRACKET_LEN: usize = "{ ".len();
 
-            TypeInfo::Array { braces, type_info }
+            let (start_brace, end_brace) = braces.tokens().to_owned();
+
+            let contains_comments = start_brace.trailing_trivia().any(trivia_is_comment)
+                || end_brace.leading_trivia().any(trivia_is_comment)
+                || contains_comments(type_info);
+
+            let (table_type, new_type_info) = if contains_comments {
+                (TableType::MultiLine, None)
+            } else {
+                let new_type_info =
+                    format_hangable_type_info(ctx, type_info, shape + BRACKET_LEN, 0);
+
+                (
+                    if spans_multiple_lines(&new_type_info) {
+                        TableType::MultiLine
+                    } else {
+                        TableType::SingleLine
+                    },
+                    Some(new_type_info),
+                )
+            };
+            let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
+
+            let (new_type_info, leading_trivia, trailing_trivia) = match table_type {
+                TableType::MultiLine => (
+                    format_hangable_type_info(
+                        ctx,
+                        type_info,
+                        shape.increment_additional_indent(),
+                        0,
+                    ),
+                    FormatTriviaType::Append(vec![create_indent_trivia(
+                        ctx,
+                        shape.increment_additional_indent(),
+                    )]),
+                    FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
+                ),
+                _ => (
+                    new_type_info.unwrap_or_else(|| format_type_info(ctx, type_info, shape)),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::NoChange,
+                ),
+            };
+
+            TypeInfo::Array {
+                braces,
+                type_info: Box::new(new_type_info.update_trivia(leading_trivia, trailing_trivia)),
+            }
         }
 
         TypeInfo::Basic(token_reference) => {
@@ -407,9 +449,16 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             let should_format_multiline =
                 trivia_contains_comments(start_brace.trailing_trivia(), CommentSearch::Single)
                     || trivia_contains_comments(end_brace.leading_trivia(), CommentSearch::Single)
-                    || types
-                        .pairs()
-                        .any(|pair| contains_comments(pair.punctuation()));
+                    || types.pairs().any(|pair| {
+                        pair.punctuation().map_or_else(
+                            || {
+                                type_info_trailing_trivia(pair.value())
+                                    .iter()
+                                    .any(trivia_is_comment)
+                            },
+                            contains_comments,
+                        )
+                    });
 
             let singleline_parentheses = format_contained_span(ctx, parentheses, shape);
             let singleline_types = format_punctuated(ctx, types, shape + 1, format_type_info); // 1 = "("
