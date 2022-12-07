@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3] - 2022-12-07
+
 ### Fixed
 
 - Fixed necessary parentheses removed in `(-X) ^ Y` causing change in semantics ([#623](https://github.com/JohnnyMorganz/StyLua/issues/623))
@@ -590,7 +592,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.2...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.3...HEAD
+[0.15.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.3
 [0.15.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.2
 [0.15.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.1
 [0.15.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.0
