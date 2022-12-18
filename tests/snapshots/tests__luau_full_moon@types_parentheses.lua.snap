@@ -11,7 +11,7 @@ export type Thunk<T> = (() -> T) | T
 
 export type PromiseLike<T> = {
 	andThen: (
-		((T) -> T)? | (PromiseLike<T>)?, -- resolve
+		((T) -> T)? | PromiseLike<T>?, -- resolve
 		((any) -> () | PromiseLike<T>)? -- reject
 	) -> PromiseLike<T>,
 }
