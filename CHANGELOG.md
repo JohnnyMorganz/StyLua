@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Collapse a body containing only a `goto` statement when `collapse_simple_statement` is set ([#618](https://github.com/JohnnyMorganz/StyLua/issues/618))
+
 ## [0.15.3] - 2022-12-07
 
 ### Fixed
