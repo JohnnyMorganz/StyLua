@@ -474,6 +474,16 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     take_type_info_trailing_comments,
                     shape,
                 )
+            } else if types.len() == 1
+                && !matches!(
+                    types.iter().next().unwrap(),
+                    TypeInfo::Callback { .. }
+                        | TypeInfo::Union { .. }
+                        | TypeInfo::Intersection { .. }
+                )
+            {
+                // If its just a single type inside parentheses, and its not a function or composite type, then remove the parens
+                return singleline_types.into_iter().next().unwrap();
             } else {
                 (singleline_parentheses, singleline_types)
             };
