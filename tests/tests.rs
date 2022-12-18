@@ -107,6 +107,7 @@ fn test_collapse_single_statement_lua_52() {
         )
         .unwrap(),
         @r###"
+    if key == "s" then goto continue end
     "###
     );
 }
