@@ -24,6 +24,13 @@ pub fn format_goto(ctx: &Context, goto: &Goto, shape: Shape) -> Goto {
     Goto::new(label_name).with_goto_token(goto_token)
 }
 
+pub fn format_goto_no_trivia(ctx: &Context, goto: &Goto, shape: Shape) -> Goto {
+    let goto_token = fmt_symbol!(ctx, goto.goto_token(), "goto ", shape);
+    let label_name = format_token_reference(ctx, goto.label_name(), shape);
+
+    Goto::new(label_name).with_goto_token(goto_token)
+}
+
 pub fn format_label(ctx: &Context, label: &Label, shape: Shape) -> Label {
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];

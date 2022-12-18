@@ -100,6 +100,8 @@ pub fn is_block_simple(block: &Block) -> bool {
                     true
                 }
                 Stmt::FunctionCall(_) => true,
+                #[cfg(feature = "lua52")]
+                Stmt::Goto(_) => true,
                 _ => false,
             })
 }
