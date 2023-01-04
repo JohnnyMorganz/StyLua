@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+assertion_line: 40
+expression: format(&contents)
+input_file: tests/inputs-luau-full_moon/types_generic_no_parameters.lua
+
+---
+type Bar = Foo<>
+
