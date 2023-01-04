@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1670419154810,
+  "lastUpdate": 1672856612904,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3695,6 +3695,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 39062062,
             "range": "± 361846",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9045b9f8ed1b957990dbc0671a627969586f1f0d",
+          "message": "Remove unnecessary parentheses around Luau types (#632)\n\n* Add test case\r\n\r\n* Remove unnecessary parens\r\n\r\n* Update snapshots",
+          "timestamp": "2023-01-04T18:19:23Z",
+          "tree_id": "0db168b934b0c98c8c7120c2eae60c11d1e2a0c9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/9045b9f8ed1b957990dbc0671a627969586f1f0d"
+        },
+        "date": 1672856612414,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 59617479,
+            "range": "± 457097",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 415458353,
+            "range": "± 2509815",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 36893788,
+            "range": "± 121285",
             "unit": "ns/iter"
           }
         ]
