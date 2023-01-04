@@ -332,6 +332,12 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
         Value::IfExpression(if_expression) => {
             get_expression_trailing_trivia(if_expression.else_expression())
         }
+        #[cfg(feature = "luau")]
+        Value::InterpolatedString(interpolated_string) => interpolated_string
+            .last_string()
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -397,6 +403,25 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
                 .leading_trivia()
                 .map(|x| x.to_owned())
                 .collect(),
+            #[cfg(feature = "luau")]
+            Value::InterpolatedString(interpolated_string) => {
+                interpolated_string.segments().next().map_or_else(
+                    || {
+                        interpolated_string
+                            .last_string()
+                            .leading_trivia()
+                            .map(|x| x.to_owned())
+                            .collect()
+                    },
+                    |segment| {
+                        segment
+                            .literal
+                            .leading_trivia()
+                            .map(|x| x.to_owned())
+                            .collect()
+                    },
+                )
+            }
             Value::TableConstructor(table) => table
                 .braces()
                 .tokens()

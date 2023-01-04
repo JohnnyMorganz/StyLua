@@ -216,7 +216,12 @@ pub fn format_token(
         TokenType::Whitespace { characters } => TokenType::Whitespace {
             characters: characters.to_owned(),
         }, // TODO
-        _ => token.token_type().to_owned(),
+        #[cfg(feature = "luau")]
+        TokenType::InterpolatedString { literal, kind } => TokenType::InterpolatedString {
+            literal: literal.to_owned(),
+            kind: kind.to_owned(),
+        },
+        other => unreachable!("unknown token: {:?}", other),
     };
 
     (Token::new(token_type), leading_trivia, trailing_trivia)
