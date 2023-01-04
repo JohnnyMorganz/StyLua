@@ -3,8 +3,8 @@ use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
-    IfExpression, IndexedTypeInfo, TypeArgument, TypeAssertion, TypeField, TypeFieldKey, TypeInfo,
-    TypeSpecifier,
+    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
+    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -713,6 +713,10 @@ define_update_leading_trivia!(Value, |this, leading| {
         Value::IfExpression(if_expression) => {
             Value::IfExpression(if_expression.update_leading_trivia(leading))
         }
+        #[cfg(feature = "luau")]
+        Value::InterpolatedString(interpolated_string) => {
+            Value::InterpolatedString(interpolated_string.update_leading_trivia(leading))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -745,6 +749,10 @@ define_update_trailing_trivia!(Value, |this, trailing| {
         #[cfg(feature = "luau")]
         Value::IfExpression(if_expression) => {
             Value::IfExpression(if_expression.update_trailing_trivia(trailing))
+        }
+        #[cfg(feature = "luau")]
+        Value::InterpolatedString(interpolated_string) => {
+            Value::InterpolatedString(interpolated_string.update_trailing_trivia(trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -1041,4 +1049,33 @@ define_update_trailing_trivia!(IfExpression, |this, trailing| {
 define_update_leading_trivia!(ElseIfExpression, |this, leading| {
     this.to_owned()
         .with_else_if_token(this.else_if_token().update_leading_trivia(leading))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(InterpolatedString, |this, leading| {
+    let mut segment_iter = this.segments();
+    if let Some(segment) = segment_iter.next() {
+        this.to_owned().with_segments(
+            std::iter::once(segment.update_leading_trivia(leading))
+                .chain(segment_iter.cloned())
+                .collect(),
+        )
+    } else {
+        this.to_owned()
+            .with_last_string(this.last_string().update_leading_trivia(leading))
+    }
+});
+
+#[cfg(feature = "luau")]
+define_update_trailing_trivia!(InterpolatedString, |this, trailing| {
+    this.to_owned()
+        .with_last_string(this.last_string().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
+define_update_leading_trivia!(InterpolatedStringSegment, |this, leading| {
+    InterpolatedStringSegment {
+        literal: this.literal.update_leading_trivia(leading),
+        expression: this.expression.to_owned(),
+    }
 });
