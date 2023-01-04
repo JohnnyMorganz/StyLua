@@ -89,3 +89,25 @@ fn test_collapse_single_statement() {
         .unwrap());
     })
 }
+
+// Collapse simple statement for goto
+#[test]
+#[cfg(feature = "lua52")]
+fn test_collapse_single_statement_lua_52() {
+    insta::assert_snapshot!(
+        format_code(
+            r###"
+            if key == "s" then
+                goto continue
+            end
+            "###,
+            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    if key == "s" then goto continue end
+    "###
+    );
+}

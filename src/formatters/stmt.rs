@@ -1,5 +1,5 @@
 #[cfg(feature = "lua52")]
-use crate::formatters::lua52::{format_goto, format_label};
+use crate::formatters::lua52::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
     format_compound_assignment, format_exported_type_declaration, format_type_declaration_stmt,
@@ -1117,6 +1117,8 @@ pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         }
         Stmt::Assignment(stmt) => Stmt::Assignment(format_assignment_no_trivia(ctx, stmt, shape)),
         Stmt::FunctionCall(stmt) => Stmt::FunctionCall(format_function_call(ctx, stmt, shape)),
-        _ => unreachable!("format_stmt_no_trivia: node != assignment/function call"),
+        #[cfg(feature = "lua52")]
+        Stmt::Goto(goto) => Stmt::Goto(format_goto_no_trivia(ctx, goto, shape)),
+        _ => unreachable!("format_stmt_no_trivia: node != assignment/function call/goto"),
     }
 }
