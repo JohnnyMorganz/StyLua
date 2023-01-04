@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672863660388,
+  "lastUpdate": 1672863731692,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3821,6 +3821,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 38161599,
             "range": "± 315664",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eca166397c9cfccb7212de9659721d1bd4579666",
+          "message": "Collapse `goto` as a simple statement (#631)\n\n* Add test case\r\n\r\n* Collapse a goto as simple statement\r\n\r\n* Update test case\r\n\r\n* Update changelog",
+          "timestamp": "2023-01-04T20:16:32Z",
+          "tree_id": "4b5093b5d17f7ea549128bffdabd3077510540a4",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/eca166397c9cfccb7212de9659721d1bd4579666"
+        },
+        "date": 1672863730737,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 92434203,
+            "range": "± 3105244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 625216942,
+            "range": "± 15076458",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 54413864,
+            "range": "± 1735150",
             "unit": "ns/iter"
           }
         ]
