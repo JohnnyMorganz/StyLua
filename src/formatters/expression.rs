@@ -792,6 +792,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     }
 }
 
+#[cfg(feature = "luau")]
 fn format_interpolated_string(
     ctx: &Context,
     interpolated_string: &InterpolatedString,
