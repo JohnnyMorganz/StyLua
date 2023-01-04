@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Unnecessary parentheses around Luau types will now be removed ([#611](https://github.com/JohnnyMorganz/StyLua/issues/611))
+
 ## [0.15.3] - 2022-12-07
 
 ### Fixed
