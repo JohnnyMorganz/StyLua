@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Unnecessary parentheses around Luau types will now be removed ([#611](https://github.com/JohnnyMorganz/StyLua/issues/611))
 
+### Changed
+
+- Update internal parser:
+  - (`lua52`) Support Lua 5.2 fractional hexidecimal / hexidecimal with exponents ([#621](https://github.com/JohnnyMorganz/StyLua/issues/621))
+  - (`lua52`) Support LuaJIT number suffixes LL/ULL/i ([#621](https://github.com/JohnnyMorganz/StyLua/issues/621))
+  - (`lua52`) Support `\z` escape sequences in strings ([#613](https://github.com/JohnnyMorganz/StyLua/issues/613))
+  - (`luau`) Support Luau string interpolation ([#607](https://github.com/JohnnyMorganz/StyLua/issues/607))
+
 ## [0.15.3] - 2022-12-07
 
 ### Fixed
