@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672863731692,
+  "lastUpdate": 1672866987585,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3863,6 +3863,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 54413864,
             "range": "± 1735150",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ff25837ad58cc0ae6ec0930984e98dadc1080845",
+          "message": "Support interpolated string nodes (#635)\n\n* Handle interpolated string support\r\n\r\n* fix\r\n\r\n* undo\r\n\r\n* fix",
+          "timestamp": "2023-01-04T21:12:24Z",
+          "tree_id": "eac1e0b2f930fd6d005f4c8902b906814d700249",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ff25837ad58cc0ae6ec0930984e98dadc1080845"
+        },
+        "date": 1672866986589,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 62981651,
+            "range": "± 1204658",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 417183093,
+            "range": "± 3272422",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 38025385,
+            "range": "± 342007",
             "unit": "ns/iter"
           }
         ]
