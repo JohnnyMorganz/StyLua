@@ -1,10 +1,11 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{ElseIfExpression, IfExpression};
+use full_moon::ast::types::{
+    ElseIfExpression, IfExpression, InterpolatedString, InterpolatedStringSegment,
+};
 use full_moon::{
     ast::{
-        span::ContainedSpan,
-        types::{InterpolatedString, InterpolatedStringSegment},
-        BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Value, Var, VarExpression,
+        span::ContainedSpan, BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Value,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
