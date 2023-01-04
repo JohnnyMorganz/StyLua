@@ -221,7 +221,7 @@ pub fn format_token(
             literal: literal.to_owned(),
             kind: kind.to_owned(),
         },
-        other => unreachable!("unknown token: {:?}", other),
+        _ => token.token_type().to_owned(),
     };
 
     (Token::new(token_type), leading_trivia, trailing_trivia)
