@@ -254,12 +254,7 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
                 format_expression,
                 None,
             );
-            trivia_util::prepend_newline_indent(
-                ctx,
-                &expr_list,
-                trivia_util::punctuated_leading_trivia(&expr_list).iter(),
-                shape,
-            )
+            trivia_util::prepend_newline_indent(ctx, &expr_list, shape)
         }
         false => singleline_expr,
     };
