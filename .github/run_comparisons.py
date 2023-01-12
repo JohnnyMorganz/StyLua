@@ -36,6 +36,10 @@ REPOS = {
     #     "url": "https://github.com/tomrus88/BlizzardInterfaceCode",
     #     "command": "."
     # }
+    "CorePackages": {
+        "url": "https://github.com/grilme99/CorePackages",
+        "command": "."
+    }
 }
 
 # Get formatting type
