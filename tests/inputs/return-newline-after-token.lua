@@ -12,5 +12,7 @@ function foo()
 		delta.tag == Drum or
 		delta.tag == Bass or
 		delta.tag == Lol or
-		delta.tag == Hello
+		delta.tag == Hello or
+		delta.tag == Drum or
+		delta.tag == Bass
 end
