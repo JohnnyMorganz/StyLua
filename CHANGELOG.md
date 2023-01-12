@@ -19,12 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (`lua52`) Support LuaJIT number suffixes LL/ULL/i ([#621](https://github.com/JohnnyMorganz/StyLua/issues/621))
   - (`lua52`) Support `\z` escape sequences in strings ([#613](https://github.com/JohnnyMorganz/StyLua/issues/613))
   - (`luau`) Support Luau string interpolation ([#607](https://github.com/JohnnyMorganz/StyLua/issues/607))
-- Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time
+- Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time. ([#591](https://github.com/JohnnyMorganz/StyLua/issues/591))
 
 ### Fixed
 
-- Fixed an anonymous function assignment `local x = function()` being unnecessarily indented if the function body contains a comment
-- Fixed malformed formatting when there is a newline between a `return` token and the expressions
+- Fixed an anonymous function assignment `local x = function()` being unnecessarily indented if the function body contains a comment ([#627](https://github.com/JohnnyMorganz/StyLua/issues/627))
+- Fixed malformed formatting when there is a newline between a `return` token and the expressions ([#605](https://github.com/JohnnyMorganz/StyLua/issues/605))
 - Fixed malformed formatting of multi-assignment or multi-returns where there is a comment within the expressions list ([#637](https://github.com/JohnnyMorganz/StyLua/issues/637))
 
 ## [0.15.3] - 2022-12-07
