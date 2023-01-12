@@ -180,13 +180,10 @@ fn attempt_assignment_tactics(
             format_expression,
         );
 
-        if expressions.pairs().any(|pair| {
-            pair.punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
-                || trivia_util::expression_contains_inline_comments(pair.value())
-        }) || hanging_shape
-            .take_first_line(&strip_trivia(&expr_list))
-            .over_budget()
+        if trivia_util::punctuated_expression_inline_comments(expressions)
+            || hanging_shape
+                .take_first_line(&strip_trivia(&expr_list))
+                .over_budget()
         {
             // See whether there is more than one item in the punctuated list
             // Hang the expressions on multiple lines
@@ -205,7 +202,7 @@ fn attempt_assignment_tactics(
                 // Recreate the shape
                 let shape = hanging_shape.reset();
 
-                if trivia_util::contains_comments(&formatted)
+                if trivia_util::expression_contains_inline_comments(formatted.value())
                     || shape.take_first_line(&formatted).over_budget()
                 {
                     // Hang the pair, using the original expression for formatting
@@ -422,11 +419,7 @@ pub fn format_local_assignment_no_trivia(
         let contains_comments = assignment
             .equal_token()
             .map_or(false, trivia_util::token_contains_comments)
-            || assignment.expressions().pairs().any(|pair| {
-                pair.punctuation()
-                    .map_or(false, trivia_util::token_contains_comments)
-                    || trivia_util::expression_contains_inline_comments(pair.value())
-            });
+            || trivia_util::punctuated_expression_inline_comments(assignment.expressions());
 
         // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
         let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape);
