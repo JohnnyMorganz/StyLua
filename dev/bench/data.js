@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673540568377,
+  "lastUpdate": 1673561623325,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4157,6 +4157,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27377498,
             "range": "± 145244",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a0bcd7f953b1cfda04bc3092046ade87d0ac90d",
+          "message": "Add CorePackages to full scale testing (#641)",
+          "timestamp": "2023-01-12T22:08:30Z",
+          "tree_id": "832fa8b4b0a6355e9e438dabb879c28cc8626039",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8a0bcd7f953b1cfda04bc3092046ade87d0ac90d"
+        },
+        "date": 1673561622126,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66823494,
+            "range": "± 918834",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 429138684,
+            "range": "± 2158022",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 33710670,
+            "range": "± 259392",
             "unit": "ns/iter"
           }
         ]
