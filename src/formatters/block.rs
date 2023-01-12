@@ -86,8 +86,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         };
 
         let comment_between_token_and_returns = return_token_trailing_comments
-            || !trivia_util::get_expression_leading_trivia(returns.iter().next().unwrap())
-                .is_empty();
+            || !trivia_util::expression_leading_comments(returns.iter().next().unwrap()).is_empty();
 
         // TODO: this is similar to assignment tactics - can we abstract them into a common function?
         let token = if comment_between_token_and_returns {
