@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673530462813,
+  "lastUpdate": 1673530598400,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3989,6 +3989,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28133534,
             "range": "± 209414",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "9564b3f8638c9516cec6d73a37b68747c7112d1c",
+          "message": "Add snapshot test for #627\n\nFixes #627",
+          "timestamp": "2023-01-12T13:32:08Z",
+          "tree_id": "cdaf48c9b80e472ed149413128f75c87a1a39577",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/9564b3f8638c9516cec6d73a37b68747c7112d1c"
+        },
+        "date": 1673530597879,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54128152,
+            "range": "± 737478",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 369532304,
+            "range": "± 1210311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 27329409,
+            "range": "± 47757",
             "unit": "ns/iter"
           }
         ]
