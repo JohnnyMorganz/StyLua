@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672867916079,
+  "lastUpdate": 1673530462813,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -3947,6 +3947,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 48227599,
             "range": "± 2762907",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "94732ecbc38cc9cb248643ac83ba9022c24ac81e",
+          "message": "Profiling improvements (#591)\n\n* Remove call to contains_comment in return\r\n\r\n* Defer should_expand in table constructor to end\r\n\r\n* Table fixes\r\n\r\n* Use cheaper expression inline comment detection\r\n\r\n* Panic\r\n\r\n* Remove unnecessary clone\r\n\r\n* Improve assignment shape calculation\r\n\r\n* Update changelog\r\n\r\n* Revert \"Improve assignment shape calculation\"\r\n\r\nThis reverts commit 01c72a67655e3cbae934cb4e4abf57904881459c.",
+          "timestamp": "2023-01-12T13:29:49Z",
+          "tree_id": "ac132b8c77bf7942b2a2b4d3e27dd0fa7222a606",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/94732ecbc38cc9cb248643ac83ba9022c24ac81e"
+        },
+        "date": 1673530461633,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56878945,
+            "range": "± 308242",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 370169993,
+            "range": "± 2358723",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28133534,
+            "range": "± 209414",
             "unit": "ns/iter"
           }
         ]
