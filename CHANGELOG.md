@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (`luau`) Support Luau string interpolation ([#607](https://github.com/JohnnyMorganz/StyLua/issues/607))
 - Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time
 
+### Fixed
+
+- Fixed an anonymous function assignment `local x = function()` being unnecessarily indented if the function body contains a comment
+
 ## [0.15.3] - 2022-12-07
 
 ### Fixed
