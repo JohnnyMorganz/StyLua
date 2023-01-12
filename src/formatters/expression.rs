@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{ElseIfExpression, IfExpression};
+use full_moon::ast::types::{
+    ElseIfExpression, IfExpression, InterpolatedString, InterpolatedStringSegment,
+};
 use full_moon::{
     ast::{
         span::ContainedSpan, BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Value,
@@ -431,6 +433,11 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
 // Checks if this is a string (allows strings wrapped in parentheses)
 fn is_string(expression: &Expression) -> bool {
     match expression {
+        #[cfg(feature = "luau")]
+        Expression::Value { value, .. } => {
+            matches!(&**value, Value::String(_) | Value::InterpolatedString(_))
+        }
+        #[cfg(not(feature = "luau"))]
         Expression::Value { value, .. } => matches!(&**value, Value::String(_)),
         Expression::Parentheses { expression, .. } => is_string(expression),
         _ => false,
@@ -785,6 +792,38 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     }
 }
 
+#[cfg(feature = "luau")]
+fn format_interpolated_string(
+    ctx: &Context,
+    interpolated_string: &InterpolatedString,
+    shape: Shape,
+) -> InterpolatedString {
+    let mut shape = shape;
+
+    let mut segments = Vec::new();
+    for segment in interpolated_string.segments() {
+        let literal = format_token_reference(ctx, &segment.literal, shape);
+        shape = shape + literal.to_string().len();
+
+        let expression = format_expression(ctx, &segment.expression, shape);
+        shape.take_last_line(&expression);
+
+        segments.push(InterpolatedStringSegment {
+            literal,
+            expression,
+        })
+    }
+
+    interpolated_string
+        .to_owned()
+        .with_segments(segments)
+        .with_last_string(format_token_reference(
+            ctx,
+            interpolated_string.last_string(),
+            shape,
+        ))
+}
+
 /// Formats a Value Node
 fn format_value(ctx: &Context, value: &Value, shape: Shape, context: ExpressionContext) -> Value {
     match value {
@@ -806,6 +845,10 @@ fn format_value(ctx: &Context, value: &Value, shape: Shape, context: ExpressionC
         ),
         Value::String(token_reference) => {
             Value::String(format_token_reference(ctx, token_reference, shape))
+        }
+        #[cfg(feature = "luau")]
+        Value::InterpolatedString(interpolated_string) => {
+            Value::InterpolatedString(format_interpolated_string(ctx, interpolated_string, shape))
         }
         Value::Symbol(token_reference) => {
             Value::Symbol(format_token_reference(ctx, token_reference, shape))

@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+assertion_line: 40
+expression: format(&contents)
+input_file: tests/inputs-luau-full_moon/string_interpolation_base.lua
+
+---
+x(`simple`)
+x(`hello {"world"}`)
+x(`1{2}3{"4"}5`)
+x(`1{`2{"3"}`}`)
+

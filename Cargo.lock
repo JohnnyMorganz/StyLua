@@ -323,9 +323,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "full_moon"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cce7c865934d6b2b9eb7dc4413a24cb6fbc67f21ae002427b5e36c835508a69"
+checksum = "3d58cb343df2e63e8a496de3e344e5f2b97f010bc1359e994be38a99586888f5"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "stylua"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "anyhow",
  "assert_cmd",

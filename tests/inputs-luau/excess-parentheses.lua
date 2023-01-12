@@ -34,3 +34,7 @@ foo(
 	-- testing
 	(x :: string) -- testing
 )
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/611
+local function foo(): (number)
+end

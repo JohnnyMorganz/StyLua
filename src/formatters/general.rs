@@ -216,6 +216,11 @@ pub fn format_token(
         TokenType::Whitespace { characters } => TokenType::Whitespace {
             characters: characters.to_owned(),
         }, // TODO
+        #[cfg(feature = "luau")]
+        TokenType::InterpolatedString { literal, kind } => TokenType::InterpolatedString {
+            literal: literal.to_owned(),
+            kind: kind.to_owned(),
+        },
         _ => token.token_type().to_owned(),
     };
 
