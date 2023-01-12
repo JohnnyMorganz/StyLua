@@ -1222,8 +1222,9 @@ pub fn token_contains_comments(token: &TokenReference) -> bool {
     token_contains_comments_search(token, CommentSearch::All)
 }
 
+/// CAUTION: VERY EXPENSIVE FUNCTION FOR LARGE NODES
 pub fn contains_comments(node: impl Node) -> bool {
-    node.tokens().into_iter().any(token_contains_comments)
+    node.tokens().any(token_contains_comments)
 }
 
 #[allow(dead_code)]
@@ -1272,7 +1273,46 @@ pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
-    contains_comments(expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])))
+    match expression {
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            contains_comments(binop)
+                || contains_comments(lhs)
+                || expression_contains_inline_comments(rhs)
+        }
+        Expression::UnaryOperator { unop, expression } => {
+            let op_contains_comments = match unop {
+                UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
+                    contains_comments(token)
+                }
+                #[cfg(feature = "lua53")]
+                UnOp::Tilde(token) => contains_comments(token),
+                other => panic!("unknown node {:?}", other),
+            };
+            op_contains_comments || expression_contains_inline_comments(expression)
+        }
+        Expression::Parentheses {
+            contained,
+            expression,
+        } => {
+            token_contains_trailing_comments(contained.tokens().0)
+                || token_contains_leading_comments(contained.tokens().1)
+                || contains_comments(expression)
+        }
+        Expression::Value { value, .. } => match &**value {
+            Value::ParenthesesExpression(expression) => {
+                expression_contains_inline_comments(expression)
+            }
+            _ => false,
+        },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+pub fn punctuated_expression_inline_comments(punctuated: &Punctuated<Expression>) -> bool {
+    punctuated.pairs().any(|pair| {
+        pair.punctuation().map_or(false, token_contains_comments)
+            || expression_contains_inline_comments(pair.value())
+    })
 }
 
 // Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.

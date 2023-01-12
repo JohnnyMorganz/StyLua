@@ -55,9 +55,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         );
 
         let contains_comments = return_token_trailing_comments
-            || trivia_util::contains_comments(
-                returns.update_trailing_trivia(FormatTriviaType::Replace(Vec::new())), // We can ignore trailing trivia, as that won't affect anything
-            );
+            || trivia_util::punctuated_expression_inline_comments(returns);
 
         // See if we need to format multiline
         // If we contain comments, we immediately force multiline, and return an empty Punctuated sequence as a placeholder (it will never be used)
@@ -590,8 +588,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
         None => None,
     };
 
-    block
-        .to_owned()
+    Block::new()
         .with_stmts(formatted_statements)
         .with_last_stmt(formatted_last_stmt)
 }
