@@ -9,8 +9,8 @@ use crate::{
         general::{format_punctuated, format_punctuated_multiline},
         stmt::format_stmt,
         trivia::{
-            strip_trailing_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
-            UpdateTrailingTrivia, UpdateTrivia,
+            strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
@@ -56,6 +56,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
 
         let contains_comments = return_token_trailing_comments
             || trivia_util::punctuated_expression_inline_comments(returns);
+        let is_function_or_table = returns.iter().all(is_function_or_table_constructor);
 
         // See if we need to format multiline
         // If we contain comments, we immediately force multiline, and return an empty Punctuated sequence as a placeholder (it will never be used)
@@ -68,7 +69,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
             // Special case:
             // The singleline returns is full of multiline tables or anonymous functions
             // If so, we should just format inline, normally.
-            if returns.iter().all(is_function_or_table_constructor) {
+            if is_function_or_table {
                 (
                     false,
                     format_punctuated(ctx, returns, shape, format_expression),
@@ -104,7 +105,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         let formatted_returns = if should_format_multiline {
             if returns.len() > 1 || comment_between_token_and_returns {
                 // Format the punctuated onto multiple lines
-                let hang_level = Some(1);
+                let hang_level = if is_function_or_table { None } else { Some(1) };
                 let multiline_returns =
                     format_punctuated_multiline(ctx, returns, shape, format_expression, hang_level);
 
@@ -118,17 +119,26 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                     let shape = if idx == 0 && !comment_between_token_and_returns {
                         shape
                     } else {
-                        shape
-                            .reset()
-                            .with_indent(shape.indent().add_indent_level(hang_level.unwrap()))
+                        let shape = shape.reset();
+                        hang_level.map_or(shape, |hang_level| {
+                            shape.with_indent(shape.indent().add_indent_level(hang_level))
+                        })
                     };
 
-                    if trivia_util::contains_comments(&formatted)
-                        || shape.take_first_line(&formatted).over_budget()
+                    if trivia_util::expression_contains_inline_comments(formatted.value())
+                        || shape
+                            .take_first_line(&strip_leading_trivia(formatted.value()))
+                            .over_budget()
                     {
                         // Hang the pair, using the original expression for formatting
-                        formatted =
-                            formatted.map(|_| hang_expression(ctx, original, shape, Some(1)))
+                        formatted = formatted.map(|_| {
+                            let expression = hang_expression(ctx, original, shape, Some(1));
+                            if idx == 0 {
+                                expression
+                            } else {
+                                trivia_util::prepend_newline_indent(ctx, &expression, shape)
+                            }
+                        })
                     }
 
                     // Handle comments

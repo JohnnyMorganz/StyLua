@@ -1,8 +1,8 @@
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     formatters::{
-        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-        trivia_util,
+        trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
+        trivia_util::{self, GetLeadingTrivia},
     },
     shape::Shape,
     QuoteStyle,
@@ -13,8 +13,6 @@ use full_moon::ast::{
 };
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
-
-use super::trivia::UpdateTrivia;
 
 #[derive(Debug, Clone, Copy)]
 pub enum FormatTokenType {
@@ -386,7 +384,7 @@ pub fn format_punctuated_multiline<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node,
+    T: Node + GetLeadingTrivia + UpdateLeadingTrivia,
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
@@ -408,17 +406,23 @@ where
         match pair {
             Pair::Punctuated(value, punctuation) => {
                 let value = value_formatter(ctx, value, shape);
-                let punctuation = fmt_symbol!(ctx, punctuation, ",", shape).update_trailing_trivia(
-                    FormatTriviaType::Append(vec![
-                        create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, hanging_shape), // Use hanging_shape here as we want to have a hanging indent for the next item, which may not be present in the shape of the first item.
-                    ]),
-                );
+                let value = if idx == 0 {
+                    value
+                } else {
+                    trivia_util::prepend_newline_indent(ctx, &value, hanging_shape)
+                };
+
+                let punctuation = fmt_symbol!(ctx, punctuation, ",", shape);
                 formatted.push(Pair::new(value, Some(punctuation)));
             }
             Pair::End(value) => {
-                let formatted_value = value_formatter(ctx, value, shape);
-                formatted.push(Pair::new(formatted_value, None));
+                let value = value_formatter(ctx, value, shape);
+                let value = if idx == 0 {
+                    value
+                } else {
+                    trivia_util::prepend_newline_indent(ctx, &value, hanging_shape)
+                };
+                formatted.push(Pair::new(value, None));
             }
         }
     }
@@ -436,7 +440,7 @@ pub fn try_format_punctuated<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node + std::fmt::Display,
+    T: Node + GetLeadingTrivia + UpdateLeadingTrivia + std::fmt::Display,
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut format_multiline = false;

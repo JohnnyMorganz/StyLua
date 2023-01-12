@@ -14,7 +14,7 @@ use full_moon::{
     ast::{
         punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
         LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Value,
-        Var,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -1311,26 +1311,85 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
 pub fn punctuated_expression_inline_comments(punctuated: &Punctuated<Expression>) -> bool {
     punctuated.pairs().any(|pair| {
         pair.punctuation().map_or(false, token_contains_comments)
+            || !expression_leading_comments(pair.value()).is_empty()
             || expression_contains_inline_comments(pair.value())
     })
+}
+
+// TODO: can we change this from returning a Vec to just a plain iterator?
+pub trait GetLeadingTrivia {
+    fn leading_trivia(&self) -> Vec<Token>;
+}
+
+impl GetLeadingTrivia for TokenReference {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.leading_trivia().cloned().collect()
+    }
+}
+
+impl GetLeadingTrivia for Suffix {
+    fn leading_trivia(&self) -> Vec<Token> {
+        suffix_leading_trivia(self).cloned().collect()
+    }
+}
+
+impl GetLeadingTrivia for Expression {
+    fn leading_trivia(&self) -> Vec<Token> {
+        get_expression_leading_trivia(self)
+    }
+}
+
+impl GetLeadingTrivia for Punctuated<Expression> {
+    fn leading_trivia(&self) -> Vec<Token> {
+        punctuated_leading_trivia(self)
+    }
+}
+
+impl GetLeadingTrivia for Var {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Var::Name(token_reference) => GetLeadingTrivia::leading_trivia(token_reference),
+            Var::Expression(var_expr) => {
+                if let Some(last_suffix) = var_expr.suffixes().last() {
+                    suffix_trailing_trivia(last_suffix)
+                } else {
+                    unreachable!("got a VarExpression with no suffix");
+                }
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+impl GetLeadingTrivia for VarExpression {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.prefix().leading_trivia()
+    }
+}
+
+impl GetLeadingTrivia for Prefix {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Prefix::Name(token) => GetLeadingTrivia::leading_trivia(token),
+            Prefix::Expression(expression) => expression.leading_trivia(),
+            other => unreachable!("unknown prefix {:?}", other),
+        }
+    }
 }
 
 // Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
 // An issue with this is if we do not properly take into account comments. This function also handles any comments present
 // by also interspersing them with the required newline and indentation, so they are aligned correctly.
-pub fn prepend_newline_indent<'a, T>(
-    ctx: &Context,
-    node: &T,
-    leading_trivia: impl Iterator<Item = &'a Token>, // TODO: can we use a trait to call this?
-    shape: Shape,
-) -> T
+pub fn prepend_newline_indent<T>(ctx: &Context, node: &T, shape: Shape) -> T
 where
-    T: UpdateLeadingTrivia,
+    T: GetLeadingTrivia + UpdateLeadingTrivia,
 {
     // Take all the leading trivia comments, and indent them accordingly
-    let leading_trivia: Vec<_> = leading_trivia
+    let leading_trivia: Vec<_> = node
+        .leading_trivia()
+        .iter()
         .filter(|token| trivia_is_comment(token))
-        .map(|x| x.to_owned())
+        .cloned()
         .flat_map(|trivia| {
             // Prepend an indent before the comment, and append a newline after the comments
             vec![

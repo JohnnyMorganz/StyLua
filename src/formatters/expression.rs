@@ -756,12 +756,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         );
 
         // Put the else on a new line
-        let else_token = trivia_util::prepend_newline_indent(
-            ctx,
-            &else_token,
-            else_token.leading_trivia(),
-            hanging_shape,
-        );
+        let else_token = trivia_util::prepend_newline_indent(ctx, &else_token, hanging_shape);
 
         IfExpression::new(condition, expression, else_expression)
             .with_if_token(if_token)
