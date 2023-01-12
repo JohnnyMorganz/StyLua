@@ -1311,6 +1311,7 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
 pub fn punctuated_expression_inline_comments(punctuated: &Punctuated<Expression>) -> bool {
     punctuated.pairs().any(|pair| {
         pair.punctuation().map_or(false, token_contains_comments)
+            || !expression_leading_comments(pair.value()).is_empty()
             || expression_contains_inline_comments(pair.value())
     })
 }
