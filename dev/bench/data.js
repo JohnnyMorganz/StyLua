@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673531516984,
+  "lastUpdate": 1673540451490,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4073,6 +4073,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28046847,
             "range": "± 85063",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8da1a5ff721b19ab875356922c2d000cc7bcf930",
+          "message": "Fixed malformed formatting of punctuated expressions list with comments (#640)\n\n* Add test case\r\n\r\n* Update prepend_newline_indent\r\n\r\n* Use prepend_newline_indent when formatting punctuated multiline\r\n\r\n* Fix puncutated contains inline comments check\r\n\r\n* Fix checks in assignment and returns formatting\r\n\r\n* Update changelog\r\n\r\n* Update snapshot\r\n\r\n* Fix checks\r\n\r\n* Update test case\r\n\r\n* Fix\r\n\r\n* Add another test case",
+          "timestamp": "2023-01-12T16:16:21Z",
+          "tree_id": "9e5ece92533b368b7777bc2c355944866510a1f1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8da1a5ff721b19ab875356922c2d000cc7bcf930"
+        },
+        "date": 1673540450381,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54368548,
+            "range": "± 662827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 370054491,
+            "range": "± 1300424",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 27468333,
+            "range": "± 98904",
             "unit": "ns/iter"
           }
         ]
