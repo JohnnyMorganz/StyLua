@@ -198,16 +198,26 @@ fn attempt_assignment_tactics(
             // Look through each punctuated expression to see if we need to hang the item further
             let mut output_expr = Punctuated::new();
 
-            for (formatted, original) in multiline_expr.into_pairs().zip(expressions) {
+            for (idx, (formatted, original)) in
+                multiline_expr.into_pairs().zip(expressions).enumerate()
+            {
                 // Recreate the shape
                 let shape = hanging_shape.reset();
 
                 if trivia_util::expression_contains_inline_comments(formatted.value())
-                    || shape.take_first_line(&formatted).over_budget()
+                    || shape
+                        .take_first_line(&strip_leading_trivia(formatted.value()))
+                        .over_budget()
                 {
                     // Hang the pair, using the original expression for formatting
                     output_expr.push(formatted.map(|_| {
-                        hang_expression(ctx, original, shape, calculate_hang_level(original))
+                        let expression =
+                            hang_expression(ctx, original, shape, calculate_hang_level(original));
+                        if idx == 0 {
+                            expression
+                        } else {
+                            trivia_util::prepend_newline_indent(ctx, &expression, shape)
+                        }
                     }))
                 } else {
                     // Add the pair as it is

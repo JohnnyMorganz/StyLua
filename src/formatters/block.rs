@@ -9,8 +9,8 @@ use crate::{
         general::{format_punctuated, format_punctuated_multiline},
         stmt::format_stmt,
         trivia::{
-            strip_trailing_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
-            UpdateTrailingTrivia, UpdateTrivia,
+            strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
+            UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util,
     },
@@ -126,11 +126,19 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                     };
 
                     if trivia_util::expression_contains_inline_comments(formatted.value())
-                        || shape.take_first_line(&formatted).over_budget()
+                        || shape
+                            .take_first_line(&strip_leading_trivia(formatted.value()))
+                            .over_budget()
                     {
                         // Hang the pair, using the original expression for formatting
-                        formatted =
-                            formatted.map(|_| hang_expression(ctx, original, shape, Some(1)))
+                        formatted = formatted.map(|_| {
+                            let expression = hang_expression(ctx, original, shape, Some(1));
+                            if idx == 0 {
+                                expression
+                            } else {
+                                trivia_util::prepend_newline_indent(ctx, &expression, shape)
+                            }
+                        })
                     }
 
                     // Handle comments
