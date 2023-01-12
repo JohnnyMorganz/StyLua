@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673530598400,
+  "lastUpdate": 1673531516984,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4031,6 +4031,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27329409,
             "range": "± 47757",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "540ecfb832e3bccf86e0e037b9c855aa464fc4e7",
+          "message": "Fixed malformed formatting when newline present after return token (#639)\n\n* Add test case\r\n\r\n* Update test case\r\n\r\n* Fix comment check\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2023-01-12T13:47:32Z",
+          "tree_id": "dfb1d3fedcc521945bd8ea6032450a83edca4c80",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/540ecfb832e3bccf86e0e037b9c855aa464fc4e7"
+        },
+        "date": 1673531516414,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55467285,
+            "range": "± 241924",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371884846,
+            "range": "± 1819090",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28046847,
+            "range": "± 85063",
             "unit": "ns/iter"
           }
         ]
