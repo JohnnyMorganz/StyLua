@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed an anonymous function assignment `local x = function()` being unnecessarily indented if the function body contains a comment
+- Fixed malformed formatting when there is a newline between a `return` token and the expressions
 
 ## [0.15.3] - 2022-12-07
 
