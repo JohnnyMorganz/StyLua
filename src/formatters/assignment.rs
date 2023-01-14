@@ -150,6 +150,7 @@ fn is_complex_function_call(function_call: &FunctionCall) -> bool {
 fn prevent_equals_hanging(expression: &Expression) -> bool {
     match expression {
         Expression::Value { value, .. } => match &**value {
+            Value::Function(_) => true,
             Value::FunctionCall(function_call) => is_complex_function_call(function_call),
             #[cfg(feature = "luau")]
             Value::IfExpression(_) => true,
