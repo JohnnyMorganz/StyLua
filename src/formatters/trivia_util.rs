@@ -14,7 +14,7 @@ use full_moon::{
     ast::{
         punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
         LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Value,
-        Var,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -100,6 +100,8 @@ pub fn is_block_simple(block: &Block) -> bool {
                     true
                 }
                 Stmt::FunctionCall(_) => true,
+                #[cfg(feature = "lua52")]
+                Stmt::Goto(_) => true,
                 _ => false,
             })
 }
@@ -330,6 +332,12 @@ pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
         Value::IfExpression(if_expression) => {
             get_expression_trailing_trivia(if_expression.else_expression())
         }
+        #[cfg(feature = "luau")]
+        Value::InterpolatedString(interpolated_string) => interpolated_string
+            .last_string()
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -395,6 +403,25 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
                 .leading_trivia()
                 .map(|x| x.to_owned())
                 .collect(),
+            #[cfg(feature = "luau")]
+            Value::InterpolatedString(interpolated_string) => {
+                interpolated_string.segments().next().map_or_else(
+                    || {
+                        interpolated_string
+                            .last_string()
+                            .leading_trivia()
+                            .map(|x| x.to_owned())
+                            .collect()
+                    },
+                    |segment| {
+                        segment
+                            .literal
+                            .leading_trivia()
+                            .map(|x| x.to_owned())
+                            .collect()
+                    },
+                )
+            }
             Value::TableConstructor(table) => table
                 .braces()
                 .tokens()
@@ -1195,8 +1222,9 @@ pub fn token_contains_comments(token: &TokenReference) -> bool {
     token_contains_comments_search(token, CommentSearch::All)
 }
 
+/// CAUTION: VERY EXPENSIVE FUNCTION FOR LARGE NODES
 pub fn contains_comments(node: impl Node) -> bool {
-    node.tokens().into_iter().any(token_contains_comments)
+    node.tokens().any(token_contains_comments)
 }
 
 #[allow(dead_code)]
@@ -1245,25 +1273,123 @@ pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
 // This can only happen if the expression is a BinOp
 // We should ignore any comments which are trailing for the whole expression, as they are not inline
 pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
-    contains_comments(expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])))
+    match expression {
+        Expression::BinaryOperator { lhs, binop, rhs } => {
+            contains_comments(binop)
+                || contains_comments(lhs)
+                || expression_contains_inline_comments(rhs)
+        }
+        Expression::UnaryOperator { unop, expression } => {
+            let op_contains_comments = match unop {
+                UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
+                    contains_comments(token)
+                }
+                #[cfg(feature = "lua53")]
+                UnOp::Tilde(token) => contains_comments(token),
+                other => panic!("unknown node {:?}", other),
+            };
+            op_contains_comments || expression_contains_inline_comments(expression)
+        }
+        Expression::Parentheses {
+            contained,
+            expression,
+        } => {
+            token_contains_trailing_comments(contained.tokens().0)
+                || token_contains_leading_comments(contained.tokens().1)
+                || contains_comments(expression)
+        }
+        Expression::Value { value, .. } => match &**value {
+            Value::ParenthesesExpression(expression) => {
+                expression_contains_inline_comments(expression)
+            }
+            _ => false,
+        },
+        other => panic!("unknown node {:?}", other),
+    }
+}
+
+pub fn punctuated_expression_inline_comments(punctuated: &Punctuated<Expression>) -> bool {
+    punctuated.pairs().any(|pair| {
+        pair.punctuation().map_or(false, token_contains_comments)
+            || !expression_leading_comments(pair.value()).is_empty()
+            || expression_contains_inline_comments(pair.value())
+    })
+}
+
+// TODO: can we change this from returning a Vec to just a plain iterator?
+pub trait GetLeadingTrivia {
+    fn leading_trivia(&self) -> Vec<Token>;
+}
+
+impl GetLeadingTrivia for TokenReference {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.leading_trivia().cloned().collect()
+    }
+}
+
+impl GetLeadingTrivia for Suffix {
+    fn leading_trivia(&self) -> Vec<Token> {
+        suffix_leading_trivia(self).cloned().collect()
+    }
+}
+
+impl GetLeadingTrivia for Expression {
+    fn leading_trivia(&self) -> Vec<Token> {
+        get_expression_leading_trivia(self)
+    }
+}
+
+impl GetLeadingTrivia for Punctuated<Expression> {
+    fn leading_trivia(&self) -> Vec<Token> {
+        punctuated_leading_trivia(self)
+    }
+}
+
+impl GetLeadingTrivia for Var {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Var::Name(token_reference) => GetLeadingTrivia::leading_trivia(token_reference),
+            Var::Expression(var_expr) => {
+                if let Some(last_suffix) = var_expr.suffixes().last() {
+                    suffix_trailing_trivia(last_suffix)
+                } else {
+                    unreachable!("got a VarExpression with no suffix");
+                }
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+impl GetLeadingTrivia for VarExpression {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.prefix().leading_trivia()
+    }
+}
+
+impl GetLeadingTrivia for Prefix {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Prefix::Name(token) => GetLeadingTrivia::leading_trivia(token),
+            Prefix::Expression(expression) => expression.leading_trivia(),
+            other => unreachable!("unknown prefix {:?}", other),
+        }
+    }
 }
 
 // Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
 // An issue with this is if we do not properly take into account comments. This function also handles any comments present
 // by also interspersing them with the required newline and indentation, so they are aligned correctly.
-pub fn prepend_newline_indent<'a, T>(
-    ctx: &Context,
-    node: &T,
-    leading_trivia: impl Iterator<Item = &'a Token>, // TODO: can we use a trait to call this?
-    shape: Shape,
-) -> T
+pub fn prepend_newline_indent<T>(ctx: &Context, node: &T, shape: Shape) -> T
 where
-    T: UpdateLeadingTrivia,
+    T: GetLeadingTrivia + UpdateLeadingTrivia,
 {
     // Take all the leading trivia comments, and indent them accordingly
-    let leading_trivia: Vec<_> = leading_trivia
+    let leading_trivia: Vec<_> = node
+        .leading_trivia()
+        .iter()
         .filter(|token| trivia_is_comment(token))
-        .map(|x| x.to_owned())
+        .cloned()
         .flat_map(|trivia| {
             // Prepend an indent before the comment, and append a newline after the comments
             vec![

@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 function GamepadModule.gamepadLinearToCurve(thumbstickPosition)
 	return Vector2.new(

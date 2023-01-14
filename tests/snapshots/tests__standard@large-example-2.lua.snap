@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 --Version 2 1.02 I fixed some problems caused by the updates.
 adminlist = { "Person299" } --Add in the names of the people you want to be able to use the command script here.

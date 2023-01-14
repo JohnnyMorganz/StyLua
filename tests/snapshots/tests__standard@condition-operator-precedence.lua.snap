@@ -1,8 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-input_file: tests/inputs/condition-operator-precedence.lua
-
 ---
 local instance = someReallyLongConditionExtremelyLongSoLongYourMindWillMelt
 		and someReallyLongCondition

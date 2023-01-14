@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 export type IntrospectionNamedTypeRef<
 	T, -- TODO: add generic constraints and default types: IntrospectionType = IntrospectionType,

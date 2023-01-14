@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 --!strict
 type GField<_crack, __fuzzing> = {}
@@ -12,7 +11,7 @@ export type Thunk<T> = (() -> T) | T
 
 export type PromiseLike<T> = {
 	andThen: (
-		((T) -> T)? | (PromiseLike<T>)?, -- resolve
+		((T) -> T)? | PromiseLike<T>?, -- resolve
 		((any) -> () | PromiseLike<T>)? -- reject
 	) -> PromiseLike<T>,
 }

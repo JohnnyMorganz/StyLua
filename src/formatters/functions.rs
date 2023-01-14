@@ -902,6 +902,7 @@ pub fn format_function_body(
         }
 
         #[cfg(not(feature = "luau"))]
+        #[allow(clippy::let_unit_value)]
         let return_type = ();
         break (
             parameters_parentheses
@@ -1104,12 +1105,7 @@ pub fn format_function_call(
             && !(previous_suffix_was_index
                 && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
         {
-            suffix = trivia_util::prepend_newline_indent(
-                ctx,
-                &suffix,
-                trivia_util::suffix_leading_trivia(&suffix),
-                current_shape,
-            );
+            suffix = trivia_util::prepend_newline_indent(ctx, &suffix, current_shape);
         }
 
         previous_suffix_was_index = matches!(suffix, Suffix::Index(_));

@@ -1,6 +1,6 @@
 ---
 source: tests/tests.rs
-expression: "format_code(&contents,\n            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),\n            None, OutputVerification::None).unwrap()"
+expression: "format_code(&contents,\n        Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),\n        None, OutputVerification::None).unwrap()"
 ---
 local get_match = function(hl_group)
 	return vim.tbl_filter(function(x) return x.group == hl_group end, child.fn.getmatches())

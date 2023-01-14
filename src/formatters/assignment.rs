@@ -32,14 +32,15 @@ use crate::{
 };
 
 /// Calculates the hanging level to use when hanging an expression.
-/// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses
+/// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses (or a unary operation on them)
 /// https://github.com/JohnnyMorganz/StyLua/issues/274
-fn calculate_hang_level(expression: &Expression) -> Option<usize> {
+pub fn calculate_hang_level(expression: &Expression) -> Option<usize> {
     match expression {
         Expression::Value { value, .. } => match **value {
             Value::ParenthesesExpression(_) => None,
             _ => Some(1),
         },
+        Expression::UnaryOperator { expression, .. } => calculate_hang_level(expression),
         _ => Some(1),
     }
 }
@@ -180,13 +181,10 @@ fn attempt_assignment_tactics(
             format_expression,
         );
 
-        if expressions.pairs().any(|pair| {
-            pair.punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
-                || trivia_util::expression_contains_inline_comments(pair.value())
-        }) || hanging_shape
-            .take_first_line(&strip_trivia(&expr_list))
-            .over_budget()
+        if trivia_util::punctuated_expression_inline_comments(expressions)
+            || hanging_shape
+                .take_first_line(&strip_trivia(&expr_list))
+                .over_budget()
         {
             // See whether there is more than one item in the punctuated list
             // Hang the expressions on multiple lines
@@ -201,16 +199,26 @@ fn attempt_assignment_tactics(
             // Look through each punctuated expression to see if we need to hang the item further
             let mut output_expr = Punctuated::new();
 
-            for (formatted, original) in multiline_expr.into_pairs().zip(expressions) {
+            for (idx, (formatted, original)) in
+                multiline_expr.into_pairs().zip(expressions).enumerate()
+            {
                 // Recreate the shape
                 let shape = hanging_shape.reset();
 
-                if trivia_util::contains_comments(&formatted)
-                    || shape.take_first_line(&formatted).over_budget()
+                if trivia_util::expression_contains_inline_comments(formatted.value())
+                    || shape
+                        .take_first_line(&strip_leading_trivia(formatted.value()))
+                        .over_budget()
                 {
                     // Hang the pair, using the original expression for formatting
                     output_expr.push(formatted.map(|_| {
-                        hang_expression(ctx, original, shape, calculate_hang_level(original))
+                        let expression =
+                            hang_expression(ctx, original, shape, calculate_hang_level(original));
+                        if idx == 0 {
+                            expression
+                        } else {
+                            trivia_util::prepend_newline_indent(ctx, &expression, shape)
+                        }
                     }))
                 } else {
                     // Add the pair as it is
@@ -323,11 +331,7 @@ pub fn format_assignment_no_trivia(
     // Check if the assignment expressions or equal token contain comments. If they do, we bail out of determining any tactics
     // and format multiline
     let contains_comments = trivia_util::token_contains_comments(assignment.equal_token())
-        || assignment.expressions().pairs().any(|pair| {
-            pair.punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
-                || trivia_util::expression_contains_inline_comments(pair.value())
-        });
+        || trivia_util::punctuated_expression_inline_comments(assignment.expressions());
 
     // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
     let mut var_list = try_format_punctuated(
@@ -426,11 +430,7 @@ pub fn format_local_assignment_no_trivia(
         let contains_comments = assignment
             .equal_token()
             .map_or(false, trivia_util::token_contains_comments)
-            || assignment.expressions().pairs().any(|pair| {
-                pair.punctuation()
-                    .map_or(false, trivia_util::token_contains_comments)
-                    || trivia_util::expression_contains_inline_comments(pair.value())
-            });
+            || trivia_util::punctuated_expression_inline_comments(assignment.expressions());
 
         // Firstly attempt to format the assignment onto a single line, using an infinite column width shape
         let local_token = fmt_symbol!(ctx, assignment.local_token(), "local ", shape);

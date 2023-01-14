@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local srcWorkspace = script.Parent.Parent
 local PromiseModule = require(srcWorkspace.luaUtils.Promise)

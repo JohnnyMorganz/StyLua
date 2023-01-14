@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 -- Taken from https://raw.githubusercontent.com/Kampfkarren/Roblox/master/Modules/LineOfSight.lua
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

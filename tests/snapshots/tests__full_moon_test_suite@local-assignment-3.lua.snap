@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local a, b = 1, 2
 local c, d = 3, 4

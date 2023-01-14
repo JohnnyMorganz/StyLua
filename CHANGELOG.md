@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Unnecessary parentheses around Luau types will now be removed ([#611](https://github.com/JohnnyMorganz/StyLua/issues/611))
+- Collapse a body containing only a `goto` statement when `collapse_simple_statement` is set ([#618](https://github.com/JohnnyMorganz/StyLua/issues/618))
+
+### Changed
+
+- Update internal parser:
+  - (`lua52`) Support Lua 5.2 fractional hexidecimal / hexidecimal with exponents ([#621](https://github.com/JohnnyMorganz/StyLua/issues/621))
+  - (`lua52`) Support LuaJIT number suffixes LL/ULL/i ([#621](https://github.com/JohnnyMorganz/StyLua/issues/621))
+  - (`lua52`) Support `\z` escape sequences in strings ([#613](https://github.com/JohnnyMorganz/StyLua/issues/613))
+  - (`luau`) Support Luau string interpolation ([#607](https://github.com/JohnnyMorganz/StyLua/issues/607))
+- Several optimisations applied to formatting functions to reduce time taken. Files which previously did not terminate (6MB+) now finish in reasonable time. ([#591](https://github.com/JohnnyMorganz/StyLua/issues/591))
+
+### Fixed
+
+- Fixed an anonymous function assignment `local x = function()` being unnecessarily indented if the function body contains a comment ([#627](https://github.com/JohnnyMorganz/StyLua/issues/627))
+- Fixed malformed formatting when there is a newline between a `return` token and the expressions ([#605](https://github.com/JohnnyMorganz/StyLua/issues/605))
+- Fixed malformed formatting of multi-assignment or multi-returns where there is a comment within the expressions list ([#637](https://github.com/JohnnyMorganz/StyLua/issues/637))
+
+## [0.15.3] - 2022-12-07
+
+### Fixed
+
+- Fixed necessary parentheses removed in `(-X) ^ Y` causing change in semantics ([#623](https://github.com/JohnnyMorganz/StyLua/issues/623))
+- Take into account `function` token size when formatting an anonymous function `function() end` (particularly relevant when collapsing simple statements) ([#619](https://github.com/JohnnyMorganz/StyLua/issues/619))
+- Support hanging inside of Luau type arrays `{ T }` to fix formatting issues when comments are present ([#617](https://github.com/JohnnyMorganz/StyLua/issues/617))
+
+## [0.15.2] - 2022-10-31
+
+### Fixed
+
+- Fix incorrect indentation level used for hanging expressions in if expression syntax ([#596](https://github.com/JohnnyMorganz/StyLua/issues/596))
+- Fixed Luau return type in parentheses containing a comment on the last item being collapsed causing a syntax error ([#608](https://github.com/JohnnyMorganz/StyLua/issues/608))
+- Fix parentheses removed which highlight precedence in `(not X) == Y` causing linting errors ([#609](https://github.com/JohnnyMorganz/StyLua/issues/609))
+- Fix build script for `@johnnymorganz/stylua` to include all lua and luau features ([#614](https://github.com/JohnnyMorganz/StyLua/issues/614))
+
 ## [0.15.1] - 2022-09-22
 
 ### Fixed
@@ -575,7 +612,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.15.3...HEAD
+[0.15.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.3
+[0.15.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.2
 [0.15.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.1
 [0.15.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.0
 [0.14.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.14.3

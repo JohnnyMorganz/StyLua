@@ -69,3 +69,17 @@ local test, test2 = foo and bar or baz, (
 	+ long_variable_name
 	+ long_variable_name
 )
+
+-- Negated Assigns
+local test = not (
+	long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+	+ long_variable_name
+)

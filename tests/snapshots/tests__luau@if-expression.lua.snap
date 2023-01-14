@@ -1,7 +1,6 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
-
 ---
 local scale = if someReallyLongFlagName() or someOtherReallyLongFlagName() then foo else bar
 
