@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673561623325,
+  "lastUpdate": 1673720773486,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4199,6 +4199,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 33710670,
             "range": "± 259392",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8c2763eaa8c8304e014327682d84e8376a6e45c6",
+          "message": "Dont hang `local x = function` assignments (Take 2) (#600)\n\n* Prevent hanging anon functions\r\n\r\n* Fix shape for anon function formatting\r\n\r\n* Add test case\r\n\r\n* Update snapshots",
+          "timestamp": "2023-01-14T18:22:18Z",
+          "tree_id": "3f73b3a7d7afd53a285f334cec92babbc45b69ac",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8c2763eaa8c8304e014327682d84e8376a6e45c6"
+        },
+        "date": 1673720772805,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55154773,
+            "range": "± 592366",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371220287,
+            "range": "± 1438252",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 27489823,
+            "range": "± 106980",
             "unit": "ns/iter"
           }
         ]
