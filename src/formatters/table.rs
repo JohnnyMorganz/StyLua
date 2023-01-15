@@ -245,10 +245,17 @@ pub fn create_table_braces(
             ContainedSpan::new(start_brace_token, end_brace_token)
         }
 
-        TableType::SingleLine => ContainedSpan::new(
-            fmt_symbol!(ctx, start_brace, "{ ", shape),
-            fmt_symbol!(ctx, end_brace, " }", shape),
-        ),
+        TableType::SingleLine => {
+            let (start_, end_) = if ctx.should_add_brace_spacing() {
+                ("{ ", " }")
+            } else {
+                ("{", "}")
+            };
+            ContainedSpan::new(
+                fmt_symbol!(ctx, start_brace, start_, shape),
+                fmt_symbol!(ctx, end_brace, end_, shape),
+            )
+        }
 
         TableType::Empty => {
             let start_brace = fmt_symbol!(ctx, start_brace, "{", shape);

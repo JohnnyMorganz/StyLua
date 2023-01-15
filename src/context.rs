@@ -1,6 +1,6 @@
 use crate::{
-    shape::Shape, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
-    Range as FormatRange,
+    shape::Shape, BraceSpacing, CallParenType, CollapseSimpleStatement, Config, IndentType,
+    LineEndings, Range as FormatRange,
 };
 use full_moon::{
     node::Node,
@@ -151,6 +151,10 @@ impl Context {
             self.config().collapse_simple_statement(),
             CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
         )
+    }
+
+    pub fn should_add_brace_spacing(&self) -> bool {
+        matches!(self.config().brace_spacing(), BraceSpacing::Always)
     }
 }
 
