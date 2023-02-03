@@ -22,6 +22,10 @@ enabled = true
 
 Note: we assume that all requires are **pure** with no side effects. It is not recommended to use this feature if the ordering of your requires matter.
 
+- Added support for [EditorConfig](https://editorconfig.org/), which is taken into account only if no `stylua.toml` was found.
+
+This feature is enabled by default, it can be disabled using `--no-editorconfig`.
+
 ## [0.16.1] - 2023-02-10
 
 ### Fixed

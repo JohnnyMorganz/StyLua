@@ -106,14 +106,14 @@ fn search_config_locations() -> Result<Option<Config>> {
     Ok(None)
 }
 
-pub fn load_config(opt: &Opt) -> Result<Config> {
+pub fn load_config(opt: &Opt) -> Result<Option<Config>> {
     match &opt.config_path {
         Some(config_path) => {
             debug!(
                 "config: explicit config path provided at {}",
                 config_path.display()
             );
-            read_config_file(config_path)
+            read_config_file(config_path).map(Some)
         }
         None => {
             let current_dir = match &opt.stdin_filepath {
@@ -123,6 +123,7 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
                     .to_path_buf(),
                 None => env::current_dir().context("Could not find current directory")?,
             };
+
             debug!(
                 "config: starting config search from {} - recursively searching parents: {}",
                 current_dir.display(),
@@ -130,20 +131,20 @@ pub fn load_config(opt: &Opt) -> Result<Config> {
             );
             let config = find_config_file(current_dir, opt.search_parent_directories)?;
             match config {
-                Some(config) => Ok(config),
+                Some(config) => Ok(Some(config)),
                 None => {
                     debug!("config: no configuration file found");
 
                     // Search the configuration directory for a file, if necessary
                     if opt.search_parent_directories {
                         if let Some(config) = search_config_locations()? {
-                            return Ok(config);
+                            return Ok(Some(config));
                         }
                     }
 
                     // Fallback to a default configuration
                     debug!("config: falling back to default config");
-                    Ok(Config::default())
+                    Ok(None)
                 }
             }
         }

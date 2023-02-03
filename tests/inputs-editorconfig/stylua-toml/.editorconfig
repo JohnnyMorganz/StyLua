@@ -1,0 +1,3 @@
+[*.lua]
+indent_style = tab
+quote_type = double

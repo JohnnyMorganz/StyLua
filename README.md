@@ -208,7 +208,9 @@ StyLua is **opinionated**, so only a few options are provided.
 ### Finding the configuration
 
 The CLI looks for `stylua.toml` or `.stylua.toml` in the directory where the tool was executed.
-If not found, the default configuration is used.
+If not found, we search for an `.editorconfig` file, otherwise fall back to the default configuration.
+This feature can be disabled using `--no-editorconfig`.
+See [EditorConfig](https://editorconfig.org/) for more details.
 
 A custom path can be provided using `--config-path <path>`.
 If the path provided is not found/malformed, StyLua will exit with an error.
