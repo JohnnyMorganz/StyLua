@@ -11,49 +11,40 @@ mod shape;
 mod verify_ast;
 
 /// The type of indents to use when indenting
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum IndentType {
     /// Indent using tabs (`\t`)
+    #[default]
     Tabs,
     /// Indent using spaces (` `)
     Spaces,
 }
 
-impl Default for IndentType {
-    fn default() -> Self {
-        IndentType::Tabs
-    }
-}
-
 /// The type of line endings to use at the end of a line
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum LineEndings {
     // Auto,
     /// Unix Line Endings (LF) - `\n`
+    #[default]
     Unix,
     /// Windows Line Endings (CRLF) - `\r\n`
     Windows,
 }
 
-impl Default for LineEndings {
-    fn default() -> Self {
-        LineEndings::Unix
-    }
-}
-
 /// The style of quotes to use within string literals
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum QuoteStyle {
     /// Use double quotes where possible, but change to single quotes if it produces less escapes
+    #[default]
     AutoPreferDouble,
     /// Use single quotes where possible, but change to double quotes if it produces less escapes
     AutoPreferSingle,
@@ -63,19 +54,14 @@ pub enum QuoteStyle {
     ForceSingle,
 }
 
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        QuoteStyle::AutoPreferDouble
-    }
-}
-
 /// When to use call parentheses
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CallParenType {
     /// Use call parentheses all the time
+    #[default]
     Always,
     /// Skip call parentheses when only a string argument is used.
     NoSingleString,
@@ -85,19 +71,14 @@ pub enum CallParenType {
     None,
 }
 
-impl Default for CallParenType {
-    fn default() -> Self {
-        CallParenType::Always
-    }
-}
-
 /// What mode to use if we want to collapse simple functions / guard statements
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum CollapseSimpleStatement {
     /// Never collapse
+    #[default]
     Never,
     /// Collapse simple functions onto a single line
     FunctionOnly,
@@ -105,12 +86,6 @@ pub enum CollapseSimpleStatement {
     ConditionalOnly,
     /// Collapse all simple statements onto a single line
     Always,
-}
-
-impl Default for CollapseSimpleStatement {
-    fn default() -> Self {
-        CollapseSimpleStatement::Never
-    }
 }
 
 /// An optional formatting range.

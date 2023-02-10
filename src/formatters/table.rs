@@ -53,8 +53,8 @@ fn format_field_expression_value(
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             if shape.test_over_budget(&singleline_value)
-                || format!("{}", hanging_value).lines().count()
-                    < format!("{}", singleline_value).lines().count()
+                || format!("{hanging_value}").lines().count()
+                    < format!("{singleline_value}").lines().count()
             {
                 hanging_value
             } else {

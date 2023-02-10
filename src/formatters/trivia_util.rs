@@ -55,7 +55,7 @@ pub fn trivia_contains_newline<'a>(trivia_vec: impl Iterator<Item = &'a Token>) 
 
 /// Determines whether a particular node spans over multiple lines
 pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
-    let string = format!("{}", item);
+    let string = format!("{item}");
     string.lines().count() > 1
 }
 
@@ -1230,7 +1230,6 @@ pub fn contains_comments(node: impl Node) -> bool {
 #[allow(dead_code)]
 pub fn contains_singleline_comments(node: impl Node) -> bool {
     node.tokens()
-        .into_iter()
         .any(|token| token_contains_comments_search(token, CommentSearch::Single))
 }
 
