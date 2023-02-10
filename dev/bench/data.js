@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673785675716,
+  "lastUpdate": 1676064980334,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4325,6 +4325,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28108490,
             "range": "± 58047",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "76d74721066c5a0e8289dab40a834a1cee1921fc",
+          "message": "Fix clippy lints (#650)\n\nFix clippy warnings",
+          "timestamp": "2023-02-10T21:31:41Z",
+          "tree_id": "bbb5fda8057a61c1eca7213fdc001a0c0cca9af2",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/76d74721066c5a0e8289dab40a834a1cee1921fc"
+        },
+        "date": 1676064979240,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55737597,
+            "range": "± 350618",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 368533389,
+            "range": "± 638822",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 27737767,
+            "range": "± 299282",
             "unit": "ns/iter"
           }
         ]
