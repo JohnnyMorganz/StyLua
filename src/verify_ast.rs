@@ -9,6 +9,9 @@ use full_moon::{
     visitors::VisitorMut,
 };
 
+#[cfg(feature = "luau")]
+use full_moon::ast::types::TypeInfo;
+
 pub struct AstVerifier {}
 
 impl AstVerifier {
@@ -38,6 +41,20 @@ fn remove_parentheses(expression: Expression) -> Expression {
             type_assertion: None,
         },
         _ => expression,
+    }
+}
+
+#[cfg(feature = "luau")]
+fn remove_type_parentheses(type_info: TypeInfo) -> TypeInfo {
+    match type_info {
+        TypeInfo::Tuple { ref types, .. } => {
+            if types.len() == 1 {
+                types.into_iter().next().unwrap().clone()
+            } else {
+                type_info
+            }
+        }
+        _ => type_info,
     }
 }
 
@@ -173,6 +190,11 @@ impl VisitorMut for AstVerifier {
         };
 
         Token::new(token_type)
+    }
+
+    #[cfg(feature = "luau")]
+    fn visit_type_info(&mut self, type_info: TypeInfo) -> TypeInfo {
+        remove_type_parentheses(type_info)
     }
 }
 
@@ -314,6 +336,16 @@ mod tests {
     fn test_equivalent_conditions() {
         let input_ast = full_moon::parse("if (true) then return end").unwrap();
         let output_ast = full_moon::parse("if true then return end").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_equivalent_types_removed_parentheses() {
+        let input_ast = full_moon::parse("type Foo = (number)").unwrap();
+        let output_ast = full_moon::parse("type Foo = number").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
