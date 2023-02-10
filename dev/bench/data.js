@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676065485469,
+  "lastUpdate": 1676065950457,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4409,6 +4409,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28779707,
             "range": "± 317006",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bf53cb2633adb898bc9140ca7a0fe0e35726ce2b",
+          "message": "Massage Verify AST for removed type parentheses (#651)\n\n* Massage verify ast for removed type parentheses\r\n\r\n* Update changelog\r\n\r\n* Include link",
+          "timestamp": "2023-02-10T21:48:12Z",
+          "tree_id": "2ae44cd79cb13286f54130f6b9271916d7916b5b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/bf53cb2633adb898bc9140ca7a0fe0e35726ce2b"
+        },
+        "date": 1676065949580,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 57638576,
+            "range": "± 301005",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 367851581,
+            "range": "± 697396",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28879375,
+            "range": "± 195128",
             "unit": "ns/iter"
           }
         ]
