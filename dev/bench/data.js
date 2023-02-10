@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676064980334,
+  "lastUpdate": 1676065485469,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4367,6 +4367,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27737767,
             "range": "± 299282",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ad14ef49c492cbf13c5e0c7c54f5bad43524dc56",
+          "message": "Hang multiline function argument containing comments (#649)\n\n* Add test case\r\n\r\n* Hang a multiline function arg containing a comment\r\n\r\n* Update snapshot\r\n\r\n* Update changelog",
+          "timestamp": "2023-02-10T21:40:32Z",
+          "tree_id": "a226a2330dc796e8dd16f6c01de57ed81bd4cc98",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ad14ef49c492cbf13c5e0c7c54f5bad43524dc56"
+        },
+        "date": 1676065485010,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56738016,
+            "range": "± 369228",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 368182200,
+            "range": "± 1325324",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28779707,
+            "range": "± 317006",
             "unit": "ns/iter"
           }
         ]
