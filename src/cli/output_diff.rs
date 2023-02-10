@@ -40,7 +40,7 @@ pub fn output_diff(
     let should_use_color = color.should_use_color();
 
     // Print out the header title
-    writeln!(&mut buffer, "{}", title)?;
+    writeln!(&mut buffer, "{title}")?;
 
     for (idx, group) in iter {
         if idx > 0 {

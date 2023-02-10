@@ -198,7 +198,7 @@ impl Shape {
 
     /// Takes the first line from an item which can be converted into a string, and sets that to the shape
     pub fn take_first_line<T: Display>(&self, item: &T) -> Shape {
-        let string = format!("{}", item);
+        let string = format!("{item}");
         let mut lines = string.lines();
         let width = lines.next().unwrap_or("").len();
         self.add_width(width)
@@ -208,7 +208,7 @@ impl Shape {
     /// and the last line is added to the width. If it only takes a single line, we just continue adding to the current
     /// width
     pub fn take_last_line<T: Display>(&self, item: &T) -> Shape {
-        let string = format!("{}", item);
+        let string = format!("{item}");
         let mut lines = string.lines();
         let last_item = lines.next_back().unwrap_or("");
 

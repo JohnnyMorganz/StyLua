@@ -49,7 +49,7 @@ fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<ser
             additional,
         }) => json!({
             "type": "parse_error",
-            "message": format!("unexpected token `{}`{}", token, additional.as_ref().map(|x| format!(": {}", x)).unwrap_or_default()),
+            "message": format!("unexpected token `{}`{}", token, additional.as_ref().map(|x| format!(": {x}")).unwrap_or_default()),
             "filename": file,
             "location": {
                 "start": token.start_position().bytes(),
@@ -75,10 +75,10 @@ fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<ser
                 full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(
                     character,
                 ) => {
-                    format!("unexpected character {}", character)
+                    format!("unexpected character {character}")
                 }
                 full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
-                    format!("invalid symbol {}", symbol)
+                    format!("invalid symbol {symbol}")
                 }
             },
             "filename": file,
@@ -109,7 +109,7 @@ fn create_diff(
             original,
             expected,
             3,
-            &format!("Diff in {}:", file_name),
+            &format!("Diff in {file_name}:"),
             opt.color,
         ),
         opt::OutputFormat::Unified => output_diff::output_diff_unified(original, expected),
@@ -134,7 +134,7 @@ fn create_diff(
             if original == expected {
                 Ok(None)
             } else {
-                Ok(Some(format!("{}\n", file_name).into_bytes()))
+                Ok(Some(format!("{file_name}\n").into_bytes()))
             }
         }
     }
