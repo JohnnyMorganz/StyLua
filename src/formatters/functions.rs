@@ -341,9 +341,11 @@ fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape)
 
     // If the argument fits, great! Otherwise, see if we can hang the expression
     // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
-    if shape
-        .add_width(strip_trivia(&infinite_width_argument).to_string().len())
-        .over_budget()
+    // Also: if the argument contains comments, it should be multilined
+    if trivia_util::expression_contains_inline_comments(argument)
+        || shape
+            .add_width(strip_trivia(&infinite_width_argument).to_string().len())
+            .over_budget()
     {
         if trivia_util::can_hang_expression(argument) {
             hang_expression(ctx, argument, shape, Some(1))
