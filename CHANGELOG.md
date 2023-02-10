@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1] - 2023-02-10
+
 ### Fixed
 
 - Fixed mistransformation of a function argument in a multilined function call when the argument contains a comment, causing a syntax error. We now attempt to hang the expression ([#648](https://github.com/JohnnyMorganz/StyLua/issues/648))
@@ -620,7 +622,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.16.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.16.1
 [0.16.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.16.0
 [0.15.3]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.3
 [0.15.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.15.2
