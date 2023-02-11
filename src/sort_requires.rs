@@ -33,7 +33,6 @@ fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
 fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
     if let Expression::Value { value, .. } = expression {
         if let Value::FunctionCall(function_call) = &**value {
-            // Require
             if let Prefix::Name(token) = function_call.prefix() {
                 if let Some(name) = extract_identifier_from_token(token) {
                     if name == "require" {
