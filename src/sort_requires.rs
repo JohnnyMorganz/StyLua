@@ -16,7 +16,7 @@
 //! - Blocks remain in-place in the file.
 
 use full_moon::{
-    ast::{Ast, Block, Expression, Prefix, Stmt, Value},
+    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix, Value},
     node::Node,
     tokenizer::{TokenReference, TokenType},
 };
@@ -46,26 +46,43 @@ fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
     }
 }
 
-fn is_require_expression(expression: &Expression) -> bool {
+fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
     if let Expression::Value { value, .. } = expression {
         if let Value::FunctionCall(function_call) = &**value {
+            // Require
             if let Prefix::Name(token) = function_call.prefix() {
                 if let Some(name) = extract_identifier_from_token(token) {
                     if name == "require" {
-                        return true;
+                        return Some(GroupKind::Require);
+                    } else if name == "game" {
+                        if let Some(Suffix::Call(Call::MethodCall(method_call))) =
+                            function_call.suffixes().next()
+                        {
+                            if let Some(name) = extract_identifier_from_token(method_call.name()) {
+                                if name == "GetService" {
+                                    return Some(GroupKind::GetService);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    false
+    None
 }
 
 type StmtSemicolon = (Stmt, Option<TokenReference>);
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum GroupKind {
+    Require,
+    GetService,
+}
+
 enum BlockPartition {
-    RequiresGroup(Vec<(String, StmtSemicolon)>),
+    RequiresGroup(GroupKind, Vec<(String, StmtSemicolon)>),
     Other(Vec<StmtSemicolon>),
 }
 
@@ -80,17 +97,24 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
 
                 let current_line = name.start_position().unwrap().line();
 
-                if is_require_expression(expression) {
-                    let require_name = extract_identifier_from_token(name)
+                let expression_kind = get_expression_kind(expression);
+                if let Some(expression_kind) = expression_kind {
+                    let variable_name = extract_identifier_from_token(name)
                         .expect("require is stored as non-identifier");
 
                     // Check if we need to start a new block:
-                    // Either, the parts list is empty, the last part was a BlockPartition::Other
-                    // or, there is > 1 line in between the previous require and this one
+                    // Either, the parts list is empty, the last part was a BlockPartition::Other,
+                    // the last part group was a different kind, or,
+                    // there is > 1 line in between the previous require and this one
                     let create_new_block = match parts.last() {
                         None => true,
                         Some(BlockPartition::Other(_)) => true,
-                        Some(BlockPartition::RequiresGroup(list)) => {
+                        Some(BlockPartition::RequiresGroup(other_kind, _))
+                            if *other_kind != expression_kind =>
+                        {
+                            true
+                        }
+                        Some(BlockPartition::RequiresGroup(_, list)) => {
                             if let Some(previous_require) = list.last() {
                                 if let Some(position) = previous_require.1.end_position() {
                                     let previous_require_line = position.line();
@@ -105,12 +129,12 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
                     };
 
                     if create_new_block {
-                        parts.push(BlockPartition::RequiresGroup(Vec::new()))
+                        parts.push(BlockPartition::RequiresGroup(expression_kind, Vec::new()))
                     }
 
                     match parts.last_mut() {
-                        Some(BlockPartition::RequiresGroup(map)) => {
-                            map.push((require_name, stmt.clone()))
+                        Some(BlockPartition::RequiresGroup(_, map)) => {
+                            map.push((variable_name, stmt.clone()))
                         }
                         _ => unreachable!(),
                     };
@@ -123,7 +147,7 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
         // Handle as a non-require
         if parts.is_empty() {
             parts.push(BlockPartition::Other(Vec::new()))
-        } else if let Some(BlockPartition::RequiresGroup(_)) = parts.last() {
+        } else if let Some(BlockPartition::RequiresGroup(_, _)) = parts.last() {
             parts.push(BlockPartition::Other(Vec::new()))
         }
 
@@ -154,7 +178,7 @@ pub(crate) fn sort_requires(input_ast: Ast) -> Ast {
     let mut stmts: Vec<StmtSemicolon> = Vec::new();
     for part in parts {
         match part {
-            BlockPartition::RequiresGroup(mut list) => {
+            BlockPartition::RequiresGroup(_, mut list) => {
                 // Get the leading trivia of the first statement in the list, as that will be what
                 // is appended to the new statement
                 let leading_trivia = match list.first_mut() {

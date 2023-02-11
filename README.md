@@ -192,6 +192,7 @@ StyLua has built-in support for sorting require statements. We group consecutive
 and then requires are sorted only within that block. Blocks of requires do not move around the file.
 
 We only include requires of the form `local NAME = require(EXPR)`, and sort lexicographically based on `NAME`.
+(We also sort Roblox services of the form `local NAME = game:GetService(EXPR)`)
 
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
