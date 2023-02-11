@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+local ah = require("a")
+local bee = require("b")
+
+print("hello world")
+

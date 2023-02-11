@@ -1,0 +1,18 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local mainA = require(ReplicatedStorage.A)
+local mainB = require(ReplicatedStorage.B)
+
+local Packages = ReplicatedStorage.Packages
+local X = require(Packages.X)
+local Y = require(Packages.Y)
+local Z = require(Packages.Z)
+
+local Modules = ReplicatedStorage.Modules
+local A = require(Modules.A)
+local B = require(Modules.B)
+local C = require(Modules.C)
+

@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+local parent = script.Parent
+local x = foo()
+local aaa = require(parent.Script)
+local bee = require("aaa")
+local cee = require(parent.Cee)
+
+print("hello world")
+
