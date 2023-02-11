@@ -186,6 +186,20 @@ If part of a statement falls outside the range, the statement will be ignored.
 
 In editors, `Format Selection` is supported.
 
+### Requires Sorting
+
+StyLua has built-in support for sorting require statements. We group consecutive require statements into a single "block",
+and then requires are sorted only within that block. Blocks of requires do not move around the file.
+
+We only include requires of the form `local NAME = require(EXPR)`, and sort lexicographically based on `NAME`.
+
+Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
+
+```toml
+[sort-requires]
+enabled = true
+```
+
 ## Configuration
 
 StyLua is **opinionated**, so only a few options are provided.
@@ -232,4 +246,7 @@ indent_width = 4
 quote_style = "AutoPreferDouble"
 call_parentheses = "Always"
 collapse_simple_statement = "Never"
+
+[sort-requires]
+enabled = false
 ```
