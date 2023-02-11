@@ -196,7 +196,7 @@ We only include requires of the form `local NAME = require(EXPR)`, and sort lexi
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
 ```toml
-[sort-requires]
+[sort_requires]
 enabled = true
 ```
 
@@ -247,6 +247,6 @@ quote_style = "AutoPreferDouble"
 call_parentheses = "Always"
 collapse_simple_statement = "Never"
 
-[sort-requires]
+[sort_requires]
 enabled = false
 ```

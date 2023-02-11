@@ -15,14 +15,14 @@
 //!   so a require will always be after any local variable it uses)
 //! - Blocks remain in-place in the file.
 
-use std::collections::BTreeMap;
-
 use full_moon::{
     ast::{Ast, Block, Expression, Prefix, Stmt, Value},
     node::Node,
     tokenizer::{TokenReference, TokenType},
 };
 use serde::Deserialize;
+
+use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia};
 
 #[derive(Copy, Clone, Debug, Default, Deserialize)]
 pub struct SortRequiresConfig {
@@ -65,7 +65,7 @@ fn is_require_expression(expression: &Expression) -> bool {
 type StmtSemicolon = (Stmt, Option<TokenReference>);
 
 enum BlockPartition {
-    RequiresGroup(BTreeMap<String, StmtSemicolon>),
+    RequiresGroup(Vec<(String, StmtSemicolon)>),
     Other(Vec<StmtSemicolon>),
 }
 
@@ -90,26 +90,27 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
                     let create_new_block = match parts.last() {
                         None => true,
                         Some(BlockPartition::Other(_)) => true,
-                        Some(BlockPartition::RequiresGroup(map)) => {
-                            // TODO: can we prevent having to search through this map?
-                            let mut previous_require_line = 0;
-                            for require_stmts in map.values() {
-                                if let Some(position) = require_stmts.0.end_position() {
-                                    previous_require_line =
-                                        previous_require_line.max(position.line())
+                        Some(BlockPartition::RequiresGroup(list)) => {
+                            if let Some(previous_require) = list.last() {
+                                if let Some(position) = previous_require.1.end_position() {
+                                    let previous_require_line = position.line();
+                                    current_line - previous_require_line > 1
+                                } else {
+                                    false
                                 }
+                            } else {
+                                false
                             }
-                            current_line - previous_require_line > 1
                         }
                     };
 
                     if create_new_block {
-                        parts.push(BlockPartition::RequiresGroup(BTreeMap::new()))
+                        parts.push(BlockPartition::RequiresGroup(Vec::new()))
                     }
 
                     match parts.last_mut() {
                         Some(BlockPartition::RequiresGroup(map)) => {
-                            map.insert(require_name, stmt.clone())
+                            map.push((require_name, stmt.clone()))
                         }
                         _ => unreachable!(),
                     };
@@ -153,7 +154,41 @@ pub(crate) fn sort_requires(input_ast: Ast) -> Ast {
     let mut stmts: Vec<StmtSemicolon> = Vec::new();
     for part in parts {
         match part {
-            BlockPartition::RequiresGroup(map) => stmts.extend(map.values().cloned()),
+            BlockPartition::RequiresGroup(mut list) => {
+                // Get the leading trivia of the first statement in the list, as that will be what
+                // is appended to the new statement
+                let leading_trivia = match list.first_mut() {
+                    Some((_, (Stmt::LocalAssignment(local_assignment), _))) => {
+                        let trivia = local_assignment
+                            .local_token()
+                            .leading_trivia()
+                            .cloned()
+                            .collect();
+
+                        // Replace the trivia
+                        *local_assignment = local_assignment
+                            .update_leading_trivia(FormatTriviaType::Replace(vec![]));
+
+                        trivia
+                    }
+                    _ => unreachable!(),
+                };
+
+                // Sort our list of requires
+                list.sort_by_key(|key| key.0.clone());
+
+                // Mutate the first element with our leading trivia
+                match list.first_mut() {
+                    Some((_, (Stmt::LocalAssignment(local_assignment), _))) => {
+                        *local_assignment = local_assignment
+                            .update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
+                    }
+                    _ => unreachable!(),
+                };
+
+                // Add to the list of stmts
+                stmts.extend(list.iter().map(|x| x.1.clone()))
+            }
             BlockPartition::Other(mut list) => stmts.append(&mut list),
         };
     }
