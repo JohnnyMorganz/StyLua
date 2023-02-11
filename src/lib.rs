@@ -1,6 +1,5 @@
 use full_moon::ast::Ast;
 use serde::Deserialize;
-use sort_requires::SortRequiresConfig;
 use thiserror::Error;
 #[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
 use wasm_bindgen::prelude::*;
@@ -106,6 +105,25 @@ impl Range {
     /// All content within these boundaries (inclusive) will be formatted.
     pub fn from_values(start: Option<usize>, end: Option<usize>) -> Self {
         Self { start, end }
+    }
+}
+
+/// Configuration for the Sort Requires codemod
+#[derive(Copy, Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+pub struct SortRequiresConfig {
+    /// Whether the sort requires codemod is enabled
+    enabled: bool,
+}
+
+impl SortRequiresConfig {
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+    pub fn set_enabled(&self, enabled: bool) -> Self {
+        Self { enabled }
     }
 }
 

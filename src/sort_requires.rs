@@ -20,24 +20,8 @@ use full_moon::{
     node::Node,
     tokenizer::{TokenReference, TokenType},
 };
-use serde::Deserialize;
 
 use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia};
-
-#[derive(Copy, Clone, Debug, Default, Deserialize)]
-pub struct SortRequiresConfig {
-    /// Whether the sort requires codemod is enabled
-    enabled: bool,
-}
-
-impl SortRequiresConfig {
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-    pub fn set_enabled(&self, enabled: bool) -> Self {
-        Self { enabled }
-    }
-}
 
 fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
     match token.token_type() {

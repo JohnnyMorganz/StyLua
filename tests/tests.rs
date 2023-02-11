@@ -1,6 +1,5 @@
 use stylua_lib::{
-    format_code, sort_requires::SortRequiresConfig, CollapseSimpleStatement, Config,
-    OutputVerification,
+    format_code, CollapseSimpleStatement, Config, OutputVerification, SortRequiresConfig,
 };
 
 fn format(input: &str) -> String {
