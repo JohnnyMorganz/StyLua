@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676066385748,
+  "lastUpdate": 1676207449999,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4493,6 +4493,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28604336,
             "range": "± 333678",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "06a761e197e61072af1bf2379be4a3f1f11a22b5",
+          "message": "Sort requires (#653)\n\n* Setup entry point\r\n\r\n* Create tests\r\n\r\n* Sort requires system\r\n\r\n* Update test snapshots\r\n\r\n* Update readme\r\n\r\n* Handle trivia appropriately\r\n\r\n* More test cases\r\n\r\n* Add sort services system\r\n\r\n* Move out sort requires\r\n\r\n* Update changelog\r\n\r\n* Add variable case test\r\n\r\n* Respect `-- stylua: ignore` comments\r\n\r\n* Add more test cases",
+          "timestamp": "2023-02-12T13:06:20Z",
+          "tree_id": "2d9f5905b611095db96a962e31b8fbdeba285272",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/06a761e197e61072af1bf2379be4a3f1f11a22b5"
+        },
+        "date": 1676207449243,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56302372,
+            "range": "± 966225",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 368424178,
+            "range": "± 593782",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28252985,
+            "range": "± 336132",
             "unit": "ns/iter"
           }
         ]
