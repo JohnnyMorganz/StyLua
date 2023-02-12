@@ -1,3 +1,4 @@
+use context::Context;
 use full_moon::ast::Ast;
 use serde::Deserialize;
 use thiserror::Error;
@@ -342,13 +343,15 @@ pub fn format_ast(
         None
     };
 
+    let ctx = Context::new(config, range);
+
     // Perform require sorting beforehand if necessary
     let input_ast = match config.sort_requires().enabled() {
-        true => sort_requires::sort_requires(input_ast),
+        true => sort_requires::sort_requires(&ctx, input_ast),
         false => input_ast,
     };
 
-    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let code_formatter = formatters::CodeFormatter::new(ctx);
     let ast = code_formatter.format(input_ast);
 
     // If we are verifying, reparse the output then check it matches the original input

@@ -1,4 +1,4 @@
-use crate::{context::Context, shape::Shape, Config};
+use crate::{context::Context, shape::Shape};
 use full_moon::ast::Ast;
 
 pub mod assignment;
@@ -28,10 +28,8 @@ pub struct CodeFormatter {
 
 impl CodeFormatter {
     /// Creates a new CodeFormatter, with the given configuration
-    pub fn new(config: Config, range: Option<crate::Range>) -> Self {
-        CodeFormatter {
-            context: Context::new(config, range),
-        }
+    pub fn new(ctx: Context) -> Self {
+        CodeFormatter { context: ctx }
     }
 
     /// Runs the formatter over the given AST

@@ -21,7 +21,10 @@ use full_moon::{
     tokenizer::{TokenReference, TokenType},
 };
 
-use crate::formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia};
+use crate::{
+    context::{Context, FormatNode},
+    formatters::trivia::{FormatTriviaType, UpdateLeadingTrivia},
+};
 
 fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
     match token.token_type() {
@@ -143,7 +146,7 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
     parts
 }
 
-pub(crate) fn sort_requires(input_ast: Ast) -> Ast {
+pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
     let block = input_ast.nodes();
 
     // Find all `local NAME = require(EXPR)` lines
@@ -162,6 +165,15 @@ pub(crate) fn sort_requires(input_ast: Ast) -> Ast {
     for part in parts {
         match part {
             BlockPartition::RequiresGroup(_, mut list) => {
+                // If any of the block is ignored, then ignore the whole thing
+                if list
+                    .iter()
+                    .any(|(_, stmt)| !matches!(ctx.should_format_node(stmt), FormatNode::Normal))
+                {
+                    stmts.extend(list.iter().map(|x| x.1.clone()));
+                    continue;
+                }
+
                 // Get the leading trivia of the first statement in the list, as that will be what
                 // is appended to the new statement
                 let leading_trivia = match list.first_mut() {
