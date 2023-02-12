@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for "sort requires", which sorts top-level statements of the form `local NAME = require(EXPR)` lexicographically on `NAME`.
+  We do this by treating a group of consecutive requires as a "block", and then sorting **only within** the block. Any other statement, or an empty line, between require statements will split the group into two separate blocks (and can be used to separate the sorting). A block of requires will not move around the file.
+  Roblox Luau statements of the form `local NAME = game:GetService(EXPR)` will also be sorted separately.
+
+This feature is disabled by default. To enable it, add the following to your `stylua.toml`:
+
+```toml
+[sort_requires]
+enabled = true
+```
+
+Note: we assume that all requires are **pure** with no side effects. It is not recommended to use this feature if the ordering of your requires matter.
+
 ## [0.16.1] - 2023-02-10
 
 ### Fixed

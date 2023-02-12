@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+local holder = script.Parent
+local modules = holder.Modules
+local aa = require(modules.Test)
+local bee = require(modules.BeeMovie)
+local cee = require(modules.Script)
+print("hello!")
+

@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+-- Services
+local A = require("A")
+local B = require("B")
+local C = require("C")
+
+-- Packages
+local X = require("X")
+local Y = require("Y")
+local Z = require("Z")
+

@@ -1,0 +1,19 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+-- stylua: ignore
+local c   = require("c")
+local b = require("b")
+local a = require("a")
+
+local c = require("c")
+-- stylua: ignore
+local b   = require("b")
+local a = require("a")
+
+local b = require("b")
+local c = require("c")
+-- stylua: ignore
+local a   = require("a")
+

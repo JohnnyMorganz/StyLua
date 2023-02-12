@@ -1,3 +1,4 @@
+use context::Context;
 use full_moon::ast::Ast;
 use serde::Deserialize;
 use thiserror::Error;
@@ -8,6 +9,7 @@ use wasm_bindgen::prelude::*;
 mod context;
 mod formatters;
 mod shape;
+pub mod sort_requires;
 mod verify_ast;
 
 /// The type of indents to use when indenting
@@ -107,6 +109,25 @@ impl Range {
     }
 }
 
+/// Configuration for the Sort Requires codemod
+#[derive(Copy, Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+pub struct SortRequiresConfig {
+    /// Whether the sort requires codemod is enabled
+    enabled: bool,
+}
+
+impl SortRequiresConfig {
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+    pub fn set_enabled(&self, enabled: bool) -> Self {
+        Self { enabled }
+    }
+}
+
 /// The configuration to use when formatting.
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -143,6 +164,8 @@ pub struct Config {
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     collapse_simple_statement: CollapseSimpleStatement,
+    /// Configuration for the sort requires codemod
+    sort_requires: SortRequiresConfig,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -184,6 +207,11 @@ impl Config {
 
     pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
         self.collapse_simple_statement
+    }
+
+    /// Returns the current sort requires codemod configuration
+    pub fn sort_requires(&self) -> SortRequiresConfig {
+        self.sort_requires
     }
 
     /// Returns a new config with the given column width
@@ -250,6 +278,14 @@ impl Config {
             ..self
         }
     }
+
+    /// Returns a new config with the given sort requires configuration
+    pub fn with_sort_requires(self, sort_requires: SortRequiresConfig) -> Self {
+        Self {
+            sort_requires,
+            ..self
+        }
+    }
 }
 
 impl Default for Config {
@@ -263,6 +299,7 @@ impl Default for Config {
             no_call_parentheses: false,
             call_parentheses: CallParenType::default(),
             collapse_simple_statement: CollapseSimpleStatement::default(),
+            sort_requires: SortRequiresConfig::default(),
         }
     }
 }
@@ -306,7 +343,15 @@ pub fn format_ast(
         None
     };
 
-    let code_formatter = formatters::CodeFormatter::new(config, range);
+    let ctx = Context::new(config, range);
+
+    // Perform require sorting beforehand if necessary
+    let input_ast = match config.sort_requires().enabled() {
+        true => sort_requires::sort_requires(&ctx, input_ast),
+        false => input_ast,
+    };
+
+    let code_formatter = formatters::CodeFormatter::new(ctx);
     let ast = code_formatter.format(input_ast);
 
     // If we are verifying, reparse the output then check it matches the original input
