@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),\n        None, OutputVerification::None).unwrap()"
+---
+local A = require("./A")
+local Calling = require("../Calling")
+local D = require("./D")
+local a = require("./a")
+local calling = require("../calling")
+
