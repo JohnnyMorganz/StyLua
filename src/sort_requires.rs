@@ -61,7 +61,7 @@ fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
 
 type StmtSemicolon = (Stmt, Option<TokenReference>);
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum GroupKind {
     Require,
     GetService,
@@ -101,16 +101,15 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
                             true
                         }
                         Some(BlockPartition::RequiresGroup(_, list)) => {
-                            if let Some(previous_require) = list.last() {
-                                if let Some(position) = previous_require.1.end_position() {
-                                    let previous_require_line = position.line();
-                                    current_line - previous_require_line > 1
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
+                            let previous_require =
+                                list.last().expect("unreachable!: empty require group");
+                            let position = previous_require
+                                .1
+                                .end_position()
+                                .expect("unreachable!: previous require stmt has no end position");
+
+                            let previous_require_line = position.line();
+                            current_line - previous_require_line > 1
                         }
                     };
 
@@ -214,4 +213,89 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
 
     let block = block.clone().with_stmts(stmts);
     input_ast.with_nodes(block).update_positions()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn extract_test_expression(ast: &Ast) -> &Expression {
+        let stmt = ast.nodes().stmts().next().unwrap();
+        match stmt {
+            Stmt::LocalAssignment(local_assignment) => {
+                local_assignment.expressions().iter().next().unwrap()
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn fail_extracting_non_identifier_token() {
+        let token = TokenReference::symbol("return").unwrap();
+        assert!(extract_identifier_from_token(&token).is_none());
+    }
+
+    #[test]
+    fn get_expression_kind_require_stmt() {
+        let ast = full_moon::parse("local NAME = require(EXPR)").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), Some(GroupKind::Require));
+    }
+
+    #[test]
+    fn get_expression_kind_get_service() {
+        let ast = full_moon::parse("local NAME = game:GetService(EXPR)").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), Some(GroupKind::GetService));
+    }
+
+    #[test]
+    fn get_expression_kind_other_1() {
+        let ast = full_moon::parse("local NAME = testing").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    fn get_expression_kind_other_2() {
+        let ast = full_moon::parse("local NAME = game").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    fn get_expression_kind_other_3() {
+        let ast = full_moon::parse("local NAME = game:FindFirstChild(EXPR)").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    fn get_expression_kind_other_4() {
+        let ast = full_moon::parse("local NAME = game.Name").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    fn get_expression_kind_other_5() {
+        let ast = full_moon::parse("local NAME = ('game'):GetService(EXPR)").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    fn get_expression_kind_other_6() {
+        let ast = full_moon::parse("local NAME = 1 + 2").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), None);
+    }
 }
