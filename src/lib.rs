@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::*;
 mod context;
 mod formatters;
 mod shape;
-pub mod sort_requires;
+mod sort_requires;
 mod verify_ast;
 
 /// The type of indents to use when indenting
