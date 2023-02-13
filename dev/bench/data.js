@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676207449999,
+  "lastUpdate": 1676288126567,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4535,6 +4535,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28252985,
             "range": "± 336132",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "15c1f0d4880dbcfe37dd2828da10745f95a13825",
+          "message": "Remove public visibility of sort requires module",
+          "timestamp": "2023-02-13T11:30:24Z",
+          "tree_id": "4e5743f9665820829ec27c3d32b99e597789d11d",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/15c1f0d4880dbcfe37dd2828da10745f95a13825"
+        },
+        "date": 1676288125451,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58279894,
+            "range": "± 2769002",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 414916394,
+            "range": "± 18275855",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30835976,
+            "range": "± 721613",
             "unit": "ns/iter"
           }
         ]
