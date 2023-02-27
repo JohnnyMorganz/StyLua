@@ -295,6 +295,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
+name = "ec4rs"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db540f6c584d6e2960617a2b550632715bbe0a50a4d79c0f682a13da100b34eb"
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -926,6 +932,7 @@ dependencies = [
  "console",
  "criterion",
  "crossbeam-channel",
+ "ec4rs",
  "env_logger",
  "full_moon",
  "globset",

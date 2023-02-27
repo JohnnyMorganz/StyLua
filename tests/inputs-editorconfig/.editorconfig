@@ -1,0 +1,9 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+
+[global/tab-single.lua]
+indent_style = tab
+quote_type = single

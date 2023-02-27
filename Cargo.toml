@@ -23,13 +23,14 @@ path = "src/cli/main.rs"
 bench = false
 
 [features]
-default = ["wasm-bindgen"]
+default = ["editorconfig", "wasm-bindgen"]
 serialize = []
 fromstr = ["strum"]
 luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
 lua53 = ["lua52", "full_moon/lua53"]
 lua54 = ["lua53", "full_moon/lua54"]
+editorconfig = ["ec4rs"]
 
 [dependencies]
 anyhow = "1.0.53"
@@ -37,6 +38,7 @@ cfg-if = "1.0.0"
 clap = { version = "3.1.6", features = ["derive"] }
 console = "0.15.0"
 crossbeam-channel = "0.5.4"
+ec4rs = { version = "1.0.1", optional = true }
 env_logger = { version = "0.9.0", default-features = false }
 full_moon = "0.17.0"
 globset = "0.4.8"

@@ -7,12 +7,16 @@ use serde_json::json;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
+#[cfg(feature = "editorconfig")]
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
 use threadpool::ThreadPool;
 
+#[cfg(feature = "editorconfig")]
+use stylua_lib::editorconfig;
 use stylua_lib::{format_code, Config, OutputVerification, Range};
 
 use crate::config::find_ignore_file_path;
@@ -245,7 +249,10 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     // Load the configuration
-    let config = config::load_config(&opt)?;
+    let loaded = config::load_config(&opt)?;
+    #[cfg(feature = "editorconfig")]
+    let is_default_config = loaded.is_none();
+    let config = loaded.unwrap_or_default();
 
     // Handle any configuration overrides provided by options
     let config = config::load_overrides(config, &opt);
@@ -404,25 +411,49 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     };
 
                     pool.execute(move || {
+                        #[cfg(not(feature = "editorconfig"))]
+                        let used_config = Ok(config);
+                        #[cfg(feature = "editorconfig")]
+                        let used_config = match is_default_config && !&opt.no_editorconfig {
+                            true => {
+                                let path = match &opt.stdin_filepath {
+                                    Some(filepath) => filepath.to_path_buf(),
+                                    None => PathBuf::from("*.lua"),
+                                };
+                                editorconfig::parse(config, &path)
+                                    .context("could not parse editorconfig")
+                            }
+                            false => Ok(config),
+                        };
+
                         let mut buf = String::new();
-                        match stdin().read_to_string(&mut buf) {
-                            Ok(_) => tx.send(format_string(
-                                buf,
-                                config,
-                                range,
-                                &opt,
-                                verify_output,
-                                should_skip_format,
-                            )),
-                            Err(error) => tx.send(
-                                Err(ErrorFileWrapper {
-                                    file: "stdin".to_string(),
-                                    error: error.into(),
+                        tx.send(
+                            used_config
+                                .and_then(|used_config| {
+                                    stdin()
+                                        .read_to_string(&mut buf)
+                                        .map_err(|err| err.into())
+                                        .and_then(|_| {
+                                            format_string(
+                                                buf,
+                                                used_config,
+                                                range,
+                                                &opt,
+                                                verify_output,
+                                                should_skip_format,
+                                            )
+                                            .context("could not format from stdin")
+                                        })
                                 })
-                                .context("could not format from stdin"),
-                            ),
-                        }
-                        .unwrap();
+                                .map_err(|error| {
+                                    ErrorFileWrapper {
+                                        file: "stdin".to_string(),
+                                        error,
+                                    }
+                                    .into()
+                                }),
+                        )
+                        .unwrap()
                     });
                 } else {
                     let path = entry.path().to_owned(); // TODO: stop to_owned?
@@ -447,16 +478,27 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                         let tx = tx.clone();
                         pool.execute(move || {
+                            #[cfg(not(feature = "editorconfig"))]
+                            let used_config = Ok(config);
+                            #[cfg(feature = "editorconfig")]
+                            let used_config = match is_default_config && !&opt.no_editorconfig {
+                                true => editorconfig::parse(config, &path)
+                                    .context("could not parse editorconfig"),
+                                false => Ok(config),
+                            };
+
                             tx.send(
-                                format_file(&path, config, range, &opt, verify_output).map_err(
-                                    |error| {
+                                used_config
+                                    .and_then(|used_config| {
+                                        format_file(&path, used_config, range, &opt, verify_output)
+                                    })
+                                    .map_err(|error| {
                                         ErrorFileWrapper {
                                             file: path.display().to_string(),
                                             error,
                                         }
                                         .into()
-                                    },
-                                ),
+                                    }),
                             )
                             .unwrap()
                         });

@@ -94,6 +94,13 @@ pub struct Opt {
     /// Whether to traverse hidden files/directories.
     #[structopt(short, long)]
     pub allow_hidden: bool,
+
+    /// Disables the EditorConfig feature.
+    ///
+    /// Has no effect if a stylua.toml configuration file is found.
+    #[cfg(feature = "editorconfig")]
+    #[structopt(long)]
+    pub no_editorconfig: bool,
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]

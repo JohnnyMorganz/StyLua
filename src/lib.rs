@@ -7,6 +7,8 @@ use wasm_bindgen::prelude::*;
 
 #[macro_use]
 mod context;
+#[cfg(feature = "editorconfig")]
+pub mod editorconfig;
 mod formatters;
 mod shape;
 mod sort_requires;
