@@ -212,7 +212,7 @@ jobs:
 
       - uses: docker/build-push-action@v4
         with:
-          push: ${{ steps.meta.outputs.tags != '' }}
+          push: true
           context: .
           file: Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
