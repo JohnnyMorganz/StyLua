@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Changed
+
+- Support `Luau` language selector
+
 ### Fixed
 
 - We now supply the opened workspace folder as the cwd when checking `stylua --version`, to handle problems with Foreman/Aftman supplied binaries

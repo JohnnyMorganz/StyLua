@@ -59,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
-    "lua",
+    ["lua", "luau"],
     {
       async provideDocumentRangeFormattingEdits(
         document: vscode.TextDocument,
