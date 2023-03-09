@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as util from "./util";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
@@ -30,8 +29,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const downloader = new StyluaDownloader(context.globalStorageUri, github);
 
+  let cwdForVersionDetection =
+    vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+
   let styluaBinaryPath: string | undefined =
-    await downloader.ensureStyluaExists();
+    await downloader.ensureStyluaExists(cwdForVersionDetection);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
@@ -49,7 +51,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("stylua")) {
-        styluaBinaryPath = await downloader.ensureStyluaExists();
+        styluaBinaryPath = await downloader.ensureStyluaExists(
+          cwdForVersionDetection
+        );
       }
     })
   );
@@ -60,8 +64,8 @@ export async function activate(context: vscode.ExtensionContext) {
       async provideDocumentRangeFormattingEdits(
         document: vscode.TextDocument,
         range: vscode.Range,
-        options: vscode.FormattingOptions,
-        token: vscode.CancellationToken
+        _options: vscode.FormattingOptions,
+        _token: vscode.CancellationToken
       ) {
         if (!styluaBinaryPath) {
           vscode.window

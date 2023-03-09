@@ -12,7 +12,7 @@ export class StyluaDownloader {
     private readonly github: GitHub
   ) {}
 
-  public async ensureStyluaExists(): Promise<string | undefined> {
+  public async ensureStyluaExists(cwd?: string): Promise<string | undefined> {
     const path = await this.getStyluaPath();
 
     if (path === undefined) {
@@ -32,7 +32,7 @@ export class StyluaDownloader {
       ) {
         try {
           const currentVersion = (
-            await executeStylua(path, ["--version"])
+            await executeStylua(path, ["--version"], cwd)
           )?.trim();
           const desiredVersion = util.getDesiredVersion();
           const release = await this.github.getRelease(desiredVersion);
@@ -58,7 +58,7 @@ export class StyluaDownloader {
             switch (option) {
               case "Authenticate with GitHub":
                 if (await this.github.authenticate()) {
-                  return this.ensureStyluaExists();
+                  return this.ensureStyluaExists(cwd);
                 }
             }
           }
