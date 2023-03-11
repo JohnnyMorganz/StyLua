@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1678371049131,
+  "lastUpdate": 1678553242241,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4661,6 +4661,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27159818,
             "range": "± 72819",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "erik.b22@gmail.com",
+            "name": "Erik Berkun-Drevnig",
+            "username": "eberkund"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b79dd0869e1652c9f9414c7e474acc9f56d7726f",
+          "message": "Add Dockerfile (#655)\n\n* Add Dockerfile\r\n\r\n* Add cargo flags and GHA workflow\r\n\r\n* update README\r\n\r\n* Add login action\r\n\r\n* Update .github/workflows/docker.yml\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>\r\n\r\n* move docker job to release.yml\r\n\r\n* Update Docker workflow\r\n\r\n* always push\r\n\r\n---------\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2023-03-11T16:40:59Z",
+          "tree_id": "0af204f14a0a081fb319dea0fc418902ab5b569f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b79dd0869e1652c9f9414c7e474acc9f56d7726f"
+        },
+        "date": 1678553240860,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 73644850,
+            "range": "± 2785356",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 509031145,
+            "range": "± 15488291",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 39586509,
+            "range": "± 908276",
             "unit": "ns/iter"
           }
         ]
