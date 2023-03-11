@@ -15,6 +15,14 @@ enforcing a consistent code style.
 
 There are multiple ways to install StyLua:
 
+### With Docker
+
+If you are using Docker, the easiest way to install StyLua is:
+
+```
+COPY --from=JohnnyMorganz/StyLua:0.17.0 /stylua /usr/bin/stylua
+```
+
 ### With Github Releases
 
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
