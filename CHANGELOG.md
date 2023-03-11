@@ -26,6 +26,8 @@ Note: we assume that all requires are **pure** with no side effects. It is not r
 
 This feature is enabled by default, it can be disabled using `--no-editorconfig`.
 
+- Published StyLua to the [Docker Hub](https://hub.docker.com/r/johnnymorganz/stylua)
+
 ## [0.16.1] - 2023-02-10
 
 ### Fixed
