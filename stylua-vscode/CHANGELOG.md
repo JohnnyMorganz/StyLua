@@ -11,6 +11,12 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.5.0] - 2023-03-11
+
+### Added
+
+- Added v0.16, v0.17 to release version setting
+
 ### Fixed
 
 - Support `Luau` language selector
