@@ -54,7 +54,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 
 ```yaml
 - repo: https://github.com/JohnnyMorganz/StyLua
-  rev: v0.16.1
+  rev: v0.17.0
   hooks:
     - id: stylua # or stylua-system / stylua-github
 ```
