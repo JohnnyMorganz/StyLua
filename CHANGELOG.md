@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bumped internal parser dependency which should fix parsing problems for comments with Chinese characters, and multiline string escapes
+
 ## [0.17.0] - 2023-03-11
 
 ### Added
