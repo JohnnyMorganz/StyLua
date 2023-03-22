@@ -81,6 +81,13 @@ If you are using Docker, the easiest way to install StyLua is:
 COPY --from=JohnnyMorganz/StyLua:0.17.0 /stylua /usr/bin/stylua
 ```
 
+### Homebrew
+StyLua is available on macOS via the [Homebrew](https://brew.sh) package manager.
+
+```sh
+brew install stylelua
+```
+
 ### Other Installation Methods
 
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)
