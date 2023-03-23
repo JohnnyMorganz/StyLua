@@ -85,7 +85,7 @@ COPY --from=JohnnyMorganz/StyLua:0.17.0 /stylua /usr/bin/stylua
 StyLua is available on macOS via the [Homebrew](https://brew.sh) package manager.
 
 ```sh
-brew install stylelua
+brew install stylua
 ```
 
 ### Other Installation Methods
