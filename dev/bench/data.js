@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679256458586,
+  "lastUpdate": 1679583296393,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4913,6 +4913,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 37833376,
             "range": "± 1313677",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bf@benfrain.com",
+            "name": "Ben Frain",
+            "username": "benfrain"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fd8a6b10d5bb05dc41d5cb83f563bc6497ba2897",
+          "message": "Adding Homebrew instructions (#661)\n\n* Adding Homebrew instructions\r\n\r\nFollowed https://github.com/JohnnyMorganz/StyLua/issues/237 some time ago and noticed the README never got updated. Instructions for homebrew now in.\r\n\r\n* Update README.md\r\n\r\nfixing typo",
+          "timestamp": "2023-03-23T14:48:49Z",
+          "tree_id": "a9fd5b904a13a97c3e91999c8c714a2d0cc4052a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/fd8a6b10d5bb05dc41d5cb83f563bc6497ba2897"
+        },
+        "date": 1679583294328,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 69562578,
+            "range": "± 2803067",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 479904538,
+            "range": "± 12099262",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 35480342,
+            "range": "± 899760",
             "unit": "ns/iter"
           }
         ]
