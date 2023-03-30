@@ -2,7 +2,10 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
-        trivia_util::{self, GetLeadingTrivia},
+        trivia_util::{
+            self, punctuated_inline_comments, GetLeadingTrivia, GetTrailingTrivia,
+            HasInlineComments,
+        },
     },
     shape::Shape,
     QuoteStyle,
@@ -384,7 +387,7 @@ pub fn format_punctuated_multiline<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node + GetLeadingTrivia + UpdateLeadingTrivia,
+    T: Node + GetLeadingTrivia + UpdateLeadingTrivia + GetTrailingTrivia + UpdateTrailingTrivia,
     F: Fn(&Context, &T, Shape) -> T,
 {
     let mut formatted: Punctuated<T> = Punctuated::new();
@@ -412,7 +415,16 @@ where
                     trivia_util::prepend_newline_indent(ctx, &value, hanging_shape)
                 };
 
+                // Handle any comments in between the value and the punctuation
+                // If they are present, then move them to after the punctuation
+                let mut trailing_comments = value.trailing_comments();
+                let value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+
                 let punctuation = fmt_symbol!(ctx, punctuation, ",", shape);
+                trailing_comments.append(&mut punctuation.trailing_trivia().cloned().collect());
+                let punctuation = punctuation
+                    .update_trailing_trivia(FormatTriviaType::Replace(trailing_comments));
+
                 formatted.push(Pair::new(value, Some(punctuation)));
             }
             Pair::End(value) => {
@@ -440,19 +452,18 @@ pub fn try_format_punctuated<T, F>(
     hang_level: Option<usize>,
 ) -> Punctuated<T>
 where
-    T: Node + GetLeadingTrivia + UpdateLeadingTrivia + std::fmt::Display,
+    T: Node
+        + GetLeadingTrivia
+        + UpdateLeadingTrivia
+        + GetTrailingTrivia
+        + UpdateTrailingTrivia
+        + HasInlineComments
+        + std::fmt::Display,
     F: Fn(&Context, &T, Shape) -> T,
 {
-    let mut format_multiline = false;
-
-    for pair in old.pairs() {
-        if let Pair::Punctuated(_, punctuation) = pair {
-            if trivia_util::contains_comments(punctuation) {
-                format_multiline = true;
-                break;
-            }
-        }
-    }
+    // TODO: we do not check the leading comments of the punctuated list for determining multiline
+    // Maybe we should do later?
+    let format_multiline = punctuated_inline_comments(old, false);
 
     if format_multiline {
         format_punctuated_multiline(ctx, old, shape, value_formatter, hang_level)
