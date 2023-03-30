@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1680180880589,
+  "lastUpdate": 1680191559271,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5039,6 +5039,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 30244710,
             "range": "± 993618",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c3715721edf6108bcfd0ef0a12a7e68647b6ae78",
+          "message": "Cleanup trivia code (#664)\n\n* Cleanup trivia code\r\n\r\n* Fix imports\r\n\r\n* Fixes\r\n\r\n* Cleanup\r\n\r\n* Cleanup",
+          "timestamp": "2023-03-30T16:46:50+01:00",
+          "tree_id": "e686652695667159fc3ee5460d8647199bcfcdf9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c3715721edf6108bcfd0ef0a12a7e68647b6ae78"
+        },
+        "date": 1680191558098,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 57142931,
+            "range": "± 2405000",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 401327665,
+            "range": "± 15196231",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30852453,
+            "range": "± 1074000",
             "unit": "ns/iter"
           }
         ]
