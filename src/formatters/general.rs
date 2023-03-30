@@ -3,8 +3,8 @@ use crate::{
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
         trivia_util::{
-            self, punctuated_inline_comments, GetLeadingTrivia, GetTrailingTrivia,
-            HasInlineComments,
+            self, punctuated_inline_comments, take_trailing_comments, GetLeadingTrivia,
+            GetTrailingTrivia, HasInlineComments,
         },
     },
     shape::Shape,
@@ -16,8 +16,6 @@ use full_moon::ast::{
 };
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
-
-use super::trivia_util::take_trailing_comments;
 
 #[derive(Debug, Clone, Copy)]
 pub enum FormatTokenType {

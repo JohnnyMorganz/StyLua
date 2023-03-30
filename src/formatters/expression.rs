@@ -30,12 +30,13 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util::{self, contains_comments, trivia_is_newline},
+        trivia_util::{
+            self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
+            GetTrailingTrivia,
+        },
     },
     shape::Shape,
 };
-
-use super::trivia_util::{CommentSearch, GetLeadingTrivia, GetTrailingTrivia};
 
 #[macro_export]
 macro_rules! fmt_op {

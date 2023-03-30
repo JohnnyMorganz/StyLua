@@ -26,12 +26,12 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
-
-use super::trivia_util::{CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments};
 
 /// Formats an Anonymous Function
 /// This doesn't have its own struct, but it is part of Value::Function

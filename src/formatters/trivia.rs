@@ -1,11 +1,10 @@
 #[cfg(feature = "lua54")]
 use full_moon::ast::lua54::Attribute;
-use full_moon::ast::types::TypeDeclaration;
 #[cfg(feature = "luau")]
 use full_moon::ast::types::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,

@@ -9,7 +9,7 @@ use crate::{
             trivia_to_vec, EndTokenType, FormatTokenType,
         },
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-        trivia_util::{self},
+        trivia_util::{self, GetTrailingTrivia, HasInlineComments},
     },
     shape::Shape,
 };
@@ -22,8 +22,6 @@ use full_moon::{
     node::Node,
     tokenizer::{Token, TokenReference, TokenType},
 };
-
-use super::trivia_util::{GetTrailingTrivia, HasInlineComments};
 
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]

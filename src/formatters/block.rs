@@ -12,7 +12,9 @@ use crate::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util::{self, CommentSearch, GetLeadingTrivia, HasInlineComments},
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
@@ -21,8 +23,6 @@ use full_moon::ast::{
 };
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
-
-use super::trivia_util::GetTrailingTrivia;
 
 macro_rules! update_first_token {
     ($enum:ident, $var:ident, $token:expr, $update_method:ident) => {{

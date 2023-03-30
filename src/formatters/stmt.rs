@@ -23,7 +23,9 @@ use crate::{
         trivia::{
             strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
@@ -34,8 +36,6 @@ use full_moon::{
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
-
-use super::trivia_util::{CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments};
 
 macro_rules! fmt_stmt {
     ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
