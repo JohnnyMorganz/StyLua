@@ -9,7 +9,7 @@ use crate::{
             trivia_to_vec, EndTokenType, FormatTokenType,
         },
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-        trivia_util::{self, table_field_trailing_trivia},
+        trivia_util::{self},
     },
     shape::Shape,
 };
@@ -22,6 +22,8 @@ use full_moon::{
     node::Node,
     tokenizer::{Token, TokenReference, TokenType},
 };
+
+use super::trivia_util::{GetTrailingTrivia, HasInlineComments};
 
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]
@@ -43,7 +45,7 @@ fn format_field_expression_value(
     // Remove all trivia from the output expression as it will be moved after the comma
 
     if trivia_util::can_hang_expression(expression) {
-        if trivia_util::expression_contains_inline_comments(expression) {
+        if expression.has_inline_comments() {
             hang_expression(ctx, expression, shape, Some(1))
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
         } else {
@@ -147,7 +149,7 @@ fn format_field(
             equal,
             value,
         } => {
-            trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
+            trailing_trivia = value.trailing_trivia();
             let brackets = format_contained_span(ctx, brackets, shape);
 
             let space_brackets = is_brackets_string(key);
@@ -185,7 +187,7 @@ fn format_field(
             }
         }
         Field::NameKey { key, equal, value } => {
-            trailing_trivia = trivia_util::get_expression_trailing_trivia(value);
+            trailing_trivia = value.trailing_trivia();
             let key = format_token_reference(ctx, key, shape);
 
             // Get the new leading comments to add before the key, and the equal token
@@ -205,7 +207,7 @@ fn format_field(
             Field::NameKey { key, equal, value }
         }
         Field::NoKey(expression) => {
-            trailing_trivia = trivia_util::get_expression_trailing_trivia(expression);
+            trailing_trivia = expression.trailing_trivia();
 
             if let TableType::MultiLine = table_type {
                 let formatted_expression = format_field_expression_value(ctx, expression, shape);
@@ -490,7 +492,8 @@ pub fn format_table_constructor(
                         (_, Some(token)) => token
                             .trailing_trivia()
                             .any(trivia_util::trivia_is_whitespace),
-                        (field, None) => table_field_trailing_trivia(field)
+                        (field, None) => field
+                            .trailing_trivia()
                             .iter()
                             .any(trivia_util::trivia_is_whitespace),
                     },

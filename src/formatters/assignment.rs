@@ -26,12 +26,13 @@ use crate::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, prepend_newline_indent, CommentSearch, GetLeadingTrivia, GetTrailingTrivia,
+            HasInlineComments,
+        },
     },
     shape::Shape,
 };
-
-use super::trivia_util::{prepend_newline_indent, GetTrailingTrivia};
 
 /// Calculates the hanging level to use when hanging an expression.
 /// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses (or a unary operation on them)
@@ -207,7 +208,7 @@ fn attempt_assignment_tactics(
                 // Recreate the shape
                 let shape = hanging_shape.reset();
 
-                if trivia_util::expression_contains_inline_comments(formatted.value())
+                if formatted.value().has_inline_comments()
                     || shape
                         .take_first_line(&strip_leading_trivia(formatted.value()))
                         .over_budget()
@@ -238,7 +239,7 @@ fn attempt_assignment_tactics(
 
         // Special case: there is a comment in between the equals and the expression
         if trivia_util::token_contains_comments(&equal_token)
-            || !trivia_util::expression_leading_comments(expression).is_empty()
+            || expression.has_leading_comments(CommentSearch::Single)
         {
             // We will hang at the equals token, and then format the expression as necessary
             let equal_token = hang_equal_token(ctx, &equal_token, shape, false);
@@ -249,16 +250,14 @@ fn attempt_assignment_tactics(
             // Format the expression given - if it contains comments, make sure to hang the expression
             // Ignore the leading comments though (as they are solved by hanging at the equals), and the
             // trailing comments, as they don't affect anything
-            let expression =
-                if trivia_util::expression_contains_inline_comments(&strip_trivia(expression)) {
-                    hang_expression(ctx, expression, shape, None)
-                } else {
-                    format_expression(ctx, expression, shape)
-                };
+            let expression = if strip_trivia(expression).has_inline_comments() {
+                hang_expression(ctx, expression, shape, None)
+            } else {
+                format_expression(ctx, expression, shape)
+            };
 
             // We need to take all the leading trivia from the expr_list
-            let (expression, leading_comments) =
-                trivia_util::take_expression_leading_comments(&expression);
+            let (expression, leading_comments) = trivia_util::take_leading_comments(&expression);
 
             // Indent each comment and trail them with a newline
             let leading_comments = leading_comments
@@ -291,7 +290,7 @@ fn attempt_assignment_tactics(
             let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
-            if trivia_util::expression_contains_inline_comments(expression)
+            if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
             {
                 (hanging_expr_list, equal_token)
