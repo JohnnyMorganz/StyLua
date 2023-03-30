@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1680191559271,
+  "lastUpdate": 1680191560907,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5081,6 +5081,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 30852453,
             "range": "± 1074000",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b8c65f3a49e19a672b21f7248726d843e46a5296",
+          "message": "Format line endings in multiline strings and comments (#666)\n\n* Add test case\r\n\r\n* Convert line endings\r\n\r\n* Update changelog",
+          "timestamp": "2023-03-30T16:47:23+01:00",
+          "tree_id": "d5374827fecaa4e95e22ea65ca0ebe1ab29819fe",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b8c65f3a49e19a672b21f7248726d843e46a5296"
+        },
+        "date": 1680191560043,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 53799146,
+            "range": "± 516084",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 370181641,
+            "range": "± 3123580",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28034449,
+            "range": "± 164811",
             "unit": "ns/iter"
           }
         ]
