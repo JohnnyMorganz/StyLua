@@ -17,7 +17,7 @@ use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
         span::ContainedSpan,
-        Expression, Field, TableConstructor, Value,
+        Expression, Field, TableConstructor,
     },
     node::Node,
     tokenizer::{Token, TokenReference, TokenType},
@@ -393,10 +393,8 @@ where
 }
 
 fn expression_is_multiline_function(ctx: &Context, expression: &Expression) -> bool {
-    if let Expression::Value { value, .. } = expression {
-        if let Value::Function((_, function_body)) = &**value {
-            return !should_collapse_function_body(ctx, function_body);
-        }
+    if let Expression::Function((_, function_body)) = expression {
+        return !should_collapse_function_body(ctx, function_body);
     }
     false
 }

@@ -2,7 +2,7 @@ use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
         span::ContainedSpan,
-        Ast, Block, Expression, FunctionArgs, TableConstructor, Value,
+        Ast, Block, Expression, FunctionArgs, TableConstructor,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType},
@@ -32,14 +32,6 @@ impl AstVerifier {
 fn remove_parentheses(expression: Expression) -> Expression {
     match expression {
         Expression::Parentheses { expression, .. } => *expression,
-        Expression::Value { value, .. } => Expression::Value {
-            value: match *value {
-                Value::ParenthesesExpression(expression) => return remove_parentheses(expression),
-                _ => value,
-            },
-            #[cfg(feature = "luau")]
-            type_assertion: None,
-        },
         _ => expression,
     }
 }
@@ -107,24 +99,15 @@ impl VisitorMut for AstVerifier {
                     TokenReference::symbol("(").unwrap(),
                     TokenReference::symbol(")").unwrap(),
                 ),
-                arguments: std::iter::once(Pair::End(Expression::Value {
-                    value: Box::new(Value::String(string)),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                }))
-                .collect(),
+                arguments: std::iter::once(Pair::End(Expression::String(string))).collect(),
             },
             FunctionArgs::TableConstructor(table) => FunctionArgs::Parentheses {
                 parentheses: ContainedSpan::new(
                     TokenReference::symbol("(").unwrap(),
                     TokenReference::symbol(")").unwrap(),
                 ),
-                arguments: std::iter::once(Pair::End(Expression::Value {
-                    value: Box::new(Value::TableConstructor(table)),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                }))
-                .collect(),
+                arguments: std::iter::once(Pair::End(Expression::TableConstructor(table)))
+                    .collect(),
             },
             _ => node,
         }

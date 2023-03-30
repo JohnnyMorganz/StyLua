@@ -17,7 +17,7 @@ use crate::{
     shape::Shape,
 };
 use full_moon::ast::{
-    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Value, Var,
+    punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
 };
 use full_moon::tokenizer::TokenType;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -31,12 +31,10 @@ macro_rules! update_first_token {
 }
 
 fn is_function_or_table_constructor(expression: &Expression) -> bool {
-    match expression {
-        Expression::Value { value, .. } => {
-            matches!(&**value, Value::TableConstructor(_) | Value::Function(_))
-        }
-        _ => false,
-    }
+    matches!(
+        expression,
+        Expression::TableConstructor(_) | Expression::Function(_)
+    )
 }
 
 pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Return {
@@ -275,7 +273,7 @@ fn prefix_remove_leading_newlines(prefix: &Prefix) -> Prefix {
             let leading_trivia = trivia_remove_leading_newlines(token.leading_trivia().collect());
             Prefix::Name(token.update_leading_trivia(FormatTriviaType::Replace(leading_trivia)))
         }
-        Prefix::Expression(expr) => Prefix::Expression(match expr {
+        Prefix::Expression(expr) => Prefix::Expression(match &**expr {
             Expression::Parentheses {
                 contained,
                 expression,
@@ -283,14 +281,14 @@ fn prefix_remove_leading_newlines(prefix: &Prefix) -> Prefix {
                 let (start_parens, end_parens) = contained.tokens();
                 let leading_trivia =
                     trivia_remove_leading_newlines(start_parens.leading_trivia().collect());
-                Expression::Parentheses {
+                Box::new(Expression::Parentheses {
                     contained: full_moon::ast::span::ContainedSpan::new(
                         start_parens
                             .update_leading_trivia(FormatTriviaType::Replace(leading_trivia)),
                         end_parens.to_owned(),
                     ),
                     expression: Box::new(*expression.to_owned()),
-                }
+                })
             }
             other => {
                 unreachable!("got non-parentheses expression as prefix {:?}", other)
@@ -309,7 +307,7 @@ fn var_remove_leading_newline(var: Var) -> Var {
         }
         Var::Expression(var_expr) => {
             let prefix = prefix_remove_leading_newlines(var_expr.prefix());
-            Var::Expression(var_expr.with_prefix(prefix))
+            Var::Expression(Box::new(var_expr.with_prefix(prefix)))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -445,6 +443,13 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
     }
 }
 
+fn prefix_with_parentheses(prefix: &Prefix) -> bool {
+    match prefix {
+        Prefix::Expression(expression) => matches!(&**expression, Expression::Parentheses { .. }),
+        _ => false,
+    }
+}
+
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let mut ctx = *ctx;
@@ -476,17 +481,13 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             | Stmt::Repeat(_) => {
                 let next_stmt = stmt_iterator.peek();
                 match next_stmt {
-                    Some((Stmt::FunctionCall(function_call), _)) => matches!(
-                        function_call.prefix(),
-                        Prefix::Expression(Expression::Parentheses { .. })
-                    ),
+                    Some((Stmt::FunctionCall(function_call), _)) => {
+                        prefix_with_parentheses(function_call.prefix())
+                    }
                     Some((Stmt::Assignment(assignment), _)) => {
                         match assignment.variables().iter().next() {
                             Some(Var::Expression(var_expression)) => {
-                                matches!(
-                                    var_expression.prefix(),
-                                    Prefix::Expression(Expression::Parentheses { .. })
-                                )
+                                prefix_with_parentheses(var_expression.prefix())
                             }
                             _ => false,
                         }

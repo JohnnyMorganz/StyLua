@@ -3,10 +3,9 @@ use full_moon::ast::{
     span::ContainedSpan,
     Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
     FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Stmt, Suffix,
-    TableConstructor, Value, Var,
+    TableConstructor, Var,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
-use std::boxed::Box;
 
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{format_generic_declaration, format_type_specifier};
@@ -86,13 +85,10 @@ pub fn format_call(
 }
 
 fn is_table_constructor(expression: &Expression) -> bool {
-    match expression {
-        Expression::Value { value, .. } => matches!(**value, Value::TableConstructor(_)),
-        _ => false,
-    }
+    matches!(expression, Expression::TableConstructor(_))
 }
 
-fn is_complex_arg(value: &Value) -> bool {
+fn is_complex_arg(value: &Expression) -> bool {
     value.to_string().trim().contains('\n')
 }
 
@@ -225,81 +221,73 @@ fn function_args_multiline_heuristic(
     for pair in first_iter_formatted_arguments {
         let argument = pair.value();
         match argument {
-            Expression::Value { ref value, .. } => {
-                match &**value {
-                    // Check to see if we have a table constructor, or anonymous function
-                    Value::Function((_, function_body)) => {
-                        // Check to see whether it has been expanded
-                        let is_expanded = !should_collapse_function_body(ctx, function_body);
-                        if is_expanded {
-                            // If we have a mixture of multiline args, and other arguments
-                            // Then the function args should be expanded
-                            if current_state.should_hang() {
-                                return true;
-                            }
-
-                            current_state = current_state.record_multiline_arg();
-
-                            // First check the top line of the anonymous function (i.e. the function token and any parameters)
-                            // If this is over budget, then we should expand
-                            singleline_shape = singleline_shape.take_first_line(&value);
-                            if singleline_shape.over_budget() {
-                                return true;
-                            }
-
-                            // Reset the shape onto a new line, and include the `end` token
-                            singleline_shape = singleline_shape.reset() + END_LEN;
-                        } else {
-                            // Update the width with the collapsed function (normally indicative of a noop function)
-                            singleline_shape = singleline_shape + argument.to_string().len();
-                        }
-                    }
-                    Value::TableConstructor(table) => {
-                        // Check to see whether it has been expanded (there is a newline after the start brace)
-                        let is_expanded = trivia_util::trivia_contains_newline(
-                            table.braces().tokens().0.trailing_trivia(),
-                        );
-
-                        if is_expanded {
-                            // If we have a mixture of multiline args, and other arguments
-                            // Then the function args should be expanded
-                            if current_state.should_hang() {
-                                return true;
-                            }
-
-                            current_state = current_state.record_multiline_arg();
-
-                            // Reset the shape onto a new line
-                            singleline_shape = singleline_shape.reset() + BRACKET_LEN;
-                        } else {
-                            // Update the shape with the size of the collapsed table constructor
-                            singleline_shape = singleline_shape + argument.to_string().len();
-                        }
+            // Check to see if we have a table constructor, or anonymous function
+            Expression::Function((_, function_body)) => {
+                // Check to see whether it has been expanded
+                let is_expanded = !should_collapse_function_body(ctx, function_body);
+                if is_expanded {
+                    // If we have a mixture of multiline args, and other arguments
+                    // Then the function args should be expanded
+                    if current_state.should_hang() {
+                        return true;
                     }
 
-                    _ => {
-                        current_state = current_state.record_standard_arg();
+                    current_state = current_state.record_multiline_arg();
 
-                        // If the argument is complex (spans multiple lines), then we will immediately
-                        // exit and span multiline - it is most likely too complex to keep going forward.
-                        if is_complex_arg(value) && arguments.len() > 1 {
-                            return true;
-                        }
-
-                        // Take the first line to see if we are over budget
-                        if singleline_shape.take_first_line(&argument).over_budget() {
-                            return true;
-                        }
-
-                        // Update the shape with the last line (which may be different from the first)
-                        singleline_shape = singleline_shape.take_last_line(&argument);
+                    // First check the top line of the anonymous function (i.e. the function token and any parameters)
+                    // If this is over budget, then we should expand
+                    singleline_shape = singleline_shape.take_first_line(&argument);
+                    if singleline_shape.over_budget() {
+                        return true;
                     }
+
+                    // Reset the shape onto a new line, and include the `end` token
+                    singleline_shape = singleline_shape.reset() + END_LEN;
+                } else {
+                    // Update the width with the collapsed function (normally indicative of a noop function)
+                    singleline_shape = singleline_shape + argument.to_string().len();
                 }
             }
-            // TODO: Parentheses/UnOp, do we need to do more checking?
-            // We will continue counting on the width_passed
+            Expression::TableConstructor(table) => {
+                // Check to see whether it has been expanded (there is a newline after the start brace)
+                let is_expanded = trivia_util::trivia_contains_newline(
+                    table.braces().tokens().0.trailing_trivia(),
+                );
+
+                if is_expanded {
+                    // If we have a mixture of multiline args, and other arguments
+                    // Then the function args should be expanded
+                    if current_state.should_hang() {
+                        return true;
+                    }
+
+                    current_state = current_state.record_multiline_arg();
+
+                    // Reset the shape onto a new line
+                    singleline_shape = singleline_shape.reset() + BRACKET_LEN;
+                } else {
+                    // Update the shape with the size of the collapsed table constructor
+                    singleline_shape = singleline_shape + argument.to_string().len();
+                }
+            }
+
             _ => {
                 current_state = current_state.record_standard_arg();
+
+                // If the argument is complex (spans multiple lines), then we will immediately
+                // exit and span multiline - it is most likely too complex to keep going forward.
+                // TODO: we keep this match due to backwards compatibility when Value was flatten,
+                // to prevent any code changes. Maybe we should revisit if it is necessary?
+                if !matches!(
+                    argument,
+                    Expression::Parentheses { .. }
+                        | Expression::UnaryOperator { .. }
+                        | Expression::BinaryOperator { .. }
+                ) && is_complex_arg(argument)
+                    && arguments.len() > 1
+                {
+                    return true;
+                }
 
                 // Take the first line to see if we are over budget
                 if singleline_shape.take_first_line(&argument).over_budget() {
@@ -380,36 +368,34 @@ pub fn format_function_args(
                 // Take any trailing trivia from the end parentheses, in case we need to keep it
                 let trailing_comments = parentheses.tokens().1.trailing_trivia().cloned().collect();
 
-                if let Expression::Value { value, .. } = argument {
-                    match &**value {
-                        Value::String(token_reference) => {
-                            if ctx.should_omit_string_parens() {
-                                return format_function_args(
-                                    ctx,
-                                    &FunctionArgs::String(token_reference.update_trailing_trivia(
-                                        FormatTriviaType::Append(trailing_comments),
-                                    )),
-                                    shape,
-                                    call_next_node,
-                                );
-                            }
+                match argument {
+                    Expression::String(token_reference) => {
+                        if ctx.should_omit_string_parens() {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::String(token_reference.update_trailing_trivia(
+                                    FormatTriviaType::Append(trailing_comments),
+                                )),
+                                shape,
+                                call_next_node,
+                            );
                         }
-                        Value::TableConstructor(table_constructor) => {
-                            if ctx.should_omit_table_parens() {
-                                return format_function_args(
-                                    ctx,
-                                    &FunctionArgs::TableConstructor(
-                                        table_constructor.update_trailing_trivia(
-                                            FormatTriviaType::Append(trailing_comments),
-                                        ),
-                                    ),
-                                    shape,
-                                    call_next_node,
-                                );
-                            }
-                        }
-                        _ => (),
                     }
+                    Expression::TableConstructor(table_constructor) => {
+                        if ctx.should_omit_table_parens() {
+                            return format_function_args(
+                                ctx,
+                                &FunctionArgs::TableConstructor(
+                                    table_constructor.update_trailing_trivia(
+                                        FormatTriviaType::Append(trailing_comments),
+                                    ),
+                                ),
+                                shape,
+                                call_next_node,
+                            );
+                        }
+                    }
+                    _ => (),
                 }
             }
 
@@ -504,11 +490,7 @@ pub fn format_function_args(
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
-                &Expression::Value {
-                    value: Box::new(Value::String(token_reference.to_owned())),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                },
+                &Expression::String(token_reference.to_owned()),
                 shape + 1, // 1 = opening parentheses
             );
 
@@ -546,11 +528,7 @@ pub fn format_function_args(
             let mut arguments = Punctuated::new();
             let new_expression = format_expression(
                 ctx,
-                &Expression::Value {
-                    value: Box::new(Value::TableConstructor(table_constructor.to_owned())),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                },
+                &Expression::TableConstructor(table_constructor.to_owned()),
                 shape + 1, // 1 = opening parentheses
             );
 
@@ -668,23 +646,20 @@ fn suffix_contains_nested_function(suffix: &Suffix) -> bool {
 /// Checks whether an expression contains a function body - in this case, we shouldn't collapse
 fn contains_nested_function(expression: &Expression) -> bool {
     match expression {
-        Expression::Value { value, .. } => match &**value {
-            Value::Function(_) => true,
-            Value::FunctionCall(call) => function_call_contains_nested_function(call),
-            Value::ParenthesesExpression(expression) => contains_nested_function(expression),
-            Value::TableConstructor(table_constructor) => {
-                table_constructor_contains_nested_function(table_constructor)
-            }
-            Value::Var(var) => var_contains_nested_function(var),
-            _ => false,
-        },
+        Expression::Function(_) => true,
+        Expression::FunctionCall(call) => function_call_contains_nested_function(call),
+        Expression::Parentheses { expression, .. } => contains_nested_function(expression),
+        Expression::TableConstructor(table_constructor) => {
+            table_constructor_contains_nested_function(table_constructor)
+        }
+        Expression::Var(var) => var_contains_nested_function(var),
         Expression::BinaryOperator { lhs, rhs, .. } => {
             contains_nested_function(lhs) || contains_nested_function(rhs)
         }
-        Expression::Parentheses { expression, .. } => contains_nested_function(expression),
         Expression::UnaryOperator { expression, .. } => contains_nested_function(expression),
-
-        other => unreachable!("unknown node {:?}", other),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => contains_nested_function(expression),
+        _ => false,
     }
 }
 

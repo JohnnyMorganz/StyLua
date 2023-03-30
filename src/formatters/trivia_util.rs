@@ -13,8 +13,8 @@ use full_moon::ast::types::{
 use full_moon::{
     ast::{
         punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
-        LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Value,
-        Var, VarExpression,
+        LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var,
+        VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -64,19 +64,17 @@ pub fn can_hang_expression(expression: &Expression) -> bool {
         Expression::Parentheses { .. } => true, // Can always hang parentheses if necessary
         Expression::UnaryOperator { expression, .. } => can_hang_expression(expression),
         Expression::BinaryOperator { .. } => true, // If a binop is present, then we can hang the expression
-        Expression::Value { value, .. } => match &**value {
-            Value::ParenthesesExpression(expression) => can_hang_expression(expression),
-            Value::FunctionCall(function_call) => match function_call.prefix() {
-                Prefix::Expression(expression) => can_hang_expression(expression),
-                _ => false,
-            },
-            Value::Var(Var::Expression(expression)) => match expression.prefix() {
-                Prefix::Expression(expression) => can_hang_expression(expression),
-                _ => false,
-            },
+        Expression::FunctionCall(function_call) => match function_call.prefix() {
+            Prefix::Expression(expression) => can_hang_expression(expression),
             _ => false,
         },
-        other => panic!("unknown node {:?}", other),
+        Expression::Var(Var::Expression(expression)) => match expression.prefix() {
+            Prefix::Expression(expression) => can_hang_expression(expression),
+            _ => false,
+        },
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => can_hang_expression(expression),
+        _ => false,
     }
 }
 
@@ -296,52 +294,6 @@ fn var_trailing_trivia(var: &Var) -> Vec<Token> {
     }
 }
 
-pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
-    match value {
-        Value::Function((_, function_body)) => function_body
-            .end_token()
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::FunctionCall(function_call) => {
-            if let Some(last_suffix) = function_call.suffixes().last() {
-                suffix_trailing_trivia(last_suffix)
-            } else {
-                unreachable!("got a FunctionCall with no suffix");
-            }
-        }
-        Value::String(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::TableConstructor(table_constructor) => {
-            let (_, end_brace) = table_constructor.braces().tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        Value::Number(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(expr),
-        Value::Symbol(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::Var(var) => var_trailing_trivia(var),
-        #[cfg(feature = "luau")]
-        Value::IfExpression(if_expression) => {
-            get_expression_trailing_trivia(if_expression.else_expression())
-        }
-        #[cfg(feature = "luau")]
-        Value::InterpolatedString(interpolated_string) => interpolated_string
-            .last_string()
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
 pub fn get_expression_trailing_trivia(expression: &Expression) -> Vec<Token> {
     match expression {
         Expression::Parentheses { contained, .. } => {
@@ -353,17 +305,48 @@ pub fn get_expression_trailing_trivia(expression: &Expression) -> Vec<Token> {
         }
         Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(expression),
         Expression::BinaryOperator { rhs, .. } => get_expression_trailing_trivia(rhs),
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => {
-            #[cfg(feature = "luau")]
-            if let Some(type_assertion) = type_assertion {
-                return type_info_trailing_trivia(type_assertion.cast_to());
+        Expression::Function((_, function_body)) => function_body
+            .end_token()
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Expression::FunctionCall(function_call) => {
+            if let Some(last_suffix) = function_call.suffixes().last() {
+                suffix_trailing_trivia(last_suffix)
+            } else {
+                unreachable!("got a FunctionCall with no suffix");
             }
-
-            get_value_trailing_trivia(value)
+        }
+        Expression::String(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Expression::TableConstructor(table_constructor) => {
+            let (_, end_brace) = table_constructor.braces().tokens();
+            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+        }
+        Expression::Number(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Expression::Symbol(token_reference) => token_reference
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Expression::Var(var) => var_trailing_trivia(var),
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(if_expression) => {
+            get_expression_trailing_trivia(if_expression.else_expression())
+        }
+        #[cfg(feature = "luau")]
+        Expression::InterpolatedString(interpolated_string) => interpolated_string
+            .last_string()
+            .trailing_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { type_assertion, .. } => {
+            type_info_trailing_trivia(type_assertion.cast_to())
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -386,66 +369,62 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
             other => panic!("unknown node {:?}", other),
         },
         Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
-        Expression::Value { value, .. } => match &**value {
-            Value::Function((token_ref, _)) => {
-                token_ref.leading_trivia().map(|x| x.to_owned()).collect()
-            }
-            Value::FunctionCall(function_call) => match function_call.prefix() {
+        Expression::Function((token_ref, _)) => {
+            token_ref.leading_trivia().map(|x| x.to_owned()).collect()
+        }
+        Expression::FunctionCall(function_call) => match function_call.prefix() {
+            Prefix::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+            other => panic!("unknown node {:?}", other),
+        },
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(if_expression) => if_expression
+            .if_token()
+            .leading_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        #[cfg(feature = "luau")]
+        Expression::InterpolatedString(interpolated_string) => {
+            interpolated_string.segments().next().map_or_else(
+                || {
+                    interpolated_string
+                        .last_string()
+                        .leading_trivia()
+                        .map(|x| x.to_owned())
+                        .collect()
+                },
+                |segment| {
+                    segment
+                        .literal
+                        .leading_trivia()
+                        .map(|x| x.to_owned())
+                        .collect()
+                },
+            )
+        }
+        Expression::TableConstructor(table) => table
+            .braces()
+            .tokens()
+            .0
+            .leading_trivia()
+            .map(|x| x.to_owned())
+            .collect(),
+        Expression::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+        Expression::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+        Expression::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+        Expression::Var(var) => match var {
+            Var::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
+            Var::Expression(var_expr) => match var_expr.prefix() {
                 Prefix::Name(token_ref) => {
                     token_ref.leading_trivia().map(|x| x.to_owned()).collect()
                 }
                 Prefix::Expression(expr) => get_expression_leading_trivia(expr),
                 other => panic!("unknown node {:?}", other),
             },
-            #[cfg(feature = "luau")]
-            Value::IfExpression(if_expression) => if_expression
-                .if_token()
-                .leading_trivia()
-                .map(|x| x.to_owned())
-                .collect(),
-            #[cfg(feature = "luau")]
-            Value::InterpolatedString(interpolated_string) => {
-                interpolated_string.segments().next().map_or_else(
-                    || {
-                        interpolated_string
-                            .last_string()
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
-                    |segment| {
-                        segment
-                            .literal
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
-                )
-            }
-            Value::TableConstructor(table) => table
-                .braces()
-                .tokens()
-                .0
-                .leading_trivia()
-                .map(|x| x.to_owned())
-                .collect(),
-            Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(expr),
-            Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::Var(var) => match var {
-                Var::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-                Var::Expression(var_expr) => match var_expr.prefix() {
-                    Prefix::Name(token_ref) => {
-                        token_ref.leading_trivia().map(|x| x.to_owned()).collect()
-                    }
-                    Prefix::Expression(expr) => get_expression_leading_trivia(expr),
-                    other => panic!("unknown node {:?}", other),
-                },
-                other => panic!("unknown node {:?}", other),
-            },
             other => panic!("unknown node {:?}", other),
         },
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => get_expression_leading_trivia(expression),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -1297,13 +1276,11 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
                 || token_contains_leading_comments(contained.tokens().1)
                 || contains_comments(expression)
         }
-        Expression::Value { value, .. } => match &**value {
-            Value::ParenthesesExpression(expression) => {
-                expression_contains_inline_comments(expression)
-            }
-            _ => false,
-        },
-        other => panic!("unknown node {:?}", other),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => {
+            expression_contains_inline_comments(expression)
+        }
+        _ => false,
     }
 }
 
