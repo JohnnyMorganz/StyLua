@@ -32,7 +32,7 @@ use crate::{
         },
         trivia_util::{
             self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
-            GetTrailingTrivia,
+            GetTrailingTrivia, HasInlineComments,
         },
     },
     shape::Shape,
@@ -579,8 +579,6 @@ fn format_token_expression_sequence(
 #[cfg(feature = "luau")]
 fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shape) -> IfExpression {
     // Remove parentheses around the condition
-
-    use crate::formatters::trivia_util::HasInlineComments;
     let condition = remove_condition_parentheses(if_expression.condition().to_owned());
     let if_token = fmt_symbol!(ctx, if_expression.if_token(), "if ", shape);
 

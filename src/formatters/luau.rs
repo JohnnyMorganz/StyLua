@@ -16,7 +16,7 @@ use crate::{
         trivia_util::{
             contains_comments, contains_singleline_comments, spans_multiple_lines,
             token_contains_comments, trivia_is_comment, trivia_is_newline, CommentSearch,
-            GetLeadingTrivia,
+            GetLeadingTrivia, GetTrailingTrivia,
         },
     },
     shape::Shape,
@@ -29,8 +29,6 @@ use full_moon::ast::types::{
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
-
-use super::trivia_util::GetTrailingTrivia;
 
 pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape) -> CompoundOp {
     fmt_op!(ctx, CompoundOp, compound_op, shape, {
@@ -738,7 +736,7 @@ fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool
             ampersand: binop,
             right,
         } => {
-            type_info.has_trailing_comments(comment_search)
+            left.has_trailing_comments(comment_search)
                 || should_hang_type(left, comment_search)
                 || contains_comments(binop)
                 || right.has_leading_comments(comment_search)
