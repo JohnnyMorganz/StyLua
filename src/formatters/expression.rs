@@ -15,7 +15,7 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::{
     assignment::calculate_hang_level, luau::format_type_assertion,
-    stmt::remove_condition_parentheses,
+    stmt::remove_condition_parentheses, trivia_util::HasInlineComments,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
@@ -32,7 +32,7 @@ use crate::{
         },
         trivia_util::{
             self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
-            GetTrailingTrivia, HasInlineComments,
+            GetTrailingTrivia,
         },
     },
     shape::Shape,

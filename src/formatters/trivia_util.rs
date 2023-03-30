@@ -437,6 +437,7 @@ pub fn take_leading_comments<T: GetLeadingTrivia + UpdateLeadingTrivia>(
     )
 }
 
+#[cfg(feature = "luau")]
 pub fn take_trailing_trivia<T: GetTrailingTrivia + UpdateTrailingTrivia>(
     node: &T,
 ) -> (T, Vec<Token>) {
@@ -873,6 +874,7 @@ pub fn contains_comments(node: impl Node) -> bool {
     node.tokens().any(token_contains_comments)
 }
 
+#[allow(dead_code)]
 pub fn contains_singleline_comments(node: impl Node) -> bool {
     node.tokens()
         .any(|token| token_contains_comments_search(token, CommentSearch::Single))
@@ -958,12 +960,6 @@ impl GetLeadingTrivia for Var {
             Var::Expression(var_expr) => var_expr.prefix().leading_trivia(),
             other => panic!("unknown node {:?}", other),
         }
-    }
-}
-
-impl GetLeadingTrivia for VarExpression {
-    fn leading_trivia(&self) -> Vec<Token> {
-        self.prefix().leading_trivia()
     }
 }
 
