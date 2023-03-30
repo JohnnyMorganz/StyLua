@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1680179440587,
+  "lastUpdate": 1680180880589,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -4997,6 +4997,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28643605,
             "range": "± 138074",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "46457ad4e4130d07ee0f9a5cf95ac10023c8ceeb",
+          "message": "Fix comments in punctuated list for returns and assignments (#663)\n\n* Add test cases\r\n\r\n* Properly handle comments when formatting a punctuated list multiline\r\n\r\n* Update snapshots\r\n\r\n* Hang equals token for comments\r\n\r\n* Update changelog",
+          "timestamp": "2023-03-30T13:48:55+01:00",
+          "tree_id": "b1f1300a4347819be85c1e17c042ce551df24308",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/46457ad4e4130d07ee0f9a5cf95ac10023c8ceeb"
+        },
+        "date": 1680180879424,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58059556,
+            "range": "± 1749068",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 383089516,
+            "range": "± 12426483",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30244710,
+            "range": "± 993618",
             "unit": "ns/iter"
           }
         ]
