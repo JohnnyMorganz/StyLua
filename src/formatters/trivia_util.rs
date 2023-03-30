@@ -273,20 +273,8 @@ impl GetLeadingTrivia for Value {
             #[cfg(feature = "luau")]
             Value::InterpolatedString(interpolated_string) => {
                 interpolated_string.segments().next().map_or_else(
-                    || {
-                        interpolated_string
-                            .last_string()
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
-                    |segment| {
-                        segment
-                            .literal
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
+                    || GetLeadingTrivia::leading_trivia(interpolated_string.last_string()),
+                    |segment| GetLeadingTrivia::leading_trivia(&segment.literal),
                 )
             }
             Value::TableConstructor(table) => {
@@ -308,13 +296,10 @@ impl GetTrailingTrivia for Value {
             Value::Function((_, function_body)) => {
                 GetTrailingTrivia::trailing_trivia(function_body.end_token())
             }
-            Value::FunctionCall(function_call) => {
-                if let Some(last_suffix) = function_call.suffixes().last() {
-                    last_suffix.trailing_trivia()
-                } else {
-                    unreachable!("got a FunctionCall with no suffix");
-                }
-            }
+            Value::FunctionCall(function_call) => function_call
+                .suffixes()
+                .last()
+                .map_or_else(Vec::new, GetTrailingTrivia::trailing_trivia),
             Value::String(token_reference) => GetTrailingTrivia::trailing_trivia(token_reference),
             Value::TableConstructor(table_constructor) => {
                 let (_, end_brace) = table_constructor.braces().tokens();
@@ -327,11 +312,9 @@ impl GetTrailingTrivia for Value {
             #[cfg(feature = "luau")]
             Value::IfExpression(if_expression) => if_expression.else_expression().trailing_trivia(),
             #[cfg(feature = "luau")]
-            Value::InterpolatedString(interpolated_string) => interpolated_string
-                .last_string()
-                .trailing_trivia()
-                .map(|x| x.to_owned())
-                .collect(),
+            Value::InterpolatedString(interpolated_string) => {
+                GetTrailingTrivia::trailing_trivia(interpolated_string.last_string())
+            }
             other => panic!("unknown node {:?}", other),
         }
     }
