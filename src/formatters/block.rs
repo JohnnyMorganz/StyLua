@@ -55,7 +55,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         );
 
         let contains_comments = return_token_trailing_comments
-            || trivia_util::punctuated_expression_inline_comments(returns);
+            || trivia_util::punctuated_inline_comments(returns, true);
         let is_function_or_table = returns.iter().all(is_function_or_table_constructor);
 
         // See if we need to format multiline

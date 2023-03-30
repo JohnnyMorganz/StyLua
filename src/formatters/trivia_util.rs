@@ -450,13 +450,6 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
     }
 }
 
-pub fn punctuated_leading_trivia(punctuated: &Punctuated<Expression>) -> Vec<Token> {
-    punctuated
-        .iter()
-        .next()
-        .map_or_else(Vec::new, get_expression_leading_trivia)
-}
-
 pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
     match binop {
         BinOp::And(token)
@@ -1307,17 +1300,39 @@ pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
     }
 }
 
-pub fn punctuated_expression_inline_comments(punctuated: &Punctuated<Expression>) -> bool {
-    punctuated.pairs().any(|pair| {
-        pair.punctuation().map_or(false, token_contains_comments)
-            || !expression_leading_comments(pair.value()).is_empty()
-            || expression_contains_inline_comments(pair.value())
-    })
+pub fn punctuated_inline_comments<T: GetLeadingTrivia + GetTrailingTrivia + HasInlineComments>(
+    punctuated: &Punctuated<T>,
+    include_leading: bool,
+) -> bool {
+    let mut iter = punctuated.pairs().peekable();
+    while let Some(pair) = iter.next() {
+        // Only check trailing comments on the expression if this is not the last pair
+        if iter.peek().is_some() && !pair.value().trailing_comments().is_empty() {
+            return true;
+        }
+
+        if pair.punctuation().map_or(false, token_contains_comments)
+            || (include_leading && !pair.value().leading_comments().is_empty())
+            || pair.value().has_inline_comments()
+        {
+            return true;
+        }
+    }
+
+    false
 }
 
 // TODO: can we change this from returning a Vec to just a plain iterator?
 pub trait GetLeadingTrivia {
     fn leading_trivia(&self) -> Vec<Token>;
+
+    fn leading_comments(&self) -> Vec<Token> {
+        self.leading_trivia()
+            .iter()
+            .filter(|token| trivia_is_comment(token))
+            .cloned()
+            .collect()
+    }
 }
 
 impl GetLeadingTrivia for TokenReference {
@@ -1338,9 +1353,11 @@ impl GetLeadingTrivia for Expression {
     }
 }
 
-impl GetLeadingTrivia for Punctuated<Expression> {
+impl<T: GetLeadingTrivia> GetLeadingTrivia for Punctuated<T> {
     fn leading_trivia(&self) -> Vec<Token> {
-        punctuated_leading_trivia(self)
+        self.iter()
+            .next()
+            .map_or_else(Vec::new, GetLeadingTrivia::leading_trivia)
     }
 }
 
@@ -1375,6 +1392,74 @@ impl GetLeadingTrivia for Prefix {
         }
     }
 }
+
+pub trait GetTrailingTrivia {
+    fn trailing_trivia(&self) -> Vec<Token>;
+
+    fn has_trailing_comments(&self, search: CommentSearch) -> bool {
+        trivia_contains_comments(self.trailing_trivia().iter(), search)
+    }
+
+    // Retrieves all the trailing comments from the token
+    // Prepends a space before each comment
+    fn trailing_comments(&self) -> Vec<Token> {
+        self.trailing_trivia()
+            .iter()
+            .filter(|token| trivia_is_comment(token))
+            .flat_map(|x| {
+                // Prepend a single space beforehand
+                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+            })
+            .collect()
+    }
+}
+
+impl GetTrailingTrivia for TokenReference {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.trailing_trivia().cloned().collect()
+    }
+}
+
+impl GetTrailingTrivia for Suffix {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        suffix_trailing_trivia(self)
+    }
+}
+
+impl GetTrailingTrivia for Expression {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        get_expression_trailing_trivia(self)
+    }
+}
+
+impl GetTrailingTrivia for Var {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        var_trailing_trivia(self)
+    }
+}
+
+impl<T: GetTrailingTrivia> GetTrailingTrivia for Punctuated<T> {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.iter()
+            .last()
+            .map_or_else(Vec::new, GetTrailingTrivia::trailing_trivia)
+    }
+}
+
+pub trait HasInlineComments {
+    fn has_inline_comments(&self) -> bool {
+        false
+    }
+}
+
+impl HasInlineComments for Expression {
+    fn has_inline_comments(&self) -> bool {
+        expression_contains_inline_comments(self)
+    }
+}
+
+impl HasInlineComments for Var {}
+impl HasInlineComments for TokenReference {}
 
 // Commonly, we update trivia to add in a newline and indent trivia to the leading trivia of a token/node.
 // An issue with this is if we do not properly take into account comments. This function also handles any comments present
