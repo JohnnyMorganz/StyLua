@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bumped internal parser dependency which should fix parsing problems for comments with Chinese characters, and multiline string escapes
 - Fixed comments in punctuated lists for return statements or assignments being incorrectly formatted leading to syntax errors ([#662](https://github.com/JohnnyMorganz/StyLua/issues/662))
+- Fixed line endings not being correctly formatted in multiline string literals and comments ([#665](https://github.com/JohnnyMorganz/StyLua/issues/665))
 
 ## [0.17.0] - 2023-03-11
 

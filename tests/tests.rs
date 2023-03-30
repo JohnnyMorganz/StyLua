@@ -127,3 +127,40 @@ fn test_sort_requires() {
         .unwrap());
     })
 }
+
+#[test]
+fn test_crlf_in_multiline_comments() {
+    // We need to do this outside of insta since it normalises line endings to LF
+    let code = r###"
+local a = "testing"
+--[[
+    This comment
+    is multiline
+    and we want to ensure the line endings
+    convert to CRLF
+]]
+local x = 1
+"###;
+
+    let code_crlf = code.lines().collect::<Vec<_>>().join("\r\n");
+    let output = format(&code_crlf);
+    assert_eq!(output.find("\r\n"), None);
+}
+
+#[test]
+fn test_crlf_in_multiline_strings() {
+    // We need to do this outside of insta since it normalises line endings to LF
+    let code = r###"
+local a = [[
+    This string
+    is multiline
+    and we want to ensure the line endings
+    convert to CRLF
+]]
+local x = 1
+"###;
+
+    let code_crlf = code.lines().collect::<Vec<_>>().join("\r\n");
+    let output = format(&code_crlf);
+    assert_eq!(output.find("\r\n"), None);
+}

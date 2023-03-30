@@ -155,7 +155,7 @@ impl Context {
 }
 
 /// Returns the relevant line ending string from the [`LineEndings`] enum
-fn line_ending_character(line_endings: LineEndings) -> String {
+pub fn line_ending_character(line_endings: LineEndings) -> String {
     match line_endings {
         LineEndings::Unix => String::from("\n"),
         LineEndings::Windows => String::from("\r\n"),

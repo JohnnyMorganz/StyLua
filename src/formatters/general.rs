@@ -1,5 +1,7 @@
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
+    context::{
+        create_indent_trivia, create_newline_trivia, line_ending_character, Context, FormatNode,
+    },
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
         trivia_util::{
@@ -121,8 +123,14 @@ pub fn format_token(
         } => {
             // If we have a brackets string, don't mess with it
             if let StringLiteralQuoteType::Brackets = quote_type {
+                // Convert the string to the correct line endings, by first normalising to LF
+                // then converting LF to output
+                let literal = literal
+                    .replace("\r\n", "\n")
+                    .replace('\n', &line_ending_character(ctx.config().line_endings));
+
                 TokenType::StringLiteral {
-                    literal: literal.to_owned(),
+                    literal: literal.into(),
                     multi_line: *multi_line,
                     quote_type: StringLiteralQuoteType::Brackets,
                 }
@@ -209,9 +217,15 @@ pub fn format_token(
                 trailing_trivia = Some(vec![create_newline_trivia(ctx)]);
             }
 
+            // Convert the comment to the correct line endings, by first normalising to LF
+            // then converting LF to output
+            let comment = comment
+                .replace("\r\n", "\n")
+                .replace('\n', &line_ending_character(ctx.config().line_endings));
+
             TokenType::MultiLineComment {
                 blocks: *blocks,
-                comment: comment.to_owned(),
+                comment: comment.into(),
             }
         }
         TokenType::Whitespace { characters } => TokenType::Whitespace {
