@@ -12,7 +12,9 @@ use crate::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
@@ -49,10 +51,9 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         let shape = shape + RETURN_LEN;
 
         let returns = return_node.returns();
-        let return_token_trailing_comments = trivia_util::trivia_contains_comments(
-            return_node.token().trailing_trivia(),
-            trivia_util::CommentSearch::Single,
-        );
+        let return_token_trailing_comments = return_node
+            .token()
+            .has_trailing_comments(CommentSearch::Single);
 
         let contains_comments = return_token_trailing_comments
             || trivia_util::punctuated_inline_comments(returns, true);
@@ -87,7 +88,11 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
         };
 
         let comment_between_token_and_returns = return_token_trailing_comments
-            || !trivia_util::expression_leading_comments(returns.iter().next().unwrap()).is_empty();
+            || returns
+                .iter()
+                .next()
+                .unwrap()
+                .has_leading_comments(CommentSearch::Single);
 
         // TODO: this is similar to assignment tactics - can we abstract them into a common function?
         let token = if comment_between_token_and_returns {
@@ -125,7 +130,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                         })
                     };
 
-                    if trivia_util::expression_contains_inline_comments(formatted.value())
+                    if formatted.value().has_inline_comments()
                         || shape
                             .take_first_line(&strip_leading_trivia(formatted.value()))
                             .over_budget()
@@ -145,7 +150,7 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                     if comment_between_token_and_returns && idx == 0 {
                         // We need to take all the leading trivia from the expr_list
                         let (first_return_expression, leading_comments) =
-                            trivia_util::take_expression_leading_comments(formatted.value());
+                            trivia_util::take_leading_comments(formatted.value());
 
                         // Indent each comment and trail them with a newline
                         let leading_comments = leading_comments
@@ -568,7 +573,8 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                 Some(semi) => {
                     // Append semicolon trailing trivia to the end, but before the newline
                     // TODO: this is a bit of a hack - we should probably move newline appending to this function
-                    let trivia = trivia_util::last_stmt_trailing_trivia(&last_stmt)
+                    let trivia = last_stmt
+                        .trailing_trivia()
                         .iter()
                         .rev()
                         .skip(1) // Remove the newline at the end

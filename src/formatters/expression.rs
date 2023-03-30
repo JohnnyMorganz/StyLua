@@ -15,7 +15,7 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::{
     assignment::calculate_hang_level, luau::format_type_assertion,
-    stmt::remove_condition_parentheses,
+    stmt::remove_condition_parentheses, trivia_util::HasInlineComments,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
@@ -31,8 +31,8 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            self, contains_comments, expression_leading_comments, get_expression_trailing_trivia,
-            token_contains_leading_comments, token_contains_trailing_comments, trivia_is_newline,
+            self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
+            GetTrailingTrivia,
         },
     },
     shape::Shape,
@@ -308,7 +308,7 @@ fn format_expression_internal(
 
                 if require_parentheses {
                     let (new_expression, trailing_comments) =
-                        trivia_util::take_expression_trailing_comments(&expression);
+                        trivia_util::take_trailing_comments(&expression);
                     expression = Expression::Parentheses {
                         contained: ContainedSpan::new(
                             TokenReference::symbol("(").unwrap(),
@@ -372,9 +372,12 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             brackets,
             expression,
         } => {
-            if token_contains_trailing_comments(brackets.tokens().0)
+            if brackets
+                .tokens()
+                .0
+                .has_trailing_comments(CommentSearch::All)
                 || contains_comments(expression)
-                || token_contains_leading_comments(brackets.tokens().1)
+                || brackets.tokens().1.has_leading_comments(CommentSearch::All)
             {
                 let (start_bracket, end_bracket) = brackets.tokens();
 
@@ -530,18 +533,13 @@ fn format_token_expression_sequence(
         format_expression(ctx, expression, shape.add_width(token_width + SPACE_LEN));
 
     let requires_multiline_expression = shape.take_first_line(&formatted_expression).over_budget()
-        || trivia_util::token_contains_trailing_comments(token)
+        || token.has_trailing_comments(CommentSearch::All)
         || trivia_util::contains_comments(
             expression.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         ); // Remove trailing trivia (comments) before checking, as they shouldn't have an impact
 
-    let newline_after_token = trivia_util::trivia_contains_comments(
-        token.trailing_trivia(),
-        trivia_util::CommentSearch::Single,
-    ) || trivia_util::trivia_contains_comments(
-        trivia_util::get_expression_leading_trivia(expression).iter(),
-        trivia_util::CommentSearch::Single,
-    );
+    let newline_after_token = token.has_trailing_comments(CommentSearch::Single)
+        || expression.has_leading_comments(CommentSearch::Single);
 
     let token = match newline_after_token {
         // `<token>\n`
@@ -627,7 +625,9 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         .take_first_line(&strip_trivia(&singleline_else_expression));
 
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::token_contains_trailing_comments(if_expression.if_token())
+        || if_expression
+            .if_token()
+            .has_trailing_comments(CommentSearch::All)
         || trivia_util::contains_comments(if_expression.condition())
         || trivia_util::contains_comments(if_expression.then_token())
         || trivia_util::contains_comments(if_expression.if_expression())
@@ -637,7 +637,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
             .map_or(false, |else_ifs| {
                 else_ifs.iter().any(trivia_util::contains_comments)
             })
-        || trivia_util::expression_contains_inline_comments(if_expression.else_expression())
+        || if_expression.else_expression().has_inline_comments()
         || trivia_util::spans_multiple_lines(&singleline_condition)
         || trivia_util::spans_multiple_lines(&singleline_expression)
         || else_ifs.as_ref().map_or(false, |else_ifs| {
@@ -684,9 +684,9 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                         let singleline_shape = hanging_shape.take_first_line(&singleline_else_if);
 
                         if singleline_shape.over_budget()
-                            || trivia_util::token_contains_trailing_comments(
-                                else_if_expression.else_if_token(),
-                            )
+                            || else_if_expression
+                                .else_if_token()
+                                .has_trailing_comments(CommentSearch::All)
                             || trivia_util::contains_comments(else_if_expression.condition())
                             || trivia_util::contains_comments(else_if_expression.then_token())
                         {
@@ -905,7 +905,8 @@ fn hang_binop(ctx: &Context, binop: BinOp, shape: Shape, rhs: &Expression) -> Bi
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
     // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
-    let mut leading_comments = trivia_util::binop_leading_comments(&binop)
+    let mut leading_comments = binop
+        .leading_comments()
         .iter()
         .flat_map(|x| {
             vec![
@@ -917,11 +918,12 @@ fn hang_binop(ctx: &Context, binop: BinOp, shape: Shape, rhs: &Expression) -> Bi
         .collect::<Vec<_>>();
 
     // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-    let mut trailing_comments = trivia_util::binop_trailing_comments(&binop);
+    let mut trailing_comments = binop.trailing_comments();
     leading_comments.append(&mut trailing_comments);
 
     // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
-    let mut expression_leading_comments = trivia_util::expression_leading_comments(rhs)
+    let mut expression_leading_comments = rhs
+        .leading_comments()
         .iter()
         .flat_map(|x| {
             vec![
@@ -972,10 +974,8 @@ fn binop_expression_contains_comments(expression: &Expression, top_binop: &BinOp
         Expression::BinaryOperator { lhs, binop, rhs } => {
             if binop.precedence() == top_binop.precedence() {
                 contains_comments(binop)
-                    || !expression_leading_comments(rhs).is_empty()
-                    || get_expression_trailing_trivia(lhs)
-                        .iter()
-                        .any(trivia_util::trivia_is_comment)
+                    || rhs.has_leading_comments(CommentSearch::All)
+                    || lhs.has_trailing_comments(CommentSearch::All)
                     || binop_expression_contains_comments(lhs, top_binop)
                     || binop_expression_contains_comments(rhs, top_binop)
             } else {
@@ -1441,9 +1441,7 @@ fn format_hanging_expression_(
                 || (did_hang_expression(&new_rhs)
                     && binop_precedence_level(&new_rhs) >= binop.precedence())
                 || contains_comments(binop)
-                || get_expression_trailing_trivia(&lhs)
-                    .iter()
-                    .any(trivia_util::trivia_is_comment)
+                || lhs.has_trailing_comments(CommentSearch::All)
                 || (shape.take_last_line(&lhs) + format!("{binop}{rhs}").len()).over_budget()
             {
                 let hanging_shape = shape.reset() + strip_trivia(binop).to_string().len() + 1;

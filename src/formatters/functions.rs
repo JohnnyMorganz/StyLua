@@ -26,7 +26,9 @@ use crate::{
             strip_leading_trivia, strip_trivia, FormatTriviaType, UpdateLeadingTrivia,
             UpdateTrailingTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
@@ -109,20 +111,16 @@ fn function_args_contains_comments(
 ) -> bool {
     let (start_parens, end_parens) = parentheses.tokens();
 
-    if trivia_util::trivia_contains_comments(
-        start_parens.trailing_trivia(),
-        trivia_util::CommentSearch::Single,
-    ) || trivia_util::trivia_contains_comments(
-        end_parens.leading_trivia(),
-        trivia_util::CommentSearch::Single,
-    ) {
+    if start_parens.has_trailing_comments(CommentSearch::Single)
+        || end_parens.has_leading_comments(CommentSearch::Single)
+    {
         true
     } else {
         arguments.pairs().any(|argument| {
             // Leading / Trailing trivia of expression (ignore inline comments)
-            trivia_util::get_expression_leading_trivia(argument.value())
+            argument.value().leading_trivia()
                 .iter()
-                .chain(trivia_util::get_expression_trailing_trivia(argument.value()).iter())
+                .chain(argument.value().trailing_trivia().iter())
                 .any(function_trivia_contains_comments)
             // Punctuation contains comments
             || argument
@@ -342,7 +340,7 @@ fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape)
     // If the argument fits, great! Otherwise, see if we can hang the expression
     // If we can, use that instead (as it provides a nicer output). If not, format normally without infinite width
     // Also: if the argument contains comments, it should be multilined
-    if trivia_util::expression_contains_inline_comments(argument)
+    if argument.has_inline_comments()
         || shape
             .add_width(strip_trivia(&infinite_width_argument).to_string().len())
             .over_budget()
@@ -435,7 +433,6 @@ pub fn format_function_args(
                     parentheses,
                     arguments,
                     format_argument_multiline,
-                    trivia_util::take_expression_trailing_comments,
                     shape,
                 );
 
@@ -450,7 +447,7 @@ pub fn format_function_args(
 
                 let (start_parens, end_parens) = parentheses.tokens();
                 let start_parens = format_token_reference(ctx, start_parens, shape);
-                let start_parens = if trivia_util::token_contains_trailing_comments(&start_parens)
+                let start_parens = if start_parens.has_trailing_comments(CommentSearch::All)
                     && !arguments.is_empty()
                 {
                     start_parens.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
@@ -473,7 +470,8 @@ pub fn format_function_args(
                 // this can be removed.
                 for argument in arguments.pairs_mut() {
                     let expression = argument.value_mut();
-                    let trivia = trivia_util::get_expression_leading_trivia(expression)
+                    let trivia = expression
+                        .leading_trivia()
                         .iter()
                         .skip_while(|trivia| trivia_util::trivia_is_whitespace(trivia))
                         .map(|x| x.to_owned())
@@ -514,7 +512,7 @@ pub fn format_function_args(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::take_expression_trailing_comments(&new_expression);
+                trivia_util::take_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(
@@ -556,7 +554,7 @@ pub fn format_function_args(
 
             // Remove any trailing comments from the expression, and move them into a buffer
             let (new_expression, comments_buffer) =
-                trivia_util::take_expression_trailing_comments(&new_expression);
+                trivia_util::take_trailing_comments(&new_expression);
 
             // Create parentheses, and add the trailing comments to the end of the parentheses
             let parentheses = ContainedSpan::new(
@@ -802,7 +800,6 @@ pub fn format_function_body(
             function_body.parameters_parentheses(),
             function_body.parameters(),
             format_parameter,
-            trivia_util::take_parameter_trailing_comments,
             shape,
         ),
         false => (
@@ -956,29 +953,25 @@ pub fn format_function_call(
     let num_suffixes = function_call.suffixes().count();
 
     // If there are comments within the chain, then we must hang the chain otherwise it can lead to an issue
-    let must_hang = trivia_util::trivia_contains_comments(
-        trivia_util::prefix_trailing_trivia(function_call.prefix()).iter(),
-        trivia_util::CommentSearch::Single,
-    ) || {
-        let mut peekable_suffixes = function_call.suffixes().peekable();
-        let mut must_hang = false;
-        while let Some(suffix) = peekable_suffixes.next() {
-            must_hang =
-                // Check for a leading comment
-                trivia_util::suffix_leading_trivia(suffix).any(trivia_util::trivia_is_comment)
+    let must_hang = function_call
+        .prefix()
+        .has_trailing_comments(CommentSearch::Single)
+        || {
+            let mut peekable_suffixes = function_call.suffixes().peekable();
+            let mut must_hang = false;
+            while let Some(suffix) = peekable_suffixes.next() {
+                must_hang = suffix.has_leading_comments(CommentSearch::All)
                 // Check for a trailing comment (iff there is still a suffix after this)
                 || (peekable_suffixes.peek().is_some()
-                    && trivia_util::suffix_trailing_trivia(suffix)
-                        .iter()
-                        .any(trivia_util::trivia_is_comment));
+                    && suffix.has_trailing_comments(CommentSearch::All));
 
-            if must_hang {
-                break;
+                if must_hang {
+                    break;
+                }
             }
-        }
 
-        must_hang
-    };
+            must_hang
+        };
 
     let mut keep_first_call_inlined = false;
 

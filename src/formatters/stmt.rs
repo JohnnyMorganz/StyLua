@@ -23,7 +23,9 @@ use crate::{
         trivia::{
             strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
-        trivia_util,
+        trivia_util::{
+            self, CommentSearch, GetLeadingTrivia, GetTrailingTrivia, HasInlineComments,
+        },
     },
     shape::Shape,
 };
@@ -55,7 +57,7 @@ pub fn remove_condition_parentheses(expression: Expression) -> Expression {
             expression: inner_expression,
             ..
         } => {
-            let (_, comments) = trivia_util::take_expression_trailing_comments(&expression);
+            let (_, comments) = trivia_util::take_trailing_comments(&expression);
             inner_expression.update_trailing_trivia(FormatTriviaType::Append(comments))
         }
         Expression::Value { value, .. } => match *value {
@@ -102,13 +104,9 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
     let expression = expressions.iter().next().unwrap();
 
     // Ensure no comments
-    if trivia_util::trivia_contains_comments(
-        trivia_util::get_expression_leading_trivia(expression).iter(),
-        trivia_util::CommentSearch::All,
-    ) || trivia_util::trivia_contains_comments(
-        trivia_util::get_expression_trailing_trivia(expression).iter(),
-        trivia_util::CommentSearch::All,
-    ) {
+    if expression.has_leading_comments(CommentSearch::All)
+        || expression.has_trailing_comments(CommentSearch::All)
+    {
         return false;
     }
 
@@ -221,12 +219,13 @@ pub fn format_generic_for(ctx: &Context, generic_for: &GenericFor, shape: Shape)
     let singleline_expr =
         format_punctuated(ctx, generic_for.expressions(), shape, format_expression);
     let singleline_expr_shape = shape.take_first_line(&singleline_expr);
-    let requires_expr_multiline =
-        (trivia_util::token_contains_trailing_comments(generic_for.in_token())
-            || trivia_util::contains_comments(generic_for.expressions())
-            || trivia_util::spans_multiple_lines(&singleline_expr)
-            || singleline_expr_shape.over_budget())
-            && !hug_generic_for(generic_for.expressions());
+    let requires_expr_multiline = (generic_for
+        .in_token()
+        .has_trailing_comments(CommentSearch::All)
+        || trivia_util::contains_comments(generic_for.expressions())
+        || trivia_util::spans_multiple_lines(&singleline_expr)
+        || singleline_expr_shape.over_budget())
+        && !hug_generic_for(generic_for.expressions());
 
     let in_token = match (require_names_multiline, requires_expr_multiline) {
         (true, true) => fmt_symbol!(ctx, generic_for.in_token(), "in", shape)
@@ -369,8 +368,12 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     // Determine if we need to hang the condition
     let singleline_shape = shape + (7 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 3 = " then"
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::token_contains_trailing_comments(else_if_node.else_if_token())
-        || trivia_util::token_contains_leading_comments(else_if_node.then_token())
+        || else_if_node
+            .else_if_token()
+            .has_trailing_comments(CommentSearch::All)
+        || else_if_node
+            .then_token()
+            .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
     let elseif_token = match require_multiline_expression {
@@ -452,8 +455,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let singleline_shape =
         shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::token_contains_trailing_comments(if_node.if_token())
-        || trivia_util::token_contains_leading_comments(if_node.then_token())
+        || if_node.if_token().has_trailing_comments(CommentSearch::All)
+        || if_node
+            .then_token()
+            .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
     if !require_multiline_expression
@@ -677,8 +682,8 @@ pub fn format_repeat_block(ctx: &Context, repeat_block: &Repeat, shape: Shape) -
 
     // Determine if we need to hang the condition
     let singleline_shape = shape + (6 + strip_trivia(&condition).to_string().len()); // 6 = "until "
-    let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::expression_contains_inline_comments(&condition);
+    let require_multiline_expression =
+        singleline_shape.over_budget() || condition.has_inline_comments();
 
     let shape = shape + 6; // 6 = "until "
     let until = match require_multiline_expression {
@@ -714,8 +719,12 @@ pub fn format_while_block(ctx: &Context, while_block: &While, shape: Shape) -> W
     // Determine if we need to hang the condition
     let singleline_shape = shape + (6 + 3 + strip_trivia(&singleline_condition).to_string().len()); // 6 = "while ", 3 = " do"
     let require_multiline_expression = singleline_shape.over_budget()
-        || trivia_util::token_contains_trailing_comments(while_block.while_token())
-        || trivia_util::token_contains_leading_comments(while_block.do_token())
+        || while_block
+            .while_token()
+            .has_trailing_comments(CommentSearch::All)
+        || while_block
+            .do_token()
+            .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
     let while_token = match require_multiline_expression {

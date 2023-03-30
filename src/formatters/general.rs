@@ -3,8 +3,8 @@ use crate::{
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
         trivia_util::{
-            self, punctuated_inline_comments, GetLeadingTrivia, GetTrailingTrivia,
-            HasInlineComments,
+            self, punctuated_inline_comments, take_trailing_comments, GetLeadingTrivia,
+            GetTrailingTrivia, HasInlineComments,
         },
     },
     shape::Shape,
@@ -474,18 +474,16 @@ where
 
 /// Formats a Punctuated sequence contained within parentheses onto multiple lines
 /// In particular, it handles the indentation of the sequence within the parentheses, and comments
-pub fn format_contained_punctuated_multiline<T, F1, F2>(
+pub fn format_contained_punctuated_multiline<T, F1>(
     ctx: &Context,
     parentheses: &ContainedSpan,
     arguments: &Punctuated<T>,
-    argument_formatter: F1,              // Function to format the argument
-    argument_take_trailing_comments: F2, // Function to separate trailing comments from the argument - so they can be placed after the comma
+    argument_formatter: F1, // Function to format the argument
     shape: Shape,
 ) -> (ContainedSpan, Punctuated<T>)
 where
-    T: UpdateLeadingTrivia,
+    T: UpdateLeadingTrivia + GetTrailingTrivia + UpdateTrailingTrivia,
     F1: Fn(&Context, &T, Shape) -> T,
-    F2: Fn(&T) -> (T, Vec<Token>),
 {
     // Format start and end brace properly with correct trivia
     let (start_parens, end_parens) = parentheses.tokens();
@@ -512,7 +510,7 @@ where
 
         // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
         let (formatted_argument, mut trailing_comments) =
-            argument_take_trailing_comments(&formatted_argument);
+            take_trailing_comments(&formatted_argument);
 
         let punctuation = match argument.punctuation() {
             Some(punctuation) => {

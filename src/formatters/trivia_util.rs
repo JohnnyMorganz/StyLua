@@ -4,8 +4,6 @@ use crate::{
     shape::Shape,
 };
 #[cfg(feature = "luau")]
-use full_moon::ast::span::ContainedSpan;
-#[cfg(feature = "luau")]
 use full_moon::ast::types::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
     TypeDeclaration, TypeInfo, TypeSpecifier,
@@ -19,6 +17,44 @@ use full_moon::{
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
+
+// TODO: can we change this from returning a Vec to just a plain iterator?
+pub trait GetLeadingTrivia {
+    fn leading_trivia(&self) -> Vec<Token>;
+
+    fn has_leading_comments(&self, search: CommentSearch) -> bool {
+        trivia_contains_comments(self.leading_trivia().iter(), search)
+    }
+
+    fn leading_comments(&self) -> Vec<Token> {
+        self.leading_trivia()
+            .iter()
+            .filter(|token| trivia_is_comment(token))
+            .cloned()
+            .collect()
+    }
+}
+
+pub trait GetTrailingTrivia {
+    fn trailing_trivia(&self) -> Vec<Token>;
+
+    fn has_trailing_comments(&self, search: CommentSearch) -> bool {
+        trivia_contains_comments(self.trailing_trivia().iter(), search)
+    }
+
+    // Retrieves all the trailing comments from the token
+    // Prepends a space before each comment
+    fn trailing_comments(&self) -> Vec<Token> {
+        self.trailing_trivia()
+            .iter()
+            .filter(|token| trivia_is_comment(token))
+            .flat_map(|x| {
+                // Prepend a single space beforehand
+                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+            })
+            .collect()
+    }
+}
 
 pub fn trivia_is_whitespace(trivia: &Token) -> bool {
     matches!(trivia.token_kind(), TokenKind::Whitespace)
@@ -107,29 +143,33 @@ pub fn is_block_simple(block: &Block) -> bool {
 }
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
-fn function_args_trailing_trivia(function_args: &FunctionArgs) -> Vec<Token> {
-    match function_args {
-        FunctionArgs::Parentheses { parentheses, .. } => {
-            let (_, end_brace) = parentheses.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+impl GetTrailingTrivia for FunctionArgs {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            FunctionArgs::Parentheses { parentheses, .. } => {
+                let (_, end_brace) = parentheses.tokens();
+                end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+            }
+            FunctionArgs::String(token_reference) => token_reference
+                .trailing_trivia()
+                .map(|x| x.to_owned())
+                .collect(),
+            FunctionArgs::TableConstructor(table_constructor) => {
+                let (_, end_brace) = table_constructor.braces().tokens();
+                end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+            }
+            other => panic!("unknown node {:?}", other),
         }
-        FunctionArgs::String(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        FunctionArgs::TableConstructor(table_constructor) => {
-            let (_, end_brace) = table_constructor.braces().tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        other => panic!("unknown node {:?}", other),
     }
 }
 
-pub fn prefix_trailing_trivia(prefix: &Prefix) -> Vec<Token> {
-    match prefix {
-        Prefix::Name(name) => name.trailing_trivia().cloned().collect(),
-        Prefix::Expression(expression) => get_expression_trailing_trivia(expression),
-        other => panic!("unknown node {:?}", other),
+impl GetTrailingTrivia for Prefix {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Prefix::Name(name) => GetTrailingTrivia::trailing_trivia(name),
+            Prefix::Expression(expression) => expression.trailing_trivia(),
+            other => panic!("unknown node {:?}", other),
+        }
     }
 }
 
@@ -158,438 +198,275 @@ pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
     }
 }
 
-pub fn suffix_trailing_trivia(suffix: &Suffix) -> Vec<Token> {
-    match suffix {
-        Suffix::Index(index) => match index {
-            Index::Brackets { brackets, .. } => {
-                let (_, end_brace) = brackets.tokens();
-                end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-            }
-            Index::Dot { name, .. } => name.trailing_trivia().map(|x| x.to_owned()).collect(),
-            other => panic!("unknown node {:?}", other),
-        },
-        Suffix::Call(call) => match call {
-            Call::AnonymousCall(function_args) => function_args_trailing_trivia(function_args),
-            Call::MethodCall(method_call) => function_args_trailing_trivia(method_call.args()),
-            other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
+impl GetLeadingTrivia for Suffix {
+    fn leading_trivia(&self) -> Vec<Token> {
+        suffix_leading_trivia(self).cloned().collect()
     }
 }
 
-#[cfg(feature = "luau")]
-fn indexed_type_info_trailing_trivia(indexed_type_info: &IndexedTypeInfo) -> Vec<Token> {
-    match indexed_type_info {
-        IndexedTypeInfo::Basic(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        IndexedTypeInfo::Generic { arrows, .. } => {
-            let (_, end_brace) = arrows.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-pub fn type_info_trailing_trivia(type_info: &TypeInfo) -> Vec<Token> {
-    match type_info {
-        TypeInfo::Array { braces, .. } => {
-            let (_, end_brace) = braces.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        TypeInfo::Basic(token_reference)
-        | TypeInfo::String(token_reference)
-        | TypeInfo::Boolean(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-
-        TypeInfo::Callback { return_type, .. } => type_info_trailing_trivia(return_type),
-        TypeInfo::Generic { arrows, .. } => {
-            let (_, end_brace) = arrows.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        TypeInfo::GenericPack { ellipse, .. } => ellipse.trailing_trivia().cloned().collect(),
-
-        TypeInfo::Intersection { right, .. } => type_info_trailing_trivia(right),
-
-        TypeInfo::Module { type_info, .. } => indexed_type_info_trailing_trivia(type_info),
-
-        TypeInfo::Optional { question_mark, .. } => question_mark
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-
-        TypeInfo::Table { braces, .. } => {
-            let (_, end_brace) = braces.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-
-        TypeInfo::Typeof { parentheses, .. } => {
-            let (_, end_brace) = parentheses.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-
-        TypeInfo::Tuple { parentheses, .. } => {
-            let (_, end_brace) = parentheses.tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-
-        TypeInfo::Union { right, .. } => type_info_trailing_trivia(right),
-        TypeInfo::Variadic { type_info, .. } => type_info_trailing_trivia(type_info),
-        TypeInfo::VariadicPack { name, .. } => name.trailing_trivia().cloned().collect(),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-#[cfg(feature = "luau")]
-fn generic_declaration_parameter_trailing_trivia(
-    parameter: &GenericDeclarationParameter,
-) -> Vec<Token> {
-    if let Some(default_type) = parameter.default_type() {
-        type_info_trailing_trivia(default_type)
-    } else {
-        match parameter.parameter() {
-            GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
-            GenericParameterInfo::Variadic { ellipse, .. } => {
-                ellipse.trailing_trivia().cloned().collect()
-            }
-            other => panic!("unknown node {:?}", other),
-        }
-    }
-}
-
-#[cfg(feature = "luau")]
-pub fn take_generic_parameter_trailing_comments(
-    parameter: &GenericDeclarationParameter,
-) -> (GenericDeclarationParameter, Vec<Token>) {
-    let trailing_comments = generic_declaration_parameter_trailing_trivia(parameter)
-        .iter()
-        .filter(|x| trivia_is_comment(x))
-        .flat_map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .collect();
-    (
-        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-        trailing_comments,
-    )
-}
-
-fn var_trailing_trivia(var: &Var) -> Vec<Token> {
-    match var {
-        Var::Name(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Var::Expression(var_expr) => {
-            if let Some(last_suffix) = var_expr.suffixes().last() {
-                suffix_trailing_trivia(last_suffix)
-            } else {
-                unreachable!("got a VarExpression with no suffix");
-            }
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-pub fn get_value_trailing_trivia(value: &Value) -> Vec<Token> {
-    match value {
-        Value::Function((_, function_body)) => function_body
-            .end_token()
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::FunctionCall(function_call) => {
-            if let Some(last_suffix) = function_call.suffixes().last() {
-                suffix_trailing_trivia(last_suffix)
-            } else {
-                unreachable!("got a FunctionCall with no suffix");
-            }
-        }
-        Value::String(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::TableConstructor(table_constructor) => {
-            let (_, end_brace) = table_constructor.braces().tokens();
-            end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
-        }
-        Value::Number(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::ParenthesesExpression(expr) => get_expression_trailing_trivia(expr),
-        Value::Symbol(token_reference) => token_reference
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Value::Var(var) => var_trailing_trivia(var),
-        #[cfg(feature = "luau")]
-        Value::IfExpression(if_expression) => {
-            get_expression_trailing_trivia(if_expression.else_expression())
-        }
-        #[cfg(feature = "luau")]
-        Value::InterpolatedString(interpolated_string) => interpolated_string
-            .last_string()
-            .trailing_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-pub fn get_expression_trailing_trivia(expression: &Expression) -> Vec<Token> {
-    match expression {
-        Expression::Parentheses { contained, .. } => {
-            let (_, end_parentheses) = contained.tokens();
-            end_parentheses
-                .trailing_trivia()
-                .map(|x| x.to_owned())
-                .collect()
-        }
-        Expression::UnaryOperator { expression, .. } => get_expression_trailing_trivia(expression),
-        Expression::BinaryOperator { rhs, .. } => get_expression_trailing_trivia(rhs),
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => {
-            #[cfg(feature = "luau")]
-            if let Some(type_assertion) = type_assertion {
-                return type_info_trailing_trivia(type_assertion.cast_to());
-            }
-
-            get_value_trailing_trivia(value)
-        }
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
-    match expression {
-        Expression::Parentheses { contained, .. } => contained
-            .tokens()
-            .0
-            .leading_trivia()
-            .map(|x| x.to_owned())
-            .collect(),
-        Expression::UnaryOperator { unop, .. } => match unop {
-            UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
-                token_ref.leading_trivia().map(|x| x.to_owned()).collect()
-            }
-            #[cfg(feature = "lua53")]
-            UnOp::Tilde(token_ref) => token_ref.leading_trivia().cloned().collect(),
-            other => panic!("unknown node {:?}", other),
-        },
-        Expression::BinaryOperator { lhs, .. } => get_expression_leading_trivia(lhs),
-        Expression::Value { value, .. } => match &**value {
-            Value::Function((token_ref, _)) => {
-                token_ref.leading_trivia().map(|x| x.to_owned()).collect()
-            }
-            Value::FunctionCall(function_call) => match function_call.prefix() {
-                Prefix::Name(token_ref) => {
-                    token_ref.leading_trivia().map(|x| x.to_owned()).collect()
+impl GetTrailingTrivia for Suffix {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Suffix::Index(index) => match index {
+                Index::Brackets { brackets, .. } => {
+                    let (_, end_brace) = brackets.tokens();
+                    end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
                 }
-                Prefix::Expression(expr) => get_expression_leading_trivia(expr),
+                Index::Dot { name, .. } => name.trailing_trivia().map(|x| x.to_owned()).collect(),
                 other => panic!("unknown node {:?}", other),
             },
+            Suffix::Call(call) => match call {
+                Call::AnonymousCall(function_args) => function_args.trailing_trivia(),
+                Call::MethodCall(method_call) => method_call.args().trailing_trivia(),
+                other => panic!("unknown node {:?}", other),
+            },
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetTrailingTrivia for GenericDeclarationParameter {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        if let Some(default_type) = self.default_type() {
+            default_type.trailing_trivia()
+        } else {
+            match self.parameter() {
+                GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
+                GenericParameterInfo::Variadic { ellipse, .. } => {
+                    ellipse.trailing_trivia().cloned().collect()
+                }
+                other => panic!("unknown node {:?}", other),
+            }
+        }
+    }
+}
+
+impl GetTrailingTrivia for VarExpression {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.suffixes().last().map_or_else(
+            || self.prefix().trailing_trivia(),
+            GetTrailingTrivia::trailing_trivia,
+        )
+    }
+}
+
+impl GetTrailingTrivia for Var {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Var::Name(token_reference) => GetTrailingTrivia::trailing_trivia(token_reference),
+            Var::Expression(var_expr) => var_expr.trailing_trivia(),
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+impl GetLeadingTrivia for Value {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Value::Function((token_ref, _)) => GetLeadingTrivia::leading_trivia(token_ref),
+            Value::FunctionCall(function_call) => function_call.prefix().leading_trivia(),
             #[cfg(feature = "luau")]
-            Value::IfExpression(if_expression) => if_expression
-                .if_token()
-                .leading_trivia()
-                .map(|x| x.to_owned())
-                .collect(),
+            Value::IfExpression(if_expression) => {
+                GetLeadingTrivia::leading_trivia(if_expression.if_token())
+            }
             #[cfg(feature = "luau")]
             Value::InterpolatedString(interpolated_string) => {
                 interpolated_string.segments().next().map_or_else(
-                    || {
-                        interpolated_string
-                            .last_string()
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
-                    |segment| {
-                        segment
-                            .literal
-                            .leading_trivia()
-                            .map(|x| x.to_owned())
-                            .collect()
-                    },
+                    || GetLeadingTrivia::leading_trivia(interpolated_string.last_string()),
+                    |segment| GetLeadingTrivia::leading_trivia(&segment.literal),
                 )
             }
-            Value::TableConstructor(table) => table
-                .braces()
-                .tokens()
-                .0
-                .leading_trivia()
-                .map(|x| x.to_owned())
-                .collect(),
-            Value::Number(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::ParenthesesExpression(expr) => get_expression_leading_trivia(expr),
-            Value::String(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::Symbol(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-            Value::Var(var) => match var {
-                Var::Name(token_ref) => token_ref.leading_trivia().map(|x| x.to_owned()).collect(),
-                Var::Expression(var_expr) => match var_expr.prefix() {
-                    Prefix::Name(token_ref) => {
-                        token_ref.leading_trivia().map(|x| x.to_owned()).collect()
-                    }
-                    Prefix::Expression(expr) => get_expression_leading_trivia(expr),
-                    other => panic!("unknown node {:?}", other),
-                },
+            Value::TableConstructor(table) => {
+                GetLeadingTrivia::leading_trivia(table.braces().tokens().0)
+            }
+            Value::Number(token_ref) => GetLeadingTrivia::leading_trivia(token_ref),
+            Value::ParenthesesExpression(expr) => expr.leading_trivia(),
+            Value::String(token_ref) => GetLeadingTrivia::leading_trivia(token_ref),
+            Value::Symbol(token_ref) => GetLeadingTrivia::leading_trivia(token_ref),
+            Value::Var(var) => var.leading_trivia(),
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+impl GetTrailingTrivia for Value {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Value::Function((_, function_body)) => {
+                GetTrailingTrivia::trailing_trivia(function_body.end_token())
+            }
+            Value::FunctionCall(function_call) => function_call
+                .suffixes()
+                .last()
+                .map_or_else(Vec::new, GetTrailingTrivia::trailing_trivia),
+            Value::String(token_reference) => GetTrailingTrivia::trailing_trivia(token_reference),
+            Value::TableConstructor(table_constructor) => {
+                let (_, end_brace) = table_constructor.braces().tokens();
+                end_brace.trailing_trivia().map(|x| x.to_owned()).collect()
+            }
+            Value::Number(token_reference) => GetTrailingTrivia::trailing_trivia(token_reference),
+            Value::ParenthesesExpression(expr) => expr.trailing_trivia(),
+            Value::Symbol(token_reference) => GetTrailingTrivia::trailing_trivia(token_reference),
+            Value::Var(var) => var.trailing_trivia(),
+            #[cfg(feature = "luau")]
+            Value::IfExpression(if_expression) => if_expression.else_expression().trailing_trivia(),
+            #[cfg(feature = "luau")]
+            Value::InterpolatedString(interpolated_string) => {
+                GetTrailingTrivia::trailing_trivia(interpolated_string.last_string())
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+impl GetLeadingTrivia for Expression {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Expression::Parentheses { contained, .. } => {
+                GetLeadingTrivia::leading_trivia(contained.tokens().0)
+            }
+            Expression::UnaryOperator { unop, .. } => match unop {
+                UnOp::Minus(token_ref) | UnOp::Not(token_ref) | UnOp::Hash(token_ref) => {
+                    GetLeadingTrivia::leading_trivia(token_ref)
+                }
+                #[cfg(feature = "lua53")]
+                UnOp::Tilde(token_ref) => GetLeadingTrivia::leading_trivia(token_ref),
                 other => panic!("unknown node {:?}", other),
             },
+            Expression::BinaryOperator { lhs, .. } => lhs.leading_trivia(),
+            Expression::Value { value, .. } => value.leading_trivia(),
             other => panic!("unknown node {:?}", other),
-        },
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
-    match binop {
-        BinOp::And(token)
-        | BinOp::Caret(token)
-        | BinOp::GreaterThan(token)
-        | BinOp::GreaterThanEqual(token)
-        | BinOp::LessThan(token)
-        | BinOp::LessThanEqual(token)
-        | BinOp::Minus(token)
-        | BinOp::Or(token)
-        | BinOp::Percent(token)
-        | BinOp::Plus(token)
-        | BinOp::Slash(token)
-        | BinOp::Star(token)
-        | BinOp::TildeEqual(token)
-        | BinOp::TwoDots(token)
-        | BinOp::TwoEqual(token) => token
-            .leading_trivia()
-            .filter(|token| trivia_is_comment(token))
-            .map(|x| x.to_owned())
-            .collect(),
-        #[cfg(feature = "lua53")]
-        BinOp::Ampersand(token)
-        | BinOp::DoubleSlash(token)
-        | BinOp::DoubleLessThan(token)
-        | BinOp::Pipe(token)
-        | BinOp::DoubleGreaterThan(token)
-        | BinOp::Tilde(token) => token
-            .leading_trivia()
-            .filter(|token| trivia_is_comment(token))
-            .cloned()
-            .collect(),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-pub fn binop_trailing_comments(binop: &BinOp) -> Vec<Token> {
-    match binop {
-        BinOp::And(token)
-        | BinOp::Caret(token)
-        | BinOp::GreaterThan(token)
-        | BinOp::GreaterThanEqual(token)
-        | BinOp::LessThan(token)
-        | BinOp::LessThanEqual(token)
-        | BinOp::Minus(token)
-        | BinOp::Or(token)
-        | BinOp::Percent(token)
-        | BinOp::Plus(token)
-        | BinOp::Slash(token)
-        | BinOp::Star(token)
-        | BinOp::TildeEqual(token)
-        | BinOp::TwoDots(token)
-        | BinOp::TwoEqual(token) => {
-            token
-                .trailing_trivia()
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect()
         }
-        #[cfg(feature = "lua53")]
-        BinOp::Ampersand(token)
-        | BinOp::DoubleSlash(token)
-        | BinOp::DoubleLessThan(token)
-        | BinOp::Pipe(token)
-        | BinOp::DoubleGreaterThan(token)
-        | BinOp::Tilde(token) => token
-            .trailing_trivia()
-            .filter(|token| trivia_is_comment(token))
-            .flat_map(|x| {
-                // Prepend a single space beforehand
-                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-            })
-            .collect(),
-        other => panic!("unknown node {:?}", other),
     }
 }
 
-pub fn expression_leading_comments(expression: &Expression) -> Vec<Token> {
-    get_expression_leading_trivia(expression)
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .map(|x| x.to_owned())
-        .collect()
+impl GetTrailingTrivia for Expression {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Expression::Parentheses { contained, .. } => {
+                let (_, end_parentheses) = contained.tokens();
+                GetTrailingTrivia::trailing_trivia(end_parentheses)
+            }
+            Expression::UnaryOperator { expression, .. } => expression.trailing_trivia(),
+            Expression::BinaryOperator { rhs, .. } => rhs.trailing_trivia(),
+            Expression::Value {
+                value,
+                #[cfg(feature = "luau")]
+                type_assertion,
+            } => {
+                #[cfg(feature = "luau")]
+                if let Some(type_assertion) = type_assertion {
+                    return type_assertion.cast_to().trailing_trivia();
+                }
+
+                value.trailing_trivia()
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
 }
 
-pub fn take_expression_leading_comments(expression: &Expression) -> (Expression, Vec<Token>) {
-    let trailing_comments = get_expression_leading_trivia(expression)
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .map(|x| x.to_owned())
-        .collect();
+impl GetLeadingTrivia for BinOp {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            BinOp::And(token)
+            | BinOp::Caret(token)
+            | BinOp::GreaterThan(token)
+            | BinOp::GreaterThanEqual(token)
+            | BinOp::LessThan(token)
+            | BinOp::LessThanEqual(token)
+            | BinOp::Minus(token)
+            | BinOp::Or(token)
+            | BinOp::Percent(token)
+            | BinOp::Plus(token)
+            | BinOp::Slash(token)
+            | BinOp::Star(token)
+            | BinOp::TildeEqual(token)
+            | BinOp::TwoDots(token)
+            | BinOp::TwoEqual(token) => GetLeadingTrivia::leading_trivia(token),
+            #[cfg(feature = "lua53")]
+            BinOp::Ampersand(token)
+            | BinOp::DoubleSlash(token)
+            | BinOp::DoubleLessThan(token)
+            | BinOp::Pipe(token)
+            | BinOp::DoubleGreaterThan(token)
+            | BinOp::Tilde(token) => GetLeadingTrivia::leading_trivia(token),
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
 
+impl GetTrailingTrivia for BinOp {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            BinOp::And(token)
+            | BinOp::Caret(token)
+            | BinOp::GreaterThan(token)
+            | BinOp::GreaterThanEqual(token)
+            | BinOp::LessThan(token)
+            | BinOp::LessThanEqual(token)
+            | BinOp::Minus(token)
+            | BinOp::Or(token)
+            | BinOp::Percent(token)
+            | BinOp::Plus(token)
+            | BinOp::Slash(token)
+            | BinOp::Star(token)
+            | BinOp::TildeEqual(token)
+            | BinOp::TwoDots(token)
+            | BinOp::TwoEqual(token) => GetTrailingTrivia::trailing_trivia(token),
+            #[cfg(feature = "lua53")]
+            BinOp::Ampersand(token)
+            | BinOp::DoubleSlash(token)
+            | BinOp::DoubleLessThan(token)
+            | BinOp::Pipe(token)
+            | BinOp::DoubleGreaterThan(token)
+            | BinOp::Tilde(token) => GetTrailingTrivia::trailing_trivia(token),
+            other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+pub fn take_leading_comments<T: GetLeadingTrivia + UpdateLeadingTrivia>(
+    node: &T,
+) -> (T, Vec<Token>) {
+    let leading_comments = node.leading_comments();
     (
-        expression.update_leading_trivia(
-            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-        ),
+        node.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+        leading_comments,
+    )
+}
+
+#[cfg(feature = "luau")]
+pub fn take_trailing_trivia<T: GetTrailingTrivia + UpdateTrailingTrivia>(
+    node: &T,
+) -> (T, Vec<Token>) {
+    let trailing_comments = node.trailing_trivia();
+    (
+        node.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         trailing_comments,
     )
 }
 
-pub fn take_expression_trailing_comments(expression: &Expression) -> (Expression, Vec<Token>) {
-    let trailing_comments = get_expression_trailing_trivia(expression)
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .flat_map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .collect();
-
+pub fn take_trailing_comments<T: GetTrailingTrivia + UpdateTrailingTrivia>(
+    node: &T,
+) -> (T, Vec<Token>) {
+    let trailing_comments = node.trailing_comments();
     (
-        expression.update_trailing_trivia(
-            FormatTriviaType::Replace(vec![]), // TODO: Do we need to keep some trivia?
-        ),
+        node.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
         trailing_comments,
     )
 }
 
-pub fn take_parameter_trailing_comments(parameter: &Parameter) -> (Parameter, Vec<Token>) {
-    let trailing_trivia = match parameter {
-        Parameter::Name(token) | Parameter::Ellipse(token) => token.trailing_trivia(),
-        other => panic!("unknown node {:?}", other),
-    };
-
-    // Remove any trailing comments from the parameter if present
-    let trailing_comments: Vec<Token> = trailing_trivia
-        .filter(|token| trivia_is_comment(token))
-        .flat_map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .collect();
-
-    (
-        parameter.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-        trailing_comments,
-    )
+impl GetTrailingTrivia for Parameter {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Parameter::Name(token) | Parameter::Ellipse(token) => {
+                GetTrailingTrivia::trailing_trivia(token)
+            }
+            other => panic!("unknown node {:?}", other),
+        }
+    }
 }
 
 /// Macro for retrieving trailing trivia out of a stmt which ends with an `end` token
@@ -607,314 +484,104 @@ macro_rules! end_stmt_trailing_trivia {
 }
 
 #[cfg(feature = "luau")]
-fn get_indexed_type_info_trailing_trivia(
-    type_info: IndexedTypeInfo,
-) -> (IndexedTypeInfo, Vec<Token>) {
-    match type_info {
-        IndexedTypeInfo::Basic(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (IndexedTypeInfo::Basic(token), trailing_trivia)
+impl GetTrailingTrivia for IndexedTypeInfo {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            IndexedTypeInfo::Basic(token) => GetTrailingTrivia::trailing_trivia(token),
+            IndexedTypeInfo::Generic { arrows, .. } => {
+                GetTrailingTrivia::trailing_trivia(arrows.tokens().1)
+            }
+            other => panic!("unknown node {:?}", other),
         }
-        IndexedTypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            let (start_brace, end_brace) = arrows.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (
-                IndexedTypeInfo::Generic {
-                    base,
-                    arrows: braces,
-                    generics,
-                },
-                trailing_trivia,
-            )
-        }
-        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[cfg(feature = "luau")]
-fn get_type_info_trailing_trivia(type_info: TypeInfo) -> (TypeInfo, Vec<Token>) {
-    match type_info {
-        TypeInfo::Array { braces, type_info } => {
-            let (start_brace, end_brace) = braces.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (TypeInfo::Array { braces, type_info }, trailing_trivia)
+impl GetTrailingTrivia for TypeInfo {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            TypeInfo::Array { braces, .. } => GetTrailingTrivia::trailing_trivia(braces.tokens().1),
+            TypeInfo::Basic(token) => GetTrailingTrivia::trailing_trivia(token),
+            TypeInfo::String(token) => GetTrailingTrivia::trailing_trivia(token),
+            TypeInfo::Boolean(token) => GetTrailingTrivia::trailing_trivia(token),
+            TypeInfo::Callback { return_type, .. } => return_type.trailing_trivia(),
+            TypeInfo::Generic { arrows, .. } => {
+                GetTrailingTrivia::trailing_trivia(arrows.tokens().1)
+            }
+            TypeInfo::GenericPack { ellipse, .. } => GetTrailingTrivia::trailing_trivia(ellipse),
+            TypeInfo::Intersection { right, .. } => right.trailing_trivia(),
+            TypeInfo::Module { type_info, .. } => type_info.trailing_trivia(),
+            TypeInfo::Optional { question_mark, .. } => {
+                GetTrailingTrivia::trailing_trivia(question_mark)
+            }
+            TypeInfo::Table { braces, .. } => GetTrailingTrivia::trailing_trivia(braces.tokens().1),
+            TypeInfo::Typeof { parentheses, .. } => {
+                GetTrailingTrivia::trailing_trivia(parentheses.tokens().1)
+            }
+            TypeInfo::Tuple { parentheses, .. } => {
+                GetTrailingTrivia::trailing_trivia(parentheses.tokens().1)
+            }
+            TypeInfo::Union { right, .. } => right.trailing_trivia(),
+            TypeInfo::Variadic { type_info, .. } => type_info.trailing_trivia(),
+            TypeInfo::VariadicPack { name, .. } => GetTrailingTrivia::trailing_trivia(name),
+            other => panic!("unknown node {:?}", other),
         }
-        TypeInfo::Basic(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::Basic(token), trailing_trivia)
-        }
-        TypeInfo::String(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::String(token), trailing_trivia)
-        }
-        TypeInfo::Boolean(token) => {
-            let trailing_trivia = token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let token = token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::Boolean(token), trailing_trivia)
-        }
-        TypeInfo::Callback {
-            generics,
-            parentheses,
-            arguments,
-            arrow,
-            return_type,
-        } => {
-            let (return_type, trailing_trivia) = get_type_info_trailing_trivia(*return_type);
-            (
-                TypeInfo::Callback {
-                    generics,
-                    parentheses,
-                    arguments,
-                    arrow,
-                    return_type: Box::new(return_type),
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Generic {
-            base,
-            arrows,
-            generics,
-        } => {
-            let (start_brace, end_brace) = arrows.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (
-                TypeInfo::Generic {
-                    base,
-                    arrows: braces,
-                    generics,
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::GenericPack { name, ellipse } => {
-            let trailing_trivia = ellipse.trailing_trivia().map(|x| x.to_owned()).collect();
-            let ellipse = ellipse.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::GenericPack { name, ellipse }, trailing_trivia)
-        }
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => {
-            let (right, trailing_trivia) = get_type_info_trailing_trivia(*right);
-            (
-                TypeInfo::Intersection {
-                    left,
-                    ampersand,
-                    right: Box::new(right),
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Module {
-            module,
-            punctuation,
-            type_info,
-        } => {
-            let (type_info, trailing_trivia) = get_indexed_type_info_trailing_trivia(*type_info);
-            (
-                TypeInfo::Module {
-                    module,
-                    punctuation,
-                    type_info: Box::new(type_info),
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Optional {
-            base,
-            question_mark,
-        } => {
-            let trailing_trivia = question_mark
-                .trailing_trivia()
-                .map(|x| x.to_owned())
-                .collect();
-            let question_mark =
-                question_mark.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (
-                TypeInfo::Optional {
-                    base,
-                    question_mark,
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Table { braces, fields } => {
-            let (start_brace, end_brace) = braces.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (TypeInfo::Table { braces, fields }, trailing_trivia)
-        }
-        TypeInfo::Typeof {
-            typeof_token,
-            parentheses,
-            inner,
-        } => {
-            let (start_brace, end_brace) = parentheses.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (
-                TypeInfo::Typeof {
-                    typeof_token,
-                    parentheses: braces,
-                    inner,
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Tuple { parentheses, types } => {
-            let (start_brace, end_brace) = parentheses.tokens();
-            let trailing_trivia = end_brace.trailing_trivia().map(|x| x.to_owned()).collect();
-            let braces = ContainedSpan::new(
-                start_brace.to_owned(),
-                end_brace.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
-            );
-
-            (
-                TypeInfo::Tuple {
-                    types,
-                    parentheses: braces,
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Union { left, pipe, right } => {
-            let (right, trailing_trivia) = get_type_info_trailing_trivia(*right);
-            (
-                TypeInfo::Union {
-                    left,
-                    pipe,
-                    right: Box::new(right),
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::Variadic { ellipse, type_info } => {
-            let (type_info, trailing_trivia) = get_type_info_trailing_trivia(*type_info);
-            (
-                TypeInfo::Variadic {
-                    ellipse,
-                    type_info: Box::new(type_info),
-                },
-                trailing_trivia,
-            )
-        }
-        TypeInfo::VariadicPack { ellipse, name } => {
-            let trailing_trivia = name.trailing_trivia().map(|x| x.to_owned()).collect();
-            let name = name.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-            (TypeInfo::VariadicPack { ellipse, name }, trailing_trivia)
-        }
-        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[cfg(feature = "luau")]
-// TODO: I tried to make this return `impl <Iterator = &Token>` but it didn't work because of the 3 recursive calls. Need to look into this to prevent alloc
-pub fn type_info_leading_trivia(type_info: &TypeInfo) -> Vec<&Token> {
-    match type_info {
-        TypeInfo::Array { braces, .. } => braces.tokens().0.leading_trivia(),
-        TypeInfo::Basic(token) | TypeInfo::String(token) | TypeInfo::Boolean(token) => {
-            token.leading_trivia()
+impl GetLeadingTrivia for TypeInfo {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            TypeInfo::Array { braces, .. } => GetLeadingTrivia::leading_trivia(braces.tokens().0),
+            TypeInfo::Basic(token) | TypeInfo::String(token) | TypeInfo::Boolean(token) => {
+                GetLeadingTrivia::leading_trivia(token)
+            }
+            TypeInfo::Callback {
+                generics,
+                parentheses,
+                ..
+            } => match generics {
+                Some(generics) => GetLeadingTrivia::leading_trivia(generics.arrows().tokens().0),
+                None => GetLeadingTrivia::leading_trivia(parentheses.tokens().0),
+            },
+            TypeInfo::Generic { base, .. } => GetLeadingTrivia::leading_trivia(base),
+            TypeInfo::GenericPack { name, .. } => GetLeadingTrivia::leading_trivia(name),
+            TypeInfo::Intersection { left, .. } => left.leading_trivia(),
+            TypeInfo::Module { module, .. } => GetLeadingTrivia::leading_trivia(module),
+            TypeInfo::Optional { base, .. } => base.leading_trivia(),
+            TypeInfo::Table { braces, .. } => GetLeadingTrivia::leading_trivia(braces.tokens().0),
+            TypeInfo::Typeof { typeof_token, .. } => GetLeadingTrivia::leading_trivia(typeof_token),
+            TypeInfo::Tuple { parentheses, .. } => {
+                GetLeadingTrivia::leading_trivia(parentheses.tokens().0)
+            }
+            TypeInfo::Union { left, .. } => left.leading_trivia(),
+            TypeInfo::Variadic { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
+            TypeInfo::VariadicPack { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
+            other => panic!("unknown node {:?}", other),
         }
-        TypeInfo::Callback {
-            generics,
-            parentheses,
-            ..
-        } => match generics {
-            Some(generics) => generics.arrows().tokens().0.leading_trivia(),
-            None => parentheses.tokens().0.leading_trivia(),
-        },
-        TypeInfo::Generic { base, .. } => base.leading_trivia(),
-        TypeInfo::GenericPack { name, .. } => name.leading_trivia(),
-        TypeInfo::Intersection { left, .. } => return type_info_leading_trivia(left),
-        TypeInfo::Module { module, .. } => module.leading_trivia(),
-        TypeInfo::Optional { base, .. } => return type_info_leading_trivia(base),
-        TypeInfo::Table { braces, .. } => braces.tokens().0.leading_trivia(),
-        TypeInfo::Typeof { typeof_token, .. } => typeof_token.leading_trivia(),
-        TypeInfo::Tuple { parentheses, .. } => parentheses.tokens().0.leading_trivia(),
-        TypeInfo::Union { left, .. } => return type_info_leading_trivia(left),
-        TypeInfo::Variadic { ellipse, .. } => ellipse.leading_trivia(),
-        TypeInfo::VariadicPack { ellipse, .. } => ellipse.leading_trivia(),
-        other => panic!("unknown node {:?}", other),
     }
-    .collect()
 }
 
 #[cfg(feature = "luau")]
-pub fn take_type_info_trailing_comments(type_info: &TypeInfo) -> (TypeInfo, Vec<Token>) {
-    let (type_info, trailing_trivia) = get_type_info_trailing_trivia(type_info.to_owned());
-
-    let trailing_comments = trailing_trivia
-        .iter()
-        .filter(|token| trivia_is_comment(token))
-        .flat_map(|x| {
-            // Prepend a single space beforehand
-            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-        })
-        .collect();
-
-    (type_info, trailing_comments)
+impl GetTrailingTrivia for TypeArgument {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.type_info().trailing_trivia()
+    }
 }
 
 #[cfg(feature = "luau")]
-pub fn take_type_argument_trailing_comments(
-    type_argument: &TypeArgument,
-) -> (TypeArgument, Vec<Token>) {
-    let (type_info, trailing_comments) =
-        take_type_info_trailing_comments(type_argument.type_info());
-
-    (
-        type_argument.to_owned().with_type_info(type_info),
-        trailing_comments,
-    )
+impl GetTrailingTrivia for TypeDeclaration {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.type_definition().trailing_trivia()
+    }
 }
 
 #[cfg(feature = "luau")]
-fn get_type_declaration_trailing_trivia(
-    type_declaration: TypeDeclaration,
-) -> (TypeDeclaration, Vec<Token>) {
-    let (type_definition, trailing_trivia) =
-        get_type_info_trailing_trivia(type_declaration.type_definition().to_owned());
-    (
-        type_declaration.with_type_definition(type_definition),
-        trailing_trivia,
-    )
-}
-
-#[cfg(feature = "luau")]
-fn type_specifier_trailing_trivia(type_specifier: &TypeSpecifier) -> Vec<Token> {
-    get_type_info_trailing_trivia(type_specifier.type_info().clone()).1
+impl GetTrailingTrivia for TypeSpecifier {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.type_info().trailing_trivia()
+    }
 }
 
 fn get_empty_local_assignment_trailing_trivia(
@@ -930,7 +597,7 @@ fn get_empty_local_assignment_trailing_trivia(
             .collect::<Vec<_>>();
 
         if let Some(Some(type_specifier)) = type_specifiers.pop() {
-            trailing_trivia = type_specifier_trailing_trivia(&type_specifier);
+            trailing_trivia = type_specifier.trailing_trivia();
 
             type_specifiers.push(Some(
                 type_specifier.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
@@ -994,7 +661,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let mut trailing_trivia = Vec::new();
             if let Some(last_pair) = formatted_expression_list.pop() {
                 let pair = last_pair.map(|value| {
-                    trailing_trivia = get_expression_trailing_trivia(&value);
+                    trailing_trivia = value.trailing_trivia();
                     value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 });
                 formatted_expression_list.push(pair);
@@ -1021,7 +688,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 // Retrieve last item and remove trailing trivia
                 if let Some(last_pair) = formatted_expression_list.pop() {
                     let pair = last_pair.map(|value| {
-                        trailing_trivia = get_expression_trailing_trivia(&value);
+                        trailing_trivia = value.trailing_trivia();
                         value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                     });
                     formatted_expression_list.push(pair);
@@ -1036,7 +703,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::FunctionCall(function_call) => {
             let last_suffix = function_call.suffixes().last();
             let trailing_trivia = match last_suffix {
-                Some(suffix) => suffix_trailing_trivia(suffix),
+                Some(suffix) => suffix.trailing_trivia(),
                 None => unreachable!("got a FunctionCall with no suffix"),
             };
 
@@ -1048,7 +715,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             )
         }
         Stmt::Repeat(repeat_block) => {
-            let trailing_trivia = get_expression_trailing_trivia(repeat_block.until());
+            let trailing_trivia = repeat_block.until().trailing_trivia();
             let until_expr = repeat_block
                 .until()
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
@@ -1096,7 +763,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
 
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(stmt) => {
-            let trailing_trivia = get_expression_trailing_trivia(stmt.rhs());
+            let trailing_trivia = stmt.rhs().trailing_trivia();
             let expr = stmt
                 .rhs()
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
@@ -1107,8 +774,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
-            let (type_declaration, trailing_trivia) =
-                get_type_declaration_trailing_trivia(stmt.type_declaration().to_owned());
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.type_declaration());
             (
                 Stmt::ExportedTypeDeclaration(stmt.with_type_declaration(type_declaration)),
                 trailing_trivia,
@@ -1116,7 +782,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeDeclaration(stmt) => {
-            let (type_declaration, trailing_trivia) = get_type_declaration_trailing_trivia(stmt);
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
             (Stmt::TypeDeclaration(type_declaration), trailing_trivia)
         }
         #[cfg(feature = "lua52")]
@@ -1156,33 +822,33 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
     (updated_stmt, trailing_trivia)
 }
 
-pub fn last_stmt_trailing_trivia(last_stmt: &LastStmt) -> Vec<Token> {
-    match last_stmt {
-        LastStmt::Return(ret) => {
-            if ret.returns().is_empty() {
-                ret.token().trailing_trivia().cloned().collect()
-            } else {
-                let last_expression = ret.returns().iter().last().unwrap();
-                get_expression_trailing_trivia(last_expression)
+impl GetTrailingTrivia for LastStmt {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            LastStmt::Return(ret) => {
+                if ret.returns().is_empty() {
+                    GetTrailingTrivia::trailing_trivia(ret.token())
+                } else {
+                    ret.returns().trailing_trivia()
+                }
             }
+            LastStmt::Break(token) => GetTrailingTrivia::trailing_trivia(token),
+            #[cfg(feature = "luau")]
+            LastStmt::Continue(token) => GetTrailingTrivia::trailing_trivia(token),
+            other => panic!("unknown node {:?}", other),
         }
-        LastStmt::Break(token) => token.trailing_trivia().cloned().collect(),
-        #[cfg(feature = "luau")]
-        LastStmt::Continue(token) => token.trailing_trivia().cloned().collect(),
-        other => panic!("unknown node {:?}", other),
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum CommentSearch {
     // Only care about singleline comments
-    #[allow(dead_code)]
     Single,
     // Looking for all comments
     All,
 }
 
-pub fn trivia_contains_comments<'a>(
+fn trivia_contains_comments<'a>(
     mut trivia: impl Iterator<Item = &'a Token>,
     search: CommentSearch,
 ) -> bool {
@@ -1194,19 +860,7 @@ pub fn trivia_contains_comments<'a>(
     trivia.any(tester)
 }
 
-pub fn token_trivia_contains_comments<'a>(trivia: impl Iterator<Item = &'a Token>) -> bool {
-    trivia_contains_comments(trivia, CommentSearch::All)
-}
-
-pub fn token_contains_leading_comments(token_ref: &TokenReference) -> bool {
-    token_trivia_contains_comments(token_ref.leading_trivia())
-}
-
-pub fn token_contains_trailing_comments(token_ref: &TokenReference) -> bool {
-    token_trivia_contains_comments(token_ref.trailing_trivia())
-}
-
-pub fn token_contains_comments_search(token: &TokenReference, search: CommentSearch) -> bool {
+fn token_contains_comments_search(token: &TokenReference, search: CommentSearch) -> bool {
     trivia_contains_comments(token.leading_trivia(), search)
         || trivia_contains_comments(token.trailing_trivia(), search)
 }
@@ -1252,51 +906,14 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
     })
 }
 
-pub fn table_field_trailing_trivia(field: &Field) -> Vec<Token> {
-    match field {
-        Field::ExpressionKey { value, .. } => get_expression_trailing_trivia(value),
-        Field::NameKey { value, .. } => get_expression_trailing_trivia(value),
-        Field::NoKey(expression) => get_expression_trailing_trivia(expression),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
-// Checks to see whether an expression contains comments inline inside of it
-// This can only happen if the expression is a BinOp
-// We should ignore any comments which are trailing for the whole expression, as they are not inline
-pub fn expression_contains_inline_comments(expression: &Expression) -> bool {
-    match expression {
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            contains_comments(binop)
-                || contains_comments(lhs)
-                || expression_contains_inline_comments(rhs)
+impl GetTrailingTrivia for Field {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Field::ExpressionKey { value, .. } => value.trailing_trivia(),
+            Field::NameKey { value, .. } => value.trailing_trivia(),
+            Field::NoKey(expression) => expression.trailing_trivia(),
+            other => panic!("unknown node {:?}", other),
         }
-        Expression::UnaryOperator { unop, expression } => {
-            let op_contains_comments = match unop {
-                UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
-                    contains_comments(token)
-                }
-                #[cfg(feature = "lua53")]
-                UnOp::Tilde(token) => contains_comments(token),
-                other => panic!("unknown node {:?}", other),
-            };
-            op_contains_comments || expression_contains_inline_comments(expression)
-        }
-        Expression::Parentheses {
-            contained,
-            expression,
-        } => {
-            token_contains_trailing_comments(contained.tokens().0)
-                || token_contains_leading_comments(contained.tokens().1)
-                || contains_comments(expression)
-        }
-        Expression::Value { value, .. } => match &**value {
-            Value::ParenthesesExpression(expression) => {
-                expression_contains_inline_comments(expression)
-            }
-            _ => false,
-        },
-        other => panic!("unknown node {:?}", other),
     }
 }
 
@@ -1322,34 +939,9 @@ pub fn punctuated_inline_comments<T: GetLeadingTrivia + GetTrailingTrivia + HasI
     false
 }
 
-// TODO: can we change this from returning a Vec to just a plain iterator?
-pub trait GetLeadingTrivia {
-    fn leading_trivia(&self) -> Vec<Token>;
-
-    fn leading_comments(&self) -> Vec<Token> {
-        self.leading_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment(token))
-            .cloned()
-            .collect()
-    }
-}
-
 impl GetLeadingTrivia for TokenReference {
     fn leading_trivia(&self) -> Vec<Token> {
         self.leading_trivia().cloned().collect()
-    }
-}
-
-impl GetLeadingTrivia for Suffix {
-    fn leading_trivia(&self) -> Vec<Token> {
-        suffix_leading_trivia(self).cloned().collect()
-    }
-}
-
-impl GetLeadingTrivia for Expression {
-    fn leading_trivia(&self) -> Vec<Token> {
-        get_expression_leading_trivia(self)
     }
 }
 
@@ -1365,21 +957,9 @@ impl GetLeadingTrivia for Var {
     fn leading_trivia(&self) -> Vec<Token> {
         match self {
             Var::Name(token_reference) => GetLeadingTrivia::leading_trivia(token_reference),
-            Var::Expression(var_expr) => {
-                if let Some(last_suffix) = var_expr.suffixes().last() {
-                    suffix_trailing_trivia(last_suffix)
-                } else {
-                    unreachable!("got a VarExpression with no suffix");
-                }
-            }
+            Var::Expression(var_expr) => var_expr.prefix().leading_trivia(),
             other => panic!("unknown node {:?}", other),
         }
-    }
-}
-
-impl GetLeadingTrivia for VarExpression {
-    fn leading_trivia(&self) -> Vec<Token> {
-        self.prefix().leading_trivia()
     }
 }
 
@@ -1393,48 +973,9 @@ impl GetLeadingTrivia for Prefix {
     }
 }
 
-pub trait GetTrailingTrivia {
-    fn trailing_trivia(&self) -> Vec<Token>;
-
-    fn has_trailing_comments(&self, search: CommentSearch) -> bool {
-        trivia_contains_comments(self.trailing_trivia().iter(), search)
-    }
-
-    // Retrieves all the trailing comments from the token
-    // Prepends a space before each comment
-    fn trailing_comments(&self) -> Vec<Token> {
-        self.trailing_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment(token))
-            .flat_map(|x| {
-                // Prepend a single space beforehand
-                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-            })
-            .collect()
-    }
-}
-
 impl GetTrailingTrivia for TokenReference {
     fn trailing_trivia(&self) -> Vec<Token> {
         self.trailing_trivia().cloned().collect()
-    }
-}
-
-impl GetTrailingTrivia for Suffix {
-    fn trailing_trivia(&self) -> Vec<Token> {
-        suffix_trailing_trivia(self)
-    }
-}
-
-impl GetTrailingTrivia for Expression {
-    fn trailing_trivia(&self) -> Vec<Token> {
-        get_expression_trailing_trivia(self)
-    }
-}
-
-impl GetTrailingTrivia for Var {
-    fn trailing_trivia(&self) -> Vec<Token> {
-        var_trailing_trivia(self)
     }
 }
 
@@ -1453,8 +994,45 @@ pub trait HasInlineComments {
 }
 
 impl HasInlineComments for Expression {
+    // Checks to see whether an expression contains comments inline inside of it
+    // This can only happen if the expression is a BinOp
+    // We should ignore any comments which are trailing for the whole expression, as they are not inline
     fn has_inline_comments(&self) -> bool {
-        expression_contains_inline_comments(self)
+        match self {
+            Expression::BinaryOperator { lhs, binop, rhs } => {
+                contains_comments(binop) || contains_comments(lhs) || rhs.has_inline_comments()
+            }
+            Expression::UnaryOperator { unop, expression } => {
+                let op_contains_comments = match unop {
+                    UnOp::Minus(token) | UnOp::Not(token) | UnOp::Hash(token) => {
+                        contains_comments(token)
+                    }
+                    #[cfg(feature = "lua53")]
+                    UnOp::Tilde(token) => contains_comments(token),
+                    other => panic!("unknown node {:?}", other),
+                };
+                op_contains_comments || expression.has_inline_comments()
+            }
+            Expression::Parentheses {
+                contained,
+                expression,
+            } => {
+                contained
+                    .tokens()
+                    .0
+                    .has_trailing_comments(CommentSearch::All)
+                    || contained
+                        .tokens()
+                        .1
+                        .has_leading_comments(CommentSearch::All)
+                    || contains_comments(expression)
+            }
+            Expression::Value { value, .. } => match &**value {
+                Value::ParenthesesExpression(expression) => expression.has_inline_comments(),
+                _ => false,
+            },
+            other => panic!("unknown node {:?}", other),
+        }
     }
 }
 

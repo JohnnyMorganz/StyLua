@@ -15,10 +15,8 @@ use crate::{
         },
         trivia_util::{
             contains_comments, contains_singleline_comments, spans_multiple_lines,
-            take_generic_parameter_trailing_comments, take_type_argument_trailing_comments,
-            take_type_info_trailing_comments, token_contains_comments,
-            token_trivia_contains_comments, trivia_contains_comments, trivia_is_comment,
-            trivia_is_newline, type_info_leading_trivia, type_info_trailing_trivia, CommentSearch,
+            token_contains_comments, trivia_is_comment, trivia_is_newline, CommentSearch,
+            GetLeadingTrivia, GetTrailingTrivia,
         },
     },
     shape::Shape,
@@ -114,21 +112,15 @@ fn format_type_info_generics(
         format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
 
     let (start_arrow, end_arrow) = arrows.tokens();
-    let contains_comments =
-        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::Single)
-            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::Single)
-            || generics.pairs().any(|generic_pair| {
-                contains_singleline_comments(generic_pair.value())
-                    || trivia_contains_comments(
-                        type_info_leading_trivia(generic_pair.value())
-                            .iter()
-                            .cloned(),
-                        CommentSearch::All, // Look for leading multiline comments - these suggest expansion
-                    )
+    let contains_comments = start_arrow.has_trailing_comments(CommentSearch::Single)
+        || end_arrow.has_leading_comments(CommentSearch::Single)
+        || generics.pairs().any(|generic_pair| {
+            contains_singleline_comments(generic_pair.value())
+                    || generic_pair.value().has_leading_comments(CommentSearch::All) // Look for leading multiline comments - these suggest expansion
                     || generic_pair
                         .punctuation()
                         .map_or(false, contains_singleline_comments)
-            });
+        });
 
     let should_expand = contains_comments
         || shape
@@ -142,8 +134,8 @@ fn format_type_info_generics(
             TypeInfo::Table { braces, .. } => {
                 // Check there is not leading or trailing comments on the brace
                 let (start_brace, end_brace) = braces.tokens();
-                !trivia_contains_comments(start_brace.leading_trivia(), CommentSearch::Single)
-                    || !trivia_contains_comments(end_brace.trailing_trivia(), CommentSearch::Single)
+                !start_brace.has_leading_comments(CommentSearch::Single)
+                    || !end_brace.has_trailing_comments(CommentSearch::Single)
             }
             _ => false,
         };
@@ -154,7 +146,6 @@ fn format_type_info_generics(
             arrows,
             generics,
             |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
-            take_type_info_trailing_comments,
             shape,
         )
     } else {
@@ -249,8 +240,8 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 None => shape,
             };
 
-            let force_multiline = token_trivia_contains_comments(start_parens.trailing_trivia())
-                || token_trivia_contains_comments(end_parens.leading_trivia())
+            let force_multiline = start_parens.has_trailing_comments(CommentSearch::All)
+                || end_parens.has_leading_comments(CommentSearch::All)
                 || contains_comments(arguments)
                 || shape
                     .add_width(
@@ -267,7 +258,6 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     parentheses,
                     arguments,
                     format_type_argument,
-                    take_type_argument_trailing_comments,
                     shape,
                 );
                 let shape = shape.reset() + PAREN_LEN;
@@ -446,19 +436,14 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
 
         TypeInfo::Tuple { parentheses, types } => {
             let (start_brace, end_brace) = parentheses.tokens();
-            let should_format_multiline =
-                trivia_contains_comments(start_brace.trailing_trivia(), CommentSearch::Single)
-                    || trivia_contains_comments(end_brace.leading_trivia(), CommentSearch::Single)
-                    || types.pairs().any(|pair| {
-                        pair.punctuation().map_or_else(
-                            || {
-                                type_info_trailing_trivia(pair.value())
-                                    .iter()
-                                    .any(trivia_is_comment)
-                            },
-                            contains_comments,
-                        )
-                    });
+            let should_format_multiline = start_brace.has_trailing_comments(CommentSearch::Single)
+                || end_brace.has_leading_comments(CommentSearch::Single)
+                || types.pairs().any(|pair| {
+                    pair.punctuation().map_or_else(
+                        || pair.value().has_trailing_comments(CommentSearch::All),
+                        contains_comments,
+                    )
+                });
 
             let singleline_parentheses = format_contained_span(ctx, parentheses, shape);
             let singleline_types = format_punctuated(ctx, types, shape + 1, format_type_info); // 1 = "("
@@ -471,7 +456,6 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     parentheses,
                     types,
                     |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
-                    take_type_info_trailing_comments,
                     shape,
                 )
             } else if types.len() == 1
@@ -546,18 +530,13 @@ fn hang_type_info_binop(
                 .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
         )
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
-        .chain(
-            type_info_leading_trivia(rhs)
-                .iter()
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    vec![
-                        create_newline_trivia(ctx),
-                        create_indent_trivia(ctx, shape),
-                        x.to_owned().to_owned(),
-                    ]
-                }),
-        )
+        .chain(rhs.leading_comments().iter().flat_map(|x| {
+            vec![
+                create_newline_trivia(ctx),
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+            ]
+        }))
         // Create a newline just before the BinOp, and preserve the indentation
         .chain(std::iter::once(create_newline_trivia(ctx)))
         .chain(std::iter::once(create_indent_trivia(ctx, shape)))
@@ -692,7 +671,7 @@ pub fn format_type_field(
     let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
-    let trailing_trivia = type_info_trailing_trivia(&value);
+    let trailing_trivia = value.trailing_trivia();
 
     if let TableType::MultiLine = table_type {
         // If still over budget, hang the type
@@ -757,13 +736,10 @@ fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool
             ampersand: binop,
             right,
         } => {
-            trivia_contains_comments(type_info_trailing_trivia(left).iter(), comment_search)
+            left.has_trailing_comments(comment_search)
                 || should_hang_type(left, comment_search)
                 || contains_comments(binop)
-                || trivia_contains_comments(
-                    type_info_leading_trivia(right).iter().copied(),
-                    comment_search,
-                )
+                || right.has_leading_comments(comment_search)
                 || should_hang_type(right, comment_search)
         }
         _ => false,
@@ -778,12 +754,7 @@ fn attempt_assigned_type_tactics(
 ) -> (TokenReference, TypeInfo) {
     const EQUAL_TOKEN_LENGTH: usize = " = ".len();
 
-    if token_contains_comments(&equal_token)
-        || trivia_contains_comments(
-            type_info_leading_trivia(type_info).iter().cloned(),
-            CommentSearch::All,
-        )
-    {
+    if token_contains_comments(&equal_token) || type_info.has_leading_comments(CommentSearch::All) {
         // We will hang at the equals token, and then format the declaration as necessary
         let equal_token = hang_equal_token(ctx, &equal_token, shape, false);
 
@@ -797,13 +768,13 @@ fn attempt_assigned_type_tactics(
         };
 
         // Take the leading comments and format them nicely
-        let leading_comments = type_info_leading_trivia(type_info)
+        let leading_comments = type_info
+            .leading_comments()
             .iter()
-            .filter(|x| trivia_is_comment(x))
             .flat_map(|x| {
                 vec![
                     create_indent_trivia(ctx, shape),
-                    x.to_owned().to_owned(),
+                    x.to_owned(),
                     create_newline_trivia(ctx),
                 ]
             })
@@ -913,81 +884,81 @@ fn format_type_declaration(
     // (or just type name and equal token if generics not present)
 
     // If there are comments in between the type name and the generics, then handle them
-    let (type_name, equal_token, generics) =
-        if trivia_contains_comments(type_name.trailing_trivia(), CommentSearch::All)
-            || generics.as_ref().map_or(false, |generics| {
-                trivia_contains_comments(
-                    generics.arrows().tokens().0.leading_trivia(),
-                    CommentSearch::All,
-                )
-            })
-            || trivia_contains_comments(equal_token.leading_trivia(), CommentSearch::All)
-        {
-            // See if we have generics
-            if let Some(generics) = generics {
-                let (start_arrow, end_arrow) = generics.arrows().tokens();
+    let (type_name, equal_token, generics) = if type_name.has_trailing_comments(CommentSearch::All)
+        || generics.as_ref().map_or(false, |generics| {
+            generics
+                .arrows()
+                .tokens()
+                .0
+                .has_leading_comments(CommentSearch::All)
+        })
+        || equal_token.has_leading_comments(CommentSearch::All)
+    {
+        // See if we have generics
+        if let Some(generics) = generics {
+            let (start_arrow, end_arrow) = generics.arrows().tokens();
 
-                let type_name_comments = type_name
-                    .trailing_trivia()
-                    .chain(start_arrow.leading_trivia())
-                    .filter(|token| trivia_is_comment(token))
-                    .flat_map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .collect::<Vec<_>>();
-                let type_name_comments_len = type_name_comments.len();
+            let type_name_comments = type_name
+                .trailing_trivia()
+                .chain(start_arrow.leading_trivia())
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .collect::<Vec<_>>();
+            let type_name_comments_len = type_name_comments.len();
 
-                let arrow_comments = end_arrow
-                    .trailing_trivia()
-                    .chain(equal_token.leading_trivia())
-                    .filter(|token| trivia_is_comment(token))
-                    .flat_map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .collect();
+            let arrow_comments = end_arrow
+                .trailing_trivia()
+                .chain(equal_token.leading_trivia())
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .collect();
 
-                (
-                    type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
-                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
-                        TokenType::spaces(1),
-                    )])),
-                    Some(generics.to_owned().with_arrows(ContainedSpan::new(
-                        start_arrow.update_leading_trivia(FormatTriviaType::Replace(
-                            // If there are some comments present between the type name and generics,
-                            // then lets add a single space before the arrow to make it look nicer
-                            if type_name_comments_len > 0 {
-                                vec![Token::new(TokenType::spaces(1))]
-                            } else {
-                                vec![]
-                            },
-                        )),
-                        end_arrow.update_trailing_trivia(FormatTriviaType::Replace(arrow_comments)),
-                    ))),
-                )
-            } else {
-                let comments = type_name
-                    .trailing_trivia()
-                    .chain(equal_token.leading_trivia())
-                    .filter(|token| trivia_is_comment(token))
-                    .flat_map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .collect();
-
-                (
-                    type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
-                    equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
-                        TokenType::spaces(1),
-                    )])),
-                    generics,
-                )
-            }
+            (
+                type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
+                equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                    TokenType::spaces(1),
+                )])),
+                Some(generics.to_owned().with_arrows(ContainedSpan::new(
+                    start_arrow.update_leading_trivia(FormatTriviaType::Replace(
+                        // If there are some comments present between the type name and generics,
+                        // then lets add a single space before the arrow to make it look nicer
+                        if type_name_comments_len > 0 {
+                            vec![Token::new(TokenType::spaces(1))]
+                        } else {
+                            vec![]
+                        },
+                    )),
+                    end_arrow.update_trailing_trivia(FormatTriviaType::Replace(arrow_comments)),
+                ))),
+            )
         } else {
-            (type_name, equal_token, generics)
-        };
+            let comments = type_name
+                .trailing_trivia()
+                .chain(equal_token.leading_trivia())
+                .filter(|token| trivia_is_comment(token))
+                .flat_map(|x| {
+                    // Prepend a single space beforehand
+                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                })
+                .collect();
+
+            (
+                type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
+                    TokenType::spaces(1),
+                )])),
+                generics,
+            )
+        }
+    } else {
+        (type_name, equal_token, generics)
+    };
 
     let type_definition =
         type_definition.update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
@@ -1063,10 +1034,9 @@ pub fn format_generic_declaration(
     );
 
     let (start_arrow, end_arrow) = generic_declaration.arrows().tokens();
-    let contains_comments =
-        trivia_contains_comments(start_arrow.trailing_trivia(), CommentSearch::All)
-            || trivia_contains_comments(end_arrow.leading_trivia(), CommentSearch::All)
-            || contains_comments(generic_declaration.generics());
+    let contains_comments = start_arrow.has_trailing_comments(CommentSearch::All)
+        || end_arrow.has_leading_comments(CommentSearch::All)
+        || contains_comments(generic_declaration.generics());
 
     let should_expand = contains_comments
         || shape
@@ -1079,7 +1049,6 @@ pub fn format_generic_declaration(
             generic_declaration.arrows(),
             generic_declaration.generics(),
             format_generic_parameter, // TODO: hangable?
-            take_generic_parameter_trailing_comments,
             shape,
         )
     } else {

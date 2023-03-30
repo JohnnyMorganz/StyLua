@@ -4,7 +4,7 @@ use full_moon::ast::lua54::Attribute;
 use full_moon::ast::types::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -627,11 +627,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
             let export_token = stmt.export_token().update_leading_trivia(leading);
-            let type_declaration = stmt.type_declaration().to_owned().with_type_definition(
-                stmt.type_declaration()
-                    .type_definition()
-                    .update_trailing_trivia(trailing),
-            );
+            let type_declaration = stmt.type_declaration().update_trailing_trivia(trailing);
             Stmt::ExportedTypeDeclaration(
                 stmt.to_owned()
                     .with_export_token(export_token)
@@ -639,11 +635,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
             )
         }
         #[cfg(feature = "luau")]
-        Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(
-            stmt.to_owned()
-                .with_type_token(stmt.type_token().update_leading_trivia(leading))
-                .with_type_definition(stmt.type_definition().update_trailing_trivia(trailing)),
-        ),
+        Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(stmt.update_trivia(leading, trailing)),
         #[cfg(feature = "lua52")]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
@@ -920,6 +912,13 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trivia!(TypeDeclaration, |this, leading, trailing| {
+    this.to_owned()
+        .with_type_token(this.type_token().update_leading_trivia(leading))
+        .with_type_definition(this.type_definition().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
 define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
     match this {
         IndexedTypeInfo::Basic(token_reference) => {
@@ -950,6 +949,12 @@ define_update_leading_trivia!(TypeArgument, |this, leading| {
         this.to_owned()
             .with_type_info(this.type_info().update_leading_trivia(leading))
     }
+});
+
+#[cfg(feature = "luau")]
+define_update_trailing_trivia!(TypeArgument, |this, trailing| {
+    this.to_owned()
+        .with_type_info(this.type_info().update_trailing_trivia(trailing))
 });
 
 #[cfg(feature = "luau")]
