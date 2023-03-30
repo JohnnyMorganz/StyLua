@@ -450,13 +450,6 @@ pub fn get_expression_leading_trivia(expression: &Expression) -> Vec<Token> {
     }
 }
 
-pub fn punctuated_leading_trivia(punctuated: &Punctuated<Expression>) -> Vec<Token> {
-    punctuated
-        .iter()
-        .next()
-        .map_or_else(Vec::new, get_expression_leading_trivia)
-}
-
 pub fn binop_leading_comments(binop: &BinOp) -> Vec<Token> {
     match binop {
         BinOp::And(token)
@@ -1360,9 +1353,11 @@ impl GetLeadingTrivia for Expression {
     }
 }
 
-impl GetLeadingTrivia for Punctuated<Expression> {
+impl<T: GetLeadingTrivia> GetLeadingTrivia for Punctuated<T> {
     fn leading_trivia(&self) -> Vec<Token> {
-        punctuated_leading_trivia(self)
+        self.iter()
+            .next()
+            .map_or_else(Vec::new, GetLeadingTrivia::leading_trivia)
     }
 }
 
@@ -1401,6 +1396,10 @@ impl GetLeadingTrivia for Prefix {
 pub trait GetTrailingTrivia {
     fn trailing_trivia(&self) -> Vec<Token>;
 
+    fn has_trailing_comments(&self, search: CommentSearch) -> bool {
+        trivia_contains_comments(self.trailing_trivia().iter(), search)
+    }
+
     // Retrieves all the trailing comments from the token
     // Prepends a space before each comment
     fn trailing_comments(&self) -> Vec<Token> {
@@ -1436,6 +1435,14 @@ impl GetTrailingTrivia for Expression {
 impl GetTrailingTrivia for Var {
     fn trailing_trivia(&self) -> Vec<Token> {
         var_trailing_trivia(self)
+    }
+}
+
+impl<T: GetTrailingTrivia> GetTrailingTrivia for Punctuated<T> {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.iter()
+            .last()
+            .map_or_else(Vec::new, GetTrailingTrivia::trailing_trivia)
     }
 }
 

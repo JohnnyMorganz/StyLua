@@ -31,6 +31,8 @@ use crate::{
     shape::Shape,
 };
 
+use super::trivia_util::{prepend_newline_indent, GetTrailingTrivia};
+
 /// Calculates the hanging level to use when hanging an expression.
 /// By default, we indent one further, but we DO NOT want to do this if the expression is just parentheses (or a unary operation on them)
 /// https://github.com/JohnnyMorganz/StyLua/issues/274
@@ -326,7 +328,7 @@ fn attempt_assignment_tactics(
 pub fn format_assignment_no_trivia(
     ctx: &Context,
     assignment: &Assignment,
-    shape: Shape,
+    mut shape: Shape,
 ) -> Assignment {
     // Check if the assignment expressions or equal token contain comments. If they do, we bail out of determining any tactics
     // and format multiline
@@ -348,6 +350,16 @@ pub fn format_assignment_no_trivia(
         shape.with_infinite_width(),
         format_expression,
     );
+
+    // If the var list ended with a comment, we need to hang the equals token
+    if var_list.has_trailing_comments(trivia_util::CommentSearch::Single) {
+        const EQUAL_TOKEN_LEN: usize = "= ".len();
+        shape = shape
+            .reset()
+            .increment_additional_indent()
+            .add_width(EQUAL_TOKEN_LEN);
+        equal_token = prepend_newline_indent(ctx, &equal_token, shape);
+    }
 
     // Test the assignment to see if its over width
     let singleline_shape = shape
@@ -420,7 +432,7 @@ fn format_local_no_assignment(
 pub fn format_local_assignment_no_trivia(
     ctx: &Context,
     assignment: &LocalAssignment,
-    shape: Shape,
+    mut shape: Shape,
 ) -> LocalAssignment {
     if assignment.expressions().is_empty() {
         format_local_no_assignment(ctx, assignment, shape)
@@ -475,6 +487,16 @@ pub fn format_local_assignment_no_trivia(
             type_specifier_len += type_specifiers.iter().fold(0, |acc, x| {
                 acc + x.as_ref().map_or(0, |y| y.to_string().len())
             });
+        }
+
+        // If the var list ended with a comment, we need to hang the equals token
+        if name_list.has_trailing_comments(trivia_util::CommentSearch::Single) {
+            const EQUAL_TOKEN_LEN: usize = "= ".len();
+            shape = shape
+                .reset()
+                .increment_additional_indent()
+                .add_width(EQUAL_TOKEN_LEN);
+            equal_token = prepend_newline_indent(ctx, &equal_token, shape);
         }
 
         // Test the assignment to see if its over width
