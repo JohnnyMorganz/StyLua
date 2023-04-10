@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150388888,
+  "lastUpdate": 1681150439175,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5585,6 +5585,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29098685,
             "range": "± 386818",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1dca2803c66eb0d7aca33a4c8d1f2f81c2d80b26",
+          "message": "Bump thread_local from 1.1.3 to 1.1.7 (#673)\n\nBumps [thread_local](https://github.com/Amanieu/thread_local-rs) from 1.1.3 to 1.1.7.\r\n- [Release notes](https://github.com/Amanieu/thread_local-rs/releases)\r\n- [Commits](https://github.com/Amanieu/thread_local-rs/compare/v1.1.3...1.1.7)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: thread_local\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-10T19:08:58+01:00",
+          "tree_id": "2e2781a23102e69a41390ee31798ec3fbd237574",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1dca2803c66eb0d7aca33a4c8d1f2f81c2d80b26"
+        },
+        "date": 1681150438334,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 52555862,
+            "range": "± 793797",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 368272650,
+            "range": "± 369085",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28429966,
+            "range": "± 75841",
             "unit": "ns/iter"
           }
         ]
