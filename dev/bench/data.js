@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681149905400,
+  "lastUpdate": 1681149931246,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5375,6 +5375,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 33844158,
             "range": "± 168642",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "05bacfd92e364c57efead3e386db66acfdf973f2",
+          "message": "Downgrade wasm-pack version",
+          "timestamp": "2023-04-10T19:00:47+01:00",
+          "tree_id": "bb6c3b320b8e69b72213cda433bf01bc918bbe80",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/05bacfd92e364c57efead3e386db66acfdf973f2"
+        },
+        "date": 1681149930373,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55092871,
+            "range": "± 571189",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371494874,
+            "range": "± 2874058",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28102218,
+            "range": "± 100070",
             "unit": "ns/iter"
           }
         ]
