@@ -59,7 +59,7 @@ toml = "0.5.8"
 wasm-bindgen = { version = "0.2.81", optional = true }
 
 [dev-dependencies]
-criterion = "0.3.4"
+criterion = "0.4.0"
 insta = { version = "1.12.0", features = ["glob"] }
 assert_cmd = "2.0.4"
 
