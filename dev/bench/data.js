@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681149398733,
+  "lastUpdate": 1681149613926,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5291,6 +5291,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 34623053,
             "range": "± 1525907",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "846d3c7af3aafe76d5c0b31078e9777fb817bf4c",
+          "message": "Create .github/dependabot.yml",
+          "timestamp": "2023-04-10T18:54:01+01:00",
+          "tree_id": "aa4f33f1dfacec6aeec47c59a164c17e1edbe148",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/846d3c7af3aafe76d5c0b31078e9777fb817bf4c"
+        },
+        "date": 1681149612028,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55689661,
+            "range": "± 392032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 372541467,
+            "range": "± 1663512",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28739597,
+            "range": "± 270561",
             "unit": "ns/iter"
           }
         ]
