@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150439175,
+  "lastUpdate": 1681150479274,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5627,6 +5627,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28429966,
             "range": "± 75841",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5b182d59993ded7bc167a4b322ca4e1bbb244787",
+          "message": "Bump criterion from 0.3.5 to 0.4.0 (#676)\n\nBumps [criterion](https://github.com/bheisler/criterion.rs) from 0.3.5 to 0.4.0.\r\n- [Release notes](https://github.com/bheisler/criterion.rs/releases)\r\n- [Changelog](https://github.com/bheisler/criterion.rs/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/bheisler/criterion.rs/compare/0.3.5...0.4.0)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: criterion\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-minor\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-10T19:10:19+01:00",
+          "tree_id": "3e4e878d1225c5780a2ea840d802a352997c5127",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5b182d59993ded7bc167a4b322ca4e1bbb244787"
+        },
+        "date": 1681150478714,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54972895,
+            "range": "± 684097",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 369437924,
+            "range": "± 3166717",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28602305,
+            "range": "± 272182",
             "unit": "ns/iter"
           }
         ]
