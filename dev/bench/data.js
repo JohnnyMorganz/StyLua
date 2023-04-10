@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681149613926,
+  "lastUpdate": 1681149905400,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5333,6 +5333,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28739597,
             "range": "± 270561",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "5c2577f238e162589287d63f55dc0ad4d5b585c2",
+          "message": "Update actions-rs and wasm-pack build",
+          "timestamp": "2023-04-10T18:59:51+01:00",
+          "tree_id": "eba7d072bd43cc14ae3c2cec80c456190d6508dc",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5c2577f238e162589287d63f55dc0ad4d5b585c2"
+        },
+        "date": 1681149904235,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 65305112,
+            "range": "± 1265286",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 445501006,
+            "range": "± 4985085",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 33844158,
+            "range": "± 168642",
             "unit": "ns/iter"
           }
         ]
