@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150479274,
+  "lastUpdate": 1681150499484,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5669,6 +5669,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28602305,
             "range": "± 272182",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ddd49107bef047583bf374c17ac1d66e836f2643",
+          "message": "Bump nanoid and mocha in /stylua-vscode (#671)\n\nBumps [nanoid](https://github.com/ai/nanoid) to 3.3.3 and updates ancestor dependency [mocha](https://github.com/mochajs/mocha). These dependencies need to be updated together.\r\n\r\n\r\nUpdates `nanoid` from 3.1.20 to 3.3.3\r\n- [Release notes](https://github.com/ai/nanoid/releases)\r\n- [Changelog](https://github.com/ai/nanoid/blob/main/CHANGELOG.md)\r\n- [Commits](https://github.com/ai/nanoid/compare/3.1.20...3.3.3)\r\n\r\nUpdates `mocha` from 8.4.0 to 10.2.0\r\n- [Release notes](https://github.com/mochajs/mocha/releases)\r\n- [Changelog](https://github.com/mochajs/mocha/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/mochajs/mocha/compare/v8.4.0...v10.2.0)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: nanoid\r\n  dependency-type: indirect\r\n- dependency-name: mocha\r\n  dependency-type: direct:development\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-10T19:09:32+01:00",
+          "tree_id": "7b1bc1899768e919d9df9e7ac4e8e55aaf5eb75f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ddd49107bef047583bf374c17ac1d66e836f2643"
+        },
+        "date": 1681150498935,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54105756,
+            "range": "± 955187",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 369316816,
+            "range": "± 1211127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28566247,
+            "range": "± 85002",
             "unit": "ns/iter"
           }
         ]
