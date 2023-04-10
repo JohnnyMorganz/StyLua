@@ -53,12 +53,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           target: ${{ matrix.cargo-target }}
-          override: true
-          profile: minimal
 
       - name: Install Linker packages
         if: ${{ matrix.linker != '' }}
@@ -121,11 +118,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Publish to cargo
         run: cargo publish --verbose --locked --token ${{ secrets.CARGO_TOKEN }}
@@ -137,12 +130,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           target: wasm32-unknown-unknown
-          override: true
-          profile: minimal
 
       - name: Setup Node
         uses: actions/setup-node@v3

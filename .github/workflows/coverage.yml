@@ -13,10 +13,8 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
-          override: true
           components: llvm-tools-preview
 
       # - name: Install grcov
