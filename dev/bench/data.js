@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150288548,
+  "lastUpdate": 1681150340056,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5501,6 +5501,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28844266,
             "range": "± 275405",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7cf70577a5be6efde4e9da215fc0cc720ede2fd1",
+          "message": "Bump peter-evans/create-pull-request from 3 to 5 (#675)\n\nBumps [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request) from 3 to 5.\r\n- [Release notes](https://github.com/peter-evans/create-pull-request/releases)\r\n- [Commits](https://github.com/peter-evans/create-pull-request/compare/v3...v5)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: peter-evans/create-pull-request\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-major\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-10T19:07:36+01:00",
+          "tree_id": "fd26ceb34615769a2ee43332d5e66c3b540d75fe",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7cf70577a5be6efde4e9da215fc0cc720ede2fd1"
+        },
+        "date": 1681150339551,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55783041,
+            "range": "± 774924",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371467724,
+            "range": "± 668078",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 29225061,
+            "range": "± 430137",
             "unit": "ns/iter"
           }
         ]
