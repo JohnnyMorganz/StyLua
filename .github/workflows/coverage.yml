@@ -10,7 +10,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
@@ -38,6 +38,6 @@ jobs:
         run: cargo llvm-cov --ignore-filename-regex "src/cli/*" --lcov --output-path lcov.info
 
       - name: Upload
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           files: lcov.info

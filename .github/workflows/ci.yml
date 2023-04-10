@@ -10,42 +10,42 @@ jobs:
   test_default:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test (default)
         run: cargo test
 
   test_luau:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test (Luau)
         run: cargo test --features luau
 
   test_lua52:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test (Lua 5.2)
         run: cargo test --features lua52
 
   test_lua53:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test (Lua 5.3)
         run: cargo test --features lua53
 
   test_lua54:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test (Lua 5.4)
         run: cargo test --features lua54
 
   test_wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Test Build (wasm)
         run: |
           rustup target add wasm32-unknown-unknown
@@ -65,9 +65,9 @@ jobs:
           profile: minimal
 
       - name: Setup Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "16.x"
           registry-url: "https://registry.npmjs.org"
 
       - name: Test Build (wasm-pack)
@@ -78,7 +78,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       - name: Clippy
         run: |
