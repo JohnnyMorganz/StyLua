@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150340056,
+  "lastUpdate": 1681150388888,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5543,6 +5543,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29225061,
             "range": "± 430137",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e9816e692d77b576422614448cc6d8940a1bd2d0",
+          "message": "Bump bumpalo from 3.7.0 to 3.12.0 (#670)\n\nBumps [bumpalo](https://github.com/fitzgen/bumpalo) from 3.7.0 to 3.12.0.\r\n- [Release notes](https://github.com/fitzgen/bumpalo/releases)\r\n- [Changelog](https://github.com/fitzgen/bumpalo/blob/main/CHANGELOG.md)\r\n- [Commits](https://github.com/fitzgen/bumpalo/compare/3.7.0...3.12.0)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: bumpalo\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-10T19:08:19+01:00",
+          "tree_id": "6849ca270d2dea74c513ecb86db3c2ed6acfcf6a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e9816e692d77b576422614448cc6d8940a1bd2d0"
+        },
+        "date": 1681150388324,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55598658,
+            "range": "± 844915",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 374488962,
+            "range": "± 969298",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 29098685,
+            "range": "± 386818",
             "unit": "ns/iter"
           }
         ]
