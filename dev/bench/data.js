@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681148760433,
+  "lastUpdate": 1681149044178,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5207,6 +5207,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28672061,
             "range": "± 132980",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "6b98a135443d41124969fd13cd198c36a9c5ae82",
+          "message": "Test wasm-pack building on CI",
+          "timestamp": "2023-04-10T18:45:34+01:00",
+          "tree_id": "6310df22536b37f0fb3b5e144ca0c75da800b968",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/6b98a135443d41124969fd13cd198c36a9c5ae82"
+        },
+        "date": 1681149043009,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58225620,
+            "range": "± 3288770",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 386369132,
+            "range": "± 13698849",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30093048,
+            "range": "± 856894",
             "unit": "ns/iter"
           }
         ]
