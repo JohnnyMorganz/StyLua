@@ -5,6 +5,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use stylua_lib::Config;
+use stylua_lib::SortRequiresConfig;
 
 static CONFIG_FILE_NAME: [&str; 2] = ["stylua.toml", ".stylua.toml"];
 
@@ -175,6 +176,9 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
     };
     if let Some(collapse_simple_statement) = opt.format_opts.collapse_simple_statement {
         new_config = new_config.with_collapse_simple_statement(collapse_simple_statement.into());
+    }
+    if opt.format_opts.sort_requires {
+        new_config = new_config.with_sort_requires(SortRequiresConfig::default().set_enabled(true))
     }
 
     new_config

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed missing option `--sort-requires` to enable sort requires on the command line
+
+```sh
+$ stylua --sort-requires test.lua
+```
+
 ## [0.17.1] - 2023-03-30
 
 ### Fixed

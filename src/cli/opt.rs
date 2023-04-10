@@ -176,6 +176,9 @@ pub struct FormatOpts {
     /// Specify whether to collapse simple statements.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub collapse_simple_statement: Option<ArgCollapseSimpleStatement>,
+    /// Enable requires sorting
+    #[structopt(long)]
+    pub sort_requires: bool,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
