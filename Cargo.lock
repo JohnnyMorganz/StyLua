@@ -300,9 +300,9 @@ checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
 name = "ec4rs"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db540f6c584d6e2960617a2b550632715bbe0a50a4d79c0f682a13da100b34eb"
+checksum = "cbe77819d458aa1ffc58cfdc1cc240f6356952908ea4ee1864da53b0c7e19437"
 
 [[package]]
 name = "either"
