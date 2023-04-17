@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-full_moon/single-line-comment-7.lua
+---
+local a = 1
+
+--}}封装方便访问的接口==========================================
+
