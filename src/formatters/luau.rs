@@ -464,6 +464,7 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     TypeInfo::Callback { .. }
                         | TypeInfo::Union { .. }
                         | TypeInfo::Intersection { .. }
+                        | TypeInfo::Optional { .. }
                 )
             {
                 // If its just a single type inside parentheses, and its not a function or composite type, then remove the parens
