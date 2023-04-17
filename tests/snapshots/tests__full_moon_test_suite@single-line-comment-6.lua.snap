@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-full_moon/single-line-comment-6.lua
+---
+--随便写点中文
+

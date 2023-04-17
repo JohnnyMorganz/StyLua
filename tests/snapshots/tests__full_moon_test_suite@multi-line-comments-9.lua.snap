@@ -1,0 +1,27 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-full_moon/multi-line-comments-9.lua
+---
+--[=[
+
+	This description starts one line down,
+
+	And has a line in the middle, followed by trailing lines.
+
+	```lua
+	function test()
+		print("indentation")
+
+		do
+			print("more indented")
+		end
+	end
+	```
+
+
+	@class indentation
+
+
+]=]
+
