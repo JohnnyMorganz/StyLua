@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 $ stylua --sort-requires test.lua
 ```
 
+- Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)`
+
 ## [0.17.1] - 2023-03-30
 
 ### Fixed
