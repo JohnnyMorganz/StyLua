@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681748485117,
+  "lastUpdate": 1681748504207,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5795,6 +5795,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 36189613,
             "range": "± 432300",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "396ef88083c57c7371e553add38fcc9dc148081d",
+          "message": "Bump thiserror from 1.0.31 to 1.0.40 (#686)\n\nBumps [thiserror](https://github.com/dtolnay/thiserror) from 1.0.31 to 1.0.40.\r\n- [Release notes](https://github.com/dtolnay/thiserror/releases)\r\n- [Commits](https://github.com/dtolnay/thiserror/compare/1.0.31...1.0.40)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: thiserror\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-04-17T17:17:12+01:00",
+          "tree_id": "b85744806c90a30393f2cd21cfcc2a00573e6f5b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/396ef88083c57c7371e553add38fcc9dc148081d"
+        },
+        "date": 1681748502995,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 68770799,
+            "range": "± 2426851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 473256469,
+            "range": "± 10889465",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 35070465,
+            "range": "± 1015048",
             "unit": "ns/iter"
           }
         ]
