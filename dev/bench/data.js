@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681150499484,
+  "lastUpdate": 1681739248753,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5711,6 +5711,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28566247,
             "range": "± 85002",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "40eae81c023817cce0c91f96c4d6400d3512aae0",
+          "message": "Disable CI mode for test cases update",
+          "timestamp": "2023-04-17T14:42:48+01:00",
+          "tree_id": "286fb230e8d57d33fc0b3231375547721b8673ea",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/40eae81c023817cce0c91f96c4d6400d3512aae0"
+        },
+        "date": 1681739247604,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 73939860,
+            "range": "± 2306008",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 491078467,
+            "range": "± 12825783",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 36939922,
+            "range": "± 1799097",
             "unit": "ns/iter"
           }
         ]
