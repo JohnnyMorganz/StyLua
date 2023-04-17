@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681748834305,
+  "lastUpdate": 1681751286084,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -5921,6 +5921,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28005546,
             "range": "± 140586",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "36c691eff781e99e7125f366f1dd04de8c08fef3",
+          "message": "Bump ec4rs from 1.0.1 to 1.0.2 (#684)",
+          "timestamp": "2023-04-17T18:04:12+01:00",
+          "tree_id": "765229079adf9ecc8331da78ea11abff648ee109",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/36c691eff781e99e7125f366f1dd04de8c08fef3"
+        },
+        "date": 1681751285530,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 57188817,
+            "range": "± 661516",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371367121,
+            "range": "± 1258035",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30641434,
+            "range": "± 1538494",
             "unit": "ns/iter"
           }
         ]
