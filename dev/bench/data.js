@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682355525689,
+  "lastUpdate": 1682359807205,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6089,6 +6089,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28562268,
             "range": "± 188945",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ed58d91c806985c7993c3f2489a17907e71dc8df",
+          "message": "Bump crossbeam-channel from 0.5.4 to 0.5.8 (#688)",
+          "timestamp": "2023-04-24T19:05:51+01:00",
+          "tree_id": "914493199e66f273892acccabac3895855c0aca5",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ed58d91c806985c7993c3f2489a17907e71dc8df"
+        },
+        "date": 1682359805673,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56816142,
+            "range": "± 640478",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 371978698,
+            "range": "± 1473928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28471561,
+            "range": "± 511107",
             "unit": "ns/iter"
           }
         ]
