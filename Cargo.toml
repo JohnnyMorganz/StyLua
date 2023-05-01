@@ -35,7 +35,7 @@ editorconfig = ["ec4rs"]
 [dependencies]
 anyhow = "1.0.70"
 cfg-if = "1.0.0"
-clap = { version = "3.1.6", features = ["derive"] }
+clap = { version = "3.2.2", features = ["derive"] }
 console = "0.15.5"
 crossbeam-channel = "0.5.8"
 ec4rs = { version = "1.0.2", optional = true }
