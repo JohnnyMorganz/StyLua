@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Multiline ignores (`-- stylua: ignore start` / `-- stylua: ignore end`) will now work within table fields:
+
+```lua
+require("foo").bar {
+	-- stylua: ignore start
+	baz      =0, -- < not formatted
+	foo   =   2, -- < not formatted
+	-- stylua: ignore end
+	bar        =     1234 -- formatted
+}
+```
+
 ### Fixed
 
 - Fixed missing option `--sort-requires` to enable sort requires on the command line
