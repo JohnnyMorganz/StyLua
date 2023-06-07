@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Function calls are now formatted onto multiple lines if the opening brace `{` of a multiline table forces one of the lines over width
 - Fixed missing option `--sort-requires` to enable sort requires on the command line
 
 ```sh
