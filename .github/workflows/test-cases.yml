@@ -16,11 +16,11 @@ jobs:
       - name: Update insta snapshots
         run: |
           cargo install cargo-insta
-          cargo insta test --accept
-          cargo insta test --features lua52 --accept
-          cargo insta test --features lua53 --accept
-          cargo insta test --features lua54 --accept
-          cargo insta test --features luau --accept
+          CI=false cargo insta test --accept
+          CI=false cargo insta test --features lua52 --accept
+          CI=false cargo insta test --features lua53 --accept
+          CI=false cargo insta test --features lua54 --accept
+          CI=false cargo insta test --features luau --accept
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5

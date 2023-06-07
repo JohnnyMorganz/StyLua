@@ -33,27 +33,27 @@ lua54 = ["lua53", "full_moon/lua54"]
 editorconfig = ["ec4rs"]
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.71"
 cfg-if = "1.0.0"
 clap = { version = "3.1.6", features = ["derive"] }
-console = "0.15.0"
-crossbeam-channel = "0.5.4"
-ec4rs = { version = "1.0.1", optional = true }
-env_logger = { version = "0.9.0", default-features = false }
+console = "0.15.5"
+crossbeam-channel = "0.5.8"
+ec4rs = { version = "1.0.2", optional = true }
+env_logger = { version = "0.10.0", default-features = false }
 full_moon = "0.18.1"
-globset = "0.4.8"
-ignore = "0.4.18"
+globset = "0.4.10"
+ignore = "0.4.20"
 lazy_static = "1.4.0"
-log = "0.4.14"
-num_cpus = "1.13.1"
-regex = "1.7.3"
-serde = "1.0.136"
-serde_json = "1.0.95"
+log = "0.4.17"
+num_cpus = "1.15.0"
+regex = "1.8.1"
+serde = "1.0.163"
+serde_json = "1.0.96"
 similar = { version = "2.1.0", features = ["text", "inline", "serde"] }
 strum = { version = "0.24.1", features = ["derive"], optional = true }
-thiserror = "1.0.31"
+thiserror = "1.0.40"
 threadpool = "1.8.1"
-toml = "0.5.8"
+toml = "0.5.11"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.81", optional = true }

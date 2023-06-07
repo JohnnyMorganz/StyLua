@@ -265,6 +265,12 @@ fn function_args_multiline_heuristic(
                                 return true;
                             }
 
+                            // Include the first brace to check if we are over the column width already
+                            singleline_shape = singleline_shape.take_first_line(table);
+                            if singleline_shape.over_budget() {
+                                return true;
+                            }
+
                             current_state = current_state.record_multiline_arg();
 
                             // Reset the shape onto a new line

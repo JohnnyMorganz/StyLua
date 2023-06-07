@@ -337,7 +337,7 @@ pub fn format_multiline_table<T, U>(
     shape: Shape,
 ) -> (ContainedSpan, Punctuated<T>)
 where
-    T: std::fmt::Display,
+    T: std::fmt::Display + Node,
     U: Fn(&Context, &T, TableType, Shape) -> (T, Vec<Token>),
 {
     let table_type = TableType::MultiLine;
@@ -349,14 +349,18 @@ where
     let current_fields = fields.pairs();
     let mut fields = Punctuated::new();
 
+    let mut ctx = *ctx;
+
     for pair in current_fields {
         let (field, punctuation) = (pair.value(), pair.punctuation());
+
+        ctx = ctx.check_toggle_formatting(field);
 
         // Reset the shape onto a new line, as we are a new field
         shape = shape.reset().add_width(1); // Add 1 to include the trailing comma at the end
 
         // Format the field
-        let (formatted_field, mut trailing_trivia) = formatter(ctx, field, table_type, shape);
+        let (formatted_field, mut trailing_trivia) = formatter(&ctx, field, table_type, shape);
 
         // If trivia is just whitespace, ignore it completely
         if trailing_trivia
@@ -370,17 +374,22 @@ where
                 .iter()
                 .filter(|x| !trivia_util::trivia_is_whitespace(x))
                 .flat_map(|x| {
-                    trivia_to_vec(format_token(ctx, x, FormatTokenType::TrailingTrivia, shape))
+                    trivia_to_vec(format_token(
+                        &ctx,
+                        x,
+                        FormatTokenType::TrailingTrivia,
+                        shape,
+                    ))
                 })
                 .collect();
         }
 
         // Continue adding a comma and a new line for multiline tables
         // Add newline trivia to the end of the symbol
-        trailing_trivia.push(create_newline_trivia(ctx));
+        trailing_trivia.push(create_newline_trivia(&ctx));
 
         let symbol = match punctuation {
-            Some(punctuation) => fmt_symbol!(ctx, punctuation, ",", shape),
+            Some(punctuation) => fmt_symbol!(&ctx, punctuation, ",", shape),
             None => TokenReference::symbol(",").unwrap(),
         }
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));

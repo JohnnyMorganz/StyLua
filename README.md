@@ -11,6 +11,8 @@ An opinionated code formatter for Lua 5.1, 5.2, 5.3, 5.4 and [Luau](https://robl
 StyLua is inspired by the likes of [prettier](https://github.com/prettier/prettier), it parses your Lua codebase, and prints it back out from scratch,
 enforcing a consistent code style.
 
+StyLua mainly follows the [Roblox Lua Style Guide](https://roblox.github.io/lua-style-guide/), with a few deviations.
+
 ## Installation
 
 There are multiple ways to install StyLua:
