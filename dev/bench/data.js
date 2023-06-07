@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686139107137,
+  "lastUpdate": 1686139917478,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6509,6 +6509,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28324135,
             "range": "± 167458",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53f5a698f06cec5ff9eacacf207a4335af374dc8",
+          "message": "Check table brace for function args multiline (#706)\n\n* Check table brace for function args multiline\r\n\r\n* Update changelog",
+          "timestamp": "2023-06-07T13:08:35+01:00",
+          "tree_id": "3eb0d7a5fb1392b4b1e87425956948d35dd247d9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/53f5a698f06cec5ff9eacacf207a4335af374dc8"
+        },
+        "date": 1686139916336,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54469533,
+            "range": "± 377533",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 374663646,
+            "range": "± 1738879",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 27930431,
+            "range": "± 196797",
             "unit": "ns/iter"
           }
         ]
