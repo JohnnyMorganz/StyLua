@@ -42,3 +42,6 @@ end
 -- https://github.com/JohnnyMorganz/StyLua/issues/679
 type A = B & (C | D)
 type A = B & (C?)
+type A = ((string) -> string) & ((number) -> number)
+type A = (A | B)?
+type A = (A | B) -- comment
