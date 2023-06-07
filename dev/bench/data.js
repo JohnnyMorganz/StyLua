@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686138640312,
+  "lastUpdate": 1686138846363,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6425,6 +6425,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29700272,
             "range": "± 890981",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "61f411c96d8e78ac371ec38057435717b911e1a2",
+          "message": "Bump serde from 1.0.160 to 1.0.163 (#702)\n\nBumps [serde](https://github.com/serde-rs/serde) from 1.0.160 to 1.0.163.\r\n- [Release notes](https://github.com/serde-rs/serde/releases)\r\n- [Commits](https://github.com/serde-rs/serde/compare/v1.0.160...v1.0.163)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: serde\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-06-07T12:47:30+01:00",
+          "tree_id": "2dc2274cb87422e409fb7ac332fee5a8552f5bdf",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/61f411c96d8e78ac371ec38057435717b911e1a2"
+        },
+        "date": 1686138845317,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 78777213,
+            "range": "± 3132030",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 529283811,
+            "range": "± 8445205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 40666147,
+            "range": "± 1268601",
             "unit": "ns/iter"
           }
         ]
