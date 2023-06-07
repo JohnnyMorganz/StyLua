@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686139917478,
+  "lastUpdate": 1686163400493,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6551,6 +6551,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27930431,
             "range": "± 196797",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d3659f3f91a53899c5a0e04a8b1e62f4702b2878",
+          "message": "Support multiline ignores in table fields (#707)\n\n* Add test case\r\n\r\n* Support multiline ignores in table fields\r\n\r\n* Add snapshot\r\n\r\n* Update changelog",
+          "timestamp": "2023-06-07T19:37:15+01:00",
+          "tree_id": "cf382e46352a3b1bfa3e36b77bf4297a740bf4d3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d3659f3f91a53899c5a0e04a8b1e62f4702b2878"
+        },
+        "date": 1686163399430,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66599359,
+            "range": "± 444982",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 444049136,
+            "range": "± 1070189",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 35984828,
+            "range": "± 576212",
             "unit": "ns/iter"
           }
         ]
