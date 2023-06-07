@@ -92,7 +92,7 @@ fn format_hangable_type_info(
         && (should_hang_type(type_info, CommentSearch::Single)
             || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
     {
-        hang_type_info(ctx, type_info, shape, hang_level)
+        hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, hang_level)
     } else {
         // Use the proper formatting
         format_type_info(ctx, type_info, shape)
@@ -153,7 +153,100 @@ fn format_type_info_generics(
     }
 }
 
+#[derive(Clone, Copy)]
+struct TypeInfoContext {
+    // A TypeInfo within an optional type
+    // we should NOT remove parentheses in a type (A | B)?
+    within_optional: bool,
+    // A TypeInfo within a variadic type
+    // we should NOT remove parentheses in a type ...(A | B)
+    within_variadic: bool,
+
+    /// A TypeInfo part of a union/intersection operation
+    /// If its a mixed composite type, then we should not remove excess parentheses. e.g.
+    /// A & (B | C)
+    /// A & (B?)
+    /// A | (B & C)
+    /// Note, we should remove parentheses in these cases:
+    /// A | (B | C)
+    /// A & (B & C)
+    contains_union: bool,
+    contains_intersect: bool,
+}
+
+impl TypeInfoContext {
+    fn new() -> Self {
+        Self {
+            within_optional: false,
+            within_variadic: false,
+            contains_union: false,
+            contains_intersect: false,
+        }
+    }
+
+    fn mark_within_optional(self) -> TypeInfoContext {
+        Self {
+            within_optional: true,
+            ..self
+        }
+    }
+
+    fn mark_within_variadic(self) -> TypeInfoContext {
+        Self {
+            within_variadic: true,
+            ..self
+        }
+    }
+
+    fn mark_contains_union(self) -> TypeInfoContext {
+        Self {
+            contains_union: true,
+            ..self
+        }
+    }
+
+    fn mark_contains_intersect(self) -> TypeInfoContext {
+        Self {
+            contains_intersect: true,
+            ..self
+        }
+    }
+}
+
+fn keep_parentheses(internal_type: &TypeInfo, context: TypeInfoContext) -> bool {
+    match internal_type {
+        TypeInfo::Callback { .. }
+            if context.within_optional
+                || context.within_variadic
+                || context.contains_intersect
+                || context.contains_union =>
+        {
+            true
+        }
+        TypeInfo::Union { .. } | TypeInfo::Optional { .. }
+            if context.within_optional || context.within_variadic || context.contains_intersect =>
+        {
+            true
+        }
+        TypeInfo::Intersection { .. }
+            if context.within_optional || context.within_variadic || context.contains_union =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+
 pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> TypeInfo {
+    format_type_info_internal(ctx, type_info, TypeInfoContext::new(), shape)
+}
+
+fn format_type_info_internal(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    context: TypeInfoContext,
+    shape: Shape,
+) -> TypeInfo {
     match type_info {
         TypeInfo::Array { braces, type_info } => {
             const BRACKET_LEN: usize = "{ ".len();
@@ -312,9 +405,19 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             ampersand,
             right,
         } => {
-            let left = Box::new(format_type_info(ctx, left, shape));
+            let left = Box::new(format_type_info_internal(
+                ctx,
+                left,
+                context.mark_contains_intersect(),
+                shape,
+            ));
             let ampersand = fmt_symbol!(ctx, ampersand, " & ", shape);
-            let right = Box::new(format_type_info(ctx, right, shape + 3)); // 3 = " & "
+            let right = Box::new(format_type_info_internal(
+                ctx,
+                right,
+                context.mark_contains_intersect(),
+                shape + 3,
+            )); // 3 = " & "
             TypeInfo::Intersection {
                 left,
                 ampersand,
@@ -345,7 +448,12 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
             base,
             question_mark,
         } => {
-            let base = Box::new(format_type_info(ctx, base, shape));
+            let base = Box::new(format_type_info_internal(
+                ctx,
+                base,
+                context.mark_within_optional().mark_contains_union(),
+                shape,
+            ));
             let question_mark = fmt_symbol!(ctx, question_mark, "?", shape);
             TypeInfo::Optional {
                 base,
@@ -446,7 +554,10 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                 });
 
             let singleline_parentheses = format_contained_span(ctx, parentheses, shape);
-            let singleline_types = format_punctuated(ctx, types, shape + 1, format_type_info); // 1 = "("
+            let singleline_types =
+                format_punctuated(ctx, types, shape + 1, |ctx, type_info, shape| {
+                    format_type_info_internal(ctx, type_info, context, shape)
+                }); // 1 = "("
 
             let (parentheses, types) = if should_format_multiline
                 || shape.add_width(2).test_over_budget(&singleline_types)
@@ -458,17 +569,14 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
                     |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
                     shape,
                 )
-            } else if types.len() == 1
-                && !matches!(
-                    types.iter().next().unwrap(),
-                    TypeInfo::Callback { .. }
-                        | TypeInfo::Union { .. }
-                        | TypeInfo::Intersection { .. }
-                        | TypeInfo::Optional { .. }
-                )
-            {
+            } else if types.len() == 1 && !keep_parentheses(types.iter().next().unwrap(), context) {
                 // If its just a single type inside parentheses, and its not a function or composite type, then remove the parens
-                return singleline_types.into_iter().next().unwrap();
+                let internal_type = singleline_types.into_iter().next().unwrap();
+
+                // Transfer over any comments
+                return internal_type.update_trailing_trivia(FormatTriviaType::Append(
+                    singleline_parentheses.tokens().1.trailing_comments(),
+                ));
             } else {
                 (singleline_parentheses, singleline_types)
             };
@@ -477,16 +585,31 @@ pub fn format_type_info(ctx: &Context, type_info: &TypeInfo, shape: Shape) -> Ty
         }
 
         TypeInfo::Union { left, pipe, right } => {
-            let left = Box::new(format_type_info(ctx, left, shape));
+            let left = Box::new(format_type_info_internal(
+                ctx,
+                left,
+                context.mark_contains_union(),
+                shape,
+            ));
             let pipe = fmt_symbol!(ctx, pipe, " | ", shape);
-            let right = Box::new(format_type_info(ctx, right, shape + 3)); // 3 = " | "
+            let right = Box::new(format_type_info_internal(
+                ctx,
+                right,
+                context.mark_contains_union(),
+                shape + 3,
+            )); // 3 = " | "
 
             TypeInfo::Union { left, pipe, right }
         }
 
         TypeInfo::Variadic { ellipse, type_info } => {
             let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
-            let type_info = Box::new(format_type_info(ctx, type_info, shape + 3)); // 3 = "..."
+            let type_info = Box::new(format_type_info_internal(
+                ctx,
+                type_info,
+                context.mark_within_variadic(),
+                shape + 3,
+            )); // 3 = "..."
 
             TypeInfo::Variadic { ellipse, type_info }
         }
@@ -550,9 +673,10 @@ fn hang_type_info_binop(
 }
 
 /// Hangs a type info at a pipe operator, then reformats either side with the new shape
-pub fn hang_type_info(
+fn hang_type_info(
     ctx: &Context,
     type_info: &TypeInfo,
+    context: TypeInfoContext,
     shape: Shape,
     hang_level: usize,
 ) -> TypeInfo {
@@ -562,11 +686,17 @@ pub fn hang_type_info(
 
     match type_info {
         TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: Box::new(format_type_info(ctx, left, shape)),
+            left: Box::new(format_type_info_internal(
+                ctx,
+                left,
+                context.mark_contains_union(),
+                shape,
+            )),
             pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                context.mark_contains_union(),
                 hanging_shape.reset() + PIPE_LENGTH,
                 0,
             )),
@@ -576,16 +706,22 @@ pub fn hang_type_info(
             ampersand,
             right,
         } => TypeInfo::Intersection {
-            left: Box::new(format_type_info(ctx, left, shape)),
+            left: Box::new(format_type_info_internal(
+                ctx,
+                left,
+                context.mark_contains_intersect(),
+                shape,
+            )),
             ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
             right: Box::new(hang_type_info(
                 ctx,
                 &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                context.mark_contains_intersect(),
                 hanging_shape.reset() + PIPE_LENGTH,
                 0,
             )),
         },
-        other => format_type_info(ctx, other, shape),
+        other => format_type_info_internal(ctx, other, context, shape),
     }
 }
 
@@ -677,7 +813,7 @@ pub fn format_type_field(
     if let TableType::MultiLine = table_type {
         // If still over budget, hang the type
         if can_hang_type(type_field.value()) && shape.test_over_budget(&value) {
-            value = hang_type_info(ctx, type_field.value(), shape, 1)
+            value = hang_type_info(ctx, type_field.value(), TypeInfoContext::new(), shape, 1)
         };
 
         value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
@@ -763,7 +899,7 @@ fn attempt_assigned_type_tactics(
 
         // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
         let declaration = if contains_comments(strip_trivia(type_info)) {
-            hang_type_info(ctx, type_info, shape, 0)
+            hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
         } else {
             format_type_info(ctx, type_info, shape)
         };
@@ -812,7 +948,8 @@ fn attempt_assigned_type_tactics(
                 equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
                 let shape = shape.reset().increment_additional_indent();
-                let hanging_type_definition = hang_type_info(ctx, type_info, shape, 0);
+                let hanging_type_definition =
+                    hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0);
                 type_definition = hanging_type_definition;
             }
         } else {
