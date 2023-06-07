@@ -20,7 +20,7 @@ local GError = {}
 type GError = typeof(GError)
 type Error = { message: string?, stacktrace: string? }
 function GError.new(
-	originalError: (Error & { extensions: any? }) -- new syntax
+	originalError: Error & { extensions: any? } -- new syntax
 ): GError?
 	return nil
 end

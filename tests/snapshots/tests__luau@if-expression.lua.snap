@@ -41,7 +41,7 @@ local thing = makeSomething("Foo", {
 
 local state = if hook ~= nil
 	then hook.memoizedState
-	elseif typeof(initialState) == "function" then (initialState :: (() -> S))()
+	elseif typeof(initialState) == "function" then (initialState :: () -> S)()
 	else initialState
 
 local scale = if someFlag() then 1 elseif someOtherFlag() then 0.5 else 2
