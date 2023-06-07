@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Improved heuristics around Luau type excess parentheses removal, so unnecessary types are removed in more locations
+
 ### Fixed
 
 - Fixed missing option `--sort-requires` to enable sort requires on the command line
@@ -16,6 +20,7 @@ $ stylua --sort-requires test.lua
 ```
 
 - Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)`
+- Fixed comments lost when parentheses removed around Luau types
 
 ## [0.17.1] - 2023-03-30
 
