@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2023-06-14
+
 ### Added
 
 - Multiline ignores (`-- stylua: ignore start` / `-- stylua: ignore end`) will now work within table fields:
@@ -687,7 +689,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.17.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.0
 [0.17.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.1
 [0.17.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.0
 [0.16.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.16.1
