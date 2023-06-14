@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686665852663,
+  "lastUpdate": 1686748099297,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6719,6 +6719,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 36221743,
             "range": "± 2047550",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b12c4bf74ce78cf7724013fa397effafb704fc7a",
+          "message": "Don't remove parentheses around optional type (#680)\n\n* Add test case\r\n\r\n* Keep parens around optional\r\n\r\n* Update changelog\r\n\r\n* Improve test suite\r\n\r\n* Pass arround context for intelligent excess parens removal\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2023-06-14T14:02:57+01:00",
+          "tree_id": "02811724206d16bcfec710ae0077fdbb7bf41ec2",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b12c4bf74ce78cf7724013fa397effafb704fc7a"
+        },
+        "date": 1686748098310,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 59262854,
+            "range": "± 383659",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 381503804,
+            "range": "± 840975",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30464971,
+            "range": "± 338930",
             "unit": "ns/iter"
           }
         ]
