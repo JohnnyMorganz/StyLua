@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686755338946,
+  "lastUpdate": 1686756060431,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6887,6 +6887,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29155729,
             "range": "± 555613",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "0d4decb462b2eb84d5e7ef1f8feba39c9890bdae",
+          "message": "Bump ubuntu runner versions",
+          "timestamp": "2023-06-14T16:15:13+01:00",
+          "tree_id": "3c32828faf9524384c832a500affe033853a82c2",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0d4decb462b2eb84d5e7ef1f8feba39c9890bdae"
+        },
+        "date": 1686756059706,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58140792,
+            "range": "± 395421",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 387408399,
+            "range": "± 2292912",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 31647369,
+            "range": "± 316590",
             "unit": "ns/iter"
           }
         ]
