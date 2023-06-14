@@ -21,6 +21,9 @@ require("foo").bar {
 }
 ```
 
+- Added option `"Input"` to `call_parentheses` setting, where call parentheses are retained based on their presence in the original input code.
+  Note: this setting removes all automation in determining call parentheses, and consistency is not enforced.
+
 ### Changed
 
 - Improved heuristics around Luau type excess parentheses removal, so unnecessary types are removed in more locations

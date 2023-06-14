@@ -236,6 +236,7 @@ convert_enum!(CallParenType, ArgCallParenType, {
     NoSingleString,
     NoSingleTable,
     None,
+    Input,
 });
 
 convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {

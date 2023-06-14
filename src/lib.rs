@@ -73,6 +73,8 @@ pub enum CallParenType {
     NoSingleTable,
     /// Skip call parentheses when only a table or string argument is used.
     None,
+    /// Keep call parentheses based on its presence in input code.
+    Input,
 }
 
 /// What mode to use if we want to collapse simple functions / guard statements

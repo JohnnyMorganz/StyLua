@@ -31,6 +31,7 @@ use crate::{
         },
     },
     shape::Shape,
+    CallParenType,
 };
 
 /// Formats an Anonymous Function
@@ -375,7 +376,8 @@ pub fn format_function_args(
             arguments,
         } => {
             // Handle config where parentheses are omitted, and there is only one argument
-            if (ctx.should_omit_string_parens() || ctx.should_omit_table_parens())
+            if ctx.config().call_parentheses() != CallParenType::Input
+                && (ctx.should_omit_string_parens() || ctx.should_omit_table_parens())
                 && arguments.len() == 1
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
             {
@@ -494,8 +496,9 @@ pub fn format_function_args(
         }
 
         FunctionArgs::String(token_reference) => {
-            if ctx.should_omit_string_parens()
-                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            if ctx.config().call_parentheses() == CallParenType::Input
+                || (ctx.should_omit_string_parens()
+                    && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens))
             {
                 let token_reference = format_token_reference(ctx, token_reference, shape)
                     .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
@@ -536,8 +539,9 @@ pub fn format_function_args(
         }
 
         FunctionArgs::TableConstructor(table_constructor) => {
-            if ctx.should_omit_table_parens()
-                && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+            if ctx.config().call_parentheses() == CallParenType::Input
+                || (ctx.should_omit_table_parens()
+                    && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens))
             {
                 let table_constructor = format_table_constructor(ctx, table_constructor, shape)
                     .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(

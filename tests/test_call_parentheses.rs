@@ -316,3 +316,23 @@ foo{ x = y }; -- comment
     "###
     );
 }
+
+#[test]
+fn test_call_parens_input() {
+    insta::assert_snapshot!(
+        format(CallParenType::Input,
+            r###"
+require("path")
+local x = New "TextLabel" {
+    x = game:FindFirstChild("Testing")
+}
+"###
+        ),
+        @r###"
+    require("path")
+    local x = New "TextLabel" {
+    	x = game:FindFirstChild("Testing"),
+    }
+    "###
+    );
+}
