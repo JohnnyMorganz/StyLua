@@ -13,7 +13,7 @@ do
 		then hook.memoizedState
 		elseif typeof(initialState) == "function" then
 			-- Luau needs a little help, even with the generic function
-			(initialState :: (() -> S))()
+			(initialState :: () -> S)()
 		else initialState
 
 	local state: S = if hook ~= nil
@@ -23,7 +23,7 @@ do
 			or _G.__DEV__ -- in DEV mode, undervolt anyway
 		then
 			-- Luau needs a little help, even with the generic function
-			(initialState :: (() -> S))()
+			(initialState :: () -> S)()
 		else initialState
 end
 

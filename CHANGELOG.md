@@ -21,6 +21,10 @@ require("foo").bar {
 }
 ```
 
+### Changed
+
+- Improved heuristics around Luau type excess parentheses removal, so unnecessary types are removed in more locations
+
 ### Fixed
 
 - Function calls are now formatted onto multiple lines if the opening brace `{` of a multiline table forces one of the lines over width
@@ -29,6 +33,9 @@ require("foo").bar {
 ```sh
 $ stylua --sort-requires test.lua
 ```
+
+- Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)`
+- Fixed comments lost when parentheses removed around Luau types
 
 ## [0.17.1] - 2023-03-30
 
