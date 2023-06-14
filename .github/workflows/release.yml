@@ -31,11 +31,11 @@ jobs:
             artifact-name: stylua-windows-x86_64
             artifact-alias: stylua-win64
             cargo-target: x86_64-pc-windows-msvc
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             artifact-name: stylua-linux-x86_64
             artifact-alias: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
             linker: gcc-aarch64-linux-gnu
