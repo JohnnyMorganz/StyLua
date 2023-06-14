@@ -36,6 +36,7 @@ $ stylua --sort-requires test.lua
 
 - Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)`
 - Fixed comments lost when parentheses removed around Luau types
+- Fixed race condition where if a file is passed more than once as an argument to format, then it could potentially be wiped completely (for example, if an ancestor directory is passed and recursively searched, as well as the file itself)
 
 ## [0.17.1] - 2023-03-30
 
