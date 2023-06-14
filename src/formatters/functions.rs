@@ -228,15 +228,15 @@ fn function_args_multiline_heuristic(
                 match &**value {
                     // Check to see if we have a table constructor, or anonymous function
                     Value::Function((_, function_body)) => {
+                        // If we have a mixture of multiline args, and other arguments
+                        // Then the function args should be expanded
+                        if current_state.should_hang() {
+                            return true;
+                        }
+
                         // Check to see whether it has been expanded
                         let is_expanded = !should_collapse_function_body(ctx, function_body);
                         if is_expanded {
-                            // If we have a mixture of multiline args, and other arguments
-                            // Then the function args should be expanded
-                            if current_state.should_hang() {
-                                return true;
-                            }
-
                             current_state = current_state.record_multiline_arg();
 
                             // First check the top line of the anonymous function (i.e. the function token and any parameters)
@@ -249,23 +249,25 @@ fn function_args_multiline_heuristic(
                             // Reset the shape onto a new line, and include the `end` token
                             singleline_shape = singleline_shape.reset() + END_LEN;
                         } else {
+                            current_state = current_state.record_standard_arg();
+
                             // Update the width with the collapsed function (normally indicative of a noop function)
                             singleline_shape = singleline_shape + argument.to_string().len();
                         }
                     }
                     Value::TableConstructor(table) => {
+                        // If we have a mixture of multiline args, and other arguments
+                        // Then the function args should be expanded
+                        if current_state.should_hang() {
+                            return true;
+                        }
+
                         // Check to see whether it has been expanded (there is a newline after the start brace)
                         let is_expanded = trivia_util::trivia_contains_newline(
                             table.braces().tokens().0.trailing_trivia(),
                         );
 
                         if is_expanded {
-                            // If we have a mixture of multiline args, and other arguments
-                            // Then the function args should be expanded
-                            if current_state.should_hang() {
-                                return true;
-                            }
-
                             // Include the first brace to check if we are over the column width already
                             singleline_shape = singleline_shape.take_first_line(table);
                             if singleline_shape.over_budget() {
@@ -277,6 +279,8 @@ fn function_args_multiline_heuristic(
                             // Reset the shape onto a new line
                             singleline_shape = singleline_shape.reset() + BRACKET_LEN;
                         } else {
+                            current_state = current_state.record_standard_arg();
+
                             // Update the shape with the size of the collapsed table constructor
                             singleline_shape = singleline_shape + argument.to_string().len();
                         }
