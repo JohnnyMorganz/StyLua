@@ -4,6 +4,7 @@ use console::style;
 use ignore::{gitignore::Gitignore, overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
+use std::collections::HashSet;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
@@ -389,6 +390,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
     });
 
     let walker = walker_builder.build();
+    let mut seen_files = HashSet::new();
 
     for result in walker {
         match result {
@@ -458,6 +460,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
                 } else {
                     let path = entry.path().to_owned(); // TODO: stop to_owned?
                     let opt = opt.clone();
+
+                    if seen_files.contains(&path) {
+                        continue;
+                    }
+                    seen_files.insert(path.clone());
+
                     if path.is_file() {
                         // If the user didn't provide a glob pattern, we should match against our default one
                         // We should ignore the glob check if the path provided was explicitly given to the CLI
