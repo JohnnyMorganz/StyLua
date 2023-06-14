@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686749865920,
+  "lastUpdate": 1686751799453,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -6803,6 +6803,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29481992,
             "range": "± 150250",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "40c1b0826d56d88ef28be13ef0f86fec04415f26",
+          "message": "Add option `call_parentheses = \"Input\"` (#713)\n\n* Add input option\r\n\r\n* Rely on input for call parentheses\r\n\r\n* Add test, update changelog and readme",
+          "timestamp": "2023-06-14T15:04:40+01:00",
+          "tree_id": "be0f2a23394406b4682a6fcfc34298a6918c30de",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/40c1b0826d56d88ef28be13ef0f86fec04415f26"
+        },
+        "date": 1686751798877,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58130840,
+            "range": "± 546195",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 384915478,
+            "range": "± 989762",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 31865523,
+            "range": "± 331977",
             "unit": "ns/iter"
           }
         ]
