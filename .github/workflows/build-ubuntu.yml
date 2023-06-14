@@ -1,6 +1,6 @@
 name: Build Ubuntu
 
-on: push
+on: [push, pull_request]
 
 jobs:
   release:
