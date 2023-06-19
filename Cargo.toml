@@ -48,7 +48,7 @@ log = "0.4.19"
 num_cpus = "1.15.0"
 regex = "1.8.1"
 serde = "1.0.164"
-serde_json = "1.0.96"
+serde_json = "1.0.97"
 similar = { version = "2.1.0", features = ["text", "inline", "serde"] }
 strum = { version = "0.24.1", features = ["derive"], optional = true }
 thiserror = "1.0.40"
