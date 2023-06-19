@@ -49,7 +49,7 @@ num_cpus = "1.15.0"
 regex = "1.8.1"
 serde = "1.0.164"
 serde_json = "1.0.97"
-similar = { version = "2.1.0", features = ["text", "inline", "serde"] }
+similar = { version = "2.2.1", features = ["text", "inline", "serde"] }
 strum = { version = "0.25.0", features = ["derive"], optional = true }
 thiserror = "1.0.40"
 threadpool = "1.8.1"
