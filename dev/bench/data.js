@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687199644217,
+  "lastUpdate": 1687796299392,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7055,6 +7055,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28881745,
             "range": "± 163194",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2b5cbfce6d027e31d2a7e6b794c7efbd844d1d7b",
+          "message": "Bump serde_json from 1.0.97 to 1.0.99 (#723)",
+          "timestamp": "2023-06-26T17:14:25+01:00",
+          "tree_id": "ddcee4a6d6b0900abeeb022602d786c507500ca1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2b5cbfce6d027e31d2a7e6b794c7efbd844d1d7b"
+        },
+        "date": 1687796298499,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 62895647,
+            "range": "± 3826774",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 443538154,
+            "range": "± 9144932",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 34211244,
+            "range": "± 1241410",
             "unit": "ns/iter"
           }
         ]
