@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688640588323,
+  "lastUpdate": 1688640604670,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7265,6 +7265,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 34479316,
             "range": "± 2212452",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0e2c60d46a3e62924370eb865bcee3f5d8b5b027",
+          "message": "Keep type pack parentheses in generic (#730)\n\n* Add test case\r\n\r\n* Keep parentheses within generics\r\n\r\n* Update snapshot and changelog",
+          "timestamp": "2023-07-06T11:46:35+01:00",
+          "tree_id": "929df81bed069e8bc26f5f76171afade31134380",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0e2c60d46a3e62924370eb865bcee3f5d8b5b027"
+        },
+        "date": 1688640603501,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58420185,
+            "range": "± 389646",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 382845710,
+            "range": "± 2811206",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30417032,
+            "range": "± 540734",
             "unit": "ns/iter"
           }
         ]
