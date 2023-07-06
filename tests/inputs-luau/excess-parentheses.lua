@@ -45,3 +45,7 @@ type A = B & (C?)
 type A = ((string) -> string) & ((number) -> number)
 type A = (A | B)?
 type A = (A | B) -- comment
+
+-- https://github.com/JohnnyMorganz/StyLua/issues/729
+type SomeType<T..., U...> = (T...) -> U...
+local fn: SomeType<(string, number), (boolean)>
