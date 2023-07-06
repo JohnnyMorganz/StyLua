@@ -1,6 +1,7 @@
 ---
 source: tests/test_editorconfig.rs
 expression: "&contents"
+input_file: tests/inputs-editorconfig/stylua-toml/single-space-8.lua
 ---
 local foo = {
         a = 1,
