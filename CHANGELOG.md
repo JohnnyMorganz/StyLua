@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed parentheses around a single Luau type pack in a generic being removed causing syntax errors ([#729](https://github.com/JohnnyMorganz/StyLua/issues/729))
+
 ## [0.18.0] - 2023-06-14
 
 ### Added
