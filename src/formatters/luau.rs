@@ -78,10 +78,10 @@ fn should_hug_type(type_info: &TypeInfo) -> bool {
     }
 }
 
-// Formats a type info, then determines whether it is still over width. If so, it tries to hang it.
-fn format_hangable_type_info(
+fn format_hangable_type_info_internal(
     ctx: &Context,
     type_info: &TypeInfo,
+    context: TypeInfoContext,
     shape: Shape,
     hang_level: usize,
 ) -> TypeInfo {
@@ -92,11 +92,21 @@ fn format_hangable_type_info(
         && (should_hang_type(type_info, CommentSearch::Single)
             || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_info)))
     {
-        hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, hang_level)
+        hang_type_info(ctx, type_info, context, shape, hang_level)
     } else {
         // Use the proper formatting
-        format_type_info(ctx, type_info, shape)
+        format_type_info_internal(ctx, type_info, context, shape)
     }
+}
+
+// Formats a type info, then determines whether it is still over width. If so, it tries to hang it.
+fn format_hangable_type_info(
+    ctx: &Context,
+    type_info: &TypeInfo,
+    shape: Shape,
+    hang_level: usize,
+) -> TypeInfo {
+    format_hangable_type_info_internal(ctx, type_info, TypeInfoContext::new(), shape, hang_level)
 }
 
 fn format_type_info_generics(
@@ -107,9 +117,15 @@ fn format_type_info_generics(
 ) -> (ContainedSpan, Punctuated<TypeInfo>) {
     const ARROW_LEN: usize = 1; // 1 = "<"
 
+    let context = TypeInfoContext::new().mark_within_generic();
+
     let singleline_arrows = format_contained_span(ctx, arrows, shape);
-    let singleline_generics =
-        format_punctuated(ctx, generics, shape.with_infinite_width(), format_type_info);
+    let singleline_generics = format_punctuated(
+        ctx,
+        generics,
+        shape.with_infinite_width(),
+        |ctx, type_info, shape| format_type_info_internal(ctx, type_info, context, shape),
+    );
 
     let (start_arrow, end_arrow) = arrows.tokens();
     let contains_comments = start_arrow.has_trailing_comments(CommentSearch::Single)
@@ -145,7 +161,9 @@ fn format_type_info_generics(
             ctx,
             arrows,
             generics,
-            |ctx, type_info, shape| format_hangable_type_info(ctx, type_info, shape, 0),
+            |ctx, type_info, shape| {
+                format_hangable_type_info_internal(ctx, type_info, context, shape, 0)
+            },
             shape,
         )
     } else {
@@ -161,6 +179,10 @@ struct TypeInfoContext {
     // A TypeInfo within a variadic type
     // we should NOT remove parentheses in a type ...(A | B)
     within_variadic: bool,
+    // A TypeInfo as a generic parameter
+    // Foo<(string), (number)>
+    // we should NOT remove these parentheses are they may correspond to single-type type packs
+    within_generic: bool,
 
     /// A TypeInfo part of a union/intersection operation
     /// If its a mixed composite type, then we should not remove excess parentheses. e.g.
@@ -179,6 +201,7 @@ impl TypeInfoContext {
         Self {
             within_optional: false,
             within_variadic: false,
+            within_generic: false,
             contains_union: false,
             contains_intersect: false,
         }
@@ -194,6 +217,13 @@ impl TypeInfoContext {
     fn mark_within_variadic(self) -> TypeInfoContext {
         Self {
             within_variadic: true,
+            ..self
+        }
+    }
+
+    fn mark_within_generic(self) -> TypeInfoContext {
+        Self {
+            within_generic: true,
             ..self
         }
     }
@@ -233,6 +263,7 @@ fn keep_parentheses(internal_type: &TypeInfo, context: TypeInfoContext) -> bool 
         {
             true
         }
+        _ if context.within_generic => true,
         _ => false,
     }
 }
