@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Multiline ignores (`-- stylua: ignore start` / `-- stylua: ignore end`) will now work within table fields:
+- Multiline ignores (`-- stylua: ignore start` / `-- stylua: ignore end`) will now work within table fields ([#705](https://github.com/JohnnyMorganz/StyLua/issues/705)):
 
 ```lua
 require("foo").bar {
@@ -23,7 +23,7 @@ require("foo").bar {
 }
 ```
 
-- Added option `"Input"` to `call_parentheses` setting, where call parentheses are retained based on their presence in the original input code.
+- Added option `"Input"` to `call_parentheses` setting, where call parentheses are retained based on their presence in the original input code. ([#668](https://github.com/JohnnyMorganz/StyLua/issues/668))
   Note: this setting removes all automation in determining call parentheses, and consistency is not enforced.
 
 ### Changed
@@ -32,16 +32,16 @@ require("foo").bar {
 
 ### Fixed
 
-- Function calls are now formatted onto multiple lines if the opening brace `{` of a multiline table forces one of the lines over width
-- Fixed missing option `--sort-requires` to enable sort requires on the command line
+- Function calls are now formatted onto multiple lines if the opening brace `{` of a multiline table forces one of the lines over width ([#704](https://github.com/JohnnyMorganz/StyLua/issues/704))
+- Fixed missing option `--sort-requires` to enable sort requires on the command line ([#669](https://github.com/JohnnyMorganz/StyLua/issues/669))
 
 ```sh
 $ stylua --sort-requires test.lua
 ```
 
-- Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)`
+- Fixed parentheses removed around Luau optional type `(B?)` causing syntax errors when present in an intersection `A & (B?)` ([#679](https://github.com/JohnnyMorganz/StyLua/issues/679))
 - Fixed comments lost when parentheses removed around Luau types
-- Fixed race condition where if a file is passed more than once as an argument to format, then it could potentially be wiped completely (for example, if an ancestor directory is passed and recursively searched, as well as the file itself)
+- Fixed race condition where if a file is passed more than once as an argument to format, then it could potentially be wiped completely (for example, if an ancestor directory is passed and recursively searched, as well as the file itself) ([#708](https://github.com/JohnnyMorganz/StyLua/issues/708))
 
 ## [0.17.1] - 2023-03-30
 
