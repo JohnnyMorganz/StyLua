@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
@@ -84,7 +85,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const currentWorkspace = vscode.workspace.getWorkspaceFolder(
           document.uri
         );
-        const cwd = currentWorkspace?.uri?.fsPath;
+        // const cwd = currentWorkspace?.uri?.fsPath;
+        const cwd = path.dirname(document.uri.fsPath);
 
         if (await checkIgnored(document.uri, currentWorkspace?.uri)) {
           return [];
