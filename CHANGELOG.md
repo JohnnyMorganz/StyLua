@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2023-07-15
+
 ### Fixed
 
 - Fixed parentheses around a single Luau type pack in a generic being removed causing syntax errors ([#729](https://github.com/JohnnyMorganz/StyLua/issues/729))
@@ -693,7 +695,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.1...HEAD
+[0.18.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.1
 [0.18.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.0
 [0.17.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.1
 [0.17.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.0
