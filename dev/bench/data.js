@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689074185755,
+  "lastUpdate": 1689447487034,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7391,6 +7391,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29253763,
             "range": "± 162917",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf89af90fffbb942d1a5c95550c77d49482b7b6b",
+          "message": "Bump regex from 1.8.4 to 1.9.1 (#734)\n\nBumps [regex](https://github.com/rust-lang/regex) from 1.8.4 to 1.9.1.\r\n- [Release notes](https://github.com/rust-lang/regex/releases)\r\n- [Changelog](https://github.com/rust-lang/regex/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/rust-lang/regex/compare/1.8.4...1.9.1)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: regex\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-minor\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-07-15T19:54:29+01:00",
+          "tree_id": "f7fff6a59462b3760b93e91049598b112bb44ae7",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/cf89af90fffbb942d1a5c95550c77d49482b7b6b"
+        },
+        "date": 1689447486491,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54730626,
+            "range": "± 474114",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 380534551,
+            "range": "± 4135783",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 29438170,
+            "range": "± 112215",
             "unit": "ns/iter"
           }
         ]
