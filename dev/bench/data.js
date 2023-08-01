@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689448610871,
+  "lastUpdate": 1690915697127,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7475,6 +7475,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29661225,
             "range": "± 239535",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fdf9f0c5952cb1565ba6449929514eb94ac5ef3f",
+          "message": "Bump word-wrap from 1.2.3 to 1.2.4 in /stylua-vscode (#740)\n\nBumps [word-wrap](https://github.com/jonschlinkert/word-wrap) from 1.2.3 to 1.2.4.\r\n- [Release notes](https://github.com/jonschlinkert/word-wrap/releases)\r\n- [Commits](https://github.com/jonschlinkert/word-wrap/compare/1.2.3...1.2.4)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: word-wrap\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-08-01T19:44:44+01:00",
+          "tree_id": "c437d1a1688e9bb65cab2bb1348e0380b4fb1769",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/fdf9f0c5952cb1565ba6449929514eb94ac5ef3f"
+        },
+        "date": 1690915695635,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 55595219,
+            "range": "± 638799",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 375612600,
+            "range": "± 1525245",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28710371,
+            "range": "± 277561",
             "unit": "ns/iter"
           }
         ]
