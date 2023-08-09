@@ -86,7 +86,14 @@ export async function activate(context: vscode.ExtensionContext) {
           document.uri
         );
         // const cwd = currentWorkspace?.uri?.fsPath;
-        const cwd = path.dirname(document.uri.fsPath);
+
+        const workspacePath = currentWorkspace?.uri?.fsPath;
+        const documentPath = document.uri.fsPath;
+
+        const cwd =
+          workspacePath && documentPath.startsWith(workspacePath)
+            ? workspacePath
+            : path.dirname(documentPath);
 
         if (await checkIgnored(document.uri, currentWorkspace?.uri)) {
           return [];
