@@ -85,7 +85,6 @@ export async function activate(context: vscode.ExtensionContext) {
         const currentWorkspace = vscode.workspace.getWorkspaceFolder(
           document.uri
         );
-        // const cwd = currentWorkspace?.uri?.fsPath;
 
         const workspacePath = currentWorkspace?.uri?.fsPath;
         const documentPath = document.uri.fsPath;
