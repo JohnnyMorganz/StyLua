@@ -1,6 +1,6 @@
 [package]
 name = "stylua"
-version = "0.18.0"
+version = "0.18.1"
 authors = ["JohnnyMorganz <johnnymorganz@outlook.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"
@@ -46,9 +46,9 @@ ignore = "0.4.20"
 lazy_static = "1.4.0"
 log = "0.4.19"
 num_cpus = "1.16.0"
-regex = "1.8.4"
+regex = "1.9.1"
 serde = "1.0.165"
-serde_json = "1.0.99"
+serde_json = "1.0.100"
 similar = { version = "2.2.1", features = ["text", "inline", "serde"] }
 strum = { version = "0.25.0", features = ["derive"], optional = true }
 thiserror = "1.0.40"
