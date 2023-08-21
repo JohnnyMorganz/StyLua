@@ -33,7 +33,7 @@ lua54 = ["lua53", "full_moon/lua54"]
 editorconfig = ["ec4rs"]
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.75"
 cfg-if = "1.0.0"
 clap = { version = "3.1.6", features = ["derive"] }
 console = "0.15.7"
