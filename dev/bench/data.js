@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693616039679,
+  "lastUpdate": 1693616448145,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7727,6 +7727,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28827612,
             "range": "± 119229",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dd97aa341c66e5284185a41eae77b58f4d1c2d7e",
+          "message": "Fix dot func call chains with comment after dot (#754)\n\n* Add test case\r\n\r\n* Fix code\r\n\r\n* Update snapshot and changelog",
+          "timestamp": "2023-09-01T19:56:52-05:00",
+          "tree_id": "681667eda68e1fb679464d9ef4bd688f217d8b1e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/dd97aa341c66e5284185a41eae77b58f4d1c2d7e"
+        },
+        "date": 1693616447144,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 64255623,
+            "range": "± 1194414",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 438937124,
+            "range": "± 6240054",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 33956725,
+            "range": "± 428534",
             "unit": "ns/iter"
           }
         ]
