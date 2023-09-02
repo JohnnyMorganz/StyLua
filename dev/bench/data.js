@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693616028972,
+  "lastUpdate": 1693616039679,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7685,6 +7685,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 30949735,
             "range": "± 1009135",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a0d1b5ddeb1d4a24f43dc19f4cea7d2a917df87d",
+          "message": "Fix collapsed if stmt formatting when block begins with empty line (#753)\n\n* Add test case\r\n\r\n* Fix code\r\n\r\n* Update snapshot and changelog",
+          "timestamp": "2023-09-01T19:50:10-05:00",
+          "tree_id": "d7244e220bcea3a34fec345b610cd3ce6f752b82",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a0d1b5ddeb1d4a24f43dc19f4cea7d2a917df87d"
+        },
+        "date": 1693616039204,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56456350,
+            "range": "± 2701651",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 380205465,
+            "range": "± 2599074",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28827612,
+            "range": "± 119229",
             "unit": "ns/iter"
           }
         ]
