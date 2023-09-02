@@ -468,8 +468,12 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this
-        let stmt_leading_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
-        let stmt_trailing_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+        // INVARIANT: this stmt has no leading/trailing comments, as this is checked in `is_if_guard`
+        // This means we can replace trivia completely
+        debug_assert!(!trivia_util::contains_comments(if_node.block()));
+        let stmt_leading_trivia = FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]);
+        let stmt_trailing_trivia =
+            FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]);
 
         let block = if let Some(stmt) = if_node.block().stmts().next() {
             let stmt = format_stmt_no_trivia(ctx, stmt, singleline_shape)

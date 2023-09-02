@@ -146,6 +146,12 @@ impl VisitorMut for AstVerifier {
                 // Luau: cleanse number of any digit separators
                 #[cfg(feature = "luau")]
                 let text = text.replace('_', "");
+                // LuaJIT (Lua52): remove suffixes
+                #[cfg(feature = "lua52")]
+                let text = text
+                    .trim_end_matches("ULL")
+                    .trim_end_matches("LL")
+                    .to_string();
 
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num,
@@ -303,6 +309,16 @@ mod tests {
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "lua52")]
+    fn test_equivalent_luajit_numbers() {
+        let input_ast = full_moon::parse("local x = 2 ^ 63LL").unwrap();
+        let output_ast = full_moon::parse("local x = 2 ^ 63").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
     }
 
     #[test]

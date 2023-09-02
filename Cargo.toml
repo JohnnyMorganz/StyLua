@@ -33,7 +33,7 @@ lua54 = ["lua53", "full_moon/lua54"]
 editorconfig = ["ec4rs"]
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.75"
 cfg-if = "1.0.0"
 clap = { version = "3.1.6", features = ["derive"] }
 console = "0.15.7"
@@ -51,9 +51,9 @@ serde = "1.0.165"
 serde_json = "1.0.100"
 similar = { version = "2.2.1", features = ["text", "inline", "serde"] }
 strum = { version = "0.25.0", features = ["derive"], optional = true }
-thiserror = "1.0.40"
+thiserror = "1.0.47"
 threadpool = "1.8.1"
-toml = "0.7.5"
+toml = "0.7.6"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.81", optional = true }
