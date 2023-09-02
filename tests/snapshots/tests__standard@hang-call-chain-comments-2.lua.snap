@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/747
+
+obj
+	--
+	.func()
+	--
+	.func()
+	--
+	.func()
+
