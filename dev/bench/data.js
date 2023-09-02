@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690915697127,
+  "lastUpdate": 1693615655215,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -7517,6 +7517,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28710371,
             "range": "± 277561",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fb5a2776875707726cee6042e82b779c73ee50a3",
+          "message": "Fix LuaJIT number panics in verify mode (#752)\n\n* Fix LuaJIT number panics in verify mode\r\n\r\n* Update changelog",
+          "timestamp": "2023-09-01T19:44:02-05:00",
+          "tree_id": "43bfb07c52e508e2c2ababaec8dd56d6bab1382b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/fb5a2776875707726cee6042e82b779c73ee50a3"
+        },
+        "date": 1693615654426,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56315270,
+            "range": "± 384909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 377807048,
+            "range": "± 575200",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28929068,
+            "range": "± 163646",
             "unit": "ns/iter"
           }
         ]
