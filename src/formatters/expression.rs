@@ -31,7 +31,8 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
+            self, contains_comments, prepend_newline_indent, take_leading_comments,
+            take_trailing_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
             GetTrailingTrivia,
         },
     },
@@ -425,10 +426,26 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             }
         }
 
-        Index::Dot { dot, name } => Index::Dot {
-            dot: format_token_reference(ctx, dot, shape),
-            name: format_token_reference(ctx, name, shape),
-        },
+        Index::Dot { dot, name } => {
+            // If there are any comments in between the dot and name,
+            // then taken them out and put them before the dot
+            let (mut dot, mut dot_comments) =
+                take_trailing_comments(&format_token_reference(ctx, dot, shape));
+            let (name, name_comments) =
+                take_leading_comments(&format_token_reference(ctx, name, shape));
+
+            dot_comments.extend(name_comments);
+
+            if !dot_comments.is_empty() {
+                dot = prepend_newline_indent(
+                    ctx,
+                    &dot.update_leading_trivia(FormatTriviaType::Append(dot_comments)),
+                    shape,
+                );
+            }
+
+            Index::Dot { dot, name }
+        }
         other => panic!("unknown node {:?}", other),
     }
 }

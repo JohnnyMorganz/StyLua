@@ -971,6 +971,8 @@ pub fn format_function_call(
             let mut must_hang = false;
             while let Some(suffix) = peekable_suffixes.next() {
                 must_hang = suffix.has_leading_comments(CommentSearch::All)
+                // Check for comment placed inside of suffix
+                || matches!(suffix, Suffix::Index(Index::Dot { dot, name }) if dot.has_trailing_comments(CommentSearch::All) || name.has_leading_comments(CommentSearch::All))
                 // Check for a trailing comment (iff there is still a suffix after this)
                 || (peekable_suffixes.peek().is_some()
                     && suffix.has_trailing_comments(CommentSearch::All));
