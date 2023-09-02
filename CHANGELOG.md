@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed LuaJIT suffixes `LL`/`ULL` causing a panic when running in `--verify` mode ([#750](https://github.com/JohnnyMorganz/StyLua/issues/750))
 - Fixed incorrect formatting of conditionals when `collapse_simple_statement` is enabled and the block begins with an empty line ([#744](https://github.com/JohnnyMorganz/StyLua/issues/744))
 
 ## [0.18.1] - 2023-07-15
