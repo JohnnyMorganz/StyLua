@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2023-09-10
+
 ### Fixed
 
 - Fixed LuaJIT suffixes `LL`/`ULL` causing a panic when running in `--verify` mode ([#750](https://github.com/JohnnyMorganz/StyLua/issues/750))
@@ -701,7 +703,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.2...HEAD
+[0.18.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.2
 [0.18.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.1
 [0.18.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.0
 [0.17.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.1

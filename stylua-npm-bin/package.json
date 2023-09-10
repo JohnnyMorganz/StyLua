@@ -1,6 +1,6 @@
 {
   "name": "@johnnymorganz/stylua-bin",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "A code formatter for Lua",
   "bin": {
     "stylua": "./run.js"
