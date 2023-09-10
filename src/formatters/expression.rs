@@ -47,6 +47,7 @@ macro_rules! fmt_op {
                 $(#[$inner])*
                 $enum::$operator(token) => $enum::$operator(fmt_symbol!($ctx, token, $output, $shape)),
             )+
+            #[allow(clippy::redundant_closure_call)]
             other => $other(other),
         }
     };
