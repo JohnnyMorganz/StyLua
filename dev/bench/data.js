@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694365518688,
+  "lastUpdate": 1694541745821,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8021,6 +8021,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 30268202,
             "range": "± 465182",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "990e30c1f925ef87bce5d353f6147fc326314c60",
+          "message": "Bump globset from 0.4.10 to 0.4.13 (#764)\n\nBumps [globset](https://github.com/BurntSushi/ripgrep) from 0.4.10 to 0.4.13.\r\n- [Release notes](https://github.com/BurntSushi/ripgrep/releases)\r\n- [Changelog](https://github.com/BurntSushi/ripgrep/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/BurntSushi/ripgrep/compare/globset-0.4.10...globset-0.4.13)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: globset\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-09-12T12:58:44-05:00",
+          "tree_id": "d9e52755e6b8f444d621ffe3bfeccd7639146a57",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/990e30c1f925ef87bce5d353f6147fc326314c60"
+        },
+        "date": 1694541744904,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 58058570,
+            "range": "± 1092813",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 391618903,
+            "range": "± 3614663",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30253719,
+            "range": "± 171349",
             "unit": "ns/iter"
           }
         ]
