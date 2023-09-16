@@ -1,0 +1,29 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build StyLua",
+      "type": "shell",
+      "command": "cargo build --release --features lua52,lua53,lua54,luau && cp target/release/stylua stylua-vscode/bin",
+      "windows": {
+        "command": "cargo build --release --features lua52,lua53,lua54,luau ; cp target/release/stylua.exe stylua-vscode/bin"
+      },
+      "group": "build",
+      "detail": "Build StyLua"
+    },
+    {
+      "type": "npm",
+      "script": "compile",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: compile",
+      "path": "stylua-vscode/"
+    },
+    {
+      "label": "Build StyLua and Extension",
+      "dependsOn": ["Build StyLua", "npm: compile"]
+    }
+  ]
+}
