@@ -32,67 +32,26 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "stylua.reinstall",
-        "title": "Reinstall StyLua",
-        "category": "StyLua"
-      },
-      {
-        "command": "stylua.authenticate",
-        "title": "Authorize StyLua to use GitHub API",
-        "category": "StyLua"
-      }
-    ],
     "configuration": {
       "title": "StyLua",
       "properties": {
-        "stylua.releaseVersion": {
-          "type": "string",
-          "default": "latest",
-          "enum": [
-            "latest",
-            "v0.17",
-            "v0.16",
-            "v0.15",
-            "v0.14",
-            "v0.13",
-            "v0.12",
-            "v0.11",
-            "v0.10",
-            "v0.9",
-            "v0.8",
-            "v0.7",
-            "v0.6",
-            "v0.5"
-          ],
-          "enumDescriptions": [
-            "The most recent version released. This will always keep you up to date."
-          ],
-          "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`."
-        },
-        "stylua.targetReleaseVersion": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Target a specific release version tag such as `v0.9.1` or `v0.9`. This overrides the version set by `#stylua.releaseVersion#`."
-        },
         "stylua.styluaPath": {
           "type": [
             "string",
             "null"
           ],
           "default": null,
-          "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
+          "markdownDescription": "Specifies the path of StyLua. If not specified, will either look in PATH (`#stylua.searchBinaryInPATH#`) or return a bundled version"
         },
-        "stylua.disableVersionCheck": {
+        "stylua.searchBinaryInPATH": {
           "type": "boolean",
-          "default": false,
-          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
+          "default": true,
+          "markdownDescription": "Search for the StyLua binary in the `PATH` environment variable, and use this if available. If disabled, falls back to a bundled binary"
         },
         "stylua.searchParentDirectories": {
           "type": "boolean",
           "default": false,
-          "description": "Search parent directories for a stylua configuration file if one is not directly available."
+          "markdownDescription": "Search parent directories for a stylua configuration file if one is not directly available."
         }
       }
     }
@@ -114,6 +73,7 @@
     "@types/node-fetch": "^2.5.8",
     "@types/unzipper": "^0.10.3",
     "@types/vscode": "^1.53.0",
+    "@types/which": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
     "@typescript-eslint/parser": "^4.15.2",
     "eslint": "^7.20.0",
@@ -126,6 +86,7 @@
   "dependencies": {
     "ignore": "^5.1.8",
     "node-fetch": "^2.6.1",
+    "node-which": "^1.0.0",
     "unzipper": "^0.10.11"
   }
 }

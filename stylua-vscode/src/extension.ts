@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { formatCode, checkIgnored } from "./stylua";
-import { GitHub } from "./github";
-import { StyluaDownloader } from "./download";
+import * as os from "os";
+import * as which from "which";
+import { formatCode, checkIgnored, executeStylua } from "./stylua";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -21,39 +21,76 @@ const byteOffset = (
   return Buffer.byteLength(text);
 };
 
-export async function activate(context: vscode.ExtensionContext) {
-  console.log("stylua activated");
+enum ResolveMode {
+  configuration = "configuration",
+  path = "PATH",
+  bundled = "bundled",
+}
 
-  const github = new GitHub();
-  context.subscriptions.push(github);
+type StyluaInstall = {
+  path: string;
+  resolveMode: ResolveMode;
+};
 
-  const downloader = new StyluaDownloader(context.globalStorageUri, github);
+const findStylua = (context: vscode.ExtensionContext): StyluaInstall => {
+  // 1) If `stylua.styluaPath` has been specified, use that directly
+  const settingPath = vscode.workspace
+    .getConfiguration("stylua")
+    .get<string | null>("styluaPath");
+  if (settingPath) {
+    return { path: settingPath, resolveMode: ResolveMode.configuration };
+  }
 
-  let cwdForVersionDetection =
+  // 2) Find a `stylua` binary available on PATH
+  if (
+    vscode.workspace
+      .getConfiguration("stylua")
+      .get<boolean>("searchBinaryInPATH")
+  ) {
+    const resolvedPath = which.sync("stylua", { nothrow: true });
+    if (resolvedPath) {
+      return { path: resolvedPath, resolveMode: ResolveMode.path };
+    }
+  }
+
+  // 3) Fallback to bundled stylua version
+  const bundledPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "bin",
+    os.platform() === "win32" ? "stylua.exe" : "stylua"
+  );
+
+  return { path: bundledPath.fsPath, resolveMode: ResolveMode.bundled };
+};
+
+const findStyluaWithLogs = (context: vscode.ExtensionContext) => {
+  const styluaInstall = findStylua(context);
+  console.log(`stylua: found binary at ${styluaInstall.path}`);
+  console.log(`stylua: binary resolution mode: ${styluaInstall.resolveMode}`);
+
+  const cwdForVersionDetection =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath;
 
-  let styluaBinaryPath: string | undefined =
-    await downloader.ensureStyluaExists(cwdForVersionDetection);
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("stylua.reinstall", async () => {
-      await downloader.downloadStyLuaVisual();
-      styluaBinaryPath = await downloader.getStyluaPath();
+  executeStylua(styluaInstall.path, ["--version"], cwdForVersionDetection)
+    .then((version) => {
+      console.log(`stylua: version ${version}`);
     })
-  );
+    .catch((err) => {
+      console.log(`stylua: failed to find version: ${err}`);
+    });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("stylua.authenticate", async () => {
-      await github.authenticate();
-    })
-  );
+  return styluaInstall;
+};
+
+export async function activate(context: vscode.ExtensionContext) {
+  console.log("stylua: activated");
+
+  let styluaInstall = findStyluaWithLogs(context);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("stylua")) {
-        styluaBinaryPath = await downloader.ensureStyluaExists(
-          cwdForVersionDetection
-        );
+        styluaInstall = findStyluaWithLogs(context);
       }
     })
   );
@@ -67,20 +104,6 @@ export async function activate(context: vscode.ExtensionContext) {
         _options: vscode.FormattingOptions,
         _token: vscode.CancellationToken
       ) {
-        if (!styluaBinaryPath) {
-          vscode.window
-            .showErrorMessage(
-              "StyLua not found. Could not format file",
-              "Install"
-            )
-            .then((option) => {
-              if (option === "Install") {
-                downloader.downloadStyLuaVisual();
-              }
-            });
-          return [];
-        }
-
         const currentWorkspace = vscode.workspace.getWorkspaceFolder(
           document.uri
         );
@@ -94,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         try {
           const formattedText = await formatCode(
-            styluaBinaryPath,
+            styluaInstall.path,
             text,
             cwd,
             byteOffset(document, range.start),
