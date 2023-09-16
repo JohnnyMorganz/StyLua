@@ -664,10 +664,27 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use assert_cmd::Command;
+    use assert_fs::prelude::*;
+
+    macro_rules! construct_tree {
+        ({ $($file_name:literal:$file_contents:literal,)+ }) => {{
+            let cwd = assert_fs::TempDir::new().unwrap();
+
+            $(
+                cwd.child($file_name).write_str($file_contents).unwrap();
+            )+
+
+            cwd
+        }};
+    }
+
+    fn create_stylua() -> Command {
+        Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap()
+    }
 
     #[test]
     fn test_no_files_provided() {
-        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mut cmd = create_stylua();
         cmd.assert()
             .failure()
             .code(2)
@@ -676,11 +693,78 @@ mod tests {
 
     #[test]
     fn test_format_stdin() {
-        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mut cmd = create_stylua();
         cmd.arg("-")
             .write_stdin("local   x   = 1")
             .assert()
             .success()
             .stdout("local x = 1\n");
+    }
+
+    #[test]
+    fn test_format_file() {
+        let cwd = construct_tree!({
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path()).arg(".").assert().success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stylua_ignore() {
+        let cwd = construct_tree!({
+            ".styluaignore": "ignored/",
+            "foo.lua": "local   x    =   1",
+            "ignored/bar.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path()).arg(".").assert().success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+        cwd.child("ignored/bar.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn explicitly_provided_files_dont_check_ignores() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_ignores() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--respect-ignores", "foo.lua"])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
     }
 }
