@@ -31,21 +31,26 @@ jobs:
             artifact-name: stylua-windows-x86_64
             artifact-alias: stylua-win64
             cargo-target: x86_64-pc-windows-msvc
+            code-target: [win32-x64]
           - os: ubuntu-20.04
             artifact-name: stylua-linux-x86_64
             artifact-alias: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
+            code-target: [linux-x64]
           - os: ubuntu-20.04
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
             linker: gcc-aarch64-linux-gnu
+            code-target: [linux-arm64]
           - os: macos-latest
             artifact-name: stylua-macos-x86_64
             artifact-alias: stylua-macos
             cargo-target: x86_64-apple-darwin
+            code-target: [darwin-x64]
           - os: macos-latest
             artifact-name: stylua-macos-aarch64
             cargo-target: aarch64-apple-darwin
+            code-target: [darwin-arm64]
 
     name: Build (${{ matrix.artifact-name }})
     runs-on: ${{ matrix.os }}
@@ -72,13 +77,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p staging
+          mkdir -p stylua-vscode/bin
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             cp "output/${{ matrix.cargo-target }}/release/stylua.exe" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua.exe" stylua-vscode/bin/stylua.exe
             cd staging
             7z a ../release.zip *
           else
             cp "output/${{ matrix.cargo-target }}/release/stylua" staging/
+            cp "output/${{ matrix.cargo-target }}/release/stylua" stylua-vscode/bin/stylua
+            chmod 777 stylua-vscode/bin/stylua
             cd staging
             zip ../release.zip *
           fi
@@ -110,6 +119,23 @@ jobs:
           asset_path: release.zip
           asset_name: ${{ matrix.artifact-alias }}.zip
           asset_content_type: application/zip
+
+      - name: Copy README, CHANGELOG, LICENSE into extension
+        shell: bash
+        run: |
+          rm -f stylua-vscode/README.md
+          cp README.md stylua-vscode/README.md
+          rm -f stylua-vscode/CHANGELOG.md
+          cp CHANGELOG.md stylua-vscode/CHANGELOG.md
+          rm -f stylua-vscode/LICENSE.md
+          cp LICENSE.md stylua-vscode/LICENSE
+
+      - run: npm ci
+        working-directory: stylua-vscode
+
+      - name: Publish Extension
+        working-directory: stylua-vscode
+        run: npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --target ${{ join(matrix.code-target, ' ') }}
 
   release_cargo:
     name: Publish to cargo
