@@ -61,7 +61,7 @@ wasm-bindgen = { version = "0.2.81", optional = true }
 [dev-dependencies]
 criterion = "0.4.0"
 insta = { version = "1.30.0", features = ["glob"] }
-assert_cmd = "2.0.4"
+assert_cmd = "2.0.12"
 
 [[bench]]
 name = "date"
