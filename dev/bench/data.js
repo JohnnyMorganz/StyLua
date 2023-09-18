@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694698943826,
+  "lastUpdate": 1694996465780,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8147,6 +8147,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 30669901,
             "range": "± 296313",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4c99cc8fc46729c0ab8978cc7b7cafc2137d7da8",
+          "message": "Bump insta from 1.12.0 to 1.30.0 (#722)",
+          "timestamp": "2023-09-17T19:17:02-05:00",
+          "tree_id": "3d267ca1a000ecdd00275e3b8259f4a18cda26a3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4c99cc8fc46729c0ab8978cc7b7cafc2137d7da8"
+        },
+        "date": 1694996465245,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 56993135,
+            "range": "± 1089707",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 391364703,
+            "range": "± 1787703",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30276705,
+            "range": "± 181176",
             "unit": "ns/iter"
           }
         ]
