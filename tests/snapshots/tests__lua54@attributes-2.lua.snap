@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-lua54/attributes-2.lua
+---
+local a <attribute_with_random_name> = 1
+
