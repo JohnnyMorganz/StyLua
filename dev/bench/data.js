@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1695343034429,
+  "lastUpdate": 1695343097678,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8273,6 +8273,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29772015,
             "range": "± 161059",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ad3e6a30192ad04ca30b9585068d1239e5e53604",
+          "message": "Bump assert_cmd from 2.0.4 to 2.0.12 (#775)\n\nBumps [assert_cmd](https://github.com/assert-rs/assert_cmd) from 2.0.4 to 2.0.12.\r\n- [Changelog](https://github.com/assert-rs/assert_cmd/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/assert-rs/assert_cmd/compare/v2.0.4...v2.0.12)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: assert_cmd\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-09-21T19:34:03-05:00",
+          "tree_id": "ed5c7cb5dc7dfa7911ccd2a658603d75cf490e7e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ad3e6a30192ad04ca30b9585068d1239e5e53604"
+        },
+        "date": 1695343096546,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 72933879,
+            "range": "± 2798460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 491234216,
+            "range": "± 10629946",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 37577583,
+            "range": "± 859881",
             "unit": "ns/iter"
           }
         ]
