@@ -185,7 +185,7 @@ jobs:
         with:
           install: true
 
-      - uses: docker/metadata-action@v4
+      - uses: docker/metadata-action@v5
         id: meta
         env:
           DOCKER_METADATA_PR_HEAD_SHA: "true"
