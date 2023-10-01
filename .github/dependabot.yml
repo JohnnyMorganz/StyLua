@@ -13,7 +13,12 @@ updates:
 
   # Maintain dependencies for npm
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/stylua-npm-bin"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/stylua-vscode"
     schedule:
       interval: "weekly"
       
