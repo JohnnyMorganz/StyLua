@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696171661641,
+  "lastUpdate": 1696171699891,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8819,6 +8819,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 35826547,
             "range": "± 995035",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1d14f3d79b03931ecbfadcf36efd1d119b411253",
+          "message": "Bump unzipper from 0.10.11 to 0.10.14 in /stylua-vscode (#790)\n\nBumps [unzipper](https://github.com/ZJONSSON/node-unzipper) from 0.10.11 to 0.10.14.\r\n- [Release notes](https://github.com/ZJONSSON/node-unzipper/releases)\r\n- [Commits](https://github.com/ZJONSSON/node-unzipper/commits)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: unzipper\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-10-01T16:44:02+02:00",
+          "tree_id": "54a74ecee38fe83aa04f086c1c9e00180cf905ae",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1d14f3d79b03931ecbfadcf36efd1d119b411253"
+        },
+        "date": 1696171698835,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 65169158,
+            "range": "± 604400",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 443693215,
+            "range": "± 3442464",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 34364428,
+            "range": "± 449012",
             "unit": "ns/iter"
           }
         ]
