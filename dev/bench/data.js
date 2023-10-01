@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696080065595,
+  "lastUpdate": 1696167977888,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8399,6 +8399,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 31889825,
             "range": "± 700461",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "59885141+BBboy01@users.noreply.github.com",
+            "name": "HyBer",
+            "username": "BBboy01"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ad1cb871e08f7b15599395a2051c93b7200fd366",
+          "message": "Update dependabot npm ecosystem configuration (#784)\n\nUpdate dependabot.yml",
+          "timestamp": "2023-10-01T15:42:38+02:00",
+          "tree_id": "45500f1723aa42cd3c3d0a67f2c3ba063e9a6e8f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ad1cb871e08f7b15599395a2051c93b7200fd366"
+        },
+        "date": 1696167976981,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 59742586,
+            "range": "± 701703",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 384229942,
+            "range": "± 3027516",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 30646883,
+            "range": "± 714774",
             "unit": "ns/iter"
           }
         ]
