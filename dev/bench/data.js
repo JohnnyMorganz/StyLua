@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696171165803,
+  "lastUpdate": 1696171576414,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8735,6 +8735,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28131062,
             "range": "± 153107",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "65e6f7bf979b8b0e3bf61a3523f02828524c1d0e",
+          "message": "Add testing workflow for stylua-npm-bin (#799)",
+          "timestamp": "2023-10-01T16:42:22+02:00",
+          "tree_id": "433abac4e3fd44ed0bcb0735e1694d1461012b95",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/65e6f7bf979b8b0e3bf61a3523f02828524c1d0e"
+        },
+        "date": 1696171575427,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66006839,
+            "range": "± 661738",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 442228949,
+            "range": "± 2344290",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 34746807,
+            "range": "± 976520",
             "unit": "ns/iter"
           }
         ]
