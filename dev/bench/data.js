@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696171576414,
+  "lastUpdate": 1696171661641,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8777,6 +8777,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 34746807,
             "range": "± 976520",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3a68bb8decd636f1eee45748fe28a100994b4775",
+          "message": "Bump toml from 0.8.0 to 0.8.1 (#794)\n\nBumps [toml](https://github.com/toml-rs/toml) from 0.8.0 to 0.8.1.\r\n- [Commits](https://github.com/toml-rs/toml/compare/toml-v0.8.0...toml-v0.8.1)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: toml\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-10-01T16:43:16+02:00",
+          "tree_id": "a5e2ebd75e437f2a6f21fff4ceeea33a72c470ad",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/3a68bb8decd636f1eee45748fe28a100994b4775"
+        },
+        "date": 1696171660430,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 68184854,
+            "range": "± 2446432",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 495834674,
+            "range": "± 12337702",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 35826547,
+            "range": "± 995035",
             "unit": "ns/iter"
           }
         ]
