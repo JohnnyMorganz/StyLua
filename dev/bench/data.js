@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696171815871,
+  "lastUpdate": 1696171841139,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8945,6 +8945,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28809339,
             "range": "± 145688",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1153999d09f2642f92378029c17e7207f86b76c6",
+          "message": "Bump docker/metadata-action from 4 to 5 (#770)\n\nBumps [docker/metadata-action](https://github.com/docker/metadata-action) from 4 to 5.\r\n- [Release notes](https://github.com/docker/metadata-action/releases)\r\n- [Upgrade guide](https://github.com/docker/metadata-action/blob/master/UPGRADE.md)\r\n- [Commits](https://github.com/docker/metadata-action/compare/v4...v5)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: docker/metadata-action\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-major\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-10-01T16:46:04+02:00",
+          "tree_id": "a48ec002c76a6ce1538f85933902c3c6cf5c608f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1153999d09f2642f92378029c17e7207f86b76c6"
+        },
+        "date": 1696171840604,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54175178,
+            "range": "± 447199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 377744996,
+            "range": "± 1373731",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28109197,
+            "range": "± 38772",
             "unit": "ns/iter"
           }
         ]
