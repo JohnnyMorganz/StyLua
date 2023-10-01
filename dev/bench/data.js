@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696171042264,
+  "lastUpdate": 1696171102464,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -8651,6 +8651,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27985175,
             "range": "± 44321",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eca6ccffb2111d8be28d1b6c942206d0132415ad",
+          "message": "Bump node-fetch from 3.2.10 to 3.3.2 in /stylua-npm-bin (#788)\n\nBumps [node-fetch](https://github.com/node-fetch/node-fetch) from 3.2.10 to 3.3.2.\r\n- [Release notes](https://github.com/node-fetch/node-fetch/releases)\r\n- [Commits](https://github.com/node-fetch/node-fetch/compare/v3.2.10...v3.3.2)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: node-fetch\r\n  dependency-type: direct:production\r\n  update-type: version-update:semver-minor\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-10-01T16:34:03+02:00",
+          "tree_id": "31606b7b2904a969936be4aa030033c0932646dd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/eca6ccffb2111d8be28d1b6c942206d0132415ad"
+        },
+        "date": 1696171101679,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54119029,
+            "range": "± 288104",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 375962642,
+            "range": "± 1046506",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28058659,
+            "range": "± 161942",
             "unit": "ns/iter"
           }
         ]
