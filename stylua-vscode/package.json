@@ -121,7 +121,7 @@
     "mocha": "^10.2.0",
     "prettier": "^2.3.1",
     "typescript": "^4.2.2",
-    "vscode-test": "^1.5.1"
+    "vscode-test": "^1.6.1"
   },
   "dependencies": {
     "ignore": "^5.1.8",
