@@ -112,7 +112,7 @@
     "@types/mocha": "^8.2.1",
     "@types/node": "^12.20.4",
     "@types/node-fetch": "^2.5.8",
-    "@types/unzipper": "^0.10.3",
+    "@types/unzipper": "^0.10.7",
     "@types/vscode": "^1.82.0",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
     "@typescript-eslint/parser": "^4.15.2",
