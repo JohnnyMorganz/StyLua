@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696172026136,
+  "lastUpdate": 1698794596319,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9071,6 +9071,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 29270302,
             "range": "± 213012",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andy@andyfreeland.net",
+            "name": "Andy Freeland",
+            "username": "rouge8"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "32c433a29b17466d18ec5cef2b1a59af1389d7e6",
+          "message": "Fix compatibility with release-gitter 2.2.0 (#808)",
+          "timestamp": "2023-10-31T23:19:58Z",
+          "tree_id": "d05f3535cbcf2a4ac424478557489a923ca8321c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/32c433a29b17466d18ec5cef2b1a59af1389d7e6"
+        },
+        "date": 1698794595346,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54746011,
+            "range": "± 1107459",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 369211934,
+            "range": "± 1435734",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28782589,
+            "range": "± 347408",
             "unit": "ns/iter"
           }
         ]
