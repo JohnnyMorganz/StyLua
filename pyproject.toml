@@ -3,6 +3,7 @@ requires = ["release-gitter[builder]"]
 build-backend = "pseudo_builder"
 
 [tool.release-gitter]
+git-url = "https://github.com/JohnnyMorganz/StyLua"
 extract-files = ["stylua"]
 format = "stylua-{system}-{arch}.zip"
 exec = "chmod +x stylua"
