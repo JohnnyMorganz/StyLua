@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/johnnymorganz/stylua#readme",
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^1.6.0",
     "node-fetch": "^3.2.10",
     "rimraf": "^3.0.2",
     "unzipper": "^0.10.11"
