@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698794596319,
+  "lastUpdate": 1699109198290,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9113,6 +9113,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28782589,
             "range": "± 347408",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "50d90ee81e1867130e5887dfb68f96104f13b989",
+          "message": "Bump @types/unzipper from 0.10.3 to 0.10.8 in /stylua-vscode (#816)\n\nBumps [@types/unzipper](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/unzipper) from 0.10.3 to 0.10.8.\r\n- [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)\r\n- [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/unzipper)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: \"@types/unzipper\"\r\n  dependency-type: direct:development\r\n  update-type: version-update:semver-patch\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-11-04T15:43:21+01:00",
+          "tree_id": "ef35fd3595b857c2238f0e66d159e63591929de0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/50d90ee81e1867130e5887dfb68f96104f13b989"
+        },
+        "date": 1699109197180,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 51412260,
+            "range": "± 582273",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 366413919,
+            "range": "± 1036558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28043144,
+            "range": "± 23660",
             "unit": "ns/iter"
           }
         ]
