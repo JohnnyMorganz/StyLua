@@ -126,7 +126,7 @@
   },
   "dependencies": {
     "ignore": "^5.1.8",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.3.2",
     "unzipper": "^0.10.14"
   }
 }
