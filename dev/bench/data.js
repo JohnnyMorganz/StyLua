@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699189124127,
+  "lastUpdate": 1699190243633,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9323,6 +9323,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 21276414,
             "range": "± 1939933",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8769d45e8825fa241e90d681cc04f53b685d8d77",
+          "message": "Update vscode test runner (#819)",
+          "timestamp": "2023-11-05T14:14:10+01:00",
+          "tree_id": "d2de5e268351012d8b45bc3cf578d4d42965356a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8769d45e8825fa241e90d681cc04f53b685d8d77"
+        },
+        "date": 1699190242374,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54481873,
+            "range": "± 849027",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 367559962,
+            "range": "± 700306",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28038003,
+            "range": "± 144553",
             "unit": "ns/iter"
           }
         ]
