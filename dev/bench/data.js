@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699109387287,
+  "lastUpdate": 1699189124127,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9281,6 +9281,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27934482,
             "range": "± 195809",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34089907+Barocena@users.noreply.github.com",
+            "name": "Barış",
+            "username": "Barocena"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5cf1ab3c754baa5482206d4eb165d19fc230b0f7",
+          "message": "Fix SortRequireConfig on Wasm build (#818)\n\nFixed SortRequireConfig on Wasm build",
+          "timestamp": "2023-11-05T13:56:32+01:00",
+          "tree_id": "f6684ed2ca2c61b8f49556fc84b7deff4423966b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5cf1ab3c754baa5482206d4eb165d19fc230b0f7"
+        },
+        "date": 1699189123617,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 39156248,
+            "range": "± 1123745",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 260033447,
+            "range": "± 2395814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 21276414,
+            "range": "± 1939933",
             "unit": "ns/iter"
           }
         ]
