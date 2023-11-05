@@ -46,7 +46,7 @@ ignore = "0.4.20"
 lazy_static = "1.4.0"
 log = "0.4.20"
 num_cpus = "1.16.0"
-regex = "1.9.6"
+regex = "1.10.2"
 serde = "1.0.188"
 serde_json = "1.0.107"
 similar = { version = "2.3.0", features = ["text", "inline", "serde"] }
