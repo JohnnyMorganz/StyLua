@@ -123,7 +123,11 @@ pub struct SortRequiresConfig {
     enabled: bool,
 }
 
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 impl SortRequiresConfig {
+    pub fn new() -> Self {
+        SortRequiresConfig::default()
+    }
     pub fn enabled(&self) -> bool {
         self.enabled
     }
