@@ -5,8 +5,8 @@ use crate::{
     formatters::{
         trivia::{FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia},
         trivia_util::{
-            self, punctuated_inline_comments, take_trailing_comments, GetLeadingTrivia,
-            GetTrailingTrivia, HasInlineComments,
+            self, punctuated_inline_comments, CommentSearch, GetLeadingTrivia, GetTrailingTrivia,
+            HasInlineComments,
         },
     },
     shape::Shape,
@@ -522,9 +522,15 @@ where
                 ctx, shape,
             )]));
 
-        // Take any trailing trivia (i.e. comments) from the argument, and append it to the end of the punctuation
-        let (formatted_argument, mut trailing_comments) =
-            take_trailing_comments(&formatted_argument);
+        // Any singleline comments must be moved to after the punctuation
+        // We should keep multiline comments in the same location
+        let multiline_comments =
+            formatted_argument.trailing_comments_search(CommentSearch::Multiline);
+        let singleline_comments =
+            formatted_argument.trailing_comments_search(CommentSearch::Single);
+
+        let formatted_argument = formatted_argument
+            .update_trailing_trivia(FormatTriviaType::Replace(multiline_comments));
 
         let punctuation = match argument.punctuation() {
             Some(punctuation) => {
@@ -544,8 +550,8 @@ where
                             x,
                         ]
                     })
+                    .chain(singleline_comments)
                     .collect();
-                trailing_trivia.append(&mut trailing_comments);
                 trailing_trivia.push(create_newline_trivia(ctx));
 
                 let symbol = symbol.update_trivia(
@@ -559,7 +565,7 @@ where
             // We need to do this because in function declarations, we format parameters but if they have a type
             // specifier we don't have access to put it after the type specifier
             None => Some(TokenReference::new(
-                trailing_comments,
+                singleline_comments,
                 create_newline_trivia(ctx),
                 vec![],
             )),
