@@ -134,7 +134,9 @@ stylua -g '*.lua' -g '!*.spec.lua' -- . # format all Lua files except test files
 
 Note, if you are using the glob argument, it can take in multiple strings, so `--` is required to break between the glob pattern and the files to format.
 
-Glob Filtering is only used for directory searching - passing a file directly (e.g. `stylua foo.txt`) will override the glob.
+By default, glob filtering (and `.styluaignore` files) are only applied for directory traversal and searching.
+Files passed directly (e.g. `stylua foo.txt`) will override the glob / ignore and always be formatted.
+To disable this behaviour, pass the `--respect-ignores` flag (`stylua --respect-ignores foo.txt`).
 
 ### Filtering using `.styluaignore`
 
