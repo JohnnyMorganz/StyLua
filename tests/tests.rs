@@ -126,7 +126,10 @@ fn test_sort_requires() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config { sort_requires: SortRequiresConfig { enabled: true }, ..Config::default()},
+            Config {
+                sort_requires: SortRequiresConfig { enabled: true },
+                ..Config::default()
+            },
             None,
             OutputVerification::None
         )

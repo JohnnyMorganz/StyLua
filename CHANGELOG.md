@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Simplified access and modification patterns for StyLua configuration. You can now access the properties directly
   - **Deprecated:** the old access patterns of `.property()` and `.with_property()` are now deprecated
+  - **Breaking Change (WASM):** due to JS/TS lack of differentiation between `.property` / `.property()` implementation, the `.property()` functions were removed from WASM output.
 
 ### Fixed
 

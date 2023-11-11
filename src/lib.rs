@@ -129,6 +129,7 @@ impl SortRequiresConfig {
         SortRequiresConfig::default()
     }
     #[deprecated(since = "0.19.0", note = "access `.enabled` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn enabled(&self) -> bool {
         self.enabled
     }
@@ -188,36 +189,42 @@ impl Config {
 
     /// Returns the current configured column width
     #[deprecated(since = "0.19.0", note = "access `.column_width` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn column_width(&self) -> usize {
         self.column_width
     }
 
     /// Returns the current configured line endings
     #[deprecated(since = "0.19.0", note = "access `.line_endings` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn line_endings(&self) -> LineEndings {
         self.line_endings
     }
 
     /// Returns the current configured indent type
     #[deprecated(since = "0.19.0", note = "access `.indent_type` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn indent_type(&self) -> IndentType {
         self.indent_type
     }
 
     /// Returns the current configured indent width
     #[deprecated(since = "0.19.0", note = "access `.indent_width` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn indent_width(&self) -> usize {
         self.indent_width
     }
 
     /// Returns the current configured quote style
     #[deprecated(since = "0.19.0", note = "access `.quote_style` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn quote_style(&self) -> QuoteStyle {
         self.quote_style
     }
 
     /// Returns the current configured call parentheses style
     #[deprecated(since = "0.19.0", note = "access `.call_parentheses` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn call_parentheses(&self) -> CallParenType {
         self.call_parentheses
     }
@@ -226,12 +233,14 @@ impl Config {
         since = "0.19.0",
         note = "access `.collapse_simple_statement` directly instead"
     )]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
         self.collapse_simple_statement
     }
 
     /// Returns the current sort requires codemod configuration
     #[deprecated(since = "0.19.0", note = "access `.sort_requires` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn sort_requires(&self) -> SortRequiresConfig {
         self.sort_requires
     }
