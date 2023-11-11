@@ -5,20 +5,25 @@
 
 version: 2
 updates:
-  # Maintain dependencies for GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+  # # Maintain dependencies for GitHub Actions
+  # - package-ecosystem: "github-actions"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "monthly"
 
-  # Maintain dependencies for npm
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      
-  # Maintain dependencies for cargo
-  - package-ecosystem: "cargo"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+  # # Maintain dependencies for npm
+  # - package-ecosystem: "npm"
+  #   directory: "/stylua-npm-bin"
+  #   schedule:
+  #     interval: "monthly"
+
+  # - package-ecosystem: "npm"
+  #   directory: "/stylua-vscode"
+  #   schedule:
+  #     interval: "monthly"
+
+  # # Maintain dependencies for cargo
+  # - package-ecosystem: "cargo"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "monthly"

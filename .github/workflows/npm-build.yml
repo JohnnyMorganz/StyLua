@@ -1,0 +1,27 @@
+name: NPM Packaging
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  # Ensure it builds on all platforms
+  smoketest:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+      - name: Attempt install
+        run: npm install --package-locked
+        working-directory: stylua-npm-bin
+      - name: Attempt run
+        run: npx . --version
+        working-directory: stylua-npm-bin
