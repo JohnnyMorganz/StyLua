@@ -84,7 +84,10 @@ fn test_collapse_single_statement() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),
+            Config {
+                collapse_simple_statement: CollapseSimpleStatement::Always,
+                ..Config::default()
+            },
             None,
             OutputVerification::None
         )
@@ -103,7 +106,10 @@ fn test_collapse_single_statement_lua_52() {
                 goto continue
             end
             "###,
-            Config::default().with_collapse_simple_statement(CollapseSimpleStatement::Always),
+            Config {
+                collapse_simple_statement: CollapseSimpleStatement::Always,
+                ..Config::default()
+            },
             None,
             OutputVerification::None
         )
@@ -120,7 +126,7 @@ fn test_sort_requires() {
         let contents = std::fs::read_to_string(path).unwrap();
         insta::assert_snapshot!(format_code(
             &contents,
-            Config::default().with_sort_requires(SortRequiresConfig::default().set_enabled(true)),
+            Config { sort_requires: SortRequiresConfig { enabled: true }, ..Config::default()},
             None,
             OutputVerification::None
         )

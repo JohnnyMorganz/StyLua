@@ -3,7 +3,10 @@ use stylua_lib::{format_code, Config, OutputVerification, QuoteStyle};
 fn format(input: &str, quote_style: QuoteStyle) -> String {
     format_code(
         input,
-        Config::default().with_quote_style(quote_style),
+        Config {
+            quote_style,
+            ..Config::default()
+        },
         None,
         OutputVerification::None,
     )

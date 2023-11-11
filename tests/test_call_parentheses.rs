@@ -1,9 +1,12 @@
 use stylua_lib::{format_code, CallParenType, Config, OutputVerification};
 
-fn format(paren_type: CallParenType, input: &str) -> String {
+fn format(call_parentheses: CallParenType, input: &str) -> String {
     format_code(
         input,
-        Config::default().with_call_parentheses(paren_type),
+        Config {
+            call_parentheses,
+            ..Config::default()
+        },
         None,
         OutputVerification::None,
     )

@@ -15,9 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated parser crate with following changes:
+
   - Support Luau floor division (`//`)
   - Fix Luau string interpolation parsing
   - Fix Luau `\z` escape parsing
+
+- Simplified access and modification patterns for StyLua configuration. You can now access the properties directly
+  - **Deprecated:** the old access patterns of `.property()` and `.with_property()` are now deprecated
 
 ### Fixed
 

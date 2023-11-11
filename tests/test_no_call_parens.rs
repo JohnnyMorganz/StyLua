@@ -3,7 +3,11 @@ use stylua_lib::{format_code, Config, OutputVerification};
 fn format(input: &str) -> String {
     format_code(
         input,
-        Config::default().with_no_call_parentheses(true),
+        #[allow(deprecated)]
+        Config {
+            no_call_parentheses: true,
+            ..Config::default()
+        },
         None,
         OutputVerification::None,
     )
