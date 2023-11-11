@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699711108584,
+  "lastUpdate": 1699713818133,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9827,6 +9827,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20230866,
             "range": "± 590587",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "edf11fe9ba76905e80831ad0af96eb1d2967b2da",
+          "message": "Keep multiline comments in place before commas (#822)\n\n* Keep multiline comments in place when formatting punctuated sequences\r\n\r\n* Update changelog",
+          "timestamp": "2023-11-11T15:39:25+01:00",
+          "tree_id": "0929c6cbd2b00adfa318e9d70d8704ff407a26a1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/edf11fe9ba76905e80831ad0af96eb1d2967b2da"
+        },
+        "date": 1699713816984,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 61258885,
+            "range": "± 753525",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 452182249,
+            "range": "± 3700932",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 31999127,
+            "range": "± 304001",
             "unit": "ns/iter"
           }
         ]
