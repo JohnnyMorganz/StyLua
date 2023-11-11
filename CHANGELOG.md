@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added flag `--respect-ignores`. By default, files explicitly passed to stylua (e.g. `stylua foo.lua`) will always be formatted, regardless of whether the file is ignored. Enabling this flag will consider `.styluaignore` or glob matches before formatting the file.
+- Added flag `--respect-ignores`. By default, files explicitly passed to stylua (e.g. `stylua foo.lua`) will always be formatted, regardless of whether the file is ignored. Enabling this flag will consider `.styluaignore` or glob matches before formatting the file. ([#765](https://github.com/JohnnyMorganz/StyLua/issues/765))
   - Note: for backwards compatibility reasons, formatting via stdin always respects ignores. This behaviour will change in the next major release
+
+### Fixed
+
+- Wasm build now correctly supports configuring sort requires ([#818](https://github.com/JohnnyMorganz/StyLua/issues/818))
 
 ## [0.18.2] - 2023-09-10
 
