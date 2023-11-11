@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Checkout Pull Request
-        run: hub pr checkout ${{ github.event.inputs.prId }}
+        run: gh pr checkout ${{ github.event.inputs.prId }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
