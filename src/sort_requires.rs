@@ -63,6 +63,7 @@ fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
                 None
             }
         }
+        #[cfg(feature = "luau")]
         Expression::TypeAssertion { expression, .. } => get_expression_kind(expression),
         _ => None,
     }
