@@ -9,7 +9,7 @@ use crate::{
             trivia_to_vec, EndTokenType, FormatTokenType,
         },
         trivia::{strip_trivia, FormatTriviaType, UpdateLeadingTrivia, UpdateTrailingTrivia},
-        trivia_util::{self, GetTrailingTrivia, HasInlineComments},
+        trivia_util::{self, CommentSearch, GetTrailingTrivia, HasInlineComments},
     },
     shape::Shape,
 };
@@ -40,17 +40,19 @@ fn format_field_expression_value(
     expression: &Expression,
     shape: Shape,
 ) -> Expression {
-    // Remove all trivia from the output expression as it will be moved after the comma
+    // Remove singleline comments from the output expression as it will be moved after the comma
+    // Retain multiline comments in place
+    let multiline_comments = expression.trailing_comments_search(CommentSearch::Multiline);
+    let trailing_trivia = FormatTriviaType::Replace(multiline_comments);
 
     if trivia_util::can_hang_expression(expression) {
         if expression.has_inline_comments() {
-            hang_expression(ctx, expression, shape, Some(1))
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+            hang_expression(ctx, expression, shape, Some(1)).update_trailing_trivia(trailing_trivia)
         } else {
             let singleline_value = format_expression(ctx, expression, shape)
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+                .update_trailing_trivia(trailing_trivia.clone());
             let hanging_value = hang_expression(ctx, expression, shape, Some(1))
-                .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+                .update_trailing_trivia(trailing_trivia);
 
             if shape.test_over_budget(&singleline_value)
                 || format!("{hanging_value}").lines().count()
@@ -62,8 +64,7 @@ fn format_field_expression_value(
             }
         }
     } else {
-        format_expression(ctx, expression, shape)
-            .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+        format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia)
     }
 }
 
@@ -139,6 +140,8 @@ fn format_field(
         _ => FormatTriviaType::NoChange,
     };
 
+    // Trailing trivia is taken out and moved to after the comma
+    // We only move singleline comments, multiline comments remain in place
     let trailing_trivia;
     let field = match field {
         Field::ExpressionKey {
@@ -147,7 +150,7 @@ fn format_field(
             equal,
             value,
         } => {
-            trailing_trivia = value.trailing_trivia();
+            trailing_trivia = value.trailing_comments_search(CommentSearch::Single);
             let brackets = format_contained_span(ctx, brackets, shape);
 
             let space_brackets = is_brackets_string(key);
@@ -185,7 +188,7 @@ fn format_field(
             }
         }
         Field::NameKey { key, equal, value } => {
-            trailing_trivia = value.trailing_trivia();
+            trailing_trivia = value.trailing_comments_search(CommentSearch::Single);
             let key = format_token_reference(ctx, key, shape);
 
             // Get the new leading comments to add before the key, and the equal token
@@ -205,7 +208,7 @@ fn format_field(
             Field::NameKey { key, equal, value }
         }
         Field::NoKey(expression) => {
-            trailing_trivia = expression.trailing_trivia();
+            trailing_trivia = expression.trailing_comments_search(CommentSearch::Single);
 
             if let TableType::MultiLine = table_type {
                 let formatted_expression = format_field_expression_value(ctx, expression, shape);
@@ -305,7 +308,8 @@ where
 
         // Format the field. We will ignore the taken trailing trivia, as we do not need it.
         // (If there were any comments present, this function should never have been called)
-        let formatted_field = formatter(ctx, field, table_type, shape).0;
+        let (formatted_field, trailing_trivia) = formatter(ctx, field, table_type, shape);
+        assert!(trailing_trivia.is_empty());
 
         let formatted_punctuation = match current_fields.peek() {
             Some(_) => {
@@ -370,6 +374,7 @@ where
             trailing_trivia = Vec::new();
         } else {
             // Filter trailing trivia for any newlines
+            // NOTE: in practice, this should only consist of singleline comments
             trailing_trivia = trailing_trivia
                 .iter()
                 .filter(|x| !trivia_util::trivia_is_whitespace(x))

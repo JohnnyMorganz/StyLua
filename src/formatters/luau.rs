@@ -839,7 +839,8 @@ pub fn format_type_field(
     let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
-    let trailing_trivia = value.trailing_trivia();
+    // Trailing trivia consists only of single line comments - multiline comments are kept in place
+    let trailing_trivia = value.trailing_comments_search(CommentSearch::Single);
 
     if let TableType::MultiLine = table_type {
         // If still over budget, hang the type
@@ -847,7 +848,9 @@ pub fn format_type_field(
             value = hang_type_info(ctx, type_field.value(), TypeInfoContext::new(), shape, 1)
         };
 
-        value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+        // Keep multiline comments in place
+        let multiline_comments = value.trailing_comments_search(CommentSearch::Multiline);
+        value = value.update_trailing_trivia(FormatTriviaType::Replace(multiline_comments))
     }
 
     (

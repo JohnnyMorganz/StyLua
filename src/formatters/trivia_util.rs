@@ -44,15 +44,19 @@ pub trait GetTrailingTrivia {
 
     // Retrieves all the trailing comments from the token
     // Prepends a space before each comment
-    fn trailing_comments(&self) -> Vec<Token> {
+    fn trailing_comments_search(&self, search: CommentSearch) -> Vec<Token> {
         self.trailing_trivia()
             .iter()
-            .filter(|token| trivia_is_comment(token))
+            .filter(|token| trivia_is_comment_search(token, search))
             .flat_map(|x| {
                 // Prepend a single space beforehand
                 vec![Token::new(TokenType::spaces(1)), x.to_owned()]
             })
             .collect()
+    }
+
+    fn trailing_comments(&self) -> Vec<Token> {
+        self.trailing_comments_search(CommentSearch::All)
     }
 }
 
@@ -64,11 +68,23 @@ pub fn trivia_is_singleline_comment(trivia: &Token) -> bool {
     matches!(trivia.token_kind(), TokenKind::SingleLineComment)
 }
 
+fn trivia_is_multiline_comment(trivia: &Token) -> bool {
+    matches!(trivia.token_kind(), TokenKind::MultiLineComment)
+}
+
 pub fn trivia_is_comment(trivia: &Token) -> bool {
     matches!(
         trivia.token_kind(),
         TokenKind::SingleLineComment | TokenKind::MultiLineComment
     )
+}
+
+fn trivia_is_comment_search(trivia: &Token, search: CommentSearch) -> bool {
+    match search {
+        CommentSearch::Single => trivia_is_singleline_comment(trivia),
+        CommentSearch::Multiline => trivia_is_multiline_comment(trivia),
+        CommentSearch::All => trivia_is_comment(trivia),
+    }
 }
 
 pub fn trivia_is_newline(trivia: &Token) -> bool {
@@ -825,6 +841,8 @@ impl GetTrailingTrivia for LastStmt {
 pub enum CommentSearch {
     // Only care about singleline comments
     Single,
+    // Only care about multiline comments
+    Multiline,
     // Looking for all comments
     All,
 }
@@ -835,6 +853,7 @@ fn trivia_contains_comments<'a>(
 ) -> bool {
     let tester = match search {
         CommentSearch::Single => trivia_is_singleline_comment,
+        CommentSearch::Multiline => trivia_is_multiline_comment,
         CommentSearch::All => trivia_is_comment,
     };
 
