@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699709914947,
+  "lastUpdate": 1699710637387,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9743,6 +9743,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 32238752,
             "range": "± 247239",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "452e43bd62d89b71e73ea507c974923d16f30a73",
+          "message": "Simplify access patterns for config\n\nAllow accessing properties directly\n\nFixes #805",
+          "timestamp": "2023-11-11T14:46:26+01:00",
+          "tree_id": "d53ae94e982213ad72bf55a940dc96fb6951cf1a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/452e43bd62d89b71e73ea507c974923d16f30a73"
+        },
+        "date": 1699710636197,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 66389874,
+            "range": "± 3203833",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 496479143,
+            "range": "± 19127093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 34538836,
+            "range": "± 1932880",
             "unit": "ns/iter"
           }
         ]
