@@ -4,7 +4,7 @@ use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix, Value,
+        Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix,
     },
     tokenizer::TokenType,
 };
@@ -39,11 +39,10 @@ use crate::{
 /// https://github.com/JohnnyMorganz/StyLua/issues/274
 pub fn calculate_hang_level(expression: &Expression) -> Option<usize> {
     match expression {
-        Expression::Value { value, .. } => match **value {
-            Value::ParenthesesExpression(_) => None,
-            _ => Some(1),
-        },
+        Expression::Parentheses { .. } => None,
         Expression::UnaryOperator { expression, .. } => calculate_hang_level(expression),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => calculate_hang_level(expression),
         _ => Some(1),
     }
 }
@@ -128,12 +127,11 @@ fn is_complex_function_call(function_call: &FunctionCall) -> bool {
             let mut complexity_count = 0;
 
             for argument in arguments {
-                if let Expression::Value { value, .. } = argument {
-                    match &**value {
-                        Value::Function(_) => return true,
-                        Value::TableConstructor(_) => complexity_count += 1,
-                        _ => (),
-                    }
+                match argument {
+                    Expression::Function(_) => return true,
+                    Expression::TableConstructor(_) => complexity_count += 1,
+                    // TODO: should we handle embedded expr in Expression::TypeAssertion { expression } here?
+                    _ => (),
                 }
             }
 
@@ -152,13 +150,12 @@ fn is_complex_function_call(function_call: &FunctionCall) -> bool {
 /// Determines whether we should prevent hanging at the equals token depending on the RHS expression
 fn prevent_equals_hanging(expression: &Expression) -> bool {
     match expression {
-        Expression::Value { value, .. } => match &**value {
-            Value::Function(_) => true,
-            Value::FunctionCall(function_call) => is_complex_function_call(function_call),
-            #[cfg(feature = "luau")]
-            Value::IfExpression(_) => true,
-            _ => false,
-        },
+        Expression::Function(_) => true,
+        Expression::FunctionCall(function_call) => is_complex_function_call(function_call),
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(_) => true,
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => prevent_equals_hanging(expression),
         _ => false,
     }
 }

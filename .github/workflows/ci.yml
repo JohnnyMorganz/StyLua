@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test (Luau)
-        run: cargo test --features luau
+        run: cargo test --features luau --release # TODO: ideally we don't need to run in release mode!
 
   test_lua52:
     runs-on: ubuntu-latest

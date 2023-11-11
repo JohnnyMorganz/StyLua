@@ -16,7 +16,7 @@
 //! - Blocks remain in-place in the file.
 
 use full_moon::{
-    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix, Value},
+    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix},
     node::Node,
     tokenizer::{TokenReference, TokenType},
 };
@@ -34,29 +34,39 @@ fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
 }
 
 fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
-    if let Expression::Value { value, .. } = expression {
-        if let Value::FunctionCall(function_call) = &**value {
-            if let Prefix::Name(token) = function_call.prefix() {
-                if let Some(name) = extract_identifier_from_token(token) {
-                    if name == "require" {
-                        return Some(GroupKind::Require);
-                    } else if name == "game" {
-                        if let Some(Suffix::Call(Call::MethodCall(method_call))) =
-                            function_call.suffixes().next()
-                        {
-                            if let Some(name) = extract_identifier_from_token(method_call.name()) {
-                                if name == "GetService" {
-                                    return Some(GroupKind::GetService);
-                                }
-                            }
-                        }
-                    }
+    match expression {
+        Expression::FunctionCall(function_call) => {
+            let Prefix::Name(token) = function_call.prefix() else {
+                return None;
+            };
+            let Some(name) = extract_identifier_from_token(token) else {
+                return None;
+            };
+
+            if name == "require" {
+                Some(GroupKind::Require)
+            } else if name == "game" {
+                let Some(Suffix::Call(Call::MethodCall(method_call))) =
+                    function_call.suffixes().next()
+                else {
+                    return None;
+                };
+                let Some(name) = extract_identifier_from_token(method_call.name()) else {
+                    return None;
+                };
+                if name == "GetService" {
+                    Some(GroupKind::GetService)
+                } else {
+                    None
                 }
+            } else {
+                None
             }
         }
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => get_expression_kind(expression),
+        _ => None,
     }
-
-    None
 }
 
 type StmtSemicolon = (Stmt, Option<TokenReference>);
@@ -297,5 +307,14 @@ mod tests {
         let expression = extract_test_expression(&ast);
 
         assert_eq!(get_expression_kind(expression), None);
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn get_expression_kind_require_type_assertion() {
+        let ast = full_moon::parse("local NAME = require(path) :: any").unwrap();
+        let expression = extract_test_expression(&ast);
+
+        assert_eq!(get_expression_kind(expression), Some(GroupKind::Require));
     }
 }
