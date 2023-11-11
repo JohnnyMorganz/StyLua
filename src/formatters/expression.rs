@@ -359,17 +359,19 @@ fn format_expression_internal(
 }
 
 /// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
+/// We care about this because `[ [[string] ]` is invalid syntax if we remove the whitespace
 pub fn is_brackets_string(expression: &Expression) -> bool {
-    if let Expression::String(token_reference) = expression {
-        return matches!(
+    match expression {
+        Expression::String(token_reference) => matches!(
             token_reference.token_type(),
             TokenType::StringLiteral {
                 quote_type: StringLiteralQuoteType::Brackets,
                 ..
             }
-        );
+        ),
+        Expression::TypeAssertion { expression, .. } => is_brackets_string(expression),
+        _ => false,
     }
-    false
 }
 
 /// Formats an Index Node
