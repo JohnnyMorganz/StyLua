@@ -41,6 +41,8 @@ pub fn calculate_hang_level(expression: &Expression) -> Option<usize> {
     match expression {
         Expression::Parentheses { .. } => None,
         Expression::UnaryOperator { expression, .. } => calculate_hang_level(expression),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => calculate_hang_level(expression),
         _ => Some(1),
     }
 }
@@ -128,6 +130,7 @@ fn is_complex_function_call(function_call: &FunctionCall) -> bool {
                 match argument {
                     Expression::Function(_) => return true,
                     Expression::TableConstructor(_) => complexity_count += 1,
+                    // TODO: should we handle embedded expr in Expression::TypeAssertion { expression } here?
                     _ => (),
                 }
             }
@@ -151,6 +154,8 @@ fn prevent_equals_hanging(expression: &Expression) -> bool {
         Expression::FunctionCall(function_call) => is_complex_function_call(function_call),
         #[cfg(feature = "luau")]
         Expression::IfExpression(_) => true,
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => prevent_equals_hanging(expression),
         _ => false,
     }
 }
