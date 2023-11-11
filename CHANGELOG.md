@@ -21,8 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fix Luau `\z` escape parsing
 
 - Simplified access and modification patterns for StyLua configuration. You can now access the properties directly
+
   - **Deprecated:** the old access patterns of `.property()` and `.with_property()` are now deprecated
   - **Breaking Change (WASM):** due to JS/TS lack of differentiation between `.property` / `.property()` implementation, the `.property()` functions were removed from WASM output.
+
+- Multiline comments before commas will now remain in place and not move to after the comma. This is to support type-assertions-via-comments that is commonly used by some language servers. ([#778](https://github.com/JohnnyMorganz/StyLua/issues/778))
 
 ### Fixed
 
