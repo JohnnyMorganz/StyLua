@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-luau/string-brackets-index.lua
+---
+local foo = {
+	[ [[test]] :: test ] = true,
+}
+
+foo[ [[test]] :: test ] = false
+
