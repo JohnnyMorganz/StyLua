@@ -14,9 +14,9 @@ fn format(input: &str) -> String {
 fn test_no_parens_string() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 foo"string"
-"###
+"#
         ),
         @r###"foo "string"
     "###
@@ -27,9 +27,9 @@ foo"string"
 fn test_omit_parens_string() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 foo("string")
-"###
+"#
         ),
         @r###"foo "string"
     "###
@@ -107,9 +107,9 @@ foo{
 fn test_keep_parens_binop_string() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 foo("foo" .. "bar")
-"###
+"#
         ),
         @r###"foo("foo" .. "bar")
     "###
@@ -120,9 +120,9 @@ foo("foo" .. "bar")
 fn test_no_parens_method_chain_1() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 foo("foo"):andThen()
-"###
+"#
         ),
         @r###"foo("foo"):andThen()
     "###
@@ -133,11 +133,11 @@ foo("foo"):andThen()
 fn test_no_parens_method_chain_2() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 Job:new({
     foo = "bar"
 }):sync()
-"###
+"#
         ),
         @r###"
     Job:new({
@@ -151,7 +151,7 @@ Job:new({
 fn test_no_parens_large_example() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
 
@@ -163,7 +163,7 @@ local still_got_em = my_function({
     config = true,
     value = "yup",
 }):method()
-"###
+"#
         ),
         @r###"
     local foo = require "foo"

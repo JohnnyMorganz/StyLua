@@ -14,7 +14,7 @@ fn format(paren_type: CallParenType, input: &str) -> String {
 fn test_call_parens_always_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
-            r###"
+            r#"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
 
@@ -24,7 +24,7 @@ multi
 line
 string
 ]]
-"###
+"#
         ),
         @r###"
     local foo = require("foo")
@@ -44,7 +44,7 @@ string
 fn test_call_parens_always_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
-            r###"
+            r#"
 local opt = my_function {
     hello = true,
 }
@@ -53,7 +53,7 @@ local still_got_em = my_function({
     config = true,
     value = "yup",
 }):method()
-"###
+"#
         ),
         @r###"
     local opt = my_function({
@@ -72,7 +72,7 @@ local still_got_em = my_function({
 fn test_call_parens_no_single_string_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleString,
-            r###"
+            r#"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
 
@@ -82,7 +82,7 @@ multi
 line
 string
 ]]
-"###
+"#
         ),
         @r###"
     local foo = require "foo"
@@ -102,7 +102,7 @@ string
 fn test_call_parens_no_single_string_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleString,
-            r###"
+            r#"
 local opt = my_function {
     hello = true,
 }
@@ -111,7 +111,7 @@ local still_got_em = my_function({
     config = true,
     value = "yup",
 }):method()
-"###
+"#
         ),
         @r###"
     local opt = my_function({
@@ -130,7 +130,7 @@ local still_got_em = my_function({
 fn test_call_parens_no_single_table_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleTable,
-            r###"
+            r#"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
 
@@ -140,7 +140,7 @@ multi
 line
 string
 ]]
-"###
+"#
         ),
         @r###"
     local foo = require("foo")
@@ -160,7 +160,7 @@ string
 fn test_call_parens_no_single_table_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::NoSingleTable,
-            r###"
+            r#"
 local opt = my_function {
     hello = true,
 }
@@ -169,7 +169,7 @@ local still_got_em = my_function({
     config = true,
     value = "yup",
 }):method()
-"###
+"#
         ),
         @r###"
     local opt = my_function {
@@ -188,7 +188,7 @@ local still_got_em = my_function({
 fn test_call_parens_none_handles_string_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::None,
-            r###"
+            r#"
 local foo = require "foo"
 local has_parens = require("configuration").has_parens
 
@@ -198,7 +198,7 @@ multi
 line
 string
 ]]
-"###
+"#
         ),
         @r###"
     local foo = require "foo"
@@ -218,7 +218,7 @@ string
 fn test_call_parens_none_handles_table_correctly() {
     insta::assert_snapshot!(
         format(CallParenType::None,
-            r###"
+            r#"
 local opt = my_function {
     hello = true,
 }
@@ -227,7 +227,7 @@ local still_got_em = my_function({
     config = true,
     value = "yup",
 }):method()
-"###
+"#
         ),
         @r###"
     local opt = my_function {
@@ -246,11 +246,11 @@ local still_got_em = my_function({
 fn test_call_parens_has_no_affect_on_multi_arg_fn_calls_() {
     insta::assert_snapshot!(
         format(CallParenType::Always,
-            r###"
+            r#"
 local opt = my_function({
     hello = true,
 }, "strarg", 5)
-"###
+"#
         ),
         @r###"
     local opt = my_function({
@@ -260,11 +260,11 @@ local opt = my_function({
     );
     insta::assert_snapshot!(
         format(CallParenType::NoSingleTable,
-            r###"
+            r#"
 local opt = my_function({
     hello = true,
 }, "strarg", 5)
-"###
+"#
         ),
         @r###"
     local opt = my_function({
@@ -274,11 +274,11 @@ local opt = my_function({
     );
     insta::assert_snapshot!(
         format(CallParenType::None,
-            r###"
+            r#"
 local opt = my_function({
     hello = true,
 }, "strarg", 5)
-"###
+"#
         ),
         @r###"
     local opt = my_function({
@@ -292,9 +292,9 @@ local opt = my_function({
 fn test_call_parens_comments() {
     insta::assert_snapshot!(
         format(CallParenType::None,
-            r###"
+            r#"
 foo("hello") -- comment
-"###
+"#
         ),
         @r###"foo "hello" -- comment
     "###
@@ -305,10 +305,10 @@ foo("hello") -- comment
 fn test_call_parens_semicolons() {
     insta::assert_snapshot!(
         format(CallParenType::None,
-            r###"
+            r#"
 foo"hello"; -- comment
 foo{ x = y }; -- comment
-"###
+"#
         ),
         @r###"
     foo "hello" -- comment
@@ -321,12 +321,12 @@ foo{ x = y }; -- comment
 fn test_call_parens_input() {
     insta::assert_snapshot!(
         format(CallParenType::Input,
-            r###"
+            r#"
 require("path")
 local x = New "TextLabel" {
     x = game:FindFirstChild("Testing")
 }
-"###
+"#
         ),
         @r###"
     require("path")

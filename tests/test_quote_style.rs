@@ -14,7 +14,7 @@ fn format(input: &str, quote_style: QuoteStyle) -> String {
 fn test_auto_prefer_double_quotes() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 local a = "foobar"
 local c = 'foobar'
 local d = "foo\"bar"
@@ -23,7 +23,7 @@ local f = "foo'bar"
 local g = 'foo\'bar'
 local h = "foo\"bar'baz"
 local i = 'foo"bar\'baz'
-            "###,
+            "#,
             QuoteStyle::AutoPreferDouble
         ),
         @r###"
@@ -43,7 +43,7 @@ local i = 'foo"bar\'baz'
 fn test_auto_prefer_single_quotes() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 local a = "foobar"
 local c = 'foobar'
 local d = "foo\"bar"
@@ -52,7 +52,7 @@ local f = "foo'bar"
 local g = 'foo\'bar'
 local h = "foo\"bar'baz"
 local i = 'foo"bar\'baz'
-            "###,
+            "#,
             QuoteStyle::AutoPreferSingle
         ),
         @r###"
@@ -72,7 +72,7 @@ local i = 'foo"bar\'baz'
 fn test_force_double_quotes() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 local a = "foobar"
 local c = 'foobar'
 local d = "foo\"bar"
@@ -81,7 +81,7 @@ local f = "foo'bar"
 local g = 'foo\'bar'
 local h = "foo\"bar'baz"
 local i = 'foo"bar\'baz'
-            "###,
+            "#,
             QuoteStyle::ForceDouble
         ),
         @r###"
@@ -101,7 +101,7 @@ local i = 'foo"bar\'baz'
 fn test_force_single_quotes() {
     insta::assert_snapshot!(
         format(
-            r###"
+            r#"
 local a = "foobar"
 local c = 'foobar'
 local d = "foo\"bar"
@@ -110,7 +110,7 @@ local f = "foo'bar"
 local g = 'foo\'bar'
 local h = "foo\"bar'baz"
 local i = 'foo"bar\'baz'
-            "###,
+            "#,
             QuoteStyle::ForceSingle
         ),
         @r###"
