@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699704781793,
+  "lastUpdate": 1699709914947,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9701,6 +9701,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28587654,
             "range": "± 331855",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "711b0db673103ae5c96f89c8f5a29663c51077cd",
+          "message": "Update to full-moon v0.19.0 (#821)\n\n* Update to full-moon v0.19.0\r\n\r\n* Fix handling of type assertion\r\n\r\n* Fix type assertion handling\r\n\r\n* Add test case\r\n\r\n* Fix compilation",
+          "timestamp": "2023-11-11T14:34:37+01:00",
+          "tree_id": "16e62051e73dc389cfb9c839bfa0ef59eea4f013",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/711b0db673103ae5c96f89c8f5a29663c51077cd"
+        },
+        "date": 1699709913734,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 61837115,
+            "range": "± 511851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 439232818,
+            "range": "± 488988",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 32238752,
+            "range": "± 247239",
             "unit": "ns/iter"
           }
         ]
