@@ -16,7 +16,7 @@
 //! - Blocks remain in-place in the file.
 
 use full_moon::{
-    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix, Value},
+    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix},
     node::Node,
     tokenizer::{TokenReference, TokenType},
 };
@@ -34,20 +34,18 @@ fn extract_identifier_from_token(token: &TokenReference) -> Option<String> {
 }
 
 fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
-    if let Expression::Value { value, .. } = expression {
-        if let Value::FunctionCall(function_call) = &**value {
-            if let Prefix::Name(token) = function_call.prefix() {
-                if let Some(name) = extract_identifier_from_token(token) {
-                    if name == "require" {
-                        return Some(GroupKind::Require);
-                    } else if name == "game" {
-                        if let Some(Suffix::Call(Call::MethodCall(method_call))) =
-                            function_call.suffixes().next()
-                        {
-                            if let Some(name) = extract_identifier_from_token(method_call.name()) {
-                                if name == "GetService" {
-                                    return Some(GroupKind::GetService);
-                                }
+    if let Expression::FunctionCall(function_call) = expression {
+        if let Prefix::Name(token) = function_call.prefix() {
+            if let Some(name) = extract_identifier_from_token(token) {
+                if name == "require" {
+                    return Some(GroupKind::Require);
+                } else if name == "game" {
+                    if let Some(Suffix::Call(Call::MethodCall(method_call))) =
+                        function_call.suffixes().next()
+                    {
+                        if let Some(name) = extract_identifier_from_token(method_call.name()) {
+                            if name == "GetService" {
+                                return Some(GroupKind::GetService);
                             }
                         }
                     }
