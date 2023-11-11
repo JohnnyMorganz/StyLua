@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699698807373,
+  "lastUpdate": 1699699060582,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9533,6 +9533,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28861703,
             "range": "± 333211",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "b5efedfb86b72a0e91015e5a4df7c78e75f9a47c",
+          "message": "Actually disable dependabot",
+          "timestamp": "2023-11-11T11:35:27+01:00",
+          "tree_id": "4b9b390eeeb590a27b92dbf8ac5a4637b604bf29",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b5efedfb86b72a0e91015e5a4df7c78e75f9a47c"
+        },
+        "date": 1699699060006,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 38314886,
+            "range": "± 657743",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 257517923,
+            "range": "± 2433820",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 21122217,
+            "range": "± 578975",
             "unit": "ns/iter"
           }
         ]
