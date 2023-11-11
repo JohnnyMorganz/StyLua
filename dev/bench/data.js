@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699703718871,
+  "lastUpdate": 1699703988170,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9617,6 +9617,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 28211938,
             "range": "± 146943",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3c8aee07530662abee6254e65d0d3b778b794104",
+          "message": "Bump rustix from 0.38.13 to 0.38.21 (#820)\n\nBumps [rustix](https://github.com/bytecodealliance/rustix) from 0.38.13 to 0.38.21.\r\n- [Release notes](https://github.com/bytecodealliance/rustix/releases)\r\n- [Commits](https://github.com/bytecodealliance/rustix/compare/v0.38.13...v0.38.21)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: rustix\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-11-11T12:57:33+01:00",
+          "tree_id": "e6a7819e4514d5d6578ab53296fdd31a89823475",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/3c8aee07530662abee6254e65d0d3b778b794104"
+        },
+        "date": 1699703987104,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 39312441,
+            "range": "± 859406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 258366088,
+            "range": "± 1527583",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 21008155,
+            "range": "± 726651",
             "unit": "ns/iter"
           }
         ]
