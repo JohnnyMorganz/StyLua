@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699190875823,
+  "lastUpdate": 1699698807373,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9491,6 +9491,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 27749137,
             "range": "± 61764",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "d92ba7ed0c5c026a5dca96e8213de906ca3ca7ae",
+          "message": "Disable dependabot\n\nThe noise is not useful right now",
+          "timestamp": "2023-11-11T11:30:04+01:00",
+          "tree_id": "e0cd85bf2eb2ea13de19d98ec533fc1a0f9f99b0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d92ba7ed0c5c026a5dca96e8213de906ca3ca7ae"
+        },
+        "date": 1699698806797,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 54100201,
+            "range": "± 1357638",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 369751335,
+            "range": "± 1079733",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 28861703,
+            "range": "± 333211",
             "unit": "ns/iter"
           }
         ]
