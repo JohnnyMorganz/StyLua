@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2023-11-12
+
 ### Added
 
 - Added flag `--respect-ignores`. By default, files explicitly passed to stylua (e.g. `stylua foo.lua`) will always be formatted, regardless of whether the file is ignored. Enabling this flag will consider `.styluaignore` or glob matches before formatting the file. ([#765](https://github.com/JohnnyMorganz/StyLua/issues/765))
@@ -727,7 +729,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.2...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.0
 [0.18.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.2
 [0.18.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.1
 [0.18.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.0
