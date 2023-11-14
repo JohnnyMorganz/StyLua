@@ -22,8 +22,10 @@ exports.separateDisplayNameAndHOCs =
 					displayName = nextMatch
 					hocDisplayNames = {}
 					while nextMatch :: any ~= nil do
-						nextMatch = matches()
-						table.insert(hocDisplayNames :: Array<string>, nextMatch)
+						-- TODO: https://github.com/Kampfkarren/full-moon/issues/140
+						-- Including the following statements cause a stack overflow:
+						-- nextMatch = matches()
+						-- table.insert(hocDisplayNames :: Array<string>, nextMatch)
 					end
 				end
 			end
