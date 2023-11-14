@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699790042159,
+  "lastUpdate": 1699982704948,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9911,6 +9911,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20208024,
             "range": "± 153388",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "711e4a810086839b19f62728e9fd2f848b942e2b",
+          "message": "Fix tests broken in debug mode\n\nWe remove some unrelated stmts from a test case, and gate another one behind a cfg flag",
+          "timestamp": "2023-11-14T18:22:40+01:00",
+          "tree_id": "5f56bd4a481c263f8e8e1e24114b67ee820d88af",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/711e4a810086839b19f62728e9fd2f848b942e2b"
+        },
+        "date": 1699982704288,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 38877813,
+            "range": "± 511603",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 264928668,
+            "range": "± 4298125",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20520921,
+            "range": "± 1078230",
             "unit": "ns/iter"
           }
         ]
