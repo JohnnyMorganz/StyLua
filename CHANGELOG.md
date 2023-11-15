@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.1] - 2023-11-15
+
+This release has no changes. It resolves an issue in our test suite that may affect downstream package management tooling
+failing tests ([#824](https://github.com/JohnnyMorganz/StyLua/issues/824))
+
 ## [0.19.0] - 2023-11-12
 
 ### Added
@@ -729,7 +734,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.19.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.1
 [0.19.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.0
 [0.18.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.2
 [0.18.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.1
