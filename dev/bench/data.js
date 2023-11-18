@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700070318098,
+  "lastUpdate": 1700329863687,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -9995,6 +9995,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20417448,
             "range": "± 667510",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "4bd007e568380c9c2923de7ff545bcef424115b2",
+          "message": "Fix handling of floor division when only luau flag enabled",
+          "timestamp": "2023-11-18T18:48:41+01:00",
+          "tree_id": "15625b25bb94cc479038ab775ef0662a6e50306e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4bd007e568380c9c2923de7ff545bcef424115b2"
+        },
+        "date": 1700329862494,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 37847105,
+            "range": "± 569530",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 261762225,
+            "range": "± 881014",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20443674,
+            "range": "± 376879",
             "unit": "ns/iter"
           }
         ]
