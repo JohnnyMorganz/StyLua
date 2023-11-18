@@ -101,7 +101,7 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
         TwoEqual = " == ",
         #[cfg(feature = "lua53")]
         Ampersand = " & ",
-        #[cfg(feature = "lua53")]
+        #[cfg(any(feature = "luau", feature = "lua53"))]
         DoubleSlash = " // ",
         #[cfg(feature = "lua53")]
         DoubleLessThan = " << ",

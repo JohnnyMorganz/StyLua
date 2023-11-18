@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed handling of floor division (`//`) syntax when only Luau FFlag is enabled
+
 ## [0.19.1] - 2023-11-15
 
 This release has no changes. It resolves an issue in our test suite that may affect downstream package management tooling
