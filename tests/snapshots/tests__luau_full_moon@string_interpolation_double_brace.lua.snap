@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-luau-full_moon/string_interpolation_double_brace.lua
+---
+local _ = `{ {}}`
+local _ = `{--[[]] {}}`
+local _ = `\{{true}`
+local _ = `{ { true }}`
+-- TODO: https://github.com/Roblox/luau/issues/1019
+-- local _ = `{ {hello}}`
+local _ = `\{{hello}}`
+
