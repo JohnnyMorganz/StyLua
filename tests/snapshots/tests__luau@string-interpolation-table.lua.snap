@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-luau/string-interpolation-table.lua
+---
+local x = `{ { 1 }}`
+

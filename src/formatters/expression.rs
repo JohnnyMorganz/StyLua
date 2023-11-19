@@ -823,8 +823,17 @@ fn format_interpolated_string(
         let literal = format_token_reference(ctx, &segment.literal, shape);
         shape = shape + literal.to_string().len();
 
-        let expression = format_expression(ctx, &segment.expression, shape);
+        let mut expression = format_expression(ctx, &segment.expression, shape);
         shape = shape.take_last_line(&expression);
+
+        // If expression is a table constructor, then ensure a space is added beforehand
+        // since `{{` syntax is not permitted
+        if let Expression::TableConstructor { .. } = expression {
+            expression =
+                expression.update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                    TokenType::spaces(1),
+                )]))
+        }
 
         segments.push(InterpolatedStringSegment {
             literal,
