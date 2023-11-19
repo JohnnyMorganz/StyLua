@@ -114,7 +114,13 @@ export async function activate(context: vscode.ExtensionContext) {
           );
           return [format];
         } catch (err) {
-          vscode.window.showErrorMessage(`Could not format file: ${err}`);
+          if (
+            !vscode.workspace
+              .getConfiguration("stylua")
+              .get("hideFormattingErrors")
+          ) {
+            vscode.window.showErrorMessage(`Could not format file: ${err}`);
+          }
           return [];
         }
       },

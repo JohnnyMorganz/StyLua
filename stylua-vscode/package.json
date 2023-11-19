@@ -87,12 +87,17 @@
         "stylua.disableVersionCheck": {
           "type": "boolean",
           "default": false,
-          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests."
         },
         "stylua.searchParentDirectories": {
           "type": "boolean",
           "default": false,
           "description": "Search parent directories for a stylua configuration file if one is not directly available."
+        },
+        "stylua.hideFormattingErrors": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hide error notifications when file formatting fails. Recommended when using format on paste or save."
         }
       }
     }
