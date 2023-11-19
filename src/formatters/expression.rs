@@ -824,7 +824,7 @@ fn format_interpolated_string(
         shape = shape + literal.to_string().len();
 
         let expression = format_expression(ctx, &segment.expression, shape);
-        shape.take_last_line(&expression);
+        shape = shape.take_last_line(&expression);
 
         segments.push(InterpolatedStringSegment {
             literal,
