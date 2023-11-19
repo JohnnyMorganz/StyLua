@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
+import { Status } from "./status";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -58,6 +59,8 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  let status = new Status();
+
   let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
     ["lua", "luau"],
     {
@@ -112,15 +115,10 @@ export async function activate(context: vscode.ExtensionContext) {
             fullDocumentRange,
             formattedText
           );
+          status.update(null);
           return [format];
         } catch (err) {
-          if (
-            !vscode.workspace
-              .getConfiguration("stylua")
-              .get("hideFormattingErrors")
-          ) {
-            vscode.window.showErrorMessage(`Could not format file: ${err}`);
-          }
+          status.update(err);
           return [];
         }
       },

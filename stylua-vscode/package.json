@@ -93,11 +93,6 @@
           "type": "boolean",
           "default": false,
           "description": "Search parent directories for a stylua configuration file if one is not directly available."
-        },
-        "stylua.hideFormattingErrors": {
-          "type": "boolean",
-          "default": false,
-          "description": "Hide error notifications when file formatting fails. Recommended when using format on paste or save."
         }
       }
     }
