@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed handling of floor division (`//`) syntax when only Luau FFlag is enabled
 - Fixed missing space when table is inside of Luau interpolated string expression (`{{` is invalid syntax)
+- The CLI tool will now only write files if the contents differ, and not modify if no change (#827)
 
 ## [0.19.1] - 2023-11-15
 
