@@ -180,8 +180,10 @@ fn format_file(
             None => Ok(FormatResult::Complete),
         }
     } else {
-        fs::write(path, formatted_contents)
-            .with_context(|| format!("could not write to {}", path.display()))?;
+        if formatted_contents != contents {
+            fs::write(path, formatted_contents)
+                .with_context(|| format!("could not write to {}", path.display()))?;
+        }
         Ok(FormatResult::Complete)
     }
 }
