@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703331638428,
+  "lastUpdate": 1703331902951,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10163,6 +10163,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20281198,
             "range": "± 404601",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "987c489503992a3b984d6b17840266219aad4cd9",
+          "message": "Keep parentheses around compound type in table indexer (#837)\n\n* Add test case\r\n\r\n* Don't remove parens in table indexer\r\n\r\n* Update snapshots\r\n\r\n* Update changelog",
+          "timestamp": "2023-12-23T12:42:41+01:00",
+          "tree_id": "579d5ca246c7340d7227de140045e3f40acd1e05",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/987c489503992a3b984d6b17840266219aad4cd9"
+        },
+        "date": 1703331902217,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36536384,
+            "range": "± 1897979",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 264526685,
+            "range": "± 1569624",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20799623,
+            "range": "± 638769",
             "unit": "ns/iter"
           }
         ]
