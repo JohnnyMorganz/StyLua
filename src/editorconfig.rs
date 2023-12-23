@@ -334,6 +334,41 @@ mod tests {
     }
 
     #[test]
+    fn test_space_after_functions_always() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Always");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Always);
+    }
+
+    #[test]
+    fn test_space_after_functions_definitions() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Definitions");
+        let config = Config::from(&properties);
+        assert_eq!(
+            config.space_after_functions,
+            SpaceAfterFunctions::Definitions
+        );
+    }
+
+    #[test]
+    fn test_space_after_functions_calls() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Calls");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Calls);
+    }
+
+    #[test]
+    fn test_space_after_functions_never() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Never");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Never);
+    }
+
+    #[test]
     fn test_collapse_simple_statement_never() {
         let mut properties = Properties::new();
         properties.insert_raw_for_key("collapse_simple_statement", "Never");
