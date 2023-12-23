@@ -572,6 +572,10 @@ fn should_parameters_format_multiline(
     const PARENS_LEN: usize = "()".len();
     const SINGLELINE_END_LEN: usize = " end".len();
 
+    if function_body.parameters().is_empty() {
+        return false;
+    }
+
     // Check the length of the parameters. We need to format them first onto a single line to check if required
     let mut line_length = format_singleline_parameters(ctx, function_body, shape)
         .to_string()
