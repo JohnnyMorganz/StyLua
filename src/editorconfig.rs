@@ -1,6 +1,6 @@
 use crate::{
     CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings, QuoteStyle,
-    SortRequiresConfig,
+    SortRequiresConfig, SpaceAfterFunctions,
 };
 use ec4rs::{
     properties_of,
@@ -66,6 +66,14 @@ property_choice! {
 }
 
 property_choice! {
+    SpaceAfterFunctionsChoice, "space_after_functions";
+    (Always, "always"),
+    (Definitions, "definitions"),
+    (Calls, "calls"),
+    (Never, "never")
+}
+
+property_choice! {
     CollapseSimpleStatementChoice, "collapse_simple_statement";
     (Never, "never"),
     (FunctionOnly, "functiononly"),
@@ -126,6 +134,22 @@ fn load(mut config: Config, properties: &Properties) -> Config {
                 config.call_parentheses = CallParenType::NoSingleTable
             }
             CallParenthesesChoice::None => config.call_parentheses = CallParenType::None,
+        }
+    }
+    if let Ok(space_after_functions) = properties.get::<SpaceAfterFunctionsChoice>() {
+        match space_after_functions {
+            SpaceAfterFunctionsChoice::Always => {
+                config.space_after_functions = SpaceAfterFunctions::Always
+            }
+            SpaceAfterFunctionsChoice::Definitions => {
+                config.space_after_functions = SpaceAfterFunctions::Definitions
+            }
+            SpaceAfterFunctionsChoice::Calls => {
+                config.space_after_functions = SpaceAfterFunctions::Calls
+            }
+            SpaceAfterFunctionsChoice::Never => {
+                config.space_after_functions = SpaceAfterFunctions::Never
+            }
         }
     }
     if let Ok(collapse_simple_statement) = properties.get::<CollapseSimpleStatementChoice>() {

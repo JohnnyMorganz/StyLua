@@ -31,6 +31,7 @@ use crate::{
     },
     shape::Shape,
     CallParenType,
+    SpaceAfterFunctions,
 };
 
 /// Formats an Anonymous Function
