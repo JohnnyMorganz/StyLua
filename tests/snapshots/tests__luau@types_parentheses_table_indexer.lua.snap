@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-luau/types_parentheses_table_indexer.lua
+---
+--- https://github.com/JohnnyMorganz/StyLua/issues/828
+type foo = {
+	[("bar" | "baz")]: any,
+}
+

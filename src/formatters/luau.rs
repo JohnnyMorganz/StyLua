@@ -183,6 +183,9 @@ struct TypeInfoContext {
     // Foo<(string), (number)>
     // we should NOT remove these parentheses are they may correspond to single-type type packs
     within_generic: bool,
+    /// A TypeInfo in a table indexer
+    /// we should NOT remove parentheses around a compound type [("foo" | "bar")]: string
+    within_table_indexer: bool,
 
     /// A TypeInfo part of a union/intersection operation
     /// If its a mixed composite type, then we should not remove excess parentheses. e.g.
@@ -202,6 +205,7 @@ impl TypeInfoContext {
             within_optional: false,
             within_variadic: false,
             within_generic: false,
+            within_table_indexer: false,
             contains_union: false,
             contains_intersect: false,
         }
@@ -224,6 +228,13 @@ impl TypeInfoContext {
     fn mark_within_generic(self) -> TypeInfoContext {
         Self {
             within_generic: true,
+            ..self
+        }
+    }
+
+    fn mark_within_table_indexer(self) -> TypeInfoContext {
+        Self {
+            within_table_indexer: true,
             ..self
         }
     }
@@ -254,12 +265,18 @@ fn keep_parentheses(internal_type: &TypeInfo, context: TypeInfoContext) -> bool 
             true
         }
         TypeInfo::Union { .. } | TypeInfo::Optional { .. }
-            if context.within_optional || context.within_variadic || context.contains_intersect =>
+            if context.within_optional
+                || context.within_variadic
+                || context.within_table_indexer
+                || context.contains_intersect =>
         {
             true
         }
         TypeInfo::Intersection { .. }
-            if context.within_optional || context.within_variadic || context.contains_union =>
+            if context.within_optional
+                || context.within_variadic
+                || context.within_table_indexer
+                || context.contains_union =>
         {
             true
         }
@@ -876,7 +893,12 @@ pub fn format_type_field_key(
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
             brackets: format_contained_span(ctx, brackets, shape)
                 .update_leading_trivia(leading_trivia),
-            inner: format_type_info(ctx, inner, shape + 1), // 1 = "["
+            inner: format_type_info_internal(
+                ctx,
+                inner,
+                TypeInfoContext::new().mark_within_table_indexer(),
+                shape + 1,
+            ), // 1 = "["
         },
         other => panic!("unknown node {:?}", other),
     }
