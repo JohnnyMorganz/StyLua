@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703331902951,
+  "lastUpdate": 1703332732948,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10205,6 +10205,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20799623,
             "range": "± 638769",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ee290b02d1fa1b51a4006e20f13aabc35ea7fd5b",
+          "message": "Don't put function definition parentheses on multiple lines when no parens (#838)\n\n* Add test case\r\n\r\n* Don't put on multiple lines\r\n\r\n* Update snapshots and changelog",
+          "timestamp": "2023-12-23T12:56:43+01:00",
+          "tree_id": "cdd562523899e64d35fa62a11226ef64eb2f9a02",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ee290b02d1fa1b51a4006e20f13aabc35ea7fd5b"
+        },
+        "date": 1703332732488,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36796961,
+            "range": "± 410993",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 261177036,
+            "range": "± 4546565",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20434544,
+            "range": "± 213753",
             "unit": "ns/iter"
           }
         ]
