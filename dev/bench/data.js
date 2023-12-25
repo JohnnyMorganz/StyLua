@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703332732948,
+  "lastUpdate": 1703520035388,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10247,6 +10247,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20434544,
             "range": "± 213753",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "15c22984902ceb3fb101f93b0be4544f8b36b416",
+          "message": "Bump test versions in vscode\n\nCausing failures in CI",
+          "timestamp": "2023-12-25T16:58:16+01:00",
+          "tree_id": "932b4487195e5274fa5ed5a2b914920263a2cfa3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/15c22984902ceb3fb101f93b0be4544f8b36b416"
+        },
+        "date": 1703520034288,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 39223615,
+            "range": "± 352315",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 262822103,
+            "range": "± 1074031",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20752386,
+            "range": "± 764815",
             "unit": "ns/iter"
           }
         ]
