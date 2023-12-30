@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703946983103,
+  "lastUpdate": 1703953430913,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10709,6 +10709,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20830343,
             "range": "± 844256",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "863c0cc87187e7577427a904d209a31b392f34f4",
+          "message": "Overhaul extension bundling (#844)\n\n* Overhaul extension bundling\r\n\r\n* Check version matches requested + stylua update\r\n\r\n* Prompt do not show again on updates\r\n\r\n* Add logging + check if binary found on PATH is executable\r\n\r\n* Update changelog",
+          "timestamp": "2023-12-30T17:21:38+01:00",
+          "tree_id": "cc312900d396315bbd30bb9a446875d23e29ba17",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/863c0cc87187e7577427a904d209a31b392f34f4"
+        },
+        "date": 1703953429820,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36618055,
+            "range": "± 243717",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 260587946,
+            "range": "± 1910833",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20300448,
+            "range": "± 923604",
             "unit": "ns/iter"
           }
         ]
