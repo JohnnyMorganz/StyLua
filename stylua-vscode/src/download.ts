@@ -131,6 +131,8 @@ export class StyluaDownloader implements vscode.Disposable {
             }
           }
         }
+      } else {
+        this.statusBarUpdateItem.hide();
       }
     } else if (stylua.resolveMode === ResolveMode.configuration) {
       if (!(await util.fileExists(stylua.path))) {

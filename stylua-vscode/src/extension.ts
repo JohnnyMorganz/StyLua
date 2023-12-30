@@ -174,7 +174,8 @@ export async function activate(context: vscode.ExtensionContext) {
           `Are you sure you want to update StyLua to ${release.tagName}?`,
           { modal: true },
           "Update",
-          "Release Notes"
+          "Release Notes",
+          "Do not show again"
         );
 
         switch (result) {
@@ -186,6 +187,11 @@ export async function activate(context: vscode.ExtensionContext) {
             break;
           case "Release Notes":
             vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));
+            break;
+          case "Do not show again":
+            vscode.workspace
+              .getConfiguration("stylua")
+              .update("disableVersionCheck", true);
             break;
         }
       }
