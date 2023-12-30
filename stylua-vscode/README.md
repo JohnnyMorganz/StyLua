@@ -18,12 +18,35 @@ Set StyLua as your formatter when prompted, or add the following configuration t
 },
 ```
 
+If you are working with Luau code, you may need to also configure under the `luau` namespace:
+
+```json
+"[luau]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua"
+},
+```
+
 You can then use StyLua to format your code by running the `Format Document` command (In `CMD/CTRL + Shift + P`).
 The `Format Selection` command is also supported, firstly highlight the code you wish to format, and select `Format Selection`.
 
 You can also enable `editor.formatOnSave` to format your code automatically on save.
 
-## Extension Settings
+## Finding a StyLua binary
 
 You can specify the path of the StyLua binary using the `stylua.styluaPath` setting.
-By default, if this is `null`, the extension will download the binary and store it in its local storage.
+
+If no configuration is specified, then we lookup the version through the following steps:
+
+1. If `stylua.searchBinaryInPATH` is enabled, then lookup a "stylua" binary on the PATH.
+
+- If found, run `stylua --version` to ensure it executes appropriately
+
+2. If binary not found on PATH, or does not execute, then fall back to a bundled version.
+
+The bundled version of StyLua is downloaded from GitHub releases, and stored in your local storage.
+
+By default, the extension downloads the latest version. To configure the version to use, set `stylua.targetReleaseVersion`.
+Or alternatively, use the `Stylua: Select Version` command.
+
+When a new StyLua version is available, you will be notified on the VSCode status bar. You can disable these notifications
+via `stylua.disableVersionCheck`.
