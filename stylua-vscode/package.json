@@ -54,6 +54,14 @@
         "category": "StyLua"
       }
     ],
+    "languages": [
+      {
+        "id": "ignore",
+        "extensions": [
+          ".styluaignore"
+        ]
+      }
+    ],
     "configuration": {
       "title": "StyLua",
       "properties": {

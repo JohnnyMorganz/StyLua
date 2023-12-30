@@ -24,6 +24,7 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 ### Changed
 
 - Removed excessive error notifications on formatting failure and replaced with VSCode language status bar item
+- `.styluaignore` is now registered as an ignore file with an appropriate file icon
 
 ## [1.5.0] - 2023-03-11
 
