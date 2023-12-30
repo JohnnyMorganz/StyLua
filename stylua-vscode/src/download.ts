@@ -6,19 +6,45 @@ import { createWriteStream } from "fs";
 import { executeStylua } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
 
+interface StyluaInfo {
+  path: string;
+  version: string | undefined;
+}
+
+const getStyluaVersion = async (path: string, cwd?: string) => {
+  try {
+    const currentVersion = (
+      await executeStylua(path, ["--version"], cwd)
+    )?.trim();
+    return currentVersion.substring("stylua ".length);
+  } catch (err) {
+    return undefined;
+  }
+};
+
 export class StyluaDownloader {
   constructor(
     private readonly storageDirectory: vscode.Uri,
     private readonly github: GitHub
   ) {}
 
-  public async ensureStyluaExists(cwd?: string): Promise<string | undefined> {
+  public async ensureStyluaExists(
+    cwd?: string
+  ): Promise<StyluaInfo | undefined> {
     const path = await this.getStyluaPath();
 
     if (path === undefined) {
       await vscode.workspace.fs.createDirectory(this.storageDirectory);
       await this.downloadStyLuaVisual(util.getDesiredVersion());
-      return await this.getStyluaPath();
+      const path = await this.getStyluaPath();
+      if (path) {
+        return {
+          path,
+          version: await getStyluaVersion(path),
+        };
+      } else {
+        return;
+      }
     } else {
       if (!(await util.fileExists(path))) {
         vscode.window.showErrorMessage(
@@ -27,22 +53,19 @@ export class StyluaDownloader {
         return;
       }
 
+      const currentVersion = await getStyluaVersion(path);
+
       if (
         !vscode.workspace.getConfiguration("stylua").get("disableVersionCheck")
       ) {
         try {
-          const currentVersion = (
-            await executeStylua(path, ["--version"], cwd)
-          )?.trim();
           const desiredVersion = util.getDesiredVersion();
           const release = await this.github.getRelease(desiredVersion);
           if (
             currentVersion !==
-            `stylua ${
-              release.tagName.startsWith("v")
-                ? release.tagName.substr(1)
-                : release.tagName
-            }`
+            (release.tagName.startsWith("v")
+              ? release.tagName.substr(1)
+              : release.tagName)
           ) {
             this.openUpdatePrompt(release);
           }
@@ -65,7 +88,7 @@ export class StyluaDownloader {
         }
       }
 
-      return path;
+      return { path, version: currentVersion };
     }
   }
 

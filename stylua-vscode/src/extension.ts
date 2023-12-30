@@ -5,6 +5,8 @@ import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
 import { getDesiredVersion } from "./util";
 
+const documentSelector = ["lua", "luau"];
+
 /**
  * Convert a Position within a Document to a byte offset.
  * Required as `document.offsetAt(position)` returns a char offset, causing inconsistencies when sending over to StyLua
@@ -23,6 +25,55 @@ const byteOffset = (
   return Buffer.byteLength(text);
 };
 
+class StatusInfo implements vscode.Disposable {
+  statusItem: vscode.LanguageStatusItem;
+  version: string | undefined;
+
+  constructor() {
+    this.statusItem = vscode.languages.createLanguageStatusItem(
+      "stylua",
+      documentSelector
+    );
+    this.statusItem.name = "StyLua";
+    this.statusItem.command = {
+      title: "Show Output",
+      command: "stylua.showOutputChannel",
+    };
+    this.updateReady();
+  }
+
+  setVersion(version: string | undefined) {
+    this.version = version;
+    this.updateReady();
+  }
+
+  getStyluaText() {
+    return this.version ? `StyLua (${this.version})` : "StyLua";
+  }
+
+  updateReady() {
+    this.statusItem.text = `$(check) ${this.getStyluaText()}`;
+    this.statusItem.detail = "Ready";
+    this.statusItem.severity = vscode.LanguageStatusSeverity.Information;
+  }
+
+  updateFormatSuccess() {
+    this.statusItem.text = `$(check) ${this.getStyluaText()}`;
+    this.statusItem.detail = "File formatted successfully";
+    this.statusItem.severity = vscode.LanguageStatusSeverity.Information;
+  }
+
+  updateFormatFailure() {
+    this.statusItem.text = `${this.getStyluaText()}`;
+    this.statusItem.detail = "Failed to format file";
+    this.statusItem.severity = vscode.LanguageStatusSeverity.Error;
+  }
+
+  dispose() {
+    this.statusItem.dispose();
+  }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log("stylua activated");
 
@@ -31,6 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   outputChannel.info("StyLua activated");
 
+  const statusItem = new StatusInfo();
   const github = new GitHub();
   context.subscriptions.push(github);
 
@@ -39,13 +91,18 @@ export async function activate(context: vscode.ExtensionContext) {
   let cwdForVersionDetection =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath;
 
-  let styluaBinaryPath: string | undefined =
-    await downloader.ensureStyluaExists(cwdForVersionDetection);
+  let styluaBinaryPath = await downloader.ensureStyluaExists(
+    cwdForVersionDetection
+  );
+  statusItem.setVersion(styluaBinaryPath?.version);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
       await downloader.downloadStyLuaVisual(getDesiredVersion());
-      styluaBinaryPath = await downloader.getStyluaPath();
+      styluaBinaryPath = await downloader.ensureStyluaExists(
+        cwdForVersionDetection
+      );
+      statusItem.setVersion(styluaBinaryPath?.version);
     })
   );
 
@@ -90,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const updateConfigValue = selectedVersion.label.includes("latest")
           ? "latest"
           : selectedVersion.label;
-        await downloader.downloadStyLuaVisual(selectedVersion.label);
+        await downloader.downloadStyLuaVisual(updateConfigValue);
         vscode.workspace
           .getConfiguration("stylua")
           .update(
@@ -108,23 +165,10 @@ export async function activate(context: vscode.ExtensionContext) {
         styluaBinaryPath = await downloader.ensureStyluaExists(
           cwdForVersionDetection
         );
+        statusItem.setVersion(styluaBinaryPath?.version);
       }
     })
   );
-
-  const documentSelector = ["lua", "luau"];
-
-  const languageStatusItem = vscode.languages.createLanguageStatusItem(
-    "stylua",
-    documentSelector
-  );
-  languageStatusItem.name = "StyLua";
-  languageStatusItem.text = "$(check) StyLua";
-  languageStatusItem.detail = "Ready";
-  languageStatusItem.command = {
-    title: "Show Output",
-    command: "stylua.showOutputChannel",
-  };
 
   let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
     documentSelector,
@@ -162,7 +206,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         try {
           const formattedText = await formatCode(
-            styluaBinaryPath,
+            styluaBinaryPath.path,
             text,
             cwd,
             byteOffset(document, range.start),
@@ -180,15 +224,10 @@ export async function activate(context: vscode.ExtensionContext) {
             fullDocumentRange,
             formattedText
           );
-          languageStatusItem.text = "$(check) StyLua";
-          languageStatusItem.detail = "File formatted successfully";
-          languageStatusItem.severity =
-            vscode.LanguageStatusSeverity.Information;
+          statusItem.updateFormatSuccess();
           return [format];
         } catch (err) {
-          languageStatusItem.text = "StyLua";
-          languageStatusItem.detail = "Failed to format file";
-          languageStatusItem.severity = vscode.LanguageStatusSeverity.Error;
+          statusItem.updateFormatFailure();
           outputChannel.error(err as string);
           return [];
         }
@@ -197,12 +236,10 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(disposable);
-  context.subscriptions.push(languageStatusItem);
+  context.subscriptions.push(statusItem);
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      languageStatusItem.text = "$(check) StyLua";
-      languageStatusItem.detail = "Ready";
-      languageStatusItem.severity = vscode.LanguageStatusSeverity.Information;
+      statusItem.updateReady();
     })
   );
 }
