@@ -103,6 +103,11 @@
           "type": "boolean",
           "default": false,
           "description": "Search parent directories for a stylua configuration file if one is not directly available."
+        },
+        "stylua.verify": {
+          "type": "boolean",
+          "default": false,
+          "description": "Pass the `--verify` flag to StyLua to enforce output verification"
         }
       }
     }
