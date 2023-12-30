@@ -1,19 +1,20 @@
 import * as vscode from "vscode";
 import * as unzip from "unzipper";
 import * as util from "./util";
+import * as semver from "semver";
 import fetch from "node-fetch";
 import { createWriteStream } from "fs";
 import { executeStylua } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
 import which = require("which");
 
-enum ResolveMode {
+export enum ResolveMode {
   configuration = "configuration",
   path = "PATH",
   bundled = "bundled",
 }
 
-interface StyluaInfo {
+export interface StyluaInfo {
   path: string;
   resolveMode: ResolveMode;
   version?: string | undefined;
@@ -30,7 +31,12 @@ const getStyluaVersion = async (path: string, cwd?: string) => {
   }
 };
 
-export class StyluaDownloader {
+export class StyluaDownloader implements vscode.Disposable {
+  statusBarUpdateItem = vscode.window.createStatusBarItem(
+    "stylua.installUpdate",
+    vscode.StatusBarAlignment.Right
+  );
+
   constructor(
     private readonly storageDirectory: vscode.Uri,
     private readonly github: GitHub
@@ -78,20 +84,35 @@ export class StyluaDownloader {
       }
       stylua.version = await getStyluaVersion(stylua.path, cwd);
 
-      // TODO: Check bundled version matches requested version
+      // Check bundled version matches requested version
+      const desiredVersion = util.getDesiredVersion();
+      if (stylua.version && desiredVersion !== "latest") {
+        const desiredVersionSemver = semver.coerce(desiredVersion);
+        const styluaVersionSemver = semver.parse(stylua.version);
+        if (
+          desiredVersionSemver &&
+          styluaVersionSemver &&
+          semver.neq(desiredVersionSemver, styluaVersionSemver)
+        ) {
+          this.openIncorrectVersionPrompt(stylua.version, desiredVersion);
+        }
+      }
+
+      // Check for latest version
       if (
         !vscode.workspace.getConfiguration("stylua").get("disableVersionCheck")
       ) {
         try {
-          const desiredVersion = util.getDesiredVersion();
-          const release = await this.github.getRelease(desiredVersion);
+          const latestRelease = await this.github.getRelease("latest");
           if (
             stylua.version !==
-            (release.tagName.startsWith("v")
-              ? release.tagName.substr(1)
-              : release.tagName)
+            (latestRelease.tagName.startsWith("v")
+              ? latestRelease.tagName.substr(1)
+              : latestRelease.tagName)
           ) {
-            this.openUpdatePrompt(release);
+            this.showUpdateAvailable(latestRelease);
+          } else {
+            this.statusBarUpdateItem.hide();
           }
         } catch (err) {
           vscode.window.showWarningMessage(
@@ -174,24 +195,40 @@ export class StyluaDownloader {
     }
   }
 
-  private openUpdatePrompt(release: GitHubRelease) {
+  private showUpdateAvailable(release: GitHubRelease) {
+    this.statusBarUpdateItem.name = "StyLua Update";
+    this.statusBarUpdateItem.text = `StyLua update available (${release.tagName}) $(cloud-download)`;
+    this.statusBarUpdateItem.tooltip = "Click to update StyLua";
+    this.statusBarUpdateItem.command = {
+      title: "Update StyLua",
+      command: "stylua.installUpdate",
+      arguments: [release],
+    };
+    this.statusBarUpdateItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.warningBackground"
+    );
+    this.statusBarUpdateItem.show();
+  }
+
+  private openIncorrectVersionPrompt(
+    currentVersion: string,
+    requestedVersion: string
+  ) {
     vscode.window
       .showInformationMessage(
-        `StyLua ${release.tagName} is available to install.`,
-        "Install",
-        "Later",
-        "Release Notes"
+        `The currently installed version of StyLua (${currentVersion}) does not match the requested version (${requestedVersion})`,
+        "Install"
       )
       .then((option) => {
         switch (option) {
           case "Install":
-            this.downloadStyLuaVisual(release.tagName);
-            break;
-          case "Release Notes":
-            vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));
-            this.openUpdatePrompt(release);
+            vscode.commands.executeCommand("stylua.reinstall");
             break;
         }
       });
+  }
+
+  dispose() {
+    this.statusBarUpdateItem.dispose();
   }
 }
