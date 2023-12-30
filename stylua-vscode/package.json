@@ -143,6 +143,7 @@
     "@types/node-fetch": "^2.5.8",
     "@types/unzipper": "^0.10.8",
     "@types/vscode": "^1.82.0",
+    "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",
     "@vscode/test-cli": "^0.0.4",
@@ -156,6 +157,7 @@
   "dependencies": {
     "ignore": "^5.1.8",
     "node-fetch": "^2.6.1",
+    "node-which": "^1.0.0",
     "semver": "^7.5.4",
     "unzipper": "^0.10.14"
   }
