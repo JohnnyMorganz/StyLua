@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Deprecated
+
+- `stylua.releaseVersion` is deprecated (as it required continual updates of available versions). Prefer `stylua.targetReleaseVersion` and the `Stylua: Select Version` command
+
 ### Added
 
 - Added configuration option `stylua.configPath` to provide a direct path to a `stylua.toml` file. Note: this will override any workspace config lookup

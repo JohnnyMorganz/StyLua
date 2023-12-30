@@ -59,6 +59,7 @@ export const getDesiredVersion = (): string => {
   const config = vscode.workspace.getConfiguration("stylua");
   const targetVersion = config.get<string>("targetReleaseVersion", "").trim();
   if (targetVersion.length === 0) {
+    // TODO: Backwards compatibility to support deprecated setting `stylua.releaseVersion`
     return config.get<string>("releaseVersion", "latest");
   }
   return targetVersion;
