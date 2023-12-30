@@ -11,6 +11,12 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.6.1] - 2023-12-30
+
+### Fixed
+
+- Fixed extension not starting up due to module not found error
+
 ## [1.6.0] - 2023-12-30
 
 ### Deprecated
