@@ -15,7 +15,7 @@
   "icon": "assets/icon.png",
   "version": "1.6.0",
   "engines": {
-    "vscode": "^1.53.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Formatters"
@@ -147,7 +147,7 @@
     "@types/node": "^12.20.4",
     "@types/node-fetch": "^2.5.8",
     "@types/unzipper": "^0.10.8",
-    "@types/vscode": "^1.82.0",
+    "@types/vscode": "^1.74.0",
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",
