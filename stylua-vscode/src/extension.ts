@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as semver from "semver";
 import { formatCode, checkIgnored } from "./stylua";
-import { GitHub } from "./github";
-import { StyluaDownloader } from "./download";
+import { GitHub, GitHubRelease } from "./github";
+import { ResolveMode, StyluaDownloader, StyluaInfo } from "./download";
 import { getDesiredVersion } from "./util";
 
 const documentSelector = ["lua", "luau"];
@@ -27,7 +27,7 @@ const byteOffset = (
 
 class StatusInfo implements vscode.Disposable {
   statusItem: vscode.LanguageStatusItem;
-  version: string | undefined;
+  styluaInfo: StyluaInfo | undefined;
 
   constructor() {
     this.statusItem = vscode.languages.createLanguageStatusItem(
@@ -42,13 +42,20 @@ class StatusInfo implements vscode.Disposable {
     this.updateReady();
   }
 
-  setVersion(version: string | undefined) {
-    this.version = version;
+  setStyluaInfo(styluaInfo: StyluaInfo | undefined) {
+    this.styluaInfo = styluaInfo;
     this.updateReady();
   }
 
   getStyluaText() {
-    return this.version ? `StyLua (${this.version})` : "StyLua";
+    if (this.styluaInfo && this.styluaInfo.version) {
+      if (this.styluaInfo.resolveMode === ResolveMode.bundled) {
+        return `StyLua (bundled ${this.styluaInfo.version})`;
+      } else {
+        return `StyLua (${this.styluaInfo.version})`;
+      }
+    }
+    return "StyLua";
   }
 
   updateReady() {
@@ -86,7 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
   const github = new GitHub();
   context.subscriptions.push(github);
 
-  const downloader = new StyluaDownloader(context.globalStorageUri, github);
+  const downloader = new StyluaDownloader(
+    context.globalStorageUri,
+    github,
+    outputChannel
+  );
 
   let cwdForVersionDetection =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath;
@@ -94,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let styluaBinaryPath = await downloader.ensureStyluaExists(
     cwdForVersionDetection
   );
-  statusItem.setVersion(styluaBinaryPath?.version);
+  statusItem.setStyluaInfo(styluaBinaryPath);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
@@ -102,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
       styluaBinaryPath = await downloader.ensureStyluaExists(
         cwdForVersionDetection
       );
-      statusItem.setVersion(styluaBinaryPath?.version);
+      statusItem.setStyluaInfo(styluaBinaryPath);
     })
   );
 
@@ -160,12 +171,44 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "stylua.installUpdate",
+      async (release: GitHubRelease) => {
+        const result = await vscode.window.showInformationMessage(
+          `Are you sure you want to update StyLua to ${release.tagName}?`,
+          { modal: true },
+          "Update",
+          "Release Notes",
+          "Do not show again"
+        );
+
+        switch (result) {
+          case "Update":
+            await downloader.downloadStyLuaVisual(release.tagName);
+            vscode.workspace
+              .getConfiguration("stylua")
+              .update("targetReleaseVersion", "latest");
+            break;
+          case "Release Notes":
+            vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));
+            break;
+          case "Do not show again":
+            vscode.workspace
+              .getConfiguration("stylua")
+              .update("disableVersionCheck", true);
+            break;
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("stylua")) {
         styluaBinaryPath = await downloader.ensureStyluaExists(
           cwdForVersionDetection
         );
-        statusItem.setVersion(styluaBinaryPath?.version);
+        statusItem.setStyluaInfo(styluaBinaryPath);
       }
     })
   );
