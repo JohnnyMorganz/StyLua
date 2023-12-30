@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703520035388,
+  "lastUpdate": 1703937742999,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10289,6 +10289,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20752386,
             "range": "± 764815",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrea.ros21@murena.io",
+            "name": "andros21",
+            "username": "andros21"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "94375edcd472e090362165f5b1cba398d178a5d5",
+          "message": "Add new release artifact x86_64-unknown-linux-musl (#834)",
+          "timestamp": "2023-12-30T13:00:10+01:00",
+          "tree_id": "fc78fe1ade8be276ccd98e687f7200b6dbc6b32f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/94375edcd472e090362165f5b1cba398d178a5d5"
+        },
+        "date": 1703937742435,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36328365,
+            "range": "± 206501",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 261975484,
+            "range": "± 1687642",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20254563,
+            "range": "± 961533",
             "unit": "ns/iter"
           }
         ]
