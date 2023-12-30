@@ -1,3 +1,13 @@
 {
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "black",
+  "files.exclude": {
+    "stylua-vscode/out": false, // set this to true to hide the "out" folder with the compiled JS files
+    "stylua-vscode/dist": false // set this to true to hide the "dist" folder with the compiled JS files
+  },
+  "search.exclude": {
+    "stylua-vscode/out": true, // set this to false to include "out" folder in search results
+    "stylua-vscode/dist": true // set this to false to include "dist" folder in search results
+  },
+  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+  "typescript.tsc.autoDetect": "off"
 }

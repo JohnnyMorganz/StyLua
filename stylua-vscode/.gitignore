@@ -3,4 +3,5 @@ npm-debug.log
 Thumbs.db
 node_modules/
 out/
+dist/
 .vscode-test/
