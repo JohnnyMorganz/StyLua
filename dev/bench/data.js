@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703938527354,
+  "lastUpdate": 1703938530682,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10373,6 +10373,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20335696,
             "range": "± 604624",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2e953c902143fb46a33a32f79d55b3dd68b9936b",
+          "message": "Bump typescript and eslint versions in extension (#841)\n\nBump typescript and eslint version",
+          "timestamp": "2023-12-30T13:13:15+01:00",
+          "tree_id": "58cd57d7dfb2ff1f6cd3dcbcfd2210318dcea05e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2e953c902143fb46a33a32f79d55b3dd68b9936b"
+        },
+        "date": 1703938530126,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 39875776,
+            "range": "± 1074578",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 261161296,
+            "range": "± 2129479",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20539385,
+            "range": "± 157684",
             "unit": "ns/iter"
           }
         ]
