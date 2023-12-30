@@ -80,7 +80,7 @@
             "The most recent version released. This will always keep you up to date."
           ],
           "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`.",
-          "markdownDeprecationMessage": "Use `#stylua.targetReleaseVersion#` instead, and the `Stylua: Select Version` command."
+          "markdownDeprecationMessage": "This setting is deprecated. Use `#stylua.targetReleaseVersion#` instead, and the `Stylua: Select Version` command."
         },
         "stylua.targetReleaseVersion": {
           "type": "string",
@@ -103,7 +103,7 @@
         "stylua.configPath": {
           "type": "string",
           "default": "",
-          "description": "Path to a `stylua.toml` configuration file. NOTE: this will override workspace configuration lookup"
+          "markdownDescription": "Path to a `stylua.toml` configuration file. NOTE: this will override workspace configuration lookup"
         },
         "stylua.searchParentDirectories": {
           "type": "boolean",
@@ -113,7 +113,7 @@
         "stylua.verify": {
           "type": "boolean",
           "default": false,
-          "description": "Pass the `--verify` flag to StyLua to enforce output verification"
+          "markdownDescription": "Pass the `--verify` flag to StyLua to enforce output verification"
         }
       }
     }
