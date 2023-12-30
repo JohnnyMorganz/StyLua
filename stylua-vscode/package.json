@@ -42,6 +42,11 @@
         "command": "stylua.authenticate",
         "title": "Authorize StyLua to use GitHub API",
         "category": "StyLua"
+      },
+      {
+        "command": "stylua.showOutputChannel",
+        "title": "Show Output Channel",
+        "category": "StyLua"
       }
     ],
     "configuration": {
@@ -87,7 +92,7 @@
         "stylua.disableVersionCheck": {
           "type": "boolean",
           "default": false,
-          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests."
         },
         "stylua.searchParentDirectories": {
           "type": "boolean",
