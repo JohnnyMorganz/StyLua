@@ -17,7 +17,7 @@ export class StyluaDownloader {
 
     if (path === undefined) {
       await vscode.workspace.fs.createDirectory(this.storageDirectory);
-      await this.downloadStyLuaVisual();
+      await this.downloadStyLuaVisual(util.getDesiredVersion());
       return await this.getStyluaPath();
     } else {
       if (!(await util.fileExists(path))) {
@@ -69,19 +69,18 @@ export class StyluaDownloader {
     }
   }
 
-  public downloadStyLuaVisual(): Thenable<void> {
+  public downloadStyLuaVisual(version: string): Thenable<void> {
     return vscode.window.withProgress(
       {
         cancellable: false,
         location: vscode.ProgressLocation.Notification,
-        title: "Downloading StyLua",
+        title: `Downloading StyLua (${version})`,
       },
-      () => this.downloadStylua()
+      () => this.downloadStylua(version)
     );
   }
 
-  private async downloadStylua(): Promise<void> {
-    const version = util.getDesiredVersion();
+  private async downloadStylua(version: string): Promise<void> {
     const release = await this.github.getRelease(version);
     const assetFilename = util.getAssetFilenamePattern();
     const outputFilename = util.getDownloadOutputFilename();
@@ -129,7 +128,7 @@ export class StyluaDownloader {
       .then((option) => {
         switch (option) {
           case "Install":
-            this.downloadStyLuaVisual();
+            this.downloadStyLuaVisual(release.tagName);
             break;
           case "Release Notes":
             vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));

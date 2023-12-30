@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
+import * as semver from "semver";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
+import { getDesiredVersion } from "./util";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -42,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.reinstall", async () => {
-      await downloader.downloadStyLuaVisual();
+      await downloader.downloadStyLuaVisual(getDesiredVersion());
       styluaBinaryPath = await downloader.getStyluaPath();
     })
   );
@@ -56,6 +58,47 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("stylua.showOutputChannel", async () => {
       outputChannel.show();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("stylua.selectVersion", async () => {
+      const versions = (await github.getAllReleases()).sort((a, b) =>
+        semver.rcompare(a.tagName, b.tagName)
+      );
+      if (versions.length === 0) {
+        return;
+      }
+      const latestVersion = versions[0];
+
+      const selectedVersion = await vscode.window.showQuickPick(
+        versions
+          .sort((a, b) => semver.rcompare(a.tagName, b.tagName))
+          .map((release) => {
+            if (release.tagName === latestVersion.tagName) {
+              return { label: `${release.tagName} (latest)` };
+            } else {
+              return { label: release.tagName };
+            }
+          }),
+        {
+          placeHolder: "Select the version of StyLua to install",
+        }
+      );
+
+      if (selectedVersion) {
+        const updateConfigValue = selectedVersion.label.includes("latest")
+          ? "latest"
+          : selectedVersion.label;
+        await downloader.downloadStyLuaVisual(selectedVersion.label);
+        vscode.workspace
+          .getConfiguration("stylua")
+          .update(
+            "targetReleaseVersion",
+            updateConfigValue,
+            vscode.ConfigurationTarget.Workspace
+          );
+      }
     })
   );
 
@@ -100,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext) {
             )
             .then((option) => {
               if (option === "Install") {
-                downloader.downloadStyLuaVisual();
+                vscode.commands.executeCommand("stylua.reinstall");
               }
             });
           return [];

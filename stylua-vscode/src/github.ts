@@ -132,6 +132,11 @@ export class GitHub implements Disposable {
     return this.credential.authenticated;
   }
 
+  public async getAllReleases(): Promise<GitHubRelease[]> {
+    const json = await fetchJson(RELEASES_URL, this.credential.token);
+    return Array.isArray(json) ? json.map(releaseFromJson) : [];
+  }
+
   public async getRelease(version: string): Promise<GitHubRelease> {
     if (version === "latest") {
       const json = await fetchJson(RELEASES_URL_LATEST, this.credential.token);
@@ -139,10 +144,7 @@ export class GitHub implements Disposable {
     }
 
     version = version.startsWith("v") ? version : "v" + version;
-    const json = await fetchJson(RELEASES_URL, this.credential.token);
-    const releases: GitHubRelease[] = Array.isArray(json)
-      ? json.map(releaseFromJson)
-      : [];
+    const releases = await this.getAllReleases();
     for (const release of releases) {
       if (release.tagName.startsWith(version)) {
         return release;

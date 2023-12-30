@@ -15,6 +15,7 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 - Added configuration option `stylua.configPath` to provide a direct path to a `stylua.toml` file. Note: this will override any workspace config lookup
 - Added configuration option `stylua.verify` to pass `--verify` to StyLua CLI when formatting a file. This enforces output verification
+- Added command `StyLua: Select Version` to customize which version of StyLua to install. This command updates the `stylua.targetReleaseVersion` setting
 
 ### Changed
 

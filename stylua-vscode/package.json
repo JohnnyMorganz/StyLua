@@ -47,6 +47,11 @@
         "command": "stylua.showOutputChannel",
         "title": "Show Output Channel",
         "category": "StyLua"
+      },
+      {
+        "command": "stylua.selectVersion",
+        "title": "Select Version",
+        "category": "StyLua"
       }
     ],
     "configuration": {
@@ -142,6 +147,7 @@
   "dependencies": {
     "ignore": "^5.1.8",
     "node-fetch": "^2.6.1",
+    "semver": "^7.5.4",
     "unzipper": "^0.10.14"
   }
 }
