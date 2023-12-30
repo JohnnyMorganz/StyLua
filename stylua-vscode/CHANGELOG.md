@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.6.0] - 2023-12-30
+
 ### Deprecated
 
 - `stylua.releaseVersion` is deprecated (as it required continual updates of available versions). Prefer `stylua.targetReleaseVersion` and the `Stylua: Select Version` command
