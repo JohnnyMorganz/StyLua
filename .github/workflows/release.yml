@@ -36,6 +36,9 @@ jobs:
             artifact-alias: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
           - os: ubuntu-20.04
+            artifact-name: stylua-linux-x86_64-musl
+            cargo-target: x86_64-unknown-linux-musl
+          - os: ubuntu-20.04
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
             linker: gcc-aarch64-linux-gnu
