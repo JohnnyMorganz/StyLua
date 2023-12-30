@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extension-release:
+    name: Release Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm ci
+        working-directory: stylua-vscode
+
+      - name: Publish VSCode Extension
+        working-directory: stylua-vscode
+        run: npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }}
+
+      - name: Publish OpenVSX Extension
+        working-directory: stylua-vscode
+        run: npx ovsx publish --pat ${{ secrets.OVSX_TOKEN }}
