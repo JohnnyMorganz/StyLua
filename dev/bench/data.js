@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703937742999,
+  "lastUpdate": 1703938527354,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10331,6 +10331,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20254563,
             "range": "± 961533",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "33953936+dundargoc@users.noreply.github.com",
+            "name": "dundargoc",
+            "username": "dundargoc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1989671836ee291c3f2957222f1d768f22fea64d",
+          "message": "Skip files in .gitignore. (#840)\n\nThis is a common behavior of formatters (e.g Ruff and Black) as it's\r\narguably a more useful default behavior.\r\n\r\nCloses https://github.com/JohnnyMorganz/StyLua/issues/833.",
+          "timestamp": "2023-12-30T13:13:03+01:00",
+          "tree_id": "eb240cfbec00ca3d796b3263409c5c0463f2402c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1989671836ee291c3f2957222f1d768f22fea64d"
+        },
+        "date": 1703938526892,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36685017,
+            "range": "± 128562",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 261835939,
+            "range": "± 3171510",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20335696,
+            "range": "± 604624",
             "unit": "ns/iter"
           }
         ]
