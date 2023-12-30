@@ -42,6 +42,11 @@
         "command": "stylua.authenticate",
         "title": "Authorize StyLua to use GitHub API",
         "category": "StyLua"
+      },
+      {
+        "command": "stylua.showOutputChannel",
+        "title": "Show Output Channel",
+        "category": "StyLua"
       }
     ],
     "configuration": {

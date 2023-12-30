@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub } from "./github";
 import { StyluaDownloader } from "./download";
-import { Status } from "./status";
 
 /**
  * Convert a Position within a Document to a byte offset.
@@ -24,6 +23,11 @@ const byteOffset = (
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("stylua activated");
+
+  const outputChannel = vscode.window.createOutputChannel("StyLua", {
+    log: true,
+  });
+  outputChannel.info("StyLua activated");
 
   const github = new GitHub();
   context.subscriptions.push(github);
@@ -50,6 +54,12 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("stylua.showOutputChannel", async () => {
+      outputChannel.show();
+    })
+  );
+
+  context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("stylua")) {
         styluaBinaryPath = await downloader.ensureStyluaExists(
@@ -59,10 +69,22 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  let status = new Status();
+  const documentSelector = ["lua", "luau"];
+
+  const languageStatusItem = vscode.languages.createLanguageStatusItem(
+    "stylua",
+    documentSelector
+  );
+  languageStatusItem.name = "StyLua";
+  languageStatusItem.text = "$(check) StyLua";
+  languageStatusItem.detail = "Ready";
+  languageStatusItem.command = {
+    title: "Show Output",
+    command: "stylua.showOutputChannel",
+  };
 
   let disposable = vscode.languages.registerDocumentRangeFormattingEditProvider(
-    ["lua", "luau"],
+    documentSelector,
     {
       async provideDocumentRangeFormattingEdits(
         document: vscode.TextDocument,
@@ -115,10 +137,16 @@ export async function activate(context: vscode.ExtensionContext) {
             fullDocumentRange,
             formattedText
           );
-          status.update(null);
+          languageStatusItem.text = "$(check) StyLua";
+          languageStatusItem.detail = "File formatted successfully";
+          languageStatusItem.severity =
+            vscode.LanguageStatusSeverity.Information;
           return [format];
         } catch (err) {
-          status.update(err);
+          languageStatusItem.text = "StyLua";
+          languageStatusItem.detail = "Failed to format file";
+          languageStatusItem.severity = vscode.LanguageStatusSeverity.Error;
+          outputChannel.error(err as string);
           return [];
         }
       },
@@ -126,6 +154,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(disposable);
+  context.subscriptions.push(languageStatusItem);
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      languageStatusItem.text = "$(check) StyLua";
+      languageStatusItem.detail = "Ready";
+      languageStatusItem.severity = vscode.LanguageStatusSeverity.Information;
+    })
+  );
 }
 
 // this method is called when your extension is deactivated
