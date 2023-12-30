@@ -39,15 +39,19 @@ export class StyluaDownloader implements vscode.Disposable {
 
   constructor(
     private readonly storageDirectory: vscode.Uri,
-    private readonly github: GitHub
+    private readonly github: GitHub,
+    private readonly outputChannel: vscode.LogOutputChannel
   ) {}
 
-  public async findStylua(): Promise<StyluaInfo> {
+  public async findStylua(cwd?: string): Promise<StyluaInfo> {
     // 1) If `stylua.styluaPath` has been specified, use that directly
     const settingPath = vscode.workspace
       .getConfiguration("stylua")
       .get<string | null>("styluaPath");
     if (settingPath) {
+      this.outputChannel.info(
+        `Stylua path explicitly configured: ${settingPath}`
+      );
       return { path: settingPath, resolveMode: ResolveMode.configuration };
     }
 
@@ -57,14 +61,22 @@ export class StyluaDownloader implements vscode.Disposable {
         .getConfiguration("stylua")
         .get<boolean>("searchBinaryInPATH")
     ) {
+      this.outputChannel.info("Searching for stylua on PATH");
       const resolvedPath = await which("stylua", { nothrow: true });
       if (resolvedPath) {
-        // TODO: foreman/aftman handling
-        return { path: resolvedPath, resolveMode: ResolveMode.path };
+        this.outputChannel.info(`Stylua found on PATH: ${resolvedPath}`);
+        if (await getStyluaVersion(resolvedPath, cwd)) {
+          return { path: resolvedPath, resolveMode: ResolveMode.path };
+        } else {
+          this.outputChannel.error(
+            "Stylua binary found on PATH failed to execute"
+          );
+        }
       }
     }
 
     // 3) Fallback to bundled stylua version
+    this.outputChannel.info("Falling back to bundled StyLua version");
     const downloadPath = vscode.Uri.joinPath(
       this.storageDirectory,
       util.getDownloadOutputFilename()
@@ -75,7 +87,7 @@ export class StyluaDownloader implements vscode.Disposable {
   public async ensureStyluaExists(
     cwd?: string
   ): Promise<StyluaInfo | undefined> {
-    const stylua = await this.findStylua();
+    const stylua = await this.findStylua(cwd);
 
     if (stylua.resolveMode === ResolveMode.bundled) {
       if (!(await util.fileExists(stylua.path))) {

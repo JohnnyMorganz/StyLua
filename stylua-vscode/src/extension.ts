@@ -52,7 +52,7 @@ class StatusInfo implements vscode.Disposable {
       if (this.styluaInfo.resolveMode === ResolveMode.bundled) {
         return `StyLua (bundled ${this.styluaInfo.version})`;
       } else {
-        return `StyLua (${this.styluaInfo})`;
+        return `StyLua (${this.styluaInfo.version})`;
       }
     }
     return "StyLua";
@@ -93,7 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
   const github = new GitHub();
   context.subscriptions.push(github);
 
-  const downloader = new StyluaDownloader(context.globalStorageUri, github);
+  const downloader = new StyluaDownloader(
+    context.globalStorageUri,
+    github,
+    outputChannel
+  );
 
   let cwdForVersionDetection =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath;

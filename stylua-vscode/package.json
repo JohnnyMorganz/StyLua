@@ -103,6 +103,11 @@
           "default": null,
           "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
         },
+        "stylua.searchBinaryInPATH": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Search for the StyLua binary in the `PATH` environment variable, and use this if available. If disabled, falls back to a bundled binary"
+        },
         "stylua.disableVersionCheck": {
           "type": "boolean",
           "default": false,
