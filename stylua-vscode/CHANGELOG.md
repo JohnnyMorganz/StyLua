@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Changed
+
+- Removed excessive error notifications on formatting failure and replaced with VSCode language status bar item
+
 ## [1.5.0] - 2023-03-11
 
 ### Added
