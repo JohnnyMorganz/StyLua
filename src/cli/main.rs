@@ -315,7 +315,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     walker_builder
-        .standard_filters(false)
+        .standard_filters(true)
         .hidden(!opt.allow_hidden)
         .parents(true)
         .add_custom_ignore_filename(".styluaignore");

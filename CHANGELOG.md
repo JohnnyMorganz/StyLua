@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The CLI tool will now only write files if the contents differ, and not modify if no change (#827)
 - Fixed parentheses around a Luau compound type inside of a type table indexer being removed causing a syntax error (#828)
 - Fixed function body parentheses being placed on multiple lines unnecessarily when there are no parameters (#830)
+- Ignore files in .gitignore by default.
 
 ## [0.19.1] - 2023-11-15
 
