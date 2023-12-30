@@ -94,6 +94,11 @@
           "default": false,
           "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests."
         },
+        "stylua.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a `stylua.toml` configuration file. NOTE: this will override workspace configuration lookup"
+        },
         "stylua.searchParentDirectories": {
           "type": "boolean",
           "default": false,

@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Added
+
+- Added configuration option `stylua.configPath` to provide a direct path to a `stylua.toml` file. Note: this will override any workspace config lookup
+
 ### Changed
 
 - Removed excessive error notifications on formatting failure and replaced with VSCode language status bar item
