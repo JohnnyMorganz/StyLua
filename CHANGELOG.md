@@ -7,14 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Introduced a new release artifact `stylua-linux-x86_64-musl` ([#834](https://github.com/JohnnyMorganz/StyLua/issues/834))
+
+### Changed
+
+- Files excluded by git (via `.gitignore` or global git configuration), as well as in an `.ignore` file (used by ripgrep and The Silver Searcher)
+  will now also be ignored by StyLua (as if they were all `.styluaignore`) files. ([#833](https://github.com/JohnnyMorganz/StyLua/issues/833))
+
 ### Fixed
 
 - Fixed handling of floor division (`//`) syntax when only Luau FFlag is enabled
 - Fixed missing space when table is inside of Luau interpolated string expression (`{{` is invalid syntax)
-- The CLI tool will now only write files if the contents differ, and not modify if no change (#827)
-- Fixed parentheses around a Luau compound type inside of a type table indexer being removed causing a syntax error (#828)
-- Fixed function body parentheses being placed on multiple lines unnecessarily when there are no parameters (#830)
-- Ignore files in .gitignore by default.
+- The CLI tool will now only write files if the contents differ, and not modify if no change ([#827](https://github.com/JohnnyMorganz/StyLua/issues/827))
+- Fixed parentheses around a Luau compound type inside of a type table indexer being removed causing a syntax error ([#828](https://github.com/JohnnyMorganz/StyLua/issues/828))
+- Fixed function body parentheses being placed on multiple lines unnecessarily when there are no parameters ([#830](https://github.com/JohnnyMorganz/StyLua/issues/830))
 
 ## [0.19.1] - 2023-11-15
 
