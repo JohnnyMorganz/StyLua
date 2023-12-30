@@ -59,6 +59,10 @@ export function formatCode(
     ) {
       args.push("--search-parent-directories");
     }
+    if (vscode.workspace.getConfiguration("stylua").get("verify")) {
+      args.push("--verify");
+    }
+
     args.push("-");
 
     const child = spawn(`${path}`, args, {
