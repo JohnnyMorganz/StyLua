@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703938800104,
+  "lastUpdate": 1703941512454,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -10457,6 +10457,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20214859,
             "range": "± 994516",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "78505208+DervexHero@users.noreply.github.com",
+            "name": "Dervex",
+            "username": "DervexHero"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c3a9d977e5b9643c7a13fa45492f0ca454c287b0",
+          "message": "Add status bar instead of error notifications (VSC extension) (#826)\n\n* Add option to hide formatting errors\r\n\r\n* Add status bar item and remove notification setting\r\n\r\n* Switch to language status item and update on editor change\r\n\r\n* Update changelog\r\n\r\n---------\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2023-12-30T14:02:53+01:00",
+          "tree_id": "4a65c5635542e0b135723c3544710ccc49f63576",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c3a9d977e5b9643c7a13fa45492f0ca454c287b0"
+        },
+        "date": 1703941511941,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 37128290,
+            "range": "± 420140",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 260470018,
+            "range": "± 716202",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20222792,
+            "range": "± 696772",
             "unit": "ns/iter"
           }
         ]
