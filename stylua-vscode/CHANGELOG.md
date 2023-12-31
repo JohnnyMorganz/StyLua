@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.6.2] - 2023-12-31
+
 ### Fixed
 
 - Fixed errors when no stylua binary currently installed on PATH
