@@ -160,16 +160,16 @@
     "glob": "^7.1.6",
     "mocha": "^10.2.0",
     "prettier": "^2.3.1",
-    "typescript": "^5.3.3",
     "ts-loader": "^9.2.8",
+    "typescript": "^5.3.3",
     "webpack": "^5.70.0",
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
     "ignore": "^5.1.8",
     "node-fetch": "^2.6.1",
-    "node-which": "^1.0.0",
     "semver": "^7.5.4",
-    "unzipper": "^0.10.14"
+    "unzipper": "^0.10.14",
+    "which": "^4.0.0"
   }
 }
