@@ -105,7 +105,7 @@
         },
         "stylua.searchBinaryInPATH": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "markdownDescription": "Search for the StyLua binary in the `PATH` environment variable, and use this if available. If disabled, falls back to a bundled binary"
         },
         "stylua.disableVersionCheck": {
