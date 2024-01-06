@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.6.3] - 2024-01-06
+
 ### Fixed
 
 - Temporarily disabled `stylua.searchBinaryInPATH` setting due to Aftman issues. If you do not use aftman, feel free to configure the setting to `true`
