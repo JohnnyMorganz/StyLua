@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704561956482,
+  "lastUpdate": 1705086295158,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11003,6 +11003,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20374273,
             "range": "± 197437",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bc3ce881eaaee46e8eb851366d33cba808d2a1f7",
+          "message": "Bump follow-redirects from 1.15.1 to 1.15.4 in /stylua-npm-bin (#847)",
+          "timestamp": "2024-01-12T20:02:44+01:00",
+          "tree_id": "0898e4ccaccbcbdb35e12d1cd3c4b3f3f68a6750",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/bc3ce881eaaee46e8eb851366d33cba808d2a1f7"
+        },
+        "date": 1705086293840,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 35972881,
+            "range": "± 533354",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 254976734,
+            "range": "± 935564",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19988379,
+            "range": "± 480770",
             "unit": "ns/iter"
           }
         ]
