@@ -1,2 +1,5 @@
-stylua.bundler/
-stylua.node/
+stylua.web/
+stylua_lib.cjs
+LICENSE.md
+README.md
+*.tgz
