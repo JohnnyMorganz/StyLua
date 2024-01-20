@@ -262,7 +262,7 @@ fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Resul
     .context("failed to parse ignore file")?;
 
     Ok(matches!(
-        ignore.matched(path, false),
+        ignore.matched_path_or_any_parents(path, false),
         ignore::Match::Ignore(_)
     ))
 }
@@ -766,6 +766,23 @@ mod tests {
             .success();
 
         cwd.child("foo.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_ignores_directory_no_glob() {
+        // https://github.com/JohnnyMorganz/StyLua/issues/845
+        let cwd = construct_tree!({
+            ".styluaignore": "build/",
+            "build/foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--check", "--respect-ignores", "build/foo.lua"])
+            .assert()
+            .success();
 
         cwd.close().unwrap();
     }
