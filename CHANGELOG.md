@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2024-01-20
+
 ### Added
 
 - Introduced a new release artifact `stylua-linux-x86_64-musl` ([#834](https://github.com/JohnnyMorganz/StyLua/issues/834))
@@ -14,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Files excluded by git (via `.gitignore` or global git configuration), as well as in an `.ignore` file (used by ripgrep and The Silver Searcher)
-  will now also be ignored by StyLua (as if they were all `.styluaignore`) files. ([#833](https://github.com/JohnnyMorganz/StyLua/issues/833))
+  will now also be ignored by StyLua (as if they were all `.styluaignore` files). ([#833](https://github.com/JohnnyMorganz/StyLua/issues/833))
 
 ### Fixed
 
@@ -752,7 +754,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.19.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.20.0
 [0.19.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.1
 [0.19.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.0
 [0.18.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.2
