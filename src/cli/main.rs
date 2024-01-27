@@ -53,7 +53,7 @@ fn convert_parse_error_to_json(file: &str, errs: Vec<full_moon::Error>) -> serde
             let message = match err {
                 full_moon::Error::AstError(ast_error) => format!(
                     "unexpected token `{}`: {}",
-                    ast_error.token,
+                    ast_error.token(),
                     ast_error.error_message()
                 ),
                 full_moon::Error::TokenizerError(error) => match error.error() {
