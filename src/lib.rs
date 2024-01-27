@@ -14,6 +14,40 @@ mod shape;
 mod sort_requires;
 mod verify_ast;
 
+/// The Lua syntax version to use
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum LuaVersion {
+    #[default]
+    Lua51,
+    #[cfg(feature = "lua52")]
+    Lua52,
+    #[cfg(feature = "lua53")]
+    Lua53,
+    #[cfg(feature = "lua54")]
+    Lua54,
+    #[cfg(feature = "luau")]
+    Luau,
+}
+
+impl From<LuaVersion> for full_moon::LuaVersion {
+    fn from(val: LuaVersion) -> Self {
+        match val {
+            LuaVersion::Lua51 => full_moon::LuaVersion::lua51(),
+            #[cfg(feature = "lua52")]
+            LuaVersion::Lua52 => full_moon::LuaVersion::lua52(),
+            #[cfg(feature = "lua53")]
+            LuaVersion::Lua53 => full_moon::LuaVersion::lua53(),
+            #[cfg(feature = "lua54")]
+            LuaVersion::Lua54 => full_moon::LuaVersion::lua54(),
+            #[cfg(feature = "luau")]
+            LuaVersion::Luau => full_moon::LuaVersion::luau(),
+        }
+    }
+}
+
 /// The type of indents to use when indenting
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -145,6 +179,7 @@ impl SortRequiresConfig {
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct Config {
+    pub lua_version: LuaVersion,
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
     /// that this is not a hard upper bound.
@@ -337,6 +372,7 @@ impl Default for Config {
     fn default() -> Self {
         #[allow(deprecated)]
         Self {
+            lua_version: LuaVersion::default(),
             column_width: 120,
             line_endings: LineEndings::default(),
             indent_type: IndentType::default(),
@@ -403,12 +439,13 @@ pub fn format_ast(
     // If we are verifying, reparse the output then check it matches the original input
     if let Some(input_ast) = input_ast_for_verification {
         let output = full_moon::print(&ast);
-        let reparsed_output = match full_moon::parse(&output) {
-            Ok(ast) => ast,
-            Err(error) => {
-                return Err(Error::VerificationAstError(error));
-            }
-        };
+        let reparsed_output =
+            match full_moon::parse_fallible(&output, config.lua_version.into()).into_result() {
+                Ok(ast) => ast,
+                Err(error) => {
+                    return Err(Error::VerificationAstError(error));
+                }
+            };
 
         let mut ast_verifier = verify_ast::AstVerifier::new();
         if !ast_verifier.compare(input_ast, reparsed_output) {
@@ -427,7 +464,7 @@ pub fn format_code(
     range: Option<Range>,
     verify_output: OutputVerification,
 ) -> Result<String, Error> {
-    let input_ast = match full_moon::parse(code) {
+    let input_ast = match full_moon::parse_fallible(code, config.lua_version.into()).into_result() {
         Ok(ast) => ast,
         Err(error) => {
             return Err(Error::ParseError(error));

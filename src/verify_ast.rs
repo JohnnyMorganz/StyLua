@@ -277,8 +277,14 @@ mod tests {
     #[test]
     #[cfg(feature = "luau")]
     fn test_equivalent_binary_numbers() {
-        let input_ast = full_moon::parse("local x = 0B10101").unwrap();
-        let output_ast = full_moon::parse("local x = 0b10101").unwrap();
+        use full_moon::LuaVersion;
+
+        let input_ast = full_moon::parse_fallible("local x = 0B10101", LuaVersion::luau())
+            .into_result()
+            .unwrap();
+        let output_ast = full_moon::parse_fallible("local x = 0b10101", LuaVersion::luau())
+            .into_result()
+            .unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
@@ -287,8 +293,14 @@ mod tests {
     #[test]
     #[cfg(feature = "luau")]
     fn test_different_binary_numbers() {
-        let input_ast = full_moon::parse("local x = 0b1111").unwrap();
-        let output_ast = full_moon::parse("local x = 0b1110").unwrap();
+        use full_moon::LuaVersion;
+
+        let input_ast = full_moon::parse_fallible("local x = 0b1111", LuaVersion::luau())
+            .into_result()
+            .unwrap();
+        let output_ast = full_moon::parse_fallible("local x = 0b1110", LuaVersion::luau())
+            .into_result()
+            .unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
@@ -297,8 +309,14 @@ mod tests {
     #[test]
     #[cfg(feature = "lua52")]
     fn test_equivalent_luajit_numbers() {
-        let input_ast = full_moon::parse("local x = 2 ^ 63LL").unwrap();
-        let output_ast = full_moon::parse("local x = 2 ^ 63").unwrap();
+        use full_moon::LuaVersion;
+
+        let input_ast = full_moon::parse_fallible("local x = 2 ^ 63LL", LuaVersion::lua52())
+            .into_result()
+            .unwrap();
+        let output_ast = full_moon::parse_fallible("local x = 2 ^ 63", LuaVersion::lua52())
+            .into_result()
+            .unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
