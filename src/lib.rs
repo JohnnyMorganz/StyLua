@@ -364,11 +364,11 @@ pub enum OutputVerification {
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
-    #[error("error parsing: {0}")]
-    ParseError(full_moon::Error),
+    #[error("error parsing: {0:?}")]
+    ParseError(Vec<full_moon::Error>),
     /// The output AST after formatting generated a parse error. This is a definite error.
-    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0}")]
-    VerificationAstError(full_moon::Error),
+    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0:?}")]
+    VerificationAstError(Vec<full_moon::Error>),
     /// The output AST after formatting differs from the input AST.
     #[error("INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues")]
     VerificationAstDifference,

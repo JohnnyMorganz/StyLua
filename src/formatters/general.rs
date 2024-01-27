@@ -118,7 +118,7 @@ pub fn format_token(
         }
         TokenType::StringLiteral {
             literal,
-            multi_line,
+            multi_line_depth,
             quote_type,
         } => {
             // If we have a brackets string, don't mess with it
@@ -131,7 +131,7 @@ pub fn format_token(
 
                 TokenType::StringLiteral {
                     literal: literal.into(),
-                    multi_line: *multi_line,
+                    multi_line_depth: *multi_line_depth,
                     quote_type: StringLiteralQuoteType::Brackets,
                 }
             } else {
@@ -188,7 +188,7 @@ pub fn format_token(
                     .into();
                 TokenType::StringLiteral {
                     literal,
-                    multi_line: None,
+                    multi_line_depth: *multi_line_depth,
                     quote_type: quote_to_use,
                 }
             }

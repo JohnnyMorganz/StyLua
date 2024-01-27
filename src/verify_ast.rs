@@ -168,11 +168,11 @@ impl VisitorMut for AstVerifier {
         let token_type = match token.token_type() {
             TokenType::StringLiteral {
                 literal,
-                multi_line,
+                multi_line_depth,
                 ..
             } => TokenType::StringLiteral {
                 literal: literal.to_owned().replace('\\', "").into(),
-                multi_line: multi_line.to_owned(),
+                multi_line_depth: multi_line_depth.to_owned(),
                 quote_type: StringLiteralQuoteType::Brackets,
             },
             _ => unreachable!(),
