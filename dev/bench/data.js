@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705754869857,
+  "lastUpdate": 1706361832969,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11129,6 +11129,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20190534,
             "range": "± 852829",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "akari.ccino@gmail.com",
+            "name": "magic-akari",
+            "username": "magic-akari"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "049bb7c2c5ff0f764eec8ab3627e114ff23ddabf",
+          "message": "feat(wasm): Support more targets (#848)",
+          "timestamp": "2024-01-27T14:21:39+01:00",
+          "tree_id": "91086176fb45905afe55c5b1683e48c7f574229c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/049bb7c2c5ff0f764eec8ab3627e114ff23ddabf"
+        },
+        "date": 1706361832313,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 35370541,
+            "range": "± 904167",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 253508519,
+            "range": "± 566318",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20017030,
+            "range": "± 668667",
             "unit": "ns/iter"
           }
         ]
