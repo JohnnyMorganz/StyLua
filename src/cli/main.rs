@@ -49,40 +49,14 @@ struct ErrorFileWrapper {
 
 fn convert_parse_error_to_json(file: &str, errs: Vec<full_moon::Error>) -> serde_json::Value {
     errs.iter()
-        .map(|err| match err {
-            full_moon::Error::AstError(full_moon::ast::AstError {
-                token,
-                additional,
-                range,
-            }) => {
-                let location = match range {
-                    Some((start_position, end_position)) => json!({
-                        "start": start_position.bytes(),
-                        "start_line": start_position.line(),
-                        "start_column": start_position.character(),
-                        "end": end_position.bytes(),
-                        "end_line": end_position.line(),
-                        "end_column": end_position.character(),
-                    }),
-                    None => json!({
-                        "start": token.start_position().bytes(),
-                        "start_line": token.start_position().line(),
-                        "start_column": token.start_position().character(),
-                        "end": token.end_position().bytes(),
-                        "end_line": token.end_position().line(),
-                        "end_column": token.end_position().character(),
-                    }),
-                };
-                json!({
-                    "type": "parse_error",
-                    "message": format!("unexpected token `{token}`: {additional}"),
-                    "filename": file,
-                    "location": location,
-                })
-            }
-            full_moon::Error::TokenizerError(error) => json!({
-                "type": "parse_error",
-                "message": match error.error() {
+        .map(|err| {
+            let message = match err {
+                full_moon::Error::AstError(ast_error) => format!(
+                    "unexpected token `{}`: {}",
+                    ast_error.token,
+                    ast_error.error_message()
+                ),
+                full_moon::Error::TokenizerError(error) => match error.error() {
                     full_moon::tokenizer::TokenizerErrorType::UnclosedComment => {
                         "unclosed comment".to_string()
                     }
@@ -92,25 +66,28 @@ fn convert_parse_error_to_json(file: &str, errs: Vec<full_moon::Error>) -> serde
                     full_moon::tokenizer::TokenizerErrorType::InvalidNumber => {
                         "invalid number".to_string()
                     }
-                    full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(
-                        character,
-                    ) => {
+                    full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(character) => {
                         format!("unexpected character {character}")
                     }
                     full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
                         format!("invalid symbol {symbol}")
                     }
                 },
+            };
+            let (start_position, end_position) = err.range();
+            json!({
+                "type": "parse_error",
+                "message": message,
                 "filename": file,
                 "location": {
-                    "start": error.position().bytes(),
-                    "start_line": error.position().line(),
-                    "start_column": error.position().character(),
-                    "end": error.position().bytes(),
-                    "end_line": error.position().line(),
-                    "end_column": error.position().character(),
+                    "start": start_position.bytes(),
+                    "start_line": start_position.line(),
+                    "start_column": start_position.character(),
+                    "end": end_position.bytes(),
+                    "end_line": end_position.line(),
+                    "end_column": end_position.character(),
                 },
-            }),
+            })
         })
         .collect()
 }
