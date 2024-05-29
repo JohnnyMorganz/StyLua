@@ -1,6 +1,6 @@
 use crate::{
     shape::Shape, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
-    Range as FormatRange,
+    Range as FormatRange, SpaceAfterFunctions,
 };
 use full_moon::{
     node::Node,
@@ -177,6 +177,28 @@ pub fn create_plain_indent_trivia(ctx: &Context, indent_level: usize) -> Token {
         IndentType::Tabs => Token::new(TokenType::tabs(indent_level)),
         IndentType::Spaces => {
             Token::new(TokenType::spaces(indent_level * ctx.config().indent_width))
+        }
+    }
+}
+
+/// Creates a new Token containing whitespace used after function declarations
+pub fn create_function_definition_trivia(ctx: &Context) -> Token {
+    match ctx.config().space_after_functions {
+        SpaceAfterFunctions::Always | SpaceAfterFunctions::Definitions => {
+            Token::new(TokenType::spaces(1))
+        }
+        SpaceAfterFunctions::Never | SpaceAfterFunctions::Calls => Token::new(TokenType::spaces(0)),
+    }
+}
+
+/// Creates a new Token containing whitespace used after function calls
+pub fn create_function_call_trivia(ctx: &Context) -> Token {
+    match ctx.config().space_after_functions {
+        SpaceAfterFunctions::Always | SpaceAfterFunctions::Calls => {
+            Token::new(TokenType::spaces(1))
+        }
+        SpaceAfterFunctions::Never | SpaceAfterFunctions::Definitions => {
+            Token::new(TokenType::spaces(0))
         }
     }
 }
