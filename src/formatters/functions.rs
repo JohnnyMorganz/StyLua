@@ -10,7 +10,10 @@ use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{format_generic_declaration, format_type_specifier};
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{
+        create_function_call_trivia, create_function_definition_trivia, create_indent_trivia,
+        create_newline_trivia, Context,
+    },
     fmt_symbol,
     formatters::{
         block::{format_block, format_last_stmt_no_trivia},
@@ -31,7 +34,6 @@ use crate::{
     },
     shape::Shape,
     CallParenType,
-    SpaceAfterFunctions,
 };
 
 /// Formats an Anonymous Function
@@ -43,7 +45,9 @@ pub fn format_anonymous_function(
     shape: Shape,
 ) -> (TokenReference, FunctionBody) {
     const FUNCTION_LEN: usize = "function".len();
-    let function_token = fmt_symbol!(ctx, function_token, "function", shape);
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
+    let function_token = fmt_symbol!(ctx, function_token, "function", shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
     let function_body = format_function_body(ctx, function_body, shape.add_width(FUNCTION_LEN));
 
     (function_token, function_body)
@@ -74,13 +78,14 @@ pub fn format_call(
     shape: Shape,
     call_next_node: FunctionCallNextNode,
 ) -> Call {
+    let function_call_trivia = vec![create_function_call_trivia(ctx)];
     match call {
-        Call::AnonymousCall(function_args) => Call::AnonymousCall(format_function_args(
-            ctx,
-            function_args,
-            shape,
-            call_next_node,
-        )),
+        Call::AnonymousCall(function_args) => {
+            let formatted_function_args =
+                format_function_args(ctx, function_args, shape, call_next_node)
+                    .update_leading_trivia(FormatTriviaType::Append(function_call_trivia));
+            Call::AnonymousCall(formatted_function_args)
+        }
         Call::MethodCall(method_call) => {
             Call::MethodCall(format_method_call(ctx, method_call, shape, call_next_node))
         }
@@ -1151,6 +1156,7 @@ pub fn format_function_declaration(
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
     let function_token = fmt_symbol!(
         ctx,
@@ -1159,7 +1165,8 @@ pub fn format_function_declaration(
         shape
     )
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let formatted_function_name = format_function_name(ctx, function_declaration.name(), shape);
+    let formatted_function_name = format_function_name(ctx, function_declaration.name(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
 
     let shape = shape + (9 + strip_trivia(&formatted_function_name).to_string().len()); // 9 = "function "
     let function_body = format_function_body(ctx, function_declaration.body(), shape)
@@ -1179,11 +1186,13 @@ pub fn format_local_function(
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
     let trailing_trivia = vec![create_newline_trivia(ctx)];
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
     let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ", shape);
-    let formatted_name = format_token_reference(ctx, local_function.name(), shape);
+    let formatted_name = format_token_reference(ctx, local_function.name(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
 
     let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "local ", 9 = "function "
     let function_body = format_function_body(ctx, local_function.body(), shape)
@@ -1202,12 +1211,14 @@ pub fn format_method_call(
     shape: Shape,
     call_next_node: FunctionCallNextNode,
 ) -> MethodCall {
+    let function_call_trivia = vec![create_function_call_trivia(ctx)];
     let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
     let formatted_name = format_token_reference(ctx, method_call.name(), shape);
     let shape =
         shape + (formatted_colon_token.to_string().len() + formatted_name.to_string().len());
     let formatted_function_args =
-        format_function_args(ctx, method_call.args(), shape, call_next_node);
+        format_function_args(ctx, method_call.args(), shape, call_next_node)
+            .update_leading_trivia(FormatTriviaType::Append(function_call_trivia));
 
     MethodCall::new(formatted_name, formatted_function_args).with_colon_token(formatted_colon_token)
 }
