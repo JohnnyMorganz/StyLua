@@ -20,17 +20,26 @@ mod verify_ast;
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
 pub enum LuaVersion {
+    /// Parse all syntax versions at the same time. This allows most general usage.
+    /// For overlapping syntaxes (e.g., Lua5.2 label syntax and Luau type assertions), select a
+    /// specific syntax version
     #[default]
     All,
+    /// Parse Lua 5.1 code
     Lua51,
+    /// Parse Lua 5.2 code
     #[cfg(feature = "lua52")]
     Lua52,
+    /// Parse Lua 5.3 code
     #[cfg(feature = "lua53")]
     Lua53,
+    /// Parse Lua 5.4 code
     #[cfg(feature = "lua54")]
     Lua54,
+    /// Parse Luau code
     #[cfg(feature = "luau")]
     Luau,
+    /// Parse LuaJIT code
     #[cfg(feature = "luajit")]
     LuaJIT,
 }
@@ -185,7 +194,8 @@ impl SortRequiresConfig {
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct Config {
-    pub lua_version: LuaVersion,
+    /// The type of Lua syntax to parse.
+    pub syntax: LuaVersion,
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
     /// that this is not a hard upper bound.
@@ -378,7 +388,7 @@ impl Default for Config {
     fn default() -> Self {
         #[allow(deprecated)]
         Self {
-            lua_version: LuaVersion::default(),
+            syntax: LuaVersion::default(),
             column_width: 120,
             line_endings: LineEndings::default(),
             indent_type: IndentType::default(),
@@ -446,7 +456,7 @@ pub fn format_ast(
     if let Some(input_ast) = input_ast_for_verification {
         let output = full_moon::print(&ast);
         let reparsed_output =
-            match full_moon::parse_fallible(&output, config.lua_version.into()).into_result() {
+            match full_moon::parse_fallible(&output, config.syntax.into()).into_result() {
                 Ok(ast) => ast,
                 Err(error) => {
                     return Err(Error::VerificationAstError(error));
@@ -470,7 +480,7 @@ pub fn format_code(
     range: Option<Range>,
     verify_output: OutputVerification,
 ) -> Result<String, Error> {
-    let input_ast = match full_moon::parse_fallible(code, config.lua_version.into()).into_result() {
+    let input_ast = match full_moon::parse_fallible(code, config.syntax.into()).into_result() {
         Ok(ast) => ast,
         Err(error) => {
             return Err(Error::ParseError(error));
