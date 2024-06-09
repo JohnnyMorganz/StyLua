@@ -30,6 +30,7 @@ luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
 lua53 = ["lua52", "full_moon/lua53"]
 lua54 = ["lua53", "full_moon/lua54"]
+luajit = ["full_moon/luajit"]
 editorconfig = ["ec4rs"]
 
 [dependencies]

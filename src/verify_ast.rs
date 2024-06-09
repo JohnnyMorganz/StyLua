@@ -307,14 +307,14 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "lua52")]
+    #[cfg(feature = "luajit")]
     fn test_equivalent_luajit_numbers() {
         use full_moon::LuaVersion;
 
-        let input_ast = full_moon::parse_fallible("local x = 2 ^ 63LL", LuaVersion::lua52())
+        let input_ast = full_moon::parse_fallible("local x = 2 ^ 63LL", LuaVersion::luajit())
             .into_result()
             .unwrap();
-        let output_ast = full_moon::parse_fallible("local x = 2 ^ 63", LuaVersion::lua52())
+        let output_ast = full_moon::parse_fallible("local x = 2 ^ 63", LuaVersion::luajit())
             .into_result()
             .unwrap();
 

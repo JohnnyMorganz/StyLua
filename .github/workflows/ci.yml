@@ -52,6 +52,13 @@ jobs:
       - name: Test (Lua 5.4)
         run: cargo test --features lua54
 
+  test_luajit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test (LuaJIT)
+        run: cargo test --features luajit
+
   test_wasm:
     runs-on: ubuntu-latest
     steps:

@@ -31,6 +31,8 @@ pub enum LuaVersion {
     Lua54,
     #[cfg(feature = "luau")]
     Luau,
+    #[cfg(feature = "luajit")]
+    LuaJIT,
 }
 
 impl From<LuaVersion> for full_moon::LuaVersion {
@@ -46,6 +48,8 @@ impl From<LuaVersion> for full_moon::LuaVersion {
             LuaVersion::Lua54 => full_moon::LuaVersion::lua54(),
             #[cfg(feature = "luau")]
             LuaVersion::Luau => full_moon::LuaVersion::luau(),
+            #[cfg(feature = "luajit")]
+            LuaVersion::LuaJIT => full_moon::LuaVersion::luajit(),
         }
     }
 }
