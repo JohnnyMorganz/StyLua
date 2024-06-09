@@ -37,15 +37,15 @@ use crate::{
 /// This doesn't have its own struct, but it is part of Value::Function
 pub fn format_anonymous_function(
     ctx: &Context,
-    function_token: &TokenReference,
-    function_body: &FunctionBody,
+    anonymous_function: &(TokenReference, FunctionBody),
     shape: Shape,
-) -> (TokenReference, FunctionBody) {
+) -> Box<(TokenReference, FunctionBody)> {
     const FUNCTION_LEN: usize = "function".len();
-    let function_token = fmt_symbol!(ctx, function_token, "function", shape);
-    let function_body = format_function_body(ctx, function_body, shape.add_width(FUNCTION_LEN));
+    let function_token = fmt_symbol!(ctx, &anonymous_function.0, "function", shape);
+    let function_body =
+        format_function_body(ctx, &anonymous_function.1, shape.add_width(FUNCTION_LEN));
 
-    (function_token, function_body)
+    Box::new((function_token, function_body))
 }
 
 /// An enum providing information regarding the next AST node after a function call.
@@ -220,9 +220,9 @@ fn function_args_multiline_heuristic(
     for pair in first_iter_formatted_arguments {
         let argument = pair.value();
         match argument {
-            Expression::Function((_, function_body)) => {
+            Expression::Function(anonymous_function) => {
                 // Check to see whether it has been expanded
-                let is_expanded = !should_collapse_function_body(ctx, function_body);
+                let is_expanded = !should_collapse_function_body(ctx, &anonymous_function.1);
                 if is_expanded {
                     // If we have a mixture of multiline args, and other arguments
                     // Then the function args should be expanded

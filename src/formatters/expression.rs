@@ -194,9 +194,9 @@ fn format_expression_internal(
     shape: Shape,
 ) -> Expression {
     match expression {
-        Expression::Function((token_reference, function_body)) => Expression::Function(
-            format_anonymous_function(ctx, token_reference, function_body, shape),
-        ),
+        Expression::Function(anonymous_function) => {
+            Expression::Function(format_anonymous_function(ctx, anonymous_function, shape))
+        }
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(format_function_call(ctx, function_call, shape))
         }
