@@ -39,9 +39,7 @@ fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
             let Prefix::Name(token) = function_call.prefix() else {
                 return None;
             };
-            let Some(name) = extract_identifier_from_token(token) else {
-                return None;
-            };
+            let name = extract_identifier_from_token(token)?;
 
             if name == "require" {
                 Some(GroupKind::Require)
@@ -51,9 +49,7 @@ fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
                 else {
                     return None;
                 };
-                let Some(name) = extract_identifier_from_token(method_call.name()) else {
-                    return None;
-                };
+                let name = extract_identifier_from_token(method_call.name())?;
                 if name == "GetService" {
                     Some(GroupKind::GetService)
                 } else {
