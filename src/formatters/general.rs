@@ -193,6 +193,15 @@ pub fn format_token(
                 }
             }
         }
+        TokenType::Shebang { line } => {
+            let line = format_single_line_comment_string(line).into();
+
+            // Shebang must always be leading trivia, as it is start of file. Terminate it with a newline
+            debug_assert!(matches!(format_type, FormatTokenType::LeadingTrivia));
+            trailing_trivia = Some(vec![create_newline_trivia(ctx)]);
+
+            TokenType::Shebang { line }
+        }
         TokenType::SingleLineComment { comment } => {
             let comment = format_single_line_comment_string(comment).into();
 
@@ -292,7 +301,9 @@ fn load_token_trivia(
                 // Move to next trivia
                 continue;
             }
-            TokenType::SingleLineComment { .. } | TokenType::MultiLineComment { .. } => {
+            TokenType::Shebang { .. }
+            | TokenType::SingleLineComment { .. }
+            | TokenType::MultiLineComment { .. } => {
                 // If we have a comment, when `format_token` is called, it will put a newline at the end
                 // If this happens, we want to skip the next iteration if its a newline, as that has already been covered here
                 if let FormatTokenType::LeadingTrivia = format_token_type {
