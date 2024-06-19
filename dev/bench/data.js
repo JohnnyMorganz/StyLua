@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1717934680975,
+  "lastUpdate": 1718824939842,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11213,6 +11213,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20511142,
             "range": "± 295183",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "antoineauger@users.noreply.github.com",
+            "name": "Antoine Auger",
+            "username": "antoineauger"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1ad8d05863775c46a132e414878fbb910ac7d839",
+          "message": "fix(stylua-npm-bin): adjust axios config to work with proxy env variables (#868)",
+          "timestamp": "2024-06-19T21:20:09+02:00",
+          "tree_id": "db9f1e08e6fb63474da0568c8739d96dd45b7d77",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1ad8d05863775c46a132e414878fbb910ac7d839"
+        },
+        "date": 1718824939138,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 39590421,
+            "range": "± 618078",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 263172735,
+            "range": "± 2202935",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 21566664,
+            "range": "± 257067",
             "unit": "ns/iter"
           }
         ]
