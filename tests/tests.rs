@@ -3,9 +3,9 @@ use stylua_lib::{
     SortRequiresConfig,
 };
 
-fn format(input: &str, lua_version: LuaVersion) -> String {
+fn format(input: &str, syntax: LuaVersion) -> String {
     let config = Config {
-        lua_version,
+        syntax,
         ..Config::default()
     };
     format_code(input, config, None, OutputVerification::None).unwrap()
@@ -110,7 +110,7 @@ fn test_collapse_single_statement_lua_52() {
             end
             "###,
             Config {
-                lua_version: LuaVersion::Lua52,
+                syntax: LuaVersion::Lua52,
                 collapse_simple_statement: CollapseSimpleStatement::Always,
                 ..Config::default()
             },
