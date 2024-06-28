@@ -1,6 +1,9 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
-use stylua_lib::{CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle};
+use stylua_lib::{
+    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, PreserveBlockNewlineGaps,
+    QuoteStyle,
+};
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
@@ -180,6 +183,9 @@ pub struct FormatOpts {
     /// Specify whether to collapse simple statements.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub collapse_simple_statement: Option<ArgCollapseSimpleStatement>,
+    /// Specify whether to preserve leading and trailing newline gaps for blocks.
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub preserve_block_newline_gaps: Option<ArgPreserveBlockNewlineGaps>,
     /// Enable requires sorting
     #[structopt(long)]
     pub sort_requires: bool,
@@ -247,6 +253,13 @@ convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Never,
     FunctionOnly,
     ConditionalOnly,
+    Always,
+});
+
+convert_enum!(PreserveBlockNewlineGaps, ArgPreserveBlockNewlineGaps, {
+    Never,
+    AlwaysLeading,
+    AlwaysTrailing,
     Always,
 });
 
