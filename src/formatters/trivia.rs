@@ -241,10 +241,10 @@ define_update_leading_trivia!(Expression, |this, leading| {
             binop: binop.to_owned(),
             rhs: rhs.to_owned(),
         },
-        Expression::Function((token, function_body)) => Expression::Function((
-            token.update_leading_trivia(leading),
-            function_body.to_owned(),
-        )),
+        Expression::Function(anonymous_function) => Expression::Function(Box::new((
+            anonymous_function.0.update_leading_trivia(leading),
+            anonymous_function.1.to_owned(),
+        ))),
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_leading_trivia(leading))
         }
@@ -283,10 +283,10 @@ define_update_leading_trivia!(Expression, |this, leading| {
 
 define_update_trailing_trivia!(Expression, |this, trailing| {
     match this {
-        Expression::Function((token, function_body)) => Expression::Function((
-            token.to_owned(),
-            function_body.update_trailing_trivia(trailing),
-        )),
+        Expression::Function(anonymous_function) => Expression::Function(Box::new((
+            anonymous_function.0.to_owned(),
+            anonymous_function.1.update_trailing_trivia(trailing),
+        ))),
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_trailing_trivia(trailing))
         }

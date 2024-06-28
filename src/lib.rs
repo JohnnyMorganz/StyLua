@@ -14,6 +14,55 @@ mod shape;
 mod sort_requires;
 mod verify_ast;
 
+/// The Lua syntax version to use
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum LuaVersion {
+    /// Parse all syntax versions at the same time. This allows most general usage.
+    /// For overlapping syntaxes (e.g., Lua5.2 label syntax and Luau type assertions), select a
+    /// specific syntax version
+    #[default]
+    All,
+    /// Parse Lua 5.1 code
+    Lua51,
+    /// Parse Lua 5.2 code
+    #[cfg(feature = "lua52")]
+    Lua52,
+    /// Parse Lua 5.3 code
+    #[cfg(feature = "lua53")]
+    Lua53,
+    /// Parse Lua 5.4 code
+    #[cfg(feature = "lua54")]
+    Lua54,
+    /// Parse Luau code
+    #[cfg(feature = "luau")]
+    Luau,
+    /// Parse LuaJIT code
+    #[cfg(feature = "luajit")]
+    LuaJIT,
+}
+
+impl From<LuaVersion> for full_moon::LuaVersion {
+    fn from(val: LuaVersion) -> Self {
+        match val {
+            LuaVersion::All => full_moon::LuaVersion::new(),
+            LuaVersion::Lua51 => full_moon::LuaVersion::lua51(),
+            #[cfg(feature = "lua52")]
+            LuaVersion::Lua52 => full_moon::LuaVersion::lua52(),
+            #[cfg(feature = "lua53")]
+            LuaVersion::Lua53 => full_moon::LuaVersion::lua53(),
+            #[cfg(feature = "lua54")]
+            LuaVersion::Lua54 => full_moon::LuaVersion::lua54(),
+            #[cfg(feature = "luau")]
+            LuaVersion::Luau => full_moon::LuaVersion::luau(),
+            #[cfg(feature = "luajit")]
+            LuaVersion::LuaJIT => full_moon::LuaVersion::luajit(),
+        }
+    }
+}
+
 /// The type of indents to use when indenting
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -145,6 +194,8 @@ impl SortRequiresConfig {
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct Config {
+    /// The type of Lua syntax to parse.
+    pub syntax: LuaVersion,
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
     /// that this is not a hard upper bound.
@@ -337,6 +388,7 @@ impl Default for Config {
     fn default() -> Self {
         #[allow(deprecated)]
         Self {
+            syntax: LuaVersion::default(),
             column_width: 120,
             line_endings: LineEndings::default(),
             indent_type: IndentType::default(),
@@ -364,11 +416,11 @@ pub enum OutputVerification {
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
-    #[error("error parsing: {0}")]
-    ParseError(full_moon::Error),
+    #[error("error parsing: {0:?}")]
+    ParseError(Vec<full_moon::Error>),
     /// The output AST after formatting generated a parse error. This is a definite error.
-    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0}")]
-    VerificationAstError(full_moon::Error),
+    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0:?}")]
+    VerificationAstError(Vec<full_moon::Error>),
     /// The output AST after formatting differs from the input AST.
     #[error("INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues")]
     VerificationAstDifference,
@@ -403,12 +455,13 @@ pub fn format_ast(
     // If we are verifying, reparse the output then check it matches the original input
     if let Some(input_ast) = input_ast_for_verification {
         let output = full_moon::print(&ast);
-        let reparsed_output = match full_moon::parse(&output) {
-            Ok(ast) => ast,
-            Err(error) => {
-                return Err(Error::VerificationAstError(error));
-            }
-        };
+        let reparsed_output =
+            match full_moon::parse_fallible(&output, config.syntax.into()).into_result() {
+                Ok(ast) => ast,
+                Err(error) => {
+                    return Err(Error::VerificationAstError(error));
+                }
+            };
 
         let mut ast_verifier = verify_ast::AstVerifier::new();
         if !ast_verifier.compare(input_ast, reparsed_output) {
@@ -427,7 +480,7 @@ pub fn format_code(
     range: Option<Range>,
     verify_output: OutputVerification,
 ) -> Result<String, Error> {
-    let input_ast = match full_moon::parse(code) {
+    let input_ast = match full_moon::parse_fallible(code, config.syntax.into()).into_result() {
         Ok(ast) => ast,
         Err(error) => {
             return Err(Error::ParseError(error));

@@ -290,7 +290,9 @@ impl GetLeadingTrivia for Expression {
                 other => panic!("unknown node {:?}", other),
             },
             Expression::BinaryOperator { lhs, .. } => lhs.leading_trivia(),
-            Expression::Function((token_ref, _)) => GetLeadingTrivia::leading_trivia(token_ref),
+            Expression::Function(anonymous_function) => {
+                GetLeadingTrivia::leading_trivia(&anonymous_function.0)
+            }
             Expression::FunctionCall(function_call) => function_call.prefix().leading_trivia(),
             #[cfg(feature = "luau")]
             Expression::IfExpression(if_expression) => {
@@ -326,8 +328,8 @@ impl GetTrailingTrivia for Expression {
             }
             Expression::UnaryOperator { expression, .. } => expression.trailing_trivia(),
             Expression::BinaryOperator { rhs, .. } => rhs.trailing_trivia(),
-            Expression::Function((_, function_body)) => {
-                GetTrailingTrivia::trailing_trivia(function_body.end_token())
+            Expression::Function(anonymous_function) => {
+                GetTrailingTrivia::trailing_trivia(anonymous_function.1.end_token())
             }
             Expression::FunctionCall(function_call) => function_call
                 .suffixes()
