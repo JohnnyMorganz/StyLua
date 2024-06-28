@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1718824939842,
+  "lastUpdate": 1719605150398,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11255,6 +11255,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 21566664,
             "range": "± 257067",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "caleb@alerque.com",
+            "name": "Caleb Maclennan",
+            "username": "alerque"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "88f8dd42a84ce74b44a3406cad74b0564311d0af",
+          "message": "Apply clippy suggestions (#870)",
+          "timestamp": "2024-06-28T22:03:50+02:00",
+          "tree_id": "db9f1e08e6fb63474da0568c8739d96dd45b7d77",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/88f8dd42a84ce74b44a3406cad74b0564311d0af"
+        },
+        "date": 1719605149971,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36086217,
+            "range": "± 692502",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 253297257,
+            "range": "± 2673063",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19993028,
+            "range": "± 803247",
             "unit": "ns/iter"
           }
         ]
