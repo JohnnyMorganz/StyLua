@@ -1,6 +1,6 @@
 use crate::{
     CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings, QuoteStyle,
-    SortRequiresConfig,
+    SortRequiresConfig, SpaceAfterFunctions,
 };
 use ec4rs::{
     properties_of,
@@ -66,6 +66,14 @@ property_choice! {
 }
 
 property_choice! {
+    SpaceAfterFunctionsChoice, "space_after_functions";
+    (Always, "always"),
+    (Definitions, "definitions"),
+    (Calls, "calls"),
+    (Never, "never")
+}
+
+property_choice! {
     CollapseSimpleStatementChoice, "collapse_simple_statement";
     (Never, "never"),
     (FunctionOnly, "functiononly"),
@@ -126,6 +134,22 @@ fn load(mut config: Config, properties: &Properties) -> Config {
                 config.call_parentheses = CallParenType::NoSingleTable
             }
             CallParenthesesChoice::None => config.call_parentheses = CallParenType::None,
+        }
+    }
+    if let Ok(space_after_functions) = properties.get::<SpaceAfterFunctionsChoice>() {
+        match space_after_functions {
+            SpaceAfterFunctionsChoice::Always => {
+                config.space_after_functions = SpaceAfterFunctions::Always
+            }
+            SpaceAfterFunctionsChoice::Definitions => {
+                config.space_after_functions = SpaceAfterFunctions::Definitions
+            }
+            SpaceAfterFunctionsChoice::Calls => {
+                config.space_after_functions = SpaceAfterFunctions::Calls
+            }
+            SpaceAfterFunctionsChoice::Never => {
+                config.space_after_functions = SpaceAfterFunctions::Never
+            }
         }
     }
     if let Ok(collapse_simple_statement) = properties.get::<CollapseSimpleStatementChoice>() {
@@ -307,6 +331,41 @@ mod tests {
         properties.insert_raw_for_key("call_parentheses", "None");
         let config = Config::from(&properties);
         assert_eq!(config.call_parentheses, CallParenType::None);
+    }
+
+    #[test]
+    fn test_space_after_functions_always() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Always");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Always);
+    }
+
+    #[test]
+    fn test_space_after_functions_definitions() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Definitions");
+        let config = Config::from(&properties);
+        assert_eq!(
+            config.space_after_functions,
+            SpaceAfterFunctions::Definitions
+        );
+    }
+
+    #[test]
+    fn test_space_after_functions_calls() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Calls");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Calls);
+    }
+
+    #[test]
+    fn test_space_after_functions_never() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("space_after_functions", "Never");
+        let config = Config::from(&properties);
+        assert_eq!(config.space_after_functions, SpaceAfterFunctions::Never);
     }
 
     #[test]
