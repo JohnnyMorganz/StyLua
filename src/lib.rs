@@ -94,6 +94,23 @@ pub enum CollapseSimpleStatement {
     Always,
 }
 
+/// If blocks should be allowed to have leading and trailing newline gaps.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum PreserveBlockNewlineGaps {
+    /// Never allow leading or trailing newline gaps
+    #[default]
+    Never,
+    /// Always preserve leading newline gaps if present in input
+    AlwaysLeading,
+    /// Always preserve trailing newline gaps if present in input
+    AlwaysTrailing,
+    /// Always preserve both leading and trailing newline gaps if present in input
+    Always,
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -176,6 +193,12 @@ pub struct Config {
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     pub collapse_simple_statement: CollapseSimpleStatement,
+    /// Whether we should allow blocks to preserve leading and trailing newline gaps.
+    /// if set to [`PreserveBlockNewlineGaps::Never`] then newline gaps are never allowed at the start or end of blocks.
+    /// if set to [`PreserveBlockNewlineGaps::AlwaysLeading`] then newline gaps are preserved at the start blocks.
+    /// if set to [`PreserveBlockNewlineGaps::AlwaysTrailing`] then newline gaps are preserved at the end of blocks.
+    /// if set to [`PreserveBlockNewlineGaps::Always`] then newline gaps are preserved at the start and end of blocks.
+    pub preserve_block_newline_gaps: PreserveBlockNewlineGaps,
     /// Configuration for the sort requires codemod
     pub sort_requires: SortRequiresConfig,
 }
@@ -346,6 +369,7 @@ impl Default for Config {
             call_parentheses: CallParenType::default(),
             collapse_simple_statement: CollapseSimpleStatement::default(),
             sort_requires: SortRequiresConfig::default(),
+            preserve_block_newline_gaps: PreserveBlockNewlineGaps::default(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     shape::Shape, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
-    Range as FormatRange,
+    PreserveBlockNewlineGaps, Range as FormatRange,
 };
 use full_moon::{
     node::Node,
@@ -152,6 +152,20 @@ impl Context {
         matches!(
             self.config().collapse_simple_statement,
             CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
+        )
+    }
+
+    pub fn should_preserve_leading_block_newline_gaps(&self) -> bool {
+        matches!(
+            self.config().preserve_block_newline_gaps,
+            PreserveBlockNewlineGaps::Always | PreserveBlockNewlineGaps::AlwaysLeading
+        )
+    }
+
+    pub fn should_preserve_trailing_block_newline_gaps(&self) -> bool {
+        matches!(
+            self.config().preserve_block_newline_gaps,
+            PreserveBlockNewlineGaps::Always | PreserveBlockNewlineGaps::AlwaysTrailing
         )
     }
 }

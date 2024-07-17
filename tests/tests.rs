@@ -1,5 +1,6 @@
 use stylua_lib::{
-    format_code, CollapseSimpleStatement, Config, OutputVerification, SortRequiresConfig,
+    format_code, CollapseSimpleStatement, Config, OutputVerification, PreserveBlockNewlineGaps,
+    SortRequiresConfig,
 };
 
 fn format(input: &str) -> String {
@@ -86,6 +87,23 @@ fn test_collapse_single_statement() {
             &contents,
             Config {
                 collapse_simple_statement: CollapseSimpleStatement::Always,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap());
+    })
+}
+
+#[test]
+fn test_preserve_block_newline_gaps() {
+    insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format_code(
+            &contents,
+            Config {
+                preserve_block_newline_gaps: PreserveBlockNewlineGaps::Always,
                 ..Config::default()
             },
             None,
