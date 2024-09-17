@@ -92,10 +92,14 @@ fn test_incomplete_range() {
 }
 
 #[test]
+#[cfg_attr(
+    all(debug_assertions, feature = "luau"),
+    ignore = "fails in debug mode"  // TODO: https://github.com/Kampfkarren/full-moon/issues/140
+)]
 fn test_large_example() {
     insta::assert_snapshot!(
         format(
-            r###"||if string.sub(msg, 1, 8) == "setgrav/" then
+            r#"||if string.sub(msg, 1, 8) == "setgrav/" then
 danumber = nil for i = 9, 100 do if string.sub(msg, i, i) == "/" then danumber = i break end end if danumber == nil then
 return end local player = findplayer(string.sub(msg, 9, danumber - 1), speaker)
 if player == 0 then return end for i = 1, #player do if player[i].Character ~= nil then
@@ -116,7 +120,7 @@ if player[i].Character ~= nil then
 local torso = player[i].Character:FindFirstChild("Torso")
 if torso ~= nil then torso.CFrame = CFrame.new(torso.Position.x, torso.Position.y, torso.Position.z, 0, 0, 1, 0, -1, 0, 1, 0, 0) --math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random(),math.random()) -- i like the people being upside down better.
 end end end end end
-            "###
+            "#
         ),
     @r###"
 
@@ -174,10 +178,10 @@ end end end end end
 fn test_nested_range() {
     insta::assert_snapshot!(
         format(
-            r###"local my_function  =  function()
+            r#"local my_function  =  function()
     ||local nested_statement    =  "foobar"||
 end
-"###
+"#
         ),
     @r###"
 
@@ -191,12 +195,12 @@ end
 fn test_nested_range_local_function() {
     insta::assert_snapshot!(
         format(
-            r###"local function test()
+            r#"local function test()
     call "hello"
     ||call    { x     =   y}
     local   z   = 1    + 3    - (2 / 3)||
 end
-"###
+"#
         ),
     @r###"
     local function test()

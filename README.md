@@ -56,7 +56,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 
 ```yaml
 - repo: https://github.com/JohnnyMorganz/StyLua
-  rev: v0.18.1
+  rev: v0.20.0
   hooks:
     - id: stylua # or stylua-system / stylua-github
 ```
@@ -80,7 +80,7 @@ StyLua is available on the [Docker Hub](https://hub.docker.com/r/johnnymorganz/s
 If you are using Docker, the easiest way to install StyLua is:
 
 ```dockerfile
-COPY --from=JohnnyMorganz/StyLua:0.18.0 /stylua /usr/bin/stylua
+COPY --from=JohnnyMorganz/StyLua:0.20.0 /stylua /usr/bin/stylua
 ```
 
 ### Homebrew
@@ -134,7 +134,9 @@ stylua -g '*.lua' -g '!*.spec.lua' -- . # format all Lua files except test files
 
 Note, if you are using the glob argument, it can take in multiple strings, so `--` is required to break between the glob pattern and the files to format.
 
-Glob Filtering is only used for directory searching - passing a file directly (e.g. `stylua foo.txt`) will override the glob.
+By default, glob filtering (and `.styluaignore` files) are only applied for directory traversal and searching.
+Files passed directly (e.g. `stylua foo.txt`) will override the glob / ignore and always be formatted.
+To disable this behaviour, pass the `--respect-ignores` flag (`stylua --respect-ignores foo.txt`).
 
 ### Filtering using `.styluaignore`
 

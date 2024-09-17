@@ -1,6 +1,7 @@
 ---
 source: tests/tests.rs
 expression: format(&contents)
+input_file: tests/inputs-luau/assignment-hang-1.lua
 ---
 -- https://github.com/JohnnyMorganz/StyLua/issues/439
 exports.separateDisplayNameAndHOCs = function(
@@ -28,8 +29,10 @@ exports.separateDisplayNameAndHOCs = function(
 				displayName = nextMatch
 				hocDisplayNames = {}
 				while nextMatch :: any ~= nil do
-					nextMatch = matches()
-					table.insert(hocDisplayNames :: Array<string>, nextMatch)
+					-- TODO: https://github.com/Kampfkarren/full-moon/issues/140
+					-- Including the following statements cause a stack overflow:
+					-- nextMatch = matches()
+					-- table.insert(hocDisplayNames :: Array<string>, nextMatch)
 				end
 			end
 		end

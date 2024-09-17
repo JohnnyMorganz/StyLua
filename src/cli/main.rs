@@ -180,8 +180,10 @@ fn format_file(
             None => Ok(FormatResult::Complete),
         }
     } else {
-        fs::write(path, formatted_contents)
-            .with_context(|| format!("could not write to {}", path.display()))?;
+        if formatted_contents != contents {
+            fs::write(path, formatted_contents)
+                .with_context(|| format!("could not write to {}", path.display()))?;
+        }
         Ok(FormatResult::Complete)
     }
 }
@@ -221,7 +223,13 @@ fn get_ignore(
     directory: &Path,
     search_parent_directories: bool,
 ) -> Result<Gitignore, ignore::Error> {
-    let file_path = find_ignore_file_path(directory.to_path_buf(), search_parent_directories);
+    let file_path = find_ignore_file_path(directory.to_path_buf(), search_parent_directories)
+        .or_else(|| {
+            std::env::current_dir()
+                .ok()
+                .and_then(|cwd| find_ignore_file_path(cwd, false))
+        });
+
     if let Some(file_path) = file_path {
         let (ignore, err) = Gitignore::new(file_path);
         if let Some(err) = err {
@@ -232,6 +240,31 @@ fn get_ignore(
     } else {
         Ok(Gitignore::empty())
     }
+}
+
+/// Whether the provided path was explicitly provided to the tool
+fn is_explicitly_provided(opt: &opt::Opt, path: &Path) -> bool {
+    opt.files.iter().any(|p| path == *p)
+}
+
+/// By default, files explicitly passed to the command line will be formatted regardless of whether
+/// they are present in .styluaignore / not glob matched. If `--respect-ignores` is provided,
+/// then we enforce .styluaignore / glob matching on explicitly passed paths.
+fn should_respect_ignores(opt: &opt::Opt, path: &Path) -> bool {
+    !is_explicitly_provided(opt, path) || opt.respect_ignores
+}
+
+fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Result<bool> {
+    let ignore = get_ignore(
+        path.parent().expect("cannot get parent directory"),
+        search_parent_directories,
+    )
+    .context("failed to parse ignore file")?;
+
+    Ok(matches!(
+        ignore.matched_path_or_any_parents(path, false),
+        ignore::Match::Ignore(_)
+    ))
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
@@ -282,7 +315,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     walker_builder
-        .standard_filters(false)
+        .standard_filters(true)
         .hidden(!opt.allow_hidden)
         .parents(true)
         .add_custom_ignore_filename(".styluaignore");
@@ -400,15 +433,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let opt = opt.clone();
 
                     let should_skip_format = match &opt.stdin_filepath {
-                        Some(filepath) => {
-                            let ignore = get_ignore(
-                                filepath.parent().expect("cannot get parent directory"),
-                                opt.search_parent_directories,
-                            )
-                            .context("failed to parse ignore file")?;
-
-                            matches!(ignore.matched(filepath, false), ignore::Match::Ignore(_))
-                        }
+                        Some(path) => path_is_stylua_ignored(path, opt.search_parent_directories)?,
                         None => false,
                     };
 
@@ -468,8 +493,8 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
                     if path.is_file() {
                         // If the user didn't provide a glob pattern, we should match against our default one
-                        // We should ignore the glob check if the path provided was explicitly given to the CLI
-                        if use_default_glob && !opt.files.iter().any(|p| path == *p) {
+                        if use_default_glob && should_respect_ignores(opt.as_ref(), path.as_path())
+                        {
                             lazy_static::lazy_static! {
                                 static ref DEFAULT_GLOB: globset::GlobSet = {
                                     let mut builder = globset::GlobSetBuilder::new();
@@ -482,6 +507,15 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             if !DEFAULT_GLOB.is_match(&path) {
                                 continue;
                             }
+                        }
+
+                        // If `--respect-ignores` was given and this is an explicit file path,
+                        // we should check .styluaignore
+                        if is_explicitly_provided(opt.as_ref(), &path)
+                            && should_respect_ignores(opt.as_ref(), &path)
+                            && path_is_stylua_ignored(&path, opt.search_parent_directories)?
+                        {
+                            continue;
                         }
 
                         let tx = tx.clone();
@@ -632,10 +666,27 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use assert_cmd::Command;
+    use assert_fs::prelude::*;
+
+    macro_rules! construct_tree {
+        ({ $($file_name:literal:$file_contents:literal,)+ }) => {{
+            let cwd = assert_fs::TempDir::new().unwrap();
+
+            $(
+                cwd.child($file_name).write_str($file_contents).unwrap();
+            )+
+
+            cwd
+        }};
+    }
+
+    fn create_stylua() -> Command {
+        Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap()
+    }
 
     #[test]
     fn test_no_files_provided() {
-        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mut cmd = create_stylua();
         cmd.assert()
             .failure()
             .code(2)
@@ -644,11 +695,95 @@ mod tests {
 
     #[test]
     fn test_format_stdin() {
-        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mut cmd = create_stylua();
         cmd.arg("-")
             .write_stdin("local   x   = 1")
             .assert()
             .success()
             .stdout("local x = 1\n");
+    }
+
+    #[test]
+    fn test_format_file() {
+        let cwd = construct_tree!({
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path()).arg(".").assert().success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stylua_ignore() {
+        let cwd = construct_tree!({
+            ".styluaignore": "ignored/",
+            "foo.lua": "local   x    =   1",
+            "ignored/bar.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path()).arg(".").assert().success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+        cwd.child("ignored/bar.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn explicitly_provided_files_dont_check_ignores() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_ignores() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--respect-ignores", "foo.lua"])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_ignores_directory_no_glob() {
+        // https://github.com/JohnnyMorganz/StyLua/issues/845
+        let cwd = construct_tree!({
+            ".styluaignore": "build/",
+            "build/foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--check", "--respect-ignores", "build/foo.lua"])
+            .assert()
+            .success();
+
+        cwd.close().unwrap();
     }
 }

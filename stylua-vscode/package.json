@@ -13,9 +13,9 @@
   },
   "license": "MPL-2.0",
   "icon": "assets/icon.png",
-  "version": "1.5.0",
+  "version": "1.6.3",
   "engines": {
-    "vscode": "^1.53.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Formatters"
@@ -30,7 +30,7 @@
     "onLanguage:lua",
     "onLanguage:luau"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -42,6 +42,24 @@
         "command": "stylua.authenticate",
         "title": "Authorize StyLua to use GitHub API",
         "category": "StyLua"
+      },
+      {
+        "command": "stylua.showOutputChannel",
+        "title": "Show Output Channel",
+        "category": "StyLua"
+      },
+      {
+        "command": "stylua.selectVersion",
+        "title": "Select Version",
+        "category": "StyLua"
+      }
+    ],
+    "languages": [
+      {
+        "id": "ignore",
+        "extensions": [
+          ".styluaignore"
+        ]
       }
     ],
     "configuration": {
@@ -69,7 +87,8 @@
           "enumDescriptions": [
             "The most recent version released. This will always keep you up to date."
           ],
-          "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`."
+          "markdownDescription": "The release version to install. This is overridden by `#stylua.targetReleaseVersion#`.",
+          "markdownDeprecationMessage": "This setting is deprecated. Use `#stylua.targetReleaseVersion#` instead, and the `Stylua: Select Version` command."
         },
         "stylua.targetReleaseVersion": {
           "type": "string",
@@ -84,48 +103,73 @@
           "default": null,
           "description": "Specifies the path of StyLua. If not specified, will automatically download one from the GitHub releases."
         },
+        "stylua.searchBinaryInPATH": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Search for the StyLua binary in the `PATH` environment variable, and use this if available. If disabled, falls back to a bundled binary"
+        },
         "stylua.disableVersionCheck": {
           "type": "boolean",
           "default": false,
-          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests"
+          "description": "Disable checking the version of stylua for newer versions. Useful if you do not want network requests."
+        },
+        "stylua.configPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to a `stylua.toml` configuration file. NOTE: this will override workspace configuration lookup"
         },
         "stylua.searchParentDirectories": {
           "type": "boolean",
           "default": false,
           "description": "Search parent directories for a stylua configuration file if one is not directly available."
+        },
+        "stylua.verify": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Pass the `--verify` flag to StyLua to enforce output verification"
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "format": "prettier --write src",
     "check:format": "prettier --check src",
-    "test": "node ./out/test/runTest.js"
+    "test": "vscode-test"
   },
   "devDependencies": {
     "@types/glob": "^7.1.3",
     "@types/mocha": "^8.2.1",
     "@types/node": "^12.20.4",
     "@types/node-fetch": "^2.5.8",
-    "@types/unzipper": "^0.10.3",
-    "@types/vscode": "^1.53.0",
-    "@typescript-eslint/eslint-plugin": "^4.15.2",
-    "@typescript-eslint/parser": "^4.15.2",
-    "eslint": "^7.20.0",
+    "@types/unzipper": "^0.10.8",
+    "@types/vscode": "^1.85.0",
+    "@types/which": "^3.0.3",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.56.0",
     "glob": "^7.1.6",
     "mocha": "^10.2.0",
     "prettier": "^2.3.1",
-    "typescript": "^4.2.2",
-    "vscode-test": "^1.5.1"
+    "ts-loader": "^9.2.8",
+    "typescript": "^5.3.3",
+    "webpack": "^5.70.0",
+    "webpack-cli": "^4.9.2"
   },
   "dependencies": {
     "ignore": "^5.1.8",
     "node-fetch": "^2.6.1",
-    "unzipper": "^0.10.11"
+    "semver": "^7.5.4",
+    "unzipper": "^0.10.14",
+    "which": "^4.0.0"
   }
 }

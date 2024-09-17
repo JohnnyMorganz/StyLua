@@ -10,42 +10,52 @@ jobs:
   test_default:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test (default)
         run: cargo test
 
   test_luau:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test (Luau)
         run: cargo test --features luau
+
+  # TODO: ideally this step isn't needed, but we have to gate some tests behind release mode
+  # we do this to ensure they still run in CI
+  # https://github.com/Kampfkarren/full-moon/issues/140
+  test_luau_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test (Luau - Release mode)
+        run: cargo test --features luau --release
 
   test_lua52:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test (Lua 5.2)
         run: cargo test --features lua52
 
   test_lua53:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test (Lua 5.3)
         run: cargo test --features lua53
 
   test_lua54:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test (Lua 5.4)
         run: cargo test --features lua54
 
   test_wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test Build (wasm)
         run: |
           rustup target add wasm32-unknown-unknown
@@ -54,7 +64,7 @@ jobs:
   test_wasm_build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -62,7 +72,7 @@ jobs:
           target: wasm32-unknown-unknown
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "16.x"
           registry-url: "https://registry.npmjs.org"
@@ -75,7 +85,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Clippy
         run: |

@@ -183,6 +183,9 @@ struct TypeInfoContext {
     // Foo<(string), (number)>
     // we should NOT remove these parentheses are they may correspond to single-type type packs
     within_generic: bool,
+    /// A TypeInfo in a table indexer
+    /// we should NOT remove parentheses around a compound type [("foo" | "bar")]: string
+    within_table_indexer: bool,
 
     /// A TypeInfo part of a union/intersection operation
     /// If its a mixed composite type, then we should not remove excess parentheses. e.g.
@@ -202,6 +205,7 @@ impl TypeInfoContext {
             within_optional: false,
             within_variadic: false,
             within_generic: false,
+            within_table_indexer: false,
             contains_union: false,
             contains_intersect: false,
         }
@@ -224,6 +228,13 @@ impl TypeInfoContext {
     fn mark_within_generic(self) -> TypeInfoContext {
         Self {
             within_generic: true,
+            ..self
+        }
+    }
+
+    fn mark_within_table_indexer(self) -> TypeInfoContext {
+        Self {
+            within_table_indexer: true,
             ..self
         }
     }
@@ -254,12 +265,18 @@ fn keep_parentheses(internal_type: &TypeInfo, context: TypeInfoContext) -> bool 
             true
         }
         TypeInfo::Union { .. } | TypeInfo::Optional { .. }
-            if context.within_optional || context.within_variadic || context.contains_intersect =>
+            if context.within_optional
+                || context.within_variadic
+                || context.within_table_indexer
+                || context.contains_intersect =>
         {
             true
         }
         TypeInfo::Intersection { .. }
-            if context.within_optional || context.within_variadic || context.contains_union =>
+            if context.within_optional
+                || context.within_variadic
+                || context.within_table_indexer
+                || context.contains_union =>
         {
             true
         }
@@ -839,7 +856,8 @@ pub fn format_type_field(
     let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
-    let trailing_trivia = value.trailing_trivia();
+    // Trailing trivia consists only of single line comments - multiline comments are kept in place
+    let trailing_trivia = value.trailing_comments_search(CommentSearch::Single);
 
     if let TableType::MultiLine = table_type {
         // If still over budget, hang the type
@@ -847,7 +865,9 @@ pub fn format_type_field(
             value = hang_type_info(ctx, type_field.value(), TypeInfoContext::new(), shape, 1)
         };
 
-        value = value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+        // Keep multiline comments in place
+        let multiline_comments = value.trailing_comments_search(CommentSearch::Multiline);
+        value = value.update_trailing_trivia(FormatTriviaType::Replace(multiline_comments))
     }
 
     (
@@ -873,7 +893,12 @@ pub fn format_type_field_key(
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
             brackets: format_contained_span(ctx, brackets, shape)
                 .update_leading_trivia(leading_trivia),
-            inner: format_type_info(ctx, inner, shape + 1), // 1 = "["
+            inner: format_type_info_internal(
+                ctx,
+                inner,
+                TypeInfoContext::new().mark_within_table_indexer(),
+                shape + 1,
+            ), // 1 = "["
         },
         other => panic!("unknown node {:?}", other),
     }

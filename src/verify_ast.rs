@@ -2,7 +2,7 @@ use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
         span::ContainedSpan,
-        Ast, Block, Expression, FunctionArgs, TableConstructor, Value,
+        Ast, Block, Expression, FunctionArgs, TableConstructor,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Token, TokenReference, TokenType},
@@ -32,14 +32,6 @@ impl AstVerifier {
 fn remove_parentheses(expression: Expression) -> Expression {
     match expression {
         Expression::Parentheses { expression, .. } => *expression,
-        Expression::Value { value, .. } => Expression::Value {
-            value: match *value {
-                Value::ParenthesesExpression(expression) => return remove_parentheses(expression),
-                _ => value,
-            },
-            #[cfg(feature = "luau")]
-            type_assertion: None,
-        },
         _ => expression,
     }
 }
@@ -107,24 +99,15 @@ impl VisitorMut for AstVerifier {
                     TokenReference::symbol("(").unwrap(),
                     TokenReference::symbol(")").unwrap(),
                 ),
-                arguments: std::iter::once(Pair::End(Expression::Value {
-                    value: Box::new(Value::String(string)),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                }))
-                .collect(),
+                arguments: std::iter::once(Pair::End(Expression::String(string))).collect(),
             },
             FunctionArgs::TableConstructor(table) => FunctionArgs::Parentheses {
                 parentheses: ContainedSpan::new(
                     TokenReference::symbol("(").unwrap(),
                     TokenReference::symbol(")").unwrap(),
                 ),
-                arguments: std::iter::once(Pair::End(Expression::Value {
-                    value: Box::new(Value::TableConstructor(table)),
-                    #[cfg(feature = "luau")]
-                    type_assertion: None,
-                }))
-                .collect(),
+                arguments: std::iter::once(Pair::End(Expression::TableConstructor(table)))
+                    .collect(),
             },
             _ => node,
         }
@@ -146,6 +129,12 @@ impl VisitorMut for AstVerifier {
                 // Luau: cleanse number of any digit separators
                 #[cfg(feature = "luau")]
                 let text = text.replace('_', "");
+                // LuaJIT (Lua52): remove suffixes
+                #[cfg(feature = "lua52")]
+                let text = text
+                    .trim_end_matches("ULL")
+                    .trim_end_matches("LL")
+                    .to_string();
 
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num,
@@ -303,6 +292,16 @@ mod tests {
 
         let mut ast_verifier = AstVerifier::new();
         assert!(!ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "lua52")]
+    fn test_equivalent_luajit_numbers() {
+        let input_ast = full_moon::parse("local x = 2 ^ 63LL").unwrap();
+        let output_ast = full_moon::parse("local x = 2 ^ 63").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
     }
 
     #[test]

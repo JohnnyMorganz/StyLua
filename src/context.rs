@@ -127,12 +127,14 @@ impl Context {
         FormatNode::Normal
     }
 
+    #[allow(deprecated)]
     pub fn should_omit_string_parens(&self) -> bool {
         self.config().no_call_parentheses
             || self.config().call_parentheses == CallParenType::None
             || self.config().call_parentheses == CallParenType::NoSingleString
     }
 
+    #[allow(deprecated)]
     pub fn should_omit_table_parens(&self) -> bool {
         self.config().no_call_parentheses
             || self.config().call_parentheses == CallParenType::None
@@ -141,14 +143,14 @@ impl Context {
 
     pub fn should_collapse_simple_functions(&self) -> bool {
         matches!(
-            self.config().collapse_simple_statement(),
+            self.config().collapse_simple_statement,
             CollapseSimpleStatement::FunctionOnly | CollapseSimpleStatement::Always
         )
     }
 
     pub fn should_collapse_simple_conditionals(&self) -> bool {
         matches!(
-            self.config().collapse_simple_statement(),
+            self.config().collapse_simple_statement,
             CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
         )
     }

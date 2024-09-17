@@ -45,11 +45,24 @@ export function formatCode(
       args.push("--range-end");
       args.push(endPos.toString());
     }
+
+    const configPath = vscode.workspace
+      .getConfiguration("stylua")
+      .get<string>("configPath");
+    if (configPath && configPath.trim() !== "") {
+      args.push("--config-path");
+      args.push(configPath);
+    }
+
     if (
       vscode.workspace.getConfiguration("stylua").get("searchParentDirectories")
     ) {
       args.push("--search-parent-directories");
     }
+    if (vscode.workspace.getConfiguration("stylua").get("verify")) {
+      args.push("--verify");
+    }
+
     args.push("-");
 
     const child = spawn(`${path}`, args, {

@@ -112,6 +112,7 @@ pub struct Shape {
 
 impl Shape {
     /// Creates a new shape at the base indentation level
+    #[must_use]
     pub fn new(ctx: &Context) -> Self {
         Self {
             indent: Indent::new(ctx),
@@ -122,6 +123,7 @@ impl Shape {
     }
 
     /// Sets the column width to the provided width. Normally only used to set an infinite width when testing layouts
+    #[must_use]
     pub fn with_column_width(&self, column_width: usize) -> Self {
         Self {
             column_width,
@@ -130,21 +132,25 @@ impl Shape {
     }
 
     /// Recreates the shape with the provided indentation
+    #[must_use]
     pub fn with_indent(&self, indent: Indent) -> Self {
         Self { indent, ..*self }
     }
 
     /// Recreates the shape with an infinite width. Useful when testing layouts and want to force code onto a single line
+    #[must_use]
     pub fn with_infinite_width(&self) -> Self {
         self.with_column_width(usize::MAX)
     }
 
     /// The current indentation of the shape
+    #[must_use]
     pub fn indent(&self) -> Indent {
         self.indent
     }
 
     /// Increments the block indentation level by one. Alias for `shape.with_indent(shape.indent().increment_block_indent())`
+    #[must_use]
     pub fn increment_block_indent(&self) -> Self {
         Self {
             indent: self.indent.increment_block_indent(),
@@ -153,6 +159,7 @@ impl Shape {
     }
 
     /// Increments the additional indentation level by one. Alias for `shape.with_indent(shape.indent().increment_additional_indent())`
+    #[must_use]
     pub fn increment_additional_indent(&self) -> Self {
         Self {
             indent: self.indent.increment_additional_indent(),
@@ -161,16 +168,19 @@ impl Shape {
     }
 
     /// The width currently taken up for this line
+    #[must_use]
     pub fn used_width(&self) -> usize {
         self.indent.indent_width() + self.offset
     }
 
     /// Check to see whether our current width is above the budget available
+    #[must_use]
     pub fn over_budget(&self) -> bool {
         self.used_width() > self.column_width
     }
 
     /// Adds a width offset to the current width total
+    #[must_use]
     pub fn add_width(&self, width: usize) -> Shape {
         Self {
             offset: self.offset + width,
@@ -180,10 +190,12 @@ impl Shape {
 
     /// Whether simple heuristics should be used when calculating formatting shape
     /// This is to reduce the expontential blowup of discarded test formatting
+    #[must_use]
     pub fn using_simple_heuristics(&self) -> bool {
         self.simple_heuristics
     }
 
+    #[must_use]
     pub fn with_simple_heuristics(&self) -> Shape {
         Self {
             simple_heuristics: true,
@@ -192,11 +204,13 @@ impl Shape {
     }
 
     /// Resets the offset for the shape
+    #[must_use]
     pub fn reset(&self) -> Shape {
         Self { offset: 0, ..*self }
     }
 
     /// Takes the first line from an item which can be converted into a string, and sets that to the shape
+    #[must_use]
     pub fn take_first_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{item}");
         let mut lines = string.lines();
@@ -207,6 +221,7 @@ impl Shape {
     /// Takes an item which could possibly span multiple lines. If it spans multiple lines, the shape is reset
     /// and the last line is added to the width. If it only takes a single line, we just continue adding to the current
     /// width
+    #[must_use]
     pub fn take_last_line<T: Display>(&self, item: &T) -> Shape {
         let string = format!("{item}");
         let mut lines = string.lines();
@@ -225,6 +240,7 @@ impl Shape {
     /// Takes in a new node, and tests whether adding it in will force any lines over the budget.
     /// This function attempts to ignore the impact of comments by removing them, which makes this function more expensive.
     /// NOTE: This function does not update state/return a new shape
+    #[must_use]
     pub fn test_over_budget<T: Node>(&self, item: &T) -> bool {
         // Converts the node into a string, removing any comments present
         // We strip leading/trailing comments of each token present, but keep whitespace

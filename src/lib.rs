@@ -100,8 +100,8 @@ pub enum CollapseSimpleStatement {
 #[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 pub struct Range {
-    start: Option<usize>,
-    end: Option<usize>,
+    pub start: Option<usize>,
+    pub end: Option<usize>,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -120,13 +120,20 @@ impl Range {
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct SortRequiresConfig {
     /// Whether the sort requires codemod is enabled
-    enabled: bool,
+    pub enabled: bool,
 }
 
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 impl SortRequiresConfig {
+    pub fn new() -> Self {
+        SortRequiresConfig::default()
+    }
+    #[deprecated(since = "0.19.0", note = "access `.enabled` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn enabled(&self) -> bool {
         self.enabled
     }
+    #[deprecated(since = "0.19.0", note = "modify `.enabled` directly instead")]
     pub fn set_enabled(&self, enabled: bool) -> Self {
         Self { enabled }
     }
@@ -141,20 +148,21 @@ pub struct Config {
     /// The approximate line length to use when printing the code.
     /// This is used as a guide to determine when to wrap lines, but note
     /// that this is not a hard upper bound.
-    column_width: usize,
+    pub column_width: usize,
     /// The type of line endings to use.
-    line_endings: LineEndings,
+    pub line_endings: LineEndings,
     /// The type of indents to use.
-    indent_type: IndentType,
+    pub indent_type: IndentType,
     /// The width of a single indentation level.
     /// If `indent_type` is set to [`IndentType::Spaces`], then this is the number of spaces to use.
     /// If `indent_type` is set to [`IndentType::Tabs`], then this is used as a heuristic to guide when to wrap lines.
-    indent_width: usize,
+    pub indent_width: usize,
     /// The style of quotes to use in string literals.
-    quote_style: QuoteStyle,
+    pub quote_style: QuoteStyle,
     /// Whether to omit parentheses around function calls which take a single string literal or table.
     /// This is added for adoption reasons only, and is not recommended for new work.
-    no_call_parentheses: bool,
+    #[deprecated(note = "use `call_parentheses` instead")]
+    pub no_call_parentheses: bool,
     /// When to use call parentheses.
     /// if call_parentheses is set to [`CallParenType::Always`] call parentheses is always applied.
     /// if call_parentheses is set to [`CallParenType::NoSingleTable`] call parentheses is omitted when
@@ -163,13 +171,13 @@ pub struct Config {
     /// function is called with only one table argument.
     /// if call_parentheses is set to [`CallParenType::None`] call parentheses is omitted when
     /// function is called with only one table or string argument (same as no_call_parentheses).
-    call_parentheses: CallParenType,
+    pub call_parentheses: CallParenType,
     /// Whether we should collapse simple structures like functions or guard statements
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
-    collapse_simple_statement: CollapseSimpleStatement,
+    pub collapse_simple_statement: CollapseSimpleStatement,
     /// Configuration for the sort requires codemod
-    sort_requires: SortRequiresConfig,
+    pub sort_requires: SortRequiresConfig,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -180,45 +188,65 @@ impl Config {
     }
 
     /// Returns the current configured column width
+    #[deprecated(since = "0.19.0", note = "access `.column_width` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn column_width(&self) -> usize {
         self.column_width
     }
 
     /// Returns the current configured line endings
+    #[deprecated(since = "0.19.0", note = "access `.line_endings` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn line_endings(&self) -> LineEndings {
         self.line_endings
     }
 
     /// Returns the current configured indent type
+    #[deprecated(since = "0.19.0", note = "access `.indent_type` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn indent_type(&self) -> IndentType {
         self.indent_type
     }
 
     /// Returns the current configured indent width
+    #[deprecated(since = "0.19.0", note = "access `.indent_width` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn indent_width(&self) -> usize {
         self.indent_width
     }
 
     /// Returns the current configured quote style
+    #[deprecated(since = "0.19.0", note = "access `.quote_style` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn quote_style(&self) -> QuoteStyle {
         self.quote_style
     }
 
     /// Returns the current configured call parentheses style
+    #[deprecated(since = "0.19.0", note = "access `.call_parentheses` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn call_parentheses(&self) -> CallParenType {
         self.call_parentheses
     }
 
+    #[deprecated(
+        since = "0.19.0",
+        note = "access `.collapse_simple_statement` directly instead"
+    )]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
         self.collapse_simple_statement
     }
 
     /// Returns the current sort requires codemod configuration
+    #[deprecated(since = "0.19.0", note = "access `.sort_requires` directly instead")]
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
     pub fn sort_requires(&self) -> SortRequiresConfig {
         self.sort_requires
     }
 
     /// Returns a new config with the given column width
+    #[deprecated(since = "0.19.0", note = "modify `.column_width` directly instead")]
     pub fn with_column_width(self, column_width: usize) -> Self {
         Self {
             column_width,
@@ -227,6 +255,7 @@ impl Config {
     }
 
     /// Returns a new config with the given line endings
+    #[deprecated(since = "0.19.0", note = "modify `.line_endings` directly instead")]
     pub fn with_line_endings(self, line_endings: LineEndings) -> Self {
         Self {
             line_endings,
@@ -235,6 +264,7 @@ impl Config {
     }
 
     /// Returns a new config with the given indent type
+    #[deprecated(since = "0.19.0", note = "modify `.indent_type` directly instead")]
     pub fn with_indent_type(self, indent_type: IndentType) -> Self {
         Self {
             indent_type,
@@ -243,6 +273,7 @@ impl Config {
     }
 
     /// Returns a new config with the given indent width
+    #[deprecated(since = "0.19.0", note = "modify `.indent_width` directly instead")]
     pub fn with_indent_width(self, indent_width: usize) -> Self {
         Self {
             indent_width,
@@ -251,6 +282,7 @@ impl Config {
     }
 
     /// Returns a new config with the given quote style
+    #[deprecated(since = "0.19.0", note = "modify `.quote_style` directly instead")]
     pub fn with_quote_style(self, quote_style: QuoteStyle) -> Self {
         Self {
             quote_style,
@@ -259,13 +291,17 @@ impl Config {
     }
 
     /// Returns a new config with the given value for `no_call_parentheses`
+    #[deprecated(note = "use `call_parentheses")]
     pub fn with_no_call_parentheses(self, no_call_parentheses: bool) -> Self {
+        #[allow(deprecated)]
         Self {
             no_call_parentheses,
             ..self
         }
     }
+
     /// Returns a new config with the given call parentheses type
+    #[deprecated(since = "0.19.0", note = "modify `.call_parentheses` directly instead")]
     pub fn with_call_parentheses(self, call_parentheses: CallParenType) -> Self {
         Self {
             call_parentheses,
@@ -273,6 +309,10 @@ impl Config {
         }
     }
 
+    #[deprecated(
+        since = "0.19.0",
+        note = "modify `.collapse_simple_statement` directly instead"
+    )]
     pub fn with_collapse_simple_statement(
         self,
         collapse_simple_statement: CollapseSimpleStatement,
@@ -284,6 +324,7 @@ impl Config {
     }
 
     /// Returns a new config with the given sort requires configuration
+    #[deprecated(since = "0.19.0", note = "modify `.sort_requires` directly instead")]
     pub fn with_sort_requires(self, sort_requires: SortRequiresConfig) -> Self {
         Self {
             sort_requires,
@@ -294,6 +335,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
+        #[allow(deprecated)]
         Self {
             column_width: 120,
             line_endings: LineEndings::default(),
@@ -350,7 +392,7 @@ pub fn format_ast(
     let ctx = Context::new(config, range);
 
     // Perform require sorting beforehand if necessary
-    let input_ast = match config.sort_requires().enabled() {
+    let input_ast = match config.sort_requires.enabled {
         true => sort_requires::sort_requires(&ctx, input_ast),
         false => input_ast,
     };
@@ -449,36 +491,42 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_column_width() {
         let new_config = Config::new().with_column_width(80);
         assert_eq!(new_config.column_width(), 80);
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_line_endings() {
         let new_config = Config::new().with_line_endings(LineEndings::Windows);
         assert_eq!(new_config.line_endings(), LineEndings::Windows);
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_indent_type() {
         let new_config = Config::new().with_indent_type(IndentType::Spaces);
         assert_eq!(new_config.indent_type(), IndentType::Spaces);
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_indent_width() {
         let new_config = Config::new().with_indent_width(2);
         assert_eq!(new_config.indent_width(), 2);
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_quote_style() {
         let new_config = Config::new().with_quote_style(QuoteStyle::ForceDouble);
         assert_eq!(new_config.quote_style(), QuoteStyle::ForceDouble);
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_config_call_parentheses() {
         let new_config = Config::new().with_call_parentheses(CallParenType::None);
         assert_eq!(new_config.call_parentheses(), CallParenType::None);

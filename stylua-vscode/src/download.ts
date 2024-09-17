@@ -1,50 +1,130 @@
 import * as vscode from "vscode";
 import * as unzip from "unzipper";
 import * as util from "./util";
+import * as semver from "semver";
 import fetch from "node-fetch";
 import { createWriteStream } from "fs";
 import { executeStylua } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
+import which = require("which");
 
-export class StyluaDownloader {
+export enum ResolveMode {
+  configuration = "configuration",
+  path = "PATH",
+  bundled = "bundled",
+}
+
+export interface StyluaInfo {
+  path: string;
+  resolveMode: ResolveMode;
+  version?: string | undefined;
+}
+
+const getStyluaVersion = async (path: string, cwd?: string) => {
+  try {
+    const currentVersion = (
+      await executeStylua(path, ["--version"], cwd)
+    )?.trim();
+    return currentVersion.substring("stylua ".length);
+  } catch (err) {
+    return undefined;
+  }
+};
+
+export class StyluaDownloader implements vscode.Disposable {
+  statusBarUpdateItem = vscode.window.createStatusBarItem(
+    "stylua.installUpdate",
+    vscode.StatusBarAlignment.Right
+  );
+
   constructor(
     private readonly storageDirectory: vscode.Uri,
-    private readonly github: GitHub
+    private readonly github: GitHub,
+    private readonly outputChannel: vscode.LogOutputChannel
   ) {}
 
-  public async ensureStyluaExists(cwd?: string): Promise<string | undefined> {
-    const path = await this.getStyluaPath();
+  public async findStylua(cwd?: string): Promise<StyluaInfo> {
+    // 1) If `stylua.styluaPath` has been specified, use that directly
+    const settingPath = vscode.workspace
+      .getConfiguration("stylua")
+      .get<string | null>("styluaPath");
+    if (settingPath) {
+      this.outputChannel.info(
+        `Stylua path explicitly configured: ${settingPath}`
+      );
+      return { path: settingPath, resolveMode: ResolveMode.configuration };
+    }
 
-    if (path === undefined) {
-      await vscode.workspace.fs.createDirectory(this.storageDirectory);
-      await this.downloadStyLuaVisual();
-      return await this.getStyluaPath();
-    } else {
-      if (!(await util.fileExists(path))) {
-        vscode.window.showErrorMessage(
-          `The path given for StyLua (${path}) does not exist`
-        );
-        return;
+    // 2) Find a `stylua` binary available on PATH
+    if (
+      vscode.workspace
+        .getConfiguration("stylua")
+        .get<boolean>("searchBinaryInPATH")
+    ) {
+      this.outputChannel.info("Searching for stylua on PATH");
+      const resolvedPath = await which("stylua", { nothrow: true });
+      if (resolvedPath) {
+        this.outputChannel.info(`Stylua found on PATH: ${resolvedPath}`);
+        if (await getStyluaVersion(resolvedPath, cwd)) {
+          return { path: resolvedPath, resolveMode: ResolveMode.path };
+        } else {
+          this.outputChannel.error(
+            "Stylua binary found on PATH failed to execute"
+          );
+        }
+      }
+    }
+
+    // 3) Fallback to bundled stylua version
+    this.outputChannel.info("Falling back to bundled StyLua version");
+    const downloadPath = vscode.Uri.joinPath(
+      this.storageDirectory,
+      util.getDownloadOutputFilename()
+    );
+    return { path: downloadPath.fsPath, resolveMode: ResolveMode.bundled };
+  }
+
+  public async ensureStyluaExists(
+    cwd?: string
+  ): Promise<StyluaInfo | undefined> {
+    const stylua = await this.findStylua(cwd);
+
+    if (stylua.resolveMode === ResolveMode.bundled) {
+      if (!(await util.fileExists(stylua.path))) {
+        await vscode.workspace.fs.createDirectory(this.storageDirectory);
+        await this.downloadStyLuaVisual(util.getDesiredVersion());
+      }
+      stylua.version = await getStyluaVersion(stylua.path, cwd);
+
+      // Check bundled version matches requested version
+      const desiredVersion = util.getDesiredVersion();
+      if (stylua.version && desiredVersion !== "latest") {
+        const desiredVersionSemver = semver.coerce(desiredVersion);
+        const styluaVersionSemver = semver.parse(stylua.version);
+        if (
+          desiredVersionSemver &&
+          styluaVersionSemver &&
+          semver.neq(desiredVersionSemver, styluaVersionSemver)
+        ) {
+          this.openIncorrectVersionPrompt(stylua.version, desiredVersion);
+        }
       }
 
+      // Check for latest version
       if (
         !vscode.workspace.getConfiguration("stylua").get("disableVersionCheck")
       ) {
         try {
-          const currentVersion = (
-            await executeStylua(path, ["--version"], cwd)
-          )?.trim();
-          const desiredVersion = util.getDesiredVersion();
-          const release = await this.github.getRelease(desiredVersion);
+          const latestRelease = await this.github.getRelease("latest");
           if (
-            currentVersion !==
-            `stylua ${
-              release.tagName.startsWith("v")
-                ? release.tagName.substr(1)
-                : release.tagName
-            }`
+            stylua.version !==
+            (latestRelease.tagName.startsWith("v")
+              ? latestRelease.tagName.substr(1)
+              : latestRelease.tagName)
           ) {
-            this.openUpdatePrompt(release);
+            this.showUpdateAvailable(latestRelease);
+          } else {
+            this.statusBarUpdateItem.hide();
           }
         } catch (err) {
           vscode.window.showWarningMessage(
@@ -63,25 +143,36 @@ export class StyluaDownloader {
             }
           }
         }
+      } else {
+        this.statusBarUpdateItem.hide();
       }
-
-      return path;
+    } else if (stylua.resolveMode === ResolveMode.configuration) {
+      if (!(await util.fileExists(stylua.path))) {
+        vscode.window.showErrorMessage(
+          `The path given for StyLua (${stylua.path}) does not exist`
+        );
+        return;
+      }
+      stylua.version = await getStyluaVersion(stylua.path, cwd);
+    } else if (stylua.resolveMode === ResolveMode.path) {
+      stylua.version = await getStyluaVersion(stylua.path, cwd);
     }
+
+    return stylua;
   }
 
-  public downloadStyLuaVisual(): Thenable<void> {
+  public downloadStyLuaVisual(version: string): Thenable<void> {
     return vscode.window.withProgress(
       {
         cancellable: false,
         location: vscode.ProgressLocation.Notification,
-        title: "Downloading StyLua",
+        title: `Downloading StyLua (${version})`,
       },
-      () => this.downloadStylua()
+      () => this.downloadStylua(version)
     );
   }
 
-  private async downloadStylua(): Promise<void> {
-    const version = util.getDesiredVersion();
+  private async downloadStylua(version: string): Promise<void> {
     const release = await this.github.getRelease(version);
     const assetFilename = util.getAssetFilenamePattern();
     const outputFilename = util.getDownloadOutputFilename();
@@ -118,41 +209,40 @@ export class StyluaDownloader {
     }
   }
 
-  private openUpdatePrompt(release: GitHubRelease) {
+  private showUpdateAvailable(release: GitHubRelease) {
+    this.statusBarUpdateItem.name = "StyLua Update";
+    this.statusBarUpdateItem.text = `StyLua update available (${release.tagName}) $(cloud-download)`;
+    this.statusBarUpdateItem.tooltip = "Click to update StyLua";
+    this.statusBarUpdateItem.command = {
+      title: "Update StyLua",
+      command: "stylua.installUpdate",
+      arguments: [release],
+    };
+    this.statusBarUpdateItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.warningBackground"
+    );
+    this.statusBarUpdateItem.show();
+  }
+
+  private openIncorrectVersionPrompt(
+    currentVersion: string,
+    requestedVersion: string
+  ) {
     vscode.window
       .showInformationMessage(
-        `StyLua ${release.tagName} is available to install.`,
-        "Install",
-        "Later",
-        "Release Notes"
+        `The currently installed version of StyLua (${currentVersion}) does not match the requested version (${requestedVersion})`,
+        "Install"
       )
       .then((option) => {
         switch (option) {
           case "Install":
-            this.downloadStyLuaVisual();
-            break;
-          case "Release Notes":
-            vscode.env.openExternal(vscode.Uri.parse(release.htmlUrl));
-            this.openUpdatePrompt(release);
+            vscode.commands.executeCommand("stylua.reinstall");
             break;
         }
       });
   }
 
-  public async getStyluaPath(): Promise<string | undefined> {
-    const settingPath = vscode.workspace
-      .getConfiguration("stylua")
-      .get<string | null>("styluaPath");
-    if (settingPath) {
-      return settingPath;
-    }
-
-    const downloadPath = vscode.Uri.joinPath(
-      this.storageDirectory,
-      util.getDownloadOutputFilename()
-    );
-    if (await util.fileExists(downloadPath)) {
-      return downloadPath.fsPath;
-    }
+  dispose() {
+    this.statusBarUpdateItem.dispose();
   }
 }

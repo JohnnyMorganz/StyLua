@@ -1,6 +1,6 @@
 {
   "name": "@johnnymorganz/stylua-bin",
-  "version": "0.18.1",
+  "version": "0.20.0",
   "description": "A code formatter for Lua",
   "bin": {
     "stylua": "./run.js"
@@ -30,8 +30,9 @@
   },
   "homepage": "https://github.com/johnnymorganz/stylua#readme",
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^1.6.0",
     "node-fetch": "^3.2.10",
+    "proxy-agent": "^6.4.0",
     "rimraf": "^3.0.2",
     "unzipper": "^0.10.11"
   }

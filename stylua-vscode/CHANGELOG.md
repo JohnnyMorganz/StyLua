@@ -11,6 +11,49 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.6.3] - 2024-01-06
+
+### Fixed
+
+- Temporarily disabled `stylua.searchBinaryInPATH` setting due to Aftman issues. If you do not use aftman, feel free to configure the setting to `true`
+
+## [1.6.2] - 2023-12-31
+
+### Fixed
+
+- Fixed errors when no stylua binary currently installed on PATH
+
+## [1.6.1] - 2023-12-30
+
+### Fixed
+
+- Fixed extension not starting up due to module not found error
+
+## [1.6.0] - 2023-12-30
+
+### Deprecated
+
+- `stylua.releaseVersion` is deprecated (as it required continual updates of available versions). Prefer `stylua.targetReleaseVersion` and the `Stylua: Select Version` command
+
+### Added
+
+- The extension now supports using a StyLua binary found on the PATH
+  - This can be configured via setting `stylua.searchBinaryOnPATH`
+  - If the binary fails to execute, we fall back to the bundled version
+- Added configuration option `stylua.configPath` to provide a direct path to a `stylua.toml` file. Note: this will override any workspace config lookup
+- Added configuration option `stylua.verify` to pass `--verify` to StyLua CLI when formatting a file. This enforces output verification
+- Added command `StyLua: Select Version` to customize which version of StyLua to install. This command updates the `stylua.targetReleaseVersion` setting
+- Added a new language status bar item to display StyLua information
+- Current StyLua version will now be shown in the status bar item
+
+### Changed
+
+- Removed excessive error notifications on formatting failure and replaced with VSCode language status bar item
+- `.styluaignore` is now registered as an ignore file with an appropriate file icon
+- StyLua version updates will now be shown on the status bar. To disable these notifications, configure `stylua.disableVersionCheck`
+- If `stylua.targetReleaseVersion` is set, we will now still notify about the latest release version
+- If `stylua.targetReleaseVersion` is set, but the installed version does not match, prompt to install desired version
+
 ## [1.5.0] - 2023-03-11
 
 ### Added

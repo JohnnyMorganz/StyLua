@@ -1,9 +1,10 @@
 ---
 source: tests/test_editorconfig.rs
 expression: "format(&contents, path.to_str().unwrap())"
+input_file: tests/inputs-editorconfig/empty-root/tab-double.lua
 ---
 local foo = {
-  a = 1,
+	a = 1,
 }
 
 local bar = ""

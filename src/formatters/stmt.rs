@@ -32,7 +32,7 @@ use crate::{
 use full_moon::{
     ast::{
         punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
-        GenericFor, If, NumericFor, Repeat, Stmt, Suffix, Value, While,
+        GenericFor, If, NumericFor, Repeat, Stmt, Suffix, While,
     },
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
@@ -60,10 +60,6 @@ pub fn remove_condition_parentheses(expression: Expression) -> Expression {
             let (_, comments) = trivia_util::take_trailing_comments(&expression);
             inner_expression.update_trailing_trivia(FormatTriviaType::Append(comments))
         }
-        Expression::Value { value, .. } => match *value {
-            Value::ParenthesesExpression(expression) => remove_condition_parentheses(expression),
-            _ => expression,
-        },
         _ => expression,
     }
 }
@@ -111,39 +107,30 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
     }
 
     match expression {
-        Expression::Value { value, .. } => {
-            match &**value {
-                // Ensure is function call
-                Value::FunctionCall(function_call) => {
-                    let mut suffixes = function_call.suffixes();
-                    // Test next 2 available suffixes
-                    match (suffixes.next(), suffixes.next()) {
-                        // Ensure at least one suffix, and only one suffix
-                        (Some(suffix), None) => match suffix {
-                            // Ensure suffix is a call with a single table constructor as argument
-                            Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(
-                                _,
-                            ))) => true,
-                            Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
-                                arguments,
-                                ..
-                            })) => {
-                                let mut arguments = arguments.iter();
-                                // Test next 2 available arguments
-                                match (arguments.next(), arguments.next()) {
-                                    // Ensure at least one argument, and only one argument
-                                    // And that the argument is a table constructor
-                                    (Some(Expression::Value { value, .. }), None) => {
-                                        matches!(**value, Value::TableConstructor(_))
-                                    }
-                                    _ => false,
-                                }
-                            }
+        // Ensure is function call
+        Expression::FunctionCall(function_call) => {
+            let mut suffixes = function_call.suffixes();
+            // Test next 2 available suffixes
+            match (suffixes.next(), suffixes.next()) {
+                // Ensure at least one suffix, and only one suffix
+                (Some(suffix), None) => match suffix {
+                    // Ensure suffix is a call with a single table constructor as argument
+                    Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(_))) => true,
+                    Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
+                        arguments,
+                        ..
+                    })) => {
+                        let mut arguments = arguments.iter();
+                        // Test next 2 available arguments
+                        match (arguments.next(), arguments.next()) {
+                            // Ensure at least one argument, and only one argument
+                            // And that the argument is a table constructor
+                            (Some(Expression::TableConstructor(_)), None) => true,
                             _ => false,
-                        },
-                        _ => false,
+                        }
                     }
-                }
+                    _ => false,
+                },
                 _ => false,
             }
         }
@@ -468,8 +455,12 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this
-        let stmt_leading_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
-        let stmt_trailing_trivia = FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]);
+        // INVARIANT: this stmt has no leading/trailing comments, as this is checked in `is_if_guard`
+        // This means we can replace trivia completely
+        debug_assert!(!trivia_util::contains_comments(if_node.block()));
+        let stmt_leading_trivia = FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]);
+        let stmt_trailing_trivia =
+            FormatTriviaType::Replace(vec![Token::new(TokenType::spaces(1))]);
 
         let block = if let Some(stmt) = if_node.block().stmts().next() {
             let stmt = format_stmt_no_trivia(ctx, stmt, singleline_shape)
@@ -803,7 +794,7 @@ pub(crate) mod stmt_block {
     use crate::{context::Context, formatters::block::format_block, shape::Shape};
     use full_moon::ast::{
         Call, Expression, Field, FunctionArgs, FunctionCall, Index, Prefix, Stmt, Suffix,
-        TableConstructor, Value,
+        TableConstructor,
     };
 
     fn format_table_constructor_block(
@@ -876,7 +867,7 @@ pub(crate) mod stmt_block {
     ) -> FunctionCall {
         let prefix = match function_call.prefix() {
             Prefix::Expression(expression) => {
-                Prefix::Expression(format_expression_block(ctx, expression, shape))
+                Prefix::Expression(Box::new(format_expression_block(ctx, expression, shape)))
             }
             Prefix::Name(name) => Prefix::Name(name.to_owned()),
             other => panic!("unknown node {:?}", other),
@@ -938,35 +929,26 @@ pub(crate) mod stmt_block {
                 unop: unop.to_owned(),
                 expression: Box::new(format_expression_block(ctx, expression, shape)),
             },
-            Expression::Value {
-                value,
-                #[cfg(feature = "luau")]
+            Expression::Function((function_token, body)) => {
+                let block = format_block(ctx, body.block(), shape);
+                Expression::Function((function_token.to_owned(), body.to_owned().with_block(block)))
+            }
+            Expression::FunctionCall(function_call) => {
+                Expression::FunctionCall(format_function_call_block(ctx, function_call, shape))
+            }
+            Expression::TableConstructor(table_constructor) => Expression::TableConstructor(
+                format_table_constructor_block(ctx, table_constructor, shape),
+            ),
+            #[cfg(feature = "luau")]
+            Expression::TypeAssertion {
+                expression,
                 type_assertion,
-            } => Expression::Value {
-                value: Box::new(match &**value {
-                    Value::Function((function_token, body)) => {
-                        let block = format_block(ctx, body.block(), shape);
-                        Value::Function((
-                            function_token.to_owned(),
-                            body.to_owned().with_block(block),
-                        ))
-                    }
-                    Value::FunctionCall(function_call) => {
-                        Value::FunctionCall(format_function_call_block(ctx, function_call, shape))
-                    }
-                    Value::TableConstructor(table_constructor) => Value::TableConstructor(
-                        format_table_constructor_block(ctx, table_constructor, shape),
-                    ),
-                    Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
-                        format_expression_block(ctx, expression, shape),
-                    ),
-                    // TODO: var?
-                    value => value.to_owned(),
-                }),
-                #[cfg(feature = "luau")]
+            } => Expression::TypeAssertion {
+                expression: Box::new(format_expression_block(ctx, expression, shape)),
                 type_assertion: type_assertion.to_owned(),
             },
-            other => panic!("unknown node {:?}", other),
+            // TODO: var?
+            value => value.to_owned(),
         }
     }
 

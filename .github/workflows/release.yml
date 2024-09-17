@@ -36,6 +36,9 @@ jobs:
             artifact-alias: stylua-linux
             cargo-target: x86_64-unknown-linux-gnu
           - os: ubuntu-20.04
+            artifact-name: stylua-linux-x86_64-musl
+            cargo-target: x86_64-unknown-linux-musl
+          - os: ubuntu-20.04
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
             linker: gcc-aarch64-linux-gnu
@@ -50,7 +53,7 @@ jobs:
     name: Build (${{ matrix.artifact-name }})
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -115,7 +118,7 @@ jobs:
     name: Publish to cargo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -127,7 +130,7 @@ jobs:
     name: Publish wasm to npm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -135,7 +138,7 @@ jobs:
           target: wasm32-unknown-unknown
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "16.x"
           registry-url: "https://registry.npmjs.org"
@@ -155,10 +158,10 @@ jobs:
     name: Publish binary to npm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "16.x"
           registry-url: "https://registry.npmjs.org"
@@ -178,14 +181,14 @@ jobs:
     name: Publish image to container registry
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
         id: buildx
         with:
           install: true
 
-      - uses: docker/metadata-action@v4
+      - uses: docker/metadata-action@v5
         id: meta
         env:
           DOCKER_METADATA_PR_HEAD_SHA: "true"
@@ -195,12 +198,12 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v5
         with:
           push: true
           context: .

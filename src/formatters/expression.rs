@@ -4,8 +4,8 @@ use full_moon::ast::types::{
 };
 use full_moon::{
     ast::{
-        span::ContainedSpan, BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Value,
-        Var, VarExpression,
+        span::ContainedSpan, BinOp, Expression, FunctionCall, Index, Prefix, Suffix, UnOp, Var,
+        VarExpression,
     },
     node::Node,
     tokenizer::{StringLiteralQuoteType, Symbol, Token, TokenReference, TokenType},
@@ -31,7 +31,8 @@ use crate::{
             UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            self, contains_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
+            self, contains_comments, prepend_newline_indent, take_leading_comments,
+            take_trailing_comments, trivia_is_newline, CommentSearch, GetLeadingTrivia,
             GetTrailingTrivia,
         },
     },
@@ -46,6 +47,7 @@ macro_rules! fmt_op {
                 $(#[$inner])*
                 $enum::$operator(token) => $enum::$operator(fmt_symbol!($ctx, token, $output, $shape)),
             )+
+            #[allow(clippy::redundant_closure_call)]
             other => $other(other),
         }
     };
@@ -99,7 +101,7 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
         TwoEqual = " == ",
         #[cfg(feature = "lua53")]
         Ampersand = " & ",
-        #[cfg(feature = "lua53")]
+        #[cfg(any(feature = "luau", feature = "lua53"))]
         DoubleSlash = " // ",
         #[cfg(feature = "lua53")]
         DoubleLessThan = " << ",
@@ -144,46 +146,38 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
         }
         // Don't bother removing them if there is a binop, as they may be needed. TODO: can we be more intelligent here?
         Expression::BinaryOperator { .. } => false,
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => {
-            // If we have a type assertion, and the context is a unary or binary operation
-            // we should always keep parentheses
-            // [e.g. #(value :: Array<string>) or -(value :: number)]
-            #[cfg(feature = "luau")]
-            if type_assertion.is_some()
-                && matches!(
-                    context,
-                    ExpressionContext::UnaryOrBinary
-                        | ExpressionContext::BinaryLHS
-                        | ExpressionContext::BinaryLHSExponent
-                )
-            {
-                return false;
-            }
 
-            match &**value {
-                // Internal expression is a function call
-                // We could potentially be culling values, so we should not remove parentheses
-                Value::FunctionCall(_) => false,
-                Value::Symbol(token_ref) => {
-                    match token_ref.token_type() {
-                        // If we have an ellipse inside of parentheses, we may also be culling values
-                        // Therefore, we don't remove parentheses
-                        TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
-                        _ => true,
-                    }
-                }
-                // If the internal expression is an if expression, we need to keep the parentheses
-                // as modifying it can lead to issues [e.g. (if <x> then <expr> else <expr>) + 1 is different without parens]
-                #[cfg(feature = "luau")]
-                Value::IfExpression(_) => false,
+        // If we have a type assertion, and the context is a unary or binary operation
+        // we should always keep parentheses
+        // [e.g. #(value :: Array<string>) or -(value :: number)]
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { .. }
+            if matches!(
+                context,
+                ExpressionContext::UnaryOrBinary
+                    | ExpressionContext::BinaryLHS
+                    | ExpressionContext::BinaryLHSExponent
+            ) =>
+        {
+            false
+        }
+
+        // Internal expression is a function call
+        // We could potentially be culling values, so we should not remove parentheses
+        Expression::FunctionCall(_) => false,
+        Expression::Symbol(token_ref) => {
+            match token_ref.token_type() {
+                // If we have an ellipse inside of parentheses, we may also be culling values
+                // Therefore, we don't remove parentheses
+                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
                 _ => true,
             }
         }
-        other => panic!("unknown node {:?}", other),
+        // If the internal expression is an if expression, we need to keep the parentheses
+        // as modifying it can lead to issues [e.g. (if <x> then <expr> else <expr>) + 1 is different without parens]
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(_) => false,
+        _ => true,
     }
 }
 
@@ -200,29 +194,46 @@ fn format_expression_internal(
     shape: Shape,
 ) -> Expression {
     match expression {
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
-            type_assertion,
-        } => Expression::Value {
-            value: Box::new(format_value(
-                ctx,
-                value,
-                shape,
-                #[cfg(feature = "luau")]
-                if type_assertion.is_some() {
-                    ExpressionContext::TypeAssertion
-                } else {
-                    context
-                },
-                #[cfg(not(feature = "luau"))]
-                context,
-            )),
+        Expression::Function((token_reference, function_body)) => Expression::Function(
+            format_anonymous_function(ctx, token_reference, function_body, shape),
+        ),
+        Expression::FunctionCall(function_call) => {
+            Expression::FunctionCall(format_function_call(ctx, function_call, shape))
+        }
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(if_expression) => {
+            Expression::IfExpression(format_if_expression(ctx, if_expression, shape))
+        }
+        Expression::Number(token_reference) => {
+            Expression::Number(format_token_reference(ctx, token_reference, shape))
+        }
+        Expression::String(token_reference) => {
+            Expression::String(format_token_reference(ctx, token_reference, shape))
+        }
+        #[cfg(feature = "luau")]
+        Expression::InterpolatedString(interpolated_string) => Expression::InterpolatedString(
+            format_interpolated_string(ctx, interpolated_string, shape),
+        ),
+        Expression::Symbol(token_reference) => {
+            Expression::Symbol(format_token_reference(ctx, token_reference, shape))
+        }
+        Expression::TableConstructor(table_constructor) => {
+            Expression::TableConstructor(format_table_constructor(ctx, table_constructor, shape))
+        }
+        Expression::Var(var) => Expression::Var(format_var(ctx, var, shape)),
 
-            #[cfg(feature = "luau")]
-            type_assertion: type_assertion
-                .as_ref()
-                .map(|assertion| format_type_assertion(ctx, assertion, shape)),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion {
+            expression,
+            type_assertion,
+        } => Expression::TypeAssertion {
+            expression: Box::new(format_expression_internal(
+                ctx,
+                expression,
+                ExpressionContext::TypeAssertion,
+                shape,
+            )),
+            type_assertion: format_type_assertion(ctx, type_assertion, shape),
         },
         Expression::Parentheses {
             contained,
@@ -294,15 +305,13 @@ fn format_expression_internal(
                         unop: UnOp::Minus(_),
                         ..
                     } => true,
-
-                    Expression::Value { ref value, .. } => matches!(
-                        **value,
-                        Value::ParenthesesExpression(Expression::UnaryOperator {
+                    Expression::Parentheses { ref expression, .. } => matches!(
+                        &**expression,
+                        Expression::UnaryOperator {
                             unop: UnOp::Minus(_),
                             ..
-                        })
+                        }
                     ),
-
                     _ => false,
                 };
 
@@ -350,19 +359,20 @@ fn format_expression_internal(
 }
 
 /// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
+/// We care about this because `[ [[string] ]` is invalid syntax if we remove the whitespace
 pub fn is_brackets_string(expression: &Expression) -> bool {
-    if let Expression::Value { value, .. } = expression {
-        if let Value::String(token_reference) = &**value {
-            return matches!(
-                token_reference.token_type(),
-                TokenType::StringLiteral {
-                    quote_type: StringLiteralQuoteType::Brackets,
-                    ..
-                }
-            );
-        }
+    match expression {
+        Expression::String(token_reference) => matches!(
+            token_reference.token_type(),
+            TokenType::StringLiteral {
+                quote_type: StringLiteralQuoteType::Brackets,
+                ..
+            }
+        ),
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion { expression, .. } => is_brackets_string(expression),
+        _ => false,
     }
-    false
 }
 
 /// Formats an Index Node
@@ -425,10 +435,26 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
             }
         }
 
-        Index::Dot { dot, name } => Index::Dot {
-            dot: format_token_reference(ctx, dot, shape),
-            name: format_token_reference(ctx, name, shape),
-        },
+        Index::Dot { dot, name } => {
+            // If there are any comments in between the dot and name,
+            // then taken them out and put them before the dot
+            let (mut dot, mut dot_comments) =
+                take_trailing_comments(&format_token_reference(ctx, dot, shape));
+            let (name, name_comments) =
+                take_leading_comments(&format_token_reference(ctx, name, shape));
+
+            dot_comments.extend(name_comments);
+
+            if !dot_comments.is_empty() {
+                dot = prepend_newline_indent(
+                    ctx,
+                    &dot.update_leading_trivia(FormatTriviaType::Append(dot_comments)),
+                    shape,
+                );
+            }
+
+            Index::Dot { dot, name }
+        }
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -436,12 +462,9 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
 // Checks if this is a string (allows strings wrapped in parentheses)
 fn is_string(expression: &Expression) -> bool {
     match expression {
+        Expression::String(_) => true,
         #[cfg(feature = "luau")]
-        Expression::Value { value, .. } => {
-            matches!(&**value, Value::String(_) | Value::InterpolatedString(_))
-        }
-        #[cfg(not(feature = "luau"))]
-        Expression::Value { value, .. } => matches!(&**value, Value::String(_)),
+        Expression::InterpolatedString(_) => true,
         Expression::Parentheses { expression, .. } => is_string(expression),
         _ => false,
     }
@@ -456,15 +479,15 @@ pub fn format_prefix(ctx: &Context, prefix: &Prefix, shape: Shape) -> Prefix {
             let singeline_shape = shape.take_first_line(&strip_trivia(&singleline_format));
 
             if singeline_shape.over_budget() && !is_string(expression) {
-                Prefix::Expression(format_hanging_expression_(
+                Prefix::Expression(Box::new(format_hanging_expression_(
                     ctx,
                     expression,
                     shape,
                     ExpressionContext::Prefix,
                     None,
-                ))
+                )))
             } else {
-                Prefix::Expression(singleline_format)
+                Prefix::Expression(Box::new(singleline_format))
             }
         }
         Prefix::Name(token_reference) => {
@@ -800,8 +823,17 @@ fn format_interpolated_string(
         let literal = format_token_reference(ctx, &segment.literal, shape);
         shape = shape + literal.to_string().len();
 
-        let expression = format_expression(ctx, &segment.expression, shape);
-        shape.take_last_line(&expression);
+        let mut expression = format_expression(ctx, &segment.expression, shape);
+        shape = shape.take_last_line(&expression);
+
+        // If expression is a table constructor, then ensure a space is added beforehand
+        // since `{{` syntax is not permitted
+        if let Expression::TableConstructor { .. } = expression {
+            expression =
+                expression.update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                    TokenType::spaces(1),
+                )]))
+        }
 
         segments.push(InterpolatedStringSegment {
             literal,
@@ -819,43 +851,6 @@ fn format_interpolated_string(
         ))
 }
 
-/// Formats a Value Node
-fn format_value(ctx: &Context, value: &Value, shape: Shape, context: ExpressionContext) -> Value {
-    match value {
-        Value::Function((token_reference, function_body)) => Value::Function(
-            format_anonymous_function(ctx, token_reference, function_body, shape),
-        ),
-        Value::FunctionCall(function_call) => {
-            Value::FunctionCall(format_function_call(ctx, function_call, shape))
-        }
-        #[cfg(feature = "luau")]
-        Value::IfExpression(if_expression) => {
-            Value::IfExpression(format_if_expression(ctx, if_expression, shape))
-        }
-        Value::Number(token_reference) => {
-            Value::Number(format_token_reference(ctx, token_reference, shape))
-        }
-        Value::ParenthesesExpression(expression) => Value::ParenthesesExpression(
-            format_expression_internal(ctx, expression, context, shape),
-        ),
-        Value::String(token_reference) => {
-            Value::String(format_token_reference(ctx, token_reference, shape))
-        }
-        #[cfg(feature = "luau")]
-        Value::InterpolatedString(interpolated_string) => {
-            Value::InterpolatedString(format_interpolated_string(ctx, interpolated_string, shape))
-        }
-        Value::Symbol(token_reference) => {
-            Value::Symbol(format_token_reference(ctx, token_reference, shape))
-        }
-        Value::TableConstructor(table_constructor) => {
-            Value::TableConstructor(format_table_constructor(ctx, table_constructor, shape))
-        }
-        Value::Var(var) => Value::Var(format_var(ctx, var, shape)),
-        other => panic!("unknown node {:?}", other),
-    }
-}
-
 /// Formats a Var Node
 pub fn format_var(ctx: &Context, var: &Var, shape: Shape) -> Var {
     match var {
@@ -863,7 +858,7 @@ pub fn format_var(ctx: &Context, var: &Var, shape: Shape) -> Var {
             Var::Name(format_token_reference(ctx, token_reference, shape))
         }
         Var::Expression(var_expression) => {
-            Var::Expression(format_var_expression(ctx, var_expression, shape))
+            Var::Expression(Box::new(format_var_expression(ctx, var_expression, shape)))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -1272,55 +1267,33 @@ fn format_hanging_expression_(
     let expression_range = expression.to_range();
 
     match expression {
-        Expression::Value {
-            value,
-            #[cfg(feature = "luau")]
+        #[cfg(feature = "luau")]
+        Expression::TypeAssertion {
+            expression,
             type_assertion,
         } => {
-            #[cfg(feature = "luau")]
-            let (expression_context, value_shape) = if let Some(type_assertion) = type_assertion {
-                // If we have a type assertion, we increment the current shape with the size of the assertion
-                // to "force" the parentheses to hang if necessary
-                (
-                    ExpressionContext::TypeAssertion,
-                    shape.take_first_line(&strip_trivia(type_assertion)),
-                )
-            } else {
-                (expression_context, shape)
-            };
-            #[cfg(not(feature = "luau"))]
-            let value_shape = shape;
+            // If we have a type assertion, we increment the current shape with the size of the assertion
+            // to "force" the parentheses to hang if necessary
+            let (expression_context, value_shape) = (
+                ExpressionContext::TypeAssertion,
+                shape.take_first_line(&strip_trivia(type_assertion)),
+            );
 
-            let value = Box::new(match &**value {
-                Value::ParenthesesExpression(expression) => {
-                    Value::ParenthesesExpression(format_hanging_expression_(
-                        ctx,
-                        expression,
-                        value_shape,
-                        expression_context,
-                        lhs_range,
-                    ))
-                }
-                _ => {
-                    let value_shape = if let Some(lhs_hang) = lhs_range {
-                        lhs_hang.required_shape(value_shape, &expression_range)
-                    } else {
-                        value_shape
-                    };
-                    format_value(ctx, value, value_shape, expression_context)
-                }
-            });
+            let expression = format_hanging_expression_(
+                ctx,
+                expression,
+                value_shape,
+                expression_context,
+                lhs_range,
+            );
 
             // Update the shape used to format the type assertion
             #[cfg(feature = "luau")]
-            let assertion_shape = shape.take_last_line(&value);
+            let assertion_shape = shape.take_last_line(&expression);
 
-            Expression::Value {
-                value,
-                #[cfg(feature = "luau")]
-                type_assertion: type_assertion
-                    .as_ref()
-                    .map(|assertion| format_type_assertion(ctx, assertion, assertion_shape)),
+            Expression::TypeAssertion {
+                expression: Box::new(expression),
+                type_assertion: format_type_assertion(ctx, type_assertion, assertion_shape),
             }
         }
         Expression::Parentheses {
@@ -1462,7 +1435,15 @@ fn format_hanging_expression_(
                 rhs: Box::new(new_rhs),
             }
         }
-        other => panic!("unknown node {:?}", other),
+        _ => {
+            let value_shape = if let Some(lhs_hang) = lhs_range {
+                lhs_hang.required_shape(shape, &expression_range)
+            } else {
+                shape
+            };
+
+            format_expression_internal(ctx, expression, expression_context, value_shape)
+        }
     }
 }
 

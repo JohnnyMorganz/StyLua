@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2024-01-20
+
+### Added
+
+- Introduced a new release artifact `stylua-linux-x86_64-musl` ([#834](https://github.com/JohnnyMorganz/StyLua/issues/834))
+
+### Changed
+
+- Files excluded by git (via `.gitignore` or global git configuration), as well as in an `.ignore` file (used by ripgrep and The Silver Searcher)
+  will now also be ignored by StyLua (as if they were all `.styluaignore` files). ([#833](https://github.com/JohnnyMorganz/StyLua/issues/833))
+
+### Fixed
+
+- Fixed handling of floor division (`//`) syntax when only Luau FFlag is enabled
+- Fixed missing space when table is inside of Luau interpolated string expression (`{{` is invalid syntax)
+- The CLI tool will now only write files if the contents differ, and not modify if no change ([#827](https://github.com/JohnnyMorganz/StyLua/issues/827))
+- Fixed parentheses around a Luau compound type inside of a type table indexer being removed causing a syntax error ([#828](https://github.com/JohnnyMorganz/StyLua/issues/828))
+- Fixed function body parentheses being placed on multiple lines unnecessarily when there are no parameters ([#830](https://github.com/JohnnyMorganz/StyLua/issues/830))
+- Fixed directory paths w/o globs in `.styluaignore` not matching when using `--respect-ignores` ([#845](https://github.com/JohnnyMorganz/StyLua/issues/845))
+
+## [0.19.1] - 2023-11-15
+
+This release has no changes. It resolves an issue in our test suite that may affect downstream package management tooling
+failing tests ([#824](https://github.com/JohnnyMorganz/StyLua/issues/824))
+
+## [0.19.0] - 2023-11-12
+
+### Added
+
+- Added flag `--respect-ignores`. By default, files explicitly passed to stylua (e.g. `stylua foo.lua`) will always be formatted, regardless of whether the file is ignored. Enabling this flag will consider `.styluaignore` or glob matches before formatting the file. ([#765](https://github.com/JohnnyMorganz/StyLua/issues/765))
+  - Note: for backwards compatibility reasons, formatting via stdin always respects ignores. This behaviour will change in the next major release
+
+### Changed
+
+- Updated parser crate with following changes:
+
+  - Support Luau floor division (`//`)
+  - Fix Luau string interpolation parsing
+  - Fix Luau `\z` escape parsing
+
+- Simplified access and modification patterns for StyLua configuration. You can now access the properties directly
+
+  - **Deprecated:** the old access patterns of `.property()` and `.with_property()` are now deprecated
+  - **Breaking Change (WASM):** due to JS/TS lack of differentiation between `.property` / `.property()` implementation, the `.property()` functions were removed from WASM output.
+
+- Multiline comments before commas will now remain in place and not move to after the comma. This is to support type-assertions-via-comments that is commonly used by some language servers. ([#778](https://github.com/JohnnyMorganz/StyLua/issues/778))
+
+### Fixed
+
+- Wasm build now correctly supports configuring sort requires ([#818](https://github.com/JohnnyMorganz/StyLua/issues/818))
+
+## [0.18.2] - 2023-09-10
+
+### Fixed
+
+- Fixed LuaJIT suffixes `LL`/`ULL` causing a panic when running in `--verify` mode ([#750](https://github.com/JohnnyMorganz/StyLua/issues/750))
+- Fixed incorrect formatting of conditionals when `collapse_simple_statement` is enabled and the block begins with an empty line ([#744](https://github.com/JohnnyMorganz/StyLua/issues/744))
+- Fixed formatting of dot function call chains with comment between dot and names ([#747](https://github.com/JohnnyMorganz/StyLua/issues/747))
+
 ## [0.18.1] - 2023-07-15
 
 ### Fixed
@@ -695,7 +754,11 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.18.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.20.0
+[0.19.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.1
+[0.19.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.0
+[0.18.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.2
 [0.18.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.1
 [0.18.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.18.0
 [0.17.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.17.1
