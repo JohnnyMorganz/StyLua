@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729971153866,
+  "lastUpdate": 1729972710850,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11675,6 +11675,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19867592,
             "range": "± 545892",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f78c0630d2a6c23db213567fc361c065787fa703",
+          "message": "Fix incorrect removal of semicolon before compound assignment causing ambiguous syntax error (#905)\n\n* Add test case\r\n\r\n* Handle compound assignment in requires semicolon check\r\n\r\n* Update changelog",
+          "timestamp": "2024-10-26T14:56:22-05:00",
+          "tree_id": "56c210aad614b9381a6a337af7d8023dceea65b5",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f78c0630d2a6c23db213567fc361c065787fa703"
+        },
+        "date": 1729972709716,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 37921758,
+            "range": "± 839407",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 278418075,
+            "range": "± 2212615",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20207024,
+            "range": "± 988599",
             "unit": "ns/iter"
           }
         ]
