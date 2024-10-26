@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729966597339,
+  "lastUpdate": 1729967546738,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11465,6 +11465,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19854036,
             "range": "± 744876",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f874a0b9c3ef6277d5b47585b19217a2fb60081e",
+          "message": "Bump braces from 3.0.2 to 3.0.3 in /stylua-vscode (#900)\n\nBumps [braces](https://github.com/micromatch/braces) from 3.0.2 to 3.0.3.\r\n- [Changelog](https://github.com/micromatch/braces/blob/master/CHANGELOG.md)\r\n- [Commits](https://github.com/micromatch/braces/compare/3.0.2...3.0.3)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: braces\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2024-10-26T13:30:16-05:00",
+          "tree_id": "57814fd7ca16ed6de61472fc92236421aa76818c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f874a0b9c3ef6277d5b47585b19217a2fb60081e"
+        },
+        "date": 1729967545695,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36548408,
+            "range": "± 479447",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 276224218,
+            "range": "± 701122",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19930575,
+            "range": "± 298604",
             "unit": "ns/iter"
           }
         ]
