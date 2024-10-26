@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729967578701,
+  "lastUpdate": 1729970554201,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11591,6 +11591,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19900799,
             "range": "± 372673",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "caleb@alerque.com",
+            "name": "Caleb Maclennan",
+            "username": "alerque"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9008ed2951f29a2fd5876cad2afeb7e58d4ec02b",
+          "message": "Touch up symbol rename (#903)\n\nTouch up symbol rename missed in recent PR",
+          "timestamp": "2024-10-26T14:20:25-05:00",
+          "tree_id": "cb905fc19959f61abce19c3a74bb94d36a8009f2",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/9008ed2951f29a2fd5876cad2afeb7e58d4ec02b"
+        },
+        "date": 1729970553707,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36744458,
+            "range": "± 448657",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 277587201,
+            "range": "± 612831",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 20002144,
+            "range": "± 96723",
             "unit": "ns/iter"
           }
         ]
