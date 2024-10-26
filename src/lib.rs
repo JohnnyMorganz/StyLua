@@ -139,6 +139,23 @@ impl SortRequiresConfig {
     }
 }
 
+/// When to use spaces after function names
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum SpaceAfterFunctionNames {
+    /// Never use spaces after function names.
+    #[default]
+    Never,
+    /// Use spaces after function names only for function definitions.
+    Definitions,
+    /// Use spaces after function names only for function calls.
+    Calls,
+    /// Use spaces after function names in definitions and calls.
+    Always,
+}
+
 /// The configuration to use when formatting.
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -178,6 +195,12 @@ pub struct Config {
     pub collapse_simple_statement: CollapseSimpleStatement,
     /// Configuration for the sort requires codemod
     pub sort_requires: SortRequiresConfig,
+    /// Whether we should include a space between the function name and arguments.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Never`] a space is never used.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Definitions`] a space is used only for definitions.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Calls`] a space is used only for calls.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Always`] a space is used for both definitions and calls.
+    pub space_after_function_names: SpaceAfterFunctionNames,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -346,6 +369,7 @@ impl Default for Config {
             call_parentheses: CallParenType::default(),
             collapse_simple_statement: CollapseSimpleStatement::default(),
             sort_requires: SortRequiresConfig::default(),
+            space_after_function_names: SpaceAfterFunctionNames::default(),
         }
     }
 }

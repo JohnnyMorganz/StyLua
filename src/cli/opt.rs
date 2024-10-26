@@ -1,6 +1,9 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
-use stylua_lib::{CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle};
+use stylua_lib::{
+    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle,
+    SpaceAfterFunctionNames,
+};
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
@@ -183,6 +186,8 @@ pub struct FormatOpts {
     /// Enable requires sorting
     #[structopt(long)]
     pub sort_requires: bool,
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub space_after_function_names: Option<ArgSpaceAfterFunctionNames>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -247,6 +252,13 @@ convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Never,
     FunctionOnly,
     ConditionalOnly,
+    Always,
+});
+
+convert_enum!(SpaceAfterFunctionNames, ArgSpaceAfterFunctionNames, {
+    Never,
+    Definitions,
+    Calls,
     Always,
 });
 
