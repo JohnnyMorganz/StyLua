@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729967546738,
+  "lastUpdate": 1729967552402,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11507,6 +11507,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19930575,
             "range": "± 298604",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4b7a4f3b223182a19a909e97796325d9aa93d456",
+          "message": "Bump webpack from 5.89.0 to 5.95.0 in /stylua-vscode (#901)\n\nBumps [webpack](https://github.com/webpack/webpack) from 5.89.0 to 5.95.0.\r\n- [Release notes](https://github.com/webpack/webpack/releases)\r\n- [Commits](https://github.com/webpack/webpack/compare/v5.89.0...v5.95.0)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: webpack\r\n  dependency-type: direct:development\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2024-10-26T13:30:28-05:00",
+          "tree_id": "ee12480240352e1f4e4633447b93df129c99043c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4b7a4f3b223182a19a909e97796325d9aa93d456"
+        },
+        "date": 1729967551287,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 38152447,
+            "range": "± 629908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 277067286,
+            "range": "± 2015752",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19951123,
+            "range": "± 101656",
             "unit": "ns/iter"
           }
         ]
