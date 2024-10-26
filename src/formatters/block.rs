@@ -154,7 +154,6 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                         let leading_comments = leading_comments
                             .iter()
                             .flat_map(|x| {
-                                println!("{x}");
                                 vec![
                                     create_indent_trivia(ctx, shape),
                                     x.to_owned(),

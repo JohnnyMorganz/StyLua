@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed formatting of method call chain when there is a comment between the colon token `:` and the function name ([#890](https://github.com/JohnnyMorganz/StyLua/issues/890))
+- Removed accidental random print to stdout when formatting a return statement across multiple lines ([#879](https://github.com/JohnnyMorganz/StyLua/issues/879))
 - Luau: Fixed incorrect removal of semicolon before compound assignment with parentheses leading to ambiguous syntax error ([#885](https://github.com/JohnnyMorganz/StyLua/issues/885))
 - Luau: Fixed incorrect collapsing of union/intersection type value with comments in a type table leading to a syntax error ([#893](https://github.com/JohnnyMorganz/StyLua/issues/893))
 
