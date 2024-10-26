@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added configuration option `space_after_function_names` to specify whether to include a space between a function name and parentheses ([#839](https://github.com/JohnnyMorganz/StyLua/issues/839))
 
+### Fixed
+
+- Fixed formatting of method call chain when there is a comment between the colon token `:` and the function name ([#890](https://github.com/JohnnyMorganz/StyLua/issues/890))
+
 ## [0.20.0] - 2024-01-20
 
 ### Added
