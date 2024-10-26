@@ -156,6 +156,9 @@ pub fn load_config(opt: &Opt) -> Result<Option<Config>> {
 pub fn load_overrides(config: Config, opt: &Opt) -> Config {
     let mut new_config = config;
 
+    if let Some(syntax) = opt.format_opts.syntax {
+        new_config.syntax = syntax.into();
+    };
     if let Some(column_width) = opt.format_opts.column_width {
         new_config.column_width = column_width;
     };
@@ -191,7 +194,15 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
 mod tests {
     use super::*;
     use clap::StructOpt;
-    use stylua_lib::{CallParenType, IndentType, LineEndings, QuoteStyle};
+    use stylua_lib::{CallParenType, IndentType, LineEndings, LuaVersion, QuoteStyle};
+
+    #[test]
+    fn test_override_syntax() {
+        let override_opt = Opt::parse_from(vec!["BINARY_NAME", "--syntax", "Lua51"]);
+        let default_config = Config::new();
+        let config = load_overrides(default_config, &override_opt);
+        assert_eq!(config.syntax, LuaVersion::Lua51);
+    }
 
     #[test]
     fn test_override_column_width() {

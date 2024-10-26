@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added runtime syntax configuration option `syntax` to help handle ambiguous syntax. By default, StyLua builds and runs with a parser to handle all Lua versions. However, the syntax of some Lua versions conflict with eachother: most notably, Lua 5.2+ goto label syntax `::label::` and Luau type assertion operator `::`. This option allows choosing what syntax to parse, to handle these conflicts. ([#407](https://github.com/JohnnyMorganz/StyLua/issues/407))
 - Added configuration option `space_after_function_names` to specify whether to include a space between a function name and parentheses ([#839](https://github.com/JohnnyMorganz/StyLua/issues/839))
+
+### Changed
+
+- Update internal Lua parser version (full-moon) to v1.1.0. This includes parser performance improvements. ([#854](https://github.com/JohnnyMorganz/StyLua/issues/854))
 
 ## [0.20.0] - 2024-01-20
 
