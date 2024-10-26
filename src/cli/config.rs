@@ -174,8 +174,8 @@ pub fn load_overrides(config: Config, opt: &Opt) -> Config {
     if let Some(call_parentheses) = opt.format_opts.call_parentheses {
         new_config.call_parentheses = call_parentheses.into();
     };
-    if let Some(space_after_functions) = opt.format_opts.space_after_functions {
-        new_config.space_after_functions = space_after_functions.into();
+    if let Some(space_after_function_names) = opt.format_opts.space_after_function_names {
+        new_config.space_after_function_names = space_after_function_names.into();
     };
     if let Some(collapse_simple_statement) = opt.format_opts.collapse_simple_statement {
         new_config.collapse_simple_statement = collapse_simple_statement.into();

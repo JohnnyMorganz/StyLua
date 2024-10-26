@@ -2,7 +2,7 @@ use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
 use stylua_lib::{
     CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle,
-    SpaceAfterFunctions,
+    SpaceAfterFunctionNames,
 };
 
 lazy_static::lazy_static! {
@@ -187,7 +187,7 @@ pub struct FormatOpts {
     #[structopt(long)]
     pub sort_requires: bool,
     #[structopt(long, arg_enum, ignore_case = true)]
-    pub space_after_functions: Option<ArgSpaceAfterFunctions>,
+    pub space_after_function_names: Option<ArgSpaceAfterFunctionNames>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -255,7 +255,7 @@ convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Always,
 });
 
-convert_enum!(SpaceAfterFunctions, ArgSpaceAfterFunctions, {
+convert_enum!(SpaceAfterFunctionNames, ArgSpaceAfterFunctionNames, {
     Never,
     Definitions,
     Calls,

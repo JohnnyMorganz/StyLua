@@ -1,10 +1,10 @@
-use stylua_lib::{format_code, Config, OutputVerification, SpaceAfterFunctions};
+use stylua_lib::{format_code, Config, OutputVerification, SpaceAfterFunctionNames};
 
-fn format(input: &str, space_after_functions: SpaceAfterFunctions) -> String {
+fn format(input: &str, space_after_function_names: SpaceAfterFunctionNames) -> String {
     format_code(
         input,
         Config {
-            space_after_functions,
+            space_after_function_names,
             ..Config::default()
         },
         None,
@@ -30,10 +30,10 @@ qiz()()
 "###;
 
 #[test]
-fn test_never_space_after_functions() {
+fn test_never_space_after_function_names() {
     insta::assert_snapshot!(
         format(STARTINGCODE,
-            SpaceAfterFunctions::Never
+            SpaceAfterFunctionNames::Never
         ),
         @r###"
 local foo = function() end
@@ -59,7 +59,7 @@ qiz()()
 fn test_space_after_function_definitions() {
     insta::assert_snapshot!(
         format(STARTINGCODE,
-            SpaceAfterFunctions::Definitions
+            SpaceAfterFunctionNames::Definitions
         ),
         @r###"
 local foo = function () end
@@ -85,7 +85,7 @@ qiz()()
 fn test_space_after_function_calls() {
     insta::assert_snapshot!(
         format(STARTINGCODE,
-            SpaceAfterFunctions::Calls
+            SpaceAfterFunctionNames::Calls
         ),
         @r###"
 local foo = function() end
@@ -108,10 +108,10 @@ qiz () ()
 }
 
 #[test]
-fn test_always_space_after_functions() {
+fn test_always_space_after_function_names() {
     insta::assert_snapshot!(
         format(STARTINGCODE,
-            SpaceAfterFunctions::Always
+            SpaceAfterFunctionNames::Always
         ),
         @r###"
 local foo = function () end
