@@ -12,20 +12,66 @@
         "url": "https://github.com/johnnymorganz/stylua"
     },
     "files": [
-        "stylua.node/stylua_lib_bg.wasm",
-        "stylua.node/stylua_lib.js",
-        "stylua.node/stylua_lib_bg.js",
-        "stylua.node/stylua_lib.d.ts",
-        "stylua.bundler/stylua_lib_bg.wasm",
-        "stylua.bundler/stylua_lib.js",
-        "stylua.bundler/stylua_lib_bg.js",
-        "stylua.bundler/stylua_lib.d.ts",
+        "stylua.web/stylua_lib_bg.wasm.d.ts",
+        "stylua.web/stylua_lib_bg.wasm",
+        "stylua.web/stylua_lib.d.ts",
+        "stylua.web/stylua_lib.js",
+        "stylua_lib_bundler_wbg.cjs",
+        "stylua_lib_bundler.d.ts",
+        "stylua_lib_bundler.js",
+        "stylua_lib.cjs",
+        "stylua_lib.d.cts",
+        "stylua_lib.d.mts",
+        "stylua_lib.mjs",
         "LICENSE.md"
     ],
-    "main": "stylua.node/stylua_lib.js",
-    "module": "stylua.bundler/stylua_lib.js",
-    "types": "stylua.bundler/stylua_lib.d.ts",
-    "sideEffects": false,
+    "type": "module",
+    "main": "stylua_lib.cjs",
+    "module": "stylua_lib_bundler.js",
+    "types": "stylua.web/stylua_lib.d.ts",
+    "exports": {
+        ".": {
+            "webpack": {
+                "node": "./stylua_lib.mjs",
+                "default": "./stylua_lib_bundler.js"
+            },
+            "require": {
+                "types": "./stylua_lib.d.cts",
+                "default": "./stylua_lib.cjs"
+            },
+            "node": {
+                "types": "./stylua_lib.d.mts",
+                "default": "./stylua_lib.mjs"
+            },
+            "deno": {
+                "types": "./stylua_lib.d.mts",
+                "default": "./stylua_lib.mjs"
+            },
+            "bun": {
+                "types": "./stylua_lib.d.mts",
+                "default": "./stylua_lib.mjs"
+            },
+            "default": {
+                "types": "./stylua_lib_bundler.d.ts",
+                "default": "./stylua_lib_bundler.js"
+            }
+        },
+        "./web": {
+            "types": "./stylua.web/stylua_lib.d.ts",
+            "default": "./stylua.web/stylua_lib.js"
+        },
+        "./web/*": "./stylua.web/*",
+        "./stylua_lib_bg.wasm": "./stylua.web/stylua_lib_bg.wasm",
+        "./package.josn": "./package.josn",
+        "./*": "./*"
+    },
+    "browser": {
+        "wbg": "./stylua_lib_bundler_wbg.cjs"
+    },
+    "sideEffects": [
+        "stylua_lib.mjs",
+        "stylua_lib_bundler.js"
+    ],
     "keywords": [
         "cli",
         "utility",

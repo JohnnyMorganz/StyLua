@@ -32,6 +32,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "node-fetch": "^3.2.10",
+    "proxy-agent": "^6.4.0",
     "rimraf": "^3.0.2",
     "unzipper": "^0.10.11"
   }

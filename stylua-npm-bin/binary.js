@@ -4,6 +4,7 @@ const os = require("os");
 const axios = require("axios");
 const unzip = require("unzipper");
 const rimraf = require("rimraf");
+const { ProxyAgent } = require('proxy-agent');
 const { join } = require("path");
 const { existsSync, mkdirSync, createWriteStream } = require("fs");
 const { spawnSync } = require("child_process");
@@ -44,8 +45,12 @@ const error = (msg) => {
 };
 
 const downloadArtifact = (url, location) => {
+  const agent = new ProxyAgent();
   return new Promise((resolve, reject) => {
     axios
+      // proxy: false is needed, otherwise axios is trying to overwrite the agent
+      // See https://github.com/axios/axios/issues/4531
+      .create({ proxy: false, httpAgent: agent, httpsAgent: agent })
       .get(url, { responseType: "stream" })
       .then((res) => res.data.pipe(unzip.Parse()))
       .then((stream) => {

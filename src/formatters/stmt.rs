@@ -413,6 +413,7 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
 /// - There is no elseif/else block
 /// - The body of the if block only contains a single [`LastStmt`] (note, this LastStmt may have multiple expressions e.g. `return foo, bar`)
 /// - There are no internal comments within the block
+///
 /// We will also check if the statement surpasses the column width, or if the condition required multilining (handled outside of this function)
 fn is_if_guard(if_node: &If) -> bool {
     if_node.else_if().is_none()
