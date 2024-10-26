@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729973694356,
+  "lastUpdate": 1729973856020,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11759,6 +11759,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20016911,
             "range": "± 308946",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1cf56d147beb8c7f0665d4300343650fdbbaa2d9",
+          "message": "Remove accidental print when formatting hanging returns (#907)",
+          "timestamp": "2024-10-26T15:15:34-05:00",
+          "tree_id": "fb587a7b79cb2fe695f1eb40f05ea5fa9747f5f5",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1cf56d147beb8c7f0665d4300343650fdbbaa2d9"
+        },
+        "date": 1729973854901,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36873876,
+            "range": "± 781895",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 275397070,
+            "range": "± 788854",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19825660,
+            "range": "± 245103",
             "unit": "ns/iter"
           }
         ]
