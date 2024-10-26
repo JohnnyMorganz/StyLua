@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1720952607781,
+  "lastUpdate": 1729966434679,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11339,6 +11339,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19770996,
             "range": "± 391215",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "caleb@alerque.com",
+            "name": "Caleb Maclennan",
+            "username": "alerque"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7988cb749bedb425c978a10ad6a0a992e2982106",
+          "message": "Add option for formatting with spaces between function names and arguments (#839)\n\n* Add option to define space after function definitions and calls\r\n\r\n* Add tests for new space after function name option\r\n\r\n* Implement formatting for new space after function name option\r\n\r\n* Rename option to `space_after_function_names`\r\n\r\n* Update changelog\r\n\r\n---------\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2024-10-26T13:11:57-05:00",
+          "tree_id": "06f7070f3820d84978b05ebedadf87f5bf9e812e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7988cb749bedb425c978a10ad6a0a992e2982106"
+        },
+        "date": 1729966434254,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 35390137,
+            "range": "± 499473",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 269737232,
+            "range": "± 4002186",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19366048,
+            "range": "± 1022201",
             "unit": "ns/iter"
           }
         ]
