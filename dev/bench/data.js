@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729966543658,
+  "lastUpdate": 1729966597339,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11423,6 +11423,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20310572,
             "range": "± 619251",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "013ddcfaa0f0241bfb110fe262f713d7969b51c3",
+          "message": "Bump follow-redirects from 1.15.4 to 1.15.6 in /stylua-npm-bin (#856)\n\nBumps [follow-redirects](https://github.com/follow-redirects/follow-redirects) from 1.15.4 to 1.15.6.\r\n- [Release notes](https://github.com/follow-redirects/follow-redirects/releases)\r\n- [Commits](https://github.com/follow-redirects/follow-redirects/compare/v1.15.4...v1.15.6)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: follow-redirects\r\n  dependency-type: indirect\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2024-10-26T13:14:27-05:00",
+          "tree_id": "07ccbac4a55eaba07943b2fff8907ce6ac19b98d",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/013ddcfaa0f0241bfb110fe262f713d7969b51c3"
+        },
+        "date": 1729966596632,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36270433,
+            "range": "± 262090",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 277052312,
+            "range": "± 705799",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19854036,
+            "range": "± 744876",
             "unit": "ns/iter"
           }
         ]
