@@ -1,7 +1,7 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
 use stylua_lib::{
-    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, QuoteStyle,
+    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion, QuoteStyle,
     SpaceAfterFunctionNames,
 };
 
@@ -162,6 +162,9 @@ pub enum OutputFormat {
 
 #[derive(StructOpt, Debug)]
 pub struct FormatOpts {
+    /// The type of Lua syntax to parse
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub syntax: Option<ArgLuaVersion>,
     /// The column width to use to attempt to wrap lines.
     #[structopt(long)]
     pub column_width: Option<usize>,
@@ -192,11 +195,12 @@ pub struct FormatOpts {
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
 macro_rules! convert_enum {
-    ($from:tt, $arg:tt, { $($enum_name:ident,)+ }) => {
+    ($from:tt, $arg:tt, { $($(#[$inner:meta])* $enum_name:ident,)+ }) => {
         #[derive(ArgEnum, Clone, Copy, Debug)]
         #[clap(rename_all = "PascalCase")]
         pub enum $arg {
             $(
+                $(#[$inner])*
                 $enum_name,
             )+
         }
@@ -205,6 +209,7 @@ macro_rules! convert_enum {
             fn from(other: $arg) -> $from {
                 match other {
                     $(
+                        $(#[$inner])*
                         $arg::$enum_name => $from::$enum_name,
                     )+
                 }
@@ -215,6 +220,7 @@ macro_rules! convert_enum {
             fn from(other: $from) -> $arg {
                 match other {
                     $(
+                        $(#[$inner])*
                         $from::$enum_name => $arg::$enum_name,
                     )+
                 }
@@ -222,6 +228,16 @@ macro_rules! convert_enum {
         }
     };
 }
+
+convert_enum!(LuaVersion, ArgLuaVersion, {
+    All,
+    Lua51,
+    #[cfg(feature = "lua52")] Lua52,
+    #[cfg(feature = "lua53")] Lua53,
+    #[cfg(feature = "lua54")] Lua54,
+    #[cfg(feature = "luau")] Luau,
+    #[cfg(feature = "luajit")] LuaJIT,
+});
 
 convert_enum!(LineEndings, ArgLineEndings, {
     Unix,

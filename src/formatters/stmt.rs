@@ -930,9 +930,12 @@ pub(crate) mod stmt_block {
                 unop: unop.to_owned(),
                 expression: Box::new(format_expression_block(ctx, expression, shape)),
             },
-            Expression::Function((function_token, body)) => {
-                let block = format_block(ctx, body.block(), shape);
-                Expression::Function((function_token.to_owned(), body.to_owned().with_block(block)))
+            Expression::Function(anonymous_function) => {
+                let block = format_block(ctx, anonymous_function.1.block(), shape);
+                Expression::Function(Box::new((
+                    anonymous_function.0.to_owned(),
+                    anonymous_function.1.to_owned().with_block(block),
+                )))
             }
             Expression::FunctionCall(function_call) => {
                 Expression::FunctionCall(format_function_call_block(ctx, function_call, shape))
