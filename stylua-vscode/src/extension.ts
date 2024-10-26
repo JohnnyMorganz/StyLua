@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import * as semver from "semver";
 import { formatCode, checkIgnored } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
@@ -239,7 +240,14 @@ export async function activate(context: vscode.ExtensionContext) {
         const currentWorkspace = vscode.workspace.getWorkspaceFolder(
           document.uri
         );
-        const cwd = currentWorkspace?.uri?.fsPath;
+
+        const workspacePath = currentWorkspace?.uri?.fsPath;
+        const documentPath = document.uri.fsPath;
+
+        const cwd =
+          workspacePath && documentPath.startsWith(workspacePath)
+            ? workspacePath
+            : path.dirname(documentPath);
 
         if (await checkIgnored(document.uri, currentWorkspace?.uri)) {
           return [];
