@@ -454,7 +454,7 @@ pub fn format_ast(
 
     // If we are verifying, reparse the output then check it matches the original input
     if let Some(input_ast) = input_ast_for_verification {
-        let output = full_moon::print(&ast);
+        let output = ast.to_string();
         let reparsed_output =
             match full_moon::parse_fallible(&output, config.syntax.into()).into_result() {
                 Ok(ast) => ast,
@@ -488,7 +488,7 @@ pub fn format_code(
     };
 
     let ast = format_ast(input_ast, config, range, verify_output)?;
-    let output = full_moon::print(&ast);
+    let output = ast.to_string();
 
     Ok(output)
 }

@@ -460,7 +460,7 @@ pub fn take_trailing_comments<T: GetTrailingTrivia + UpdateTrailingTrivia>(
 impl GetTrailingTrivia for Parameter {
     fn trailing_trivia(&self) -> Vec<Token> {
         match self {
-            Parameter::Name(token) | Parameter::Ellipse(token) => {
+            Parameter::Name(token) | Parameter::Ellipsis(token) => {
                 GetTrailingTrivia::trailing_trivia(token)
             }
             other => panic!("unknown node {:?}", other),

@@ -450,7 +450,7 @@ define_update_trivia!(MethodCall, |this, leading, trailing| {
 
 define_update_trivia!(Parameter, |this, leading, trailing| {
     match this {
-        Parameter::Ellipse(token) => Parameter::Ellipse(token.update_trivia(leading, trailing)),
+        Parameter::Ellipsis(token) => Parameter::Ellipsis(token.update_trivia(leading, trailing)),
         Parameter::Name(token) => Parameter::Name(token.update_trivia(leading, trailing)),
         other => panic!("unknown node {:?}", other),
     }

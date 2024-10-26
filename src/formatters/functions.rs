@@ -1214,7 +1214,7 @@ pub fn format_method_call(
 /// Formats a single Parameter node
 pub fn format_parameter(ctx: &Context, parameter: &Parameter, shape: Shape) -> Parameter {
     match parameter {
-        Parameter::Ellipse(token) => Parameter::Ellipse(fmt_symbol!(ctx, token, "...", shape)),
+        Parameter::Ellipsis(token) => Parameter::Ellipsis(fmt_symbol!(ctx, token, "...", shape)),
         Parameter::Name(token_reference) => {
             Parameter::Name(format_token_reference(ctx, token_reference, shape))
         }

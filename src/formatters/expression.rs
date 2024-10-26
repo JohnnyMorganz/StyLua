@@ -169,7 +169,7 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
             match token_ref.token_type() {
                 // If we have an ellipse inside of parentheses, we may also be culling values
                 // Therefore, we don't remove parentheses
-                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
+                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipsis),
                 _ => true,
             }
         }
