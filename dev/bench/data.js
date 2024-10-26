@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729970554201,
+  "lastUpdate": 1729971153866,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11633,6 +11633,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 20002144,
             "range": "± 96723",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f94a4b9d907e11bdeede5e90fdb1ec01dce3533",
+          "message": "Fix method call chain formatting with inline comments (#904)\n\nFix method call chain formatting with comments",
+          "timestamp": "2024-10-26T14:30:34-05:00",
+          "tree_id": "28e0995396772c022f1d5d78b48e531306d90efe",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4f94a4b9d907e11bdeede5e90fdb1ec01dce3533"
+        },
+        "date": 1729971153185,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 35714164,
+            "range": "± 1240011",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 279077819,
+            "range": "± 1986666",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19867592,
+            "range": "± 545892",
             "unit": "ns/iter"
           }
         ]
