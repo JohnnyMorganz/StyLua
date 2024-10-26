@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs-luau/compound-assignment-ambiguous-syntax.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/885
+
+local function foo()
+	return { b = "foo" }
+end
+
+local a = foo();
+(a :: any).b ..= "bar"
