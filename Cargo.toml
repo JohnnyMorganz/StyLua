@@ -56,7 +56,7 @@ threadpool = "1.8.1"
 toml = "0.8.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.81", optional = true }
+wasm-bindgen = { version = "0.2.95", optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"
