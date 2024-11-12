@@ -7,7 +7,7 @@
 	</h1>
 </div>
 
-An opinionated code formatter for Lua 5.1, 5.2, 5.3, 5.4 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
+A deterministic code formatter for Lua 5.1, 5.2, 5.3, 5.4 and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
 StyLua is inspired by the likes of [prettier](https://github.com/prettier/prettier), it parses your Lua codebase, and prints it back out from scratch,
 enforcing a consistent code style.
 
@@ -225,7 +225,7 @@ enabled = true
 
 ## Configuration
 
-StyLua is **opinionated**, so only a few options are provided.
+StyLua has opinionated defaults, but also provides a few options that can be set per project.
 
 ### Finding the configuration
 
