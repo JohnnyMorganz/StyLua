@@ -137,14 +137,14 @@ impl VisitorMut for AstVerifier {
                     .to_string();
 
                 let number = match text.as_str().parse::<f64>() {
-                    Ok(num) => num,
+                    Ok(num) => num.to_string(),
                     // Try parsing as Hex (0x)
-                    Err(_) => match i32::from_str_radix(&text.as_str()[2..], 16) {
-                        Ok(num) => num.into(),
+                    Err(_) => match i64::from_str_radix(&text.as_str()[2..], 16) {
+                        Ok(num) => num.to_string(),
                         // If in Luau, try parsing as binary (0b)
                         #[cfg(feature = "luau")]
-                        Err(_) => match i32::from_str_radix(&text.as_str()[2..], 2) {
-                            Ok(num) => num.into(),
+                        Err(_) => match i64::from_str_radix(&text.as_str()[2..], 2) {
+                            Ok(num) => num.to_string(),
                             Err(_) => unreachable!(),
                         },
                         #[cfg(not(feature = "luau"))]
@@ -153,7 +153,7 @@ impl VisitorMut for AstVerifier {
                 };
 
                 TokenType::Number {
-                    text: number.to_string().into(),
+                    text: number.into(),
                 }
             }
             _ => unreachable!(),
@@ -260,6 +260,16 @@ mod tests {
     fn test_equivalent_hex_numbers() {
         let input_ast = full_moon::parse("local x = 0XFFFF").unwrap();
         let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "luau")]
+    fn test_equivalent_hex_numbers_with_separators() {
+        let input_ast = full_moon::parse("local x = 0xffff_ffc0").unwrap();
+        let output_ast = full_moon::parse("local x = 0xffffffc0").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
