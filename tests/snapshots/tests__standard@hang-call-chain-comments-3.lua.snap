@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: format(&contents)
+input_file: tests/inputs/hang-call-chain-comments-3.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/890
+
+build()
+	-- comment
+	:init()
+	:start()

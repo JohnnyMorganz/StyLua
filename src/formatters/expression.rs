@@ -375,6 +375,31 @@ pub fn is_brackets_string(expression: &Expression) -> bool {
     }
 }
 
+pub fn process_dot_name(
+    ctx: &Context,
+    dot: &TokenReference,
+    name: &TokenReference,
+    shape: Shape,
+) -> (TokenReference, TokenReference) {
+    // If there are any comments in between the dot and name,
+    // then taken them out and put them before the dot
+    let (mut dot, mut dot_comments) =
+        take_trailing_comments(&format_token_reference(ctx, dot, shape));
+    let (name, name_comments) = take_leading_comments(&format_token_reference(ctx, name, shape));
+
+    dot_comments.extend(name_comments);
+
+    if !dot_comments.is_empty() {
+        dot = prepend_newline_indent(
+            ctx,
+            &dot.update_leading_trivia(FormatTriviaType::Append(dot_comments)),
+            shape,
+        );
+    }
+
+    (dot, name)
+}
+
 /// Formats an Index Node
 pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
     match index {
@@ -436,23 +461,7 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
         }
 
         Index::Dot { dot, name } => {
-            // If there are any comments in between the dot and name,
-            // then taken them out and put them before the dot
-            let (mut dot, mut dot_comments) =
-                take_trailing_comments(&format_token_reference(ctx, dot, shape));
-            let (name, name_comments) =
-                take_leading_comments(&format_token_reference(ctx, name, shape));
-
-            dot_comments.extend(name_comments);
-
-            if !dot_comments.is_empty() {
-                dot = prepend_newline_indent(
-                    ctx,
-                    &dot.update_leading_trivia(FormatTriviaType::Append(dot_comments)),
-                    shape,
-                );
-            }
-
+            let (dot, name) = process_dot_name(ctx, dot, name, shape);
             Index::Dot { dot, name }
         }
         other => panic!("unknown node {:?}", other),

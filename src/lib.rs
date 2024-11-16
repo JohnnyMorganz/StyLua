@@ -247,10 +247,10 @@ pub struct Config {
     /// Configuration for the sort requires codemod
     pub sort_requires: SortRequiresConfig,
     /// Whether we should include a space between the function name and arguments.
-    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Never`] a space is never used.
-    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Definitions`] a space is used only for definitions.
-    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Calls`] a space is used only for calls.
-    /// * if space_after_function_names is set to [`SpaceAfterFunctions::Always`] a space is used for both definitions and calls.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Never`] a space is never used.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Definitions`] a space is used only for definitions.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Calls`] a space is used only for calls.
+    /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Always`] a space is used for both definitions and calls.
     pub space_after_function_names: SpaceAfterFunctionNames,
 }
 

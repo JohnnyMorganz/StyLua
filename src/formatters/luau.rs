@@ -861,7 +861,10 @@ pub fn format_type_field(
 
     if let TableType::MultiLine = table_type {
         // If still over budget, hang the type
-        if can_hang_type(type_field.value()) && shape.test_over_budget(&value) {
+        if can_hang_type(type_field.value())
+            && (should_hang_type(type_field.value(), CommentSearch::Single)
+                || shape.test_over_budget(&value))
+        {
             value = hang_type_info(ctx, type_field.value(), TypeInfoContext::new(), shape, 1)
         };
 

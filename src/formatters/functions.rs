@@ -36,6 +36,8 @@ use crate::{
     CallParenType,
 };
 
+use super::expression::process_dot_name;
+
 /// Formats an Anonymous Function
 /// This doesn't have its own struct, but it is part of Value::Function
 pub fn format_anonymous_function(
@@ -938,6 +940,19 @@ fn should_inline_prefix(ctx: &Context, prefix: &Prefix) -> bool {
         || prefix.len() <= ctx.config().indent_width
 }
 
+fn suffix_contains_comments(suffix: &Suffix) -> bool {
+    match suffix {
+        Suffix::Index(Index::Dot { dot, name }) => {
+            dot.has_trailing_comments(CommentSearch::All)
+                || name.has_leading_comments(CommentSearch::All)
+        }
+        Suffix::Call(Call::MethodCall(method_call)) => method_call
+            .colon_token()
+            .has_trailing_comments(CommentSearch::Single),
+        _ => false,
+    }
+}
+
 /// Formats a FunctionCall node
 pub fn format_function_call(
     ctx: &Context,
@@ -958,7 +973,7 @@ pub fn format_function_call(
             while let Some(suffix) = peekable_suffixes.next() {
                 must_hang = suffix.has_leading_comments(CommentSearch::All)
                 // Check for comment placed inside of suffix
-                || matches!(suffix, Suffix::Index(Index::Dot { dot, name }) if dot.has_trailing_comments(CommentSearch::All) || name.has_leading_comments(CommentSearch::All))
+                || suffix_contains_comments(suffix)
                 // Check for a trailing comment (iff there is still a suffix after this)
                 || (peekable_suffixes.peek().is_some()
                     && suffix.has_trailing_comments(CommentSearch::All));
@@ -1212,15 +1227,15 @@ pub fn format_method_call(
     call_next_node: FunctionCallNextNode,
 ) -> MethodCall {
     let function_call_trivia = vec![create_function_call_trivia(ctx)];
-    let formatted_colon_token = format_token_reference(ctx, method_call.colon_token(), shape);
-    let formatted_name = format_token_reference(ctx, method_call.name(), shape);
-    let shape =
-        shape + (formatted_colon_token.to_string().len() + formatted_name.to_string().len());
+
+    let (colon_token, name) =
+        process_dot_name(ctx, method_call.colon_token(), method_call.name(), shape);
+    let shape = shape + (colon_token.to_string().len() + name.to_string().len());
     let formatted_function_args =
         format_function_args(ctx, method_call.args(), shape, call_next_node)
             .update_leading_trivia(FormatTriviaType::Append(function_call_trivia));
 
-    MethodCall::new(formatted_name, formatted_function_args).with_colon_token(formatted_colon_token)
+    MethodCall::new(name, formatted_function_args).with_colon_token(colon_token)
 }
 
 /// Formats a single Parameter node

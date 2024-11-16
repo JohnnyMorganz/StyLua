@@ -154,7 +154,6 @@ pub fn format_return(ctx: &Context, return_node: &Return, shape: Shape) -> Retur
                         let leading_comments = leading_comments
                             .iter()
                             .flat_map(|x| {
-                                println!("{x}");
                                 vec![
                                     create_indent_trivia(ctx, shape),
                                     x.to_owned(),
@@ -448,6 +447,50 @@ fn last_stmt_remove_leading_newlines(last_stmt: LastStmt) -> LastStmt {
     }
 }
 
+fn var_has_parentheses(var: &Var) -> bool {
+    match var {
+        Var::Expression(var_expression) => match var_expression.prefix() {
+            Prefix::Expression(expression) => {
+                matches!(&**expression, Expression::Parentheses { .. })
+            }
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+fn check_stmt_requires_semicolon(
+    stmt: &Stmt,
+    next_stmt: Option<&&(Stmt, Option<TokenReference>)>,
+) -> bool {
+    // Need to check next statement if it is a function call, with a parameters expression as the prefix
+    // If so, removing a semicolon may lead to ambiguous syntax
+    // Ambiguous syntax can only occur if the current statement is a (Local)Assignment, FunctionCall or a Repeat block
+    match stmt {
+        Stmt::Assignment(_)
+        | Stmt::LocalAssignment(_)
+        | Stmt::FunctionCall(_)
+        | Stmt::Repeat(_) => match next_stmt {
+            Some((Stmt::FunctionCall(function_call), _)) => match function_call.prefix() {
+                Prefix::Expression(expression) => {
+                    matches!(&**expression, Expression::Parentheses { .. })
+                }
+                _ => false,
+            },
+            Some((Stmt::Assignment(assignment), _)) => match assignment.variables().iter().next() {
+                Some(var) => var_has_parentheses(var),
+                _ => false,
+            },
+            #[cfg(feature = "luau")]
+            Some((Stmt::CompoundAssignment(compound_assignment), _)) => {
+                var_has_parentheses(compound_assignment.lhs())
+            }
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let mut ctx = *ctx;
@@ -469,44 +512,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             found_first_stmt = true;
         }
 
-        // Need to check next statement if it is a function call, with a parameters expression as the prefix
-        // If so, removing a semicolon may lead to ambiguous syntax
-        // Ambiguous syntax can only occur if the current statement is a (Local)Assignment, FunctionCall or a Repeat block
-        let require_semicolon = match stmt {
-            Stmt::Assignment(_)
-            | Stmt::LocalAssignment(_)
-            | Stmt::FunctionCall(_)
-            | Stmt::Repeat(_) => {
-                let next_stmt = stmt_iterator.peek();
-                match next_stmt {
-                    Some((Stmt::FunctionCall(function_call), _)) => match function_call.prefix() {
-                        Prefix::Expression(expression) => {
-                            matches!(&**expression, Expression::Parentheses { .. })
-                        }
-                        _ => false,
-                    },
-                    Some((Stmt::Assignment(assignment), _)) => {
-                        match assignment.variables().iter().next() {
-                            Some(Var::Expression(var_expression)) => {
-                                match var_expression.prefix() {
-                                    Prefix::Expression(expression) => {
-                                        matches!(&**expression, Expression::Parentheses { .. })
-                                    }
-                                    _ => false,
-                                }
-                            }
-                            _ => false,
-                        }
-                    }
-                    _ => false,
-                }
-            }
-            _ => false,
-        };
-
         // If we have a semicolon, we need to push all the trailing trivia from the statement
         // and move it to the end of the semicolon
-        let semicolon = match require_semicolon {
+        let semicolon = match check_stmt_requires_semicolon(&stmt, stmt_iterator.peek()) {
             true => {
                 let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
                 stmt = updated_stmt;
