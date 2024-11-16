@@ -276,6 +276,15 @@ mod tests {
     }
 
     #[test]
+    fn test_equivalent_hex_numbers_very_large_number() {
+        let input_ast = full_moon::parse("max = max or 0xffffffff").unwrap();
+        let output_ast = full_moon::parse("max = max or 0xffffffff").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
     fn test_different_hex_numbers() {
         let input_ast = full_moon::parse("local x = 0xFFAA").unwrap();
         let output_ast = full_moon::parse("local x = 0xFFFF").unwrap();

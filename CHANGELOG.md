@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed accidental random print to stdout when formatting a return statement across multiple lines ([#879](https://github.com/JohnnyMorganz/StyLua/issues/879))
 - Luau: Fixed incorrect removal of semicolon before compound assignment with parentheses leading to ambiguous syntax error ([#885](https://github.com/JohnnyMorganz/StyLua/issues/885))
 - Luau: Fixed incorrect collapsing of union/intersection type value with comments in a type table leading to a syntax error ([#893](https://github.com/JohnnyMorganz/StyLua/issues/893))
-- Fixed `--verify` panicing due to overflow for very large Hex numbers ([#889](https://github.com/JohnnyMorganz/StyLua/issues/889))
+- Fixed `--verify` panicing due to overflow for very large Hex numbers ([#875](https://github.com/JohnnyMorganz/StyLua/issues/875), [#889](https://github.com/JohnnyMorganz/StyLua/issues/889))
 
 ## [0.20.0] - 2024-01-20
 
