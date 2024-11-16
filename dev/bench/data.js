@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731768876422,
+  "lastUpdate": 1731785051249,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11843,6 +11843,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19973021,
             "range": "± 127705",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "daa6c6ed584a42cc092fac6516e85bd112f5b02a",
+          "message": "Update to new full-moon version v1.1.1 (#854)\n\n* Update to new full-moon version\r\n\r\n* simplify err message\r\n\r\n* fix token\r\n\r\n* Support Lua version customisation\r\n\r\n* compile full moon with release optimisations\r\n\r\n* Update to Boxed anonymous function\r\n\r\n* Add proper handling for shebang\r\n\r\n* Set default lua version to all features, to make it easier to get started\r\n\r\nMeans its technically not a breaking change\r\n\r\n* Handle left associativity of type unions / intersections\r\n\r\n* Update callback hanging snapshot\r\n\r\nThis formatting is actually correct - we don't have type pack unions,\r\nso we should be hanging at the union type after the return\r\n\r\n* Support LuaJIT as a separate syntax option\r\n\r\n* Rename config option from `lua_version` to `syntax`\r\n\r\n* Fix tests and re-enable large example in debug mode\r\n\r\n* Use released full moon v1.1.0\r\n\r\n* Add command line option to configure syntax and update changelog\r\n\r\n* Bump full-moon to 1.1.1\r\n\r\n* Fix compilation for luau\r\n\r\n* Handle access modifier in type array and tables\r\n\r\n* Handle new type info and union set up\r\n\r\nSomewhat ugly code, designed to ensure there is snapshot diff.\r\nBut, the code can be made nicer in #910\r\n\r\n* Cleanup\r\n\r\n* Fix verify_ast for luajit\r\n\r\n* Fix wasm build on CI\r\n\r\n* Update changelog about luajit",
+          "timestamp": "2024-11-16T20:22:19+01:00",
+          "tree_id": "dfd5cfb5ac7b8ae12c77e1bae5c84a62b823e4f1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/daa6c6ed584a42cc092fac6516e85bd112f5b02a"
+        },
+        "date": 1731785050017,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 25899928,
+            "range": "± 505734",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213656266,
+            "range": "± 1251611",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14828791,
+            "range": "± 158217",
             "unit": "ns/iter"
           }
         ]
