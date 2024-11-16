@@ -7,7 +7,7 @@
 	</h1>
 </div>
 
-A deterministic code formatter for Lua 5.1, 5.2, 5.3, 5.4, LuaJIT and [Luau](https://roblox.github.io/luau/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
+A deterministic code formatter for Lua 5.1, 5.2, 5.3, 5.4, LuaJIT and [Luau](https://luau.org/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
 StyLua is inspired by the likes of [prettier](https://github.com/prettier/prettier), it parses your Lua codebase, and prints it back out from scratch,
 enforcing a consistent code style.
 
