@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update internal Lua parser version (full-moon) to v1.1.0. This includes parser performance improvements. ([#854](https://github.com/JohnnyMorganz/StyLua/issues/854))
+- LuaJIT is now separated from Lua52, and is available in its own feature and syntax flag
 
 ### Fixed
 
