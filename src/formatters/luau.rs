@@ -296,20 +296,35 @@ fn format_type_info_internal(
     shape: Shape,
 ) -> TypeInfo {
     match type_info {
-        TypeInfo::Array { braces, type_info } => {
+        TypeInfo::Array {
+            braces,
+            access,
+            type_info,
+        } => {
             const BRACKET_LEN: usize = "{ ".len();
 
             let (start_brace, end_brace) = braces.tokens().to_owned();
 
             let contains_comments = start_brace.trailing_trivia().any(trivia_is_comment)
                 || end_brace.leading_trivia().any(trivia_is_comment)
+                || contains_comments(access)
                 || contains_comments(type_info);
+
+            let access = access.map(|token_reference| {
+                format_token_reference(ctx, &token_reference, shape + BRACKET_LEN)
+            });
+
+            let access_shape_increment = access.map_or(0, |token| token.to_string().len() + 1);
 
             let (table_type, new_type_info) = if contains_comments {
                 (TableType::MultiLine, None)
             } else {
-                let new_type_info =
-                    format_hangable_type_info(ctx, type_info, shape + BRACKET_LEN, 0);
+                let new_type_info = format_hangable_type_info(
+                    ctx,
+                    type_info,
+                    shape + BRACKET_LEN + access_shape_increment,
+                    0,
+                );
 
                 (
                     if spans_multiple_lines(&new_type_info) {
@@ -345,6 +360,7 @@ fn format_type_info_internal(
 
             TypeInfo::Array {
                 braces,
+                access,
                 type_info: Box::new(new_type_info.update_trivia(leading_trivia, trailing_trivia)),
             }
         }
@@ -857,9 +873,30 @@ pub fn format_type_field(
         _ => FormatTriviaType::NoChange,
     };
 
-    let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
+    let access = type_field.access().map(|token_reference| {
+        format_token_reference(ctx, token_reference, shape)
+            .update_leading_trivia(leading_trivia.clone())
+            .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                TokenType::spaces(1),
+            )]))
+    });
+    let access_shape_increment = access
+        .as_ref()
+        .map_or(0, |token| strip_leading_trivia(token).to_string().len() + 1);
+
+    let key = format_type_field_key(
+        ctx,
+        type_field.key(),
+        if access.is_some() {
+            FormatTriviaType::NoChange
+        } else {
+            leading_trivia
+        },
+        shape,
+    );
     let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
-    let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
+    let shape = shape + access_shape_increment + (strip_leading_trivia(&key).to_string().len() + 2);
+
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
     // Trailing trivia consists only of single line comments - multiline comments are kept in place
@@ -882,6 +919,7 @@ pub fn format_type_field(
     (
         type_field
             .to_owned()
+            .with_access(access)
             .with_key(key)
             .with_colon_token(colon_token)
             .with_value(value),

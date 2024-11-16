@@ -761,8 +761,13 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
 #[cfg(feature = "luau")]
 define_update_trivia!(TypeInfo, |this, leading, trailing| {
     match this {
-        TypeInfo::Array { braces, type_info } => TypeInfo::Array {
+        TypeInfo::Array {
+            braces,
+            access,
+            type_info,
+        } => TypeInfo::Array {
             braces: braces.update_trivia(leading, trailing),
+            access: access.to_owned(),
             type_info: type_info.to_owned(),
         },
         TypeInfo::Basic(token_reference) => {
@@ -938,8 +943,13 @@ define_update_trivia!(TypeAssertion, |this, leading, trailing| {
 
 #[cfg(feature = "luau")]
 define_update_leading_trivia!(TypeField, |this, leading| {
-    this.to_owned()
-        .with_key(this.key().update_leading_trivia(leading))
+    if let Some(access) = this.access() {
+        this.to_owned()
+            .with_access(Some(access.update_leading_trivia(leading)))
+    } else {
+        this.to_owned()
+            .with_key(this.key().update_leading_trivia(leading))
+    }
 });
 
 #[cfg(feature = "luau")]
