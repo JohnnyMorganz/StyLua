@@ -418,7 +418,10 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let opt = opt.clone();
 
                     let should_skip_format = match &opt.stdin_filepath {
-                        Some(path) => path_is_stylua_ignored(path, opt.search_parent_directories)?,
+                        Some(path) => {
+                            opt.respect_ignores
+                                && path_is_stylua_ignored(path, opt.search_parent_directories)?
+                        }
                         None => false,
                     };
 
@@ -738,6 +741,23 @@ mod tests {
     }
 
     #[test]
+    fn explicitly_provided_files_dont_check_ignores_stdin() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--stdin-filepath", "foo.lua", "-"])
+            .write_stdin("local   x    =   1")
+            .assert()
+            .success()
+            .stdout("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
     fn test_respect_ignores() {
         let cwd = construct_tree!({
             ".styluaignore": "foo.lua",
@@ -751,6 +771,23 @@ mod tests {
             .success();
 
         cwd.child("foo.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_ignores_stdin() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--respect-ignores", "--stdin-filepath", "foo.lua", "-"])
+            .write_stdin("local   x    =   1")
+            .assert()
+            .success()
+            .stdout("local   x    =   1");
 
         cwd.close().unwrap();
     }

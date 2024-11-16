@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking Changes
 
 - For automated downloaders: the legacy release artifacts `stylua-win64.zip`, `stylua-linux.zip` and `stylua-macos.zip` are no longer produced in GitHub releases, in favour of more specific names (e.g., `stylua-windows-x86_64`, `stylua-linux-x86_64` and `stylua-macos-x86_64`).
+- `--stdin-filepath` no longer respects ignore files by default, in line with passing files directly to the command line. Now, `stylua --stdin-filepath foo.lua -` will still format the stdin even if `foo.lua` was in a `.styluaignore` file. Use `--respect-ignores` to preserve the original behaviour.
 
 ### Added
 
