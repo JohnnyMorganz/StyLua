@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731786432015,
+  "lastUpdate": 1731787994800,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11969,6 +11969,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14964262,
             "range": "± 197601",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2c6a374fddf6588062bd3f287f15b2ba17fbba01",
+          "message": "Remove legacy release artifacts from GitHub releases (#911)",
+          "timestamp": "2024-11-16T21:10:58+01:00",
+          "tree_id": "7d1105b4c300091c94885c16f7f1bee0c1ccae9a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2c6a374fddf6588062bd3f287f15b2ba17fbba01"
+        },
+        "date": 1731787993342,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 25921744,
+            "range": "± 233720",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213936652,
+            "range": "± 1913752",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14882595,
+            "range": "± 54274",
             "unit": "ns/iter"
           }
         ]
