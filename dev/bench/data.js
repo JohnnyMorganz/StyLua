@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731788435372,
+  "lastUpdate": 1731789523951,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12053,6 +12053,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14814339,
             "range": "± 107088",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7caea0f29ed7415b2213df495f7f00e966a31373",
+          "message": "Update VSCode extension to use stdin-filepath and respect-ignores (#913)",
+          "timestamp": "2024-11-16T21:36:48+01:00",
+          "tree_id": "99adab7ca746533bccef667fadc80cc8c95bbfb3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7caea0f29ed7415b2213df495f7f00e966a31373"
+        },
+        "date": 1731789522810,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27692932,
+            "range": "± 297139",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 216789198,
+            "range": "± 1720279",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14985853,
+            "range": "± 150105",
             "unit": "ns/iter"
           }
         ]
