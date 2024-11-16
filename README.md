@@ -21,22 +21,26 @@ There are multiple ways to install StyLua:
 
 Pre-built binaries are available on the [GitHub Releases Page](https://github.com/JohnnyMorganz/StyLua/releases).
 
-By default, these are built with **all syntax variants enabled (Lua 5.2, 5.3, 5.4 and Luau)**, to cover all possible codebases.
-If you would like to format a specific Lua version only, see [installing from crates.io](#from-cratesio).
+By default, these are built with **all syntax variants enabled (Lua 5.2, 5.3, 5.4, LuaJIT and Luau)**, to cover all possible codebases.
+See [configuring runtime syntax selection](#configuring-runtime-syntax-selection) if you need to select a particular syntax of Lua to format.
+Alternatively, see [installing from crates.io](#from-cratesio) on how to install a particular flavour of StyLua.
 
 ### From Crates.io
 
 If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo.
 By default, this builds for just Lua 5.1.
-You can pass the `--features <flag>` argument to build for Lua 5.2 (`lua52`), Lua 5.3 (`lua53`), Lua 5.4 (`lua54`) or Luau (`luau`)
+You can pass the `--features <flag>` argument to build for Lua 5.2 (`lua52`), Lua 5.3 (`lua53`), Lua 5.4 (`lua54`), LuaJIT (`luajit`) or Luau (`luau`)
 
 ```sh
 cargo install stylua
 cargo install stylua --features lua52
 cargo install stylua --features lua53
 cargo install stylua --features lua54
+cargo install stylua --features luajit
 cargo install stylua --features luau
 ```
+
+You can specify multiple features in a single installation, and then use [configuration in a `.stylua.toml` file](#configuring-runtime-syntax-selection) to defer syntax selection to runtime.
 
 ### GitHub Actions
 
@@ -50,7 +54,7 @@ There are 3 possible pre-commit hooks available:
 
 - `stylua`: installs via cargo - requires the Rust toolchain
 - `stylua-system`: runs a `stylua` binary available on the PATH. The binary must be pre-installed
-- `stylua-github`: automatically installs the relevant prebuilt binary from GitHub Actions
+- `stylua-github`: automatically installs the relevant prebuilt binary from GitHub Releases
 
 Add the following to your `.pre-commit-config.yaml` file:
 
@@ -247,12 +251,29 @@ It is recommended to keep a `.stylua.toml` file in your project root so that oth
 
 If a project uses the default configuration of StyLua without a configuration file present, enabling external searching may cause conflicting formatting.
 
+### Configuring Runtime Syntax Selection
+
+By default, StyLua releases comes with all flavours of Lua bundled into one binary, with a union of all syntax styles.
+We do this to make it easier to get started with StyLua on any codebase or project using Lua.
+
+However, there are times where the union of syntaxes collide, causing issues. For example, Lua 5.2's goto label syntax
+(`::label::`) conflicts with Luau's type assertion syntax (`x :: number`), and the latter ends up taking priority.
+
+To disambiguate a particular syntax style for your codebase, set `syntax = "Style"` in your `.stylua.toml` file, e.g.:
+
+```toml
+syntax = "Lua52"
+```
+
+Alternatively, you can specify it on the command line, with `stylua --syntax lua52 ...`
+
 ### Options
 
 StyLua only offers the following options:
 
 | Option                       | Default            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `syntax`                     | `All`              | Specify a disambiguation for the style of Lua syntax being formatted. Possible options: `All` (default), `Lua51`, `Lua52`, `Lua53`, `Lua54`, `LuaJIT`, `Luau`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `column_width`               | `120`              | Approximate line length for printing. Used as a guide for line wrapping - this is not a hard requirement: lines may fall under or over the limit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `line_endings`               | `Unix`             | Line endings type. Possible options: `Unix` (LF) or `Windows` (CRLF)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `indent_type`                | `Tabs`             | Indent type. Possible options: `Tabs` or `Spaces`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -265,6 +286,7 @@ StyLua only offers the following options:
 Default `stylua.toml`, note you do not need to explicitly specify each option if you want to use the defaults:
 
 ```toml
+syntax = "All"
 column_width = 120
 line_endings = "Unix"
 indent_type = "Tabs"
