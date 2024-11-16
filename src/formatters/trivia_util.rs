@@ -6,11 +6,10 @@ use crate::{
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeInfo, TypeSpecifier,
+    TypeDeclaration, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::{
     ast::{
-        luau::{TypeIntersection, TypeUnion},
         punctuated::{Pair, Punctuated},
         BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
         Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,

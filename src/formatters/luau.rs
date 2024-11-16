@@ -889,44 +889,6 @@ fn hang_type_info(
                 types,
             ))
         }
-
-        // TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-        //     left: Box::new(hang_type_info(
-        //         ctx,
-        //         left,
-        //         context.mark_contains_union(),
-        //         shape,
-        //         hang_level,
-        //     )),
-        //     pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
-        //     right: Box::new(format_type_info_internal(
-        //         ctx,
-        //         &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-        //         context.mark_contains_union(),
-        //         hanging_shape.reset() + PIPE_LENGTH,
-        //     )),
-        // },
-
-        // TypeInfo::Intersection {
-        //     left,
-        //     ampersand,
-        //     right,
-        // } => TypeInfo::Intersection {
-        //     left: Box::new(hang_type_info(
-        //         ctx,
-        //         left,
-        //         context.mark_contains_intersect(),
-        //         shape,
-        //         hang_level,
-        //     )),
-        //     ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
-        //     right: Box::new(format_type_info_internal(
-        //         ctx,
-        //         &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-        //         context.mark_contains_intersect(),
-        //         hanging_shape.reset() + PIPE_LENGTH,
-        //     )),
-        // },
         other => format_type_info_internal(ctx, other, context, shape),
     }
 }
