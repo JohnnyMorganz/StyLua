@@ -11,6 +11,11 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Changed
+
+- The VSCode extension will now defer to using `stylua` itself to determine ignores and other configuration, rather than rolling its own ignore system
+- The VSCode extension now passes `--stdin-filepath` and `--respect-ignores` to the command line
+
 ## [1.6.3] - 2024-01-06
 
 ### Fixed
