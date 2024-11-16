@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731785462448,
+  "lastUpdate": 1731786432015,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11927,6 +11927,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15195795,
             "range": "± 171140",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "c0db21d972d96ff031154e095b4d2e369a2dd6c2",
+          "message": "Add another test case for hex overflow in ast verifier\n\nFixes #875",
+          "timestamp": "2024-11-16T20:44:32+01:00",
+          "tree_id": "8acb2883c8da3e40485ef3892a9d23ac996956bb",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c0db21d972d96ff031154e095b4d2e369a2dd6c2"
+        },
+        "date": 1731786431498,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26177521,
+            "range": "± 210560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 212995089,
+            "range": "± 708992",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14964262,
+            "range": "± 197601",
             "unit": "ns/iter"
           }
         ]
