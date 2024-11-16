@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/multiline_typeof_regression.lua
+---
+type TypeOf = typeof({})
+

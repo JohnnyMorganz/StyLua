@@ -30,9 +30,11 @@ local _foo4: string, _bar1: string
 
 local _union: number | string
 local _multiUnion: number | string | nil
+local _leadingUnion: | number | string | nil
 
 local _intersection: number & string
 local _multiIntersection: number & string & nil
+local _leadingIntersection: & number & string & nil
 
 function _fn0(param: string): string
 	return param

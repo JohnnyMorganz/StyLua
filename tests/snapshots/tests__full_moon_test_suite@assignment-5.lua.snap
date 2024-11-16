@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs-full_moon/assignment-5.lua
+---
+gui.Label.Text = "LOADING DATA" .. ("."):rep(dotCount)
+

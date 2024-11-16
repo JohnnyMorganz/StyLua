@@ -20,3 +20,6 @@ function Boo:f(name: string, ...: number): () -> (string, ...Foo) -> ()
 		return function(_x: string, ...: Foo) end
 	end
 end
+
+type Fn<U...> = any
+type T = Fn<...'ok'>

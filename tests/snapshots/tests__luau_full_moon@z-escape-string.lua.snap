@@ -1,8 +1,11 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau-full_moon/z-escape-string.lua
 ---
 print("testing \z
 	   twelve")
+
+print("Hello \
+	World")
 

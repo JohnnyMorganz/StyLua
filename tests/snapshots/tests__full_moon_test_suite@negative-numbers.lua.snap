@@ -1,8 +1,10 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs-full_moon/negative-numbers.lua
 ---
 local foo = x - 1
 local foo = x - 1
 print(1 + -3)
+local foo = -x + 1
 

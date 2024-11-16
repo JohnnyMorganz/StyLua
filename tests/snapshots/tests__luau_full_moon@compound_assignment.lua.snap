@@ -1,6 +1,7 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/compound_assignment.lua
 ---
 local x = 1
 local y = 2
@@ -9,6 +10,7 @@ x += 5
 x -= 5
 x *= 5
 x /= 5
+x //= 5
 x %= 5
 x ^= 5
 
@@ -16,6 +18,7 @@ x += y
 x -= y
 x *= y
 x /= y
+x //= y
 x %= y
 x ^= y
 

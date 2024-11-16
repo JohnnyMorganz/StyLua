@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/table_access_modifiers.lua
+---
+type Foo = {
+	read bar: number,
+	write baz: number,
+}
+

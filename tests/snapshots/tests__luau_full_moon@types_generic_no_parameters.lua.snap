@@ -1,9 +1,8 @@
 ---
 source: tests/tests.rs
-assertion_line: 40
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau-full_moon/types_generic_no_parameters.lua
-
 ---
 type Bar = Foo<>
+type Baz = module.Foo<>
 

@@ -1,6 +1,7 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/types.lua
 ---
 --!strict
 local _fn3
@@ -34,9 +35,11 @@ local _foo4: string, _bar1: string
 
 local _union: number | string
 local _multiUnion: number | string | nil
+local _leadingUnion: | number | string | nil
 
 local _intersection: number & string
 local _multiIntersection: number & string & nil
+local _leadingIntersection: & number & string & nil
 
 function _fn0(param: string): string
 	return param
