@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as semver from "semver";
-import { formatCode, checkIgnored } from "./stylua";
+import { formatCode } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
 import { ResolveMode, StyluaDownloader, StyluaInfo } from "./download";
 import { getDesiredVersion } from "./util";
@@ -241,16 +241,14 @@ export async function activate(context: vscode.ExtensionContext) {
         );
         const cwd = currentWorkspace?.uri?.fsPath;
 
-        if (await checkIgnored(document.uri, currentWorkspace?.uri)) {
-          return [];
-        }
-
         const text = document.getText();
 
         try {
           const formattedText = await formatCode(
+            outputChannel,
             styluaBinaryPath.path,
             text,
+            document.uri.fsPath,
             cwd,
             byteOffset(document, range.start),
             byteOffset(document, range.end)
