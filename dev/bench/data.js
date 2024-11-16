@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729973856020,
+  "lastUpdate": 1731768876422,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -11801,6 +11801,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 19825660,
             "range": "± 245103",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "caleb@alerque.com",
+            "name": "Caleb Maclennan",
+            "username": "alerque"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cfc5d336992f35f222a9b891848d169afe8e574d",
+          "message": "Update documentation of 'opinionated' to reflect project goals (#909)",
+          "timestamp": "2024-11-16T15:52:38+01:00",
+          "tree_id": "0c19e82ba033b4c026120af071020990b8d4fe02",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/cfc5d336992f35f222a9b891848d169afe8e574d"
+        },
+        "date": 1731768875921,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 36974819,
+            "range": "± 408593",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 277054493,
+            "range": "± 1162310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 19973021,
+            "range": "± 127705",
             "unit": "ns/iter"
           }
         ]
