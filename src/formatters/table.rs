@@ -407,8 +407,8 @@ where
 }
 
 fn expression_is_multiline_function(ctx: &Context, expression: &Expression) -> bool {
-    if let Expression::Function((_, function_body)) = expression {
-        return !should_collapse_function_body(ctx, function_body);
+    if let Expression::Function(anonymous_function) = expression {
+        return !should_collapse_function_body(ctx, &anonymous_function.1);
     }
     false
 }

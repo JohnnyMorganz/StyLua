@@ -1,5 +1,5 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
+use full_moon::ast::luau::{
     ElseIfExpression, IfExpression, InterpolatedString, InterpolatedStringSegment,
 };
 use full_moon::{
@@ -167,9 +167,9 @@ fn check_excess_parentheses(internal_expression: &Expression, context: Expressio
         Expression::FunctionCall(_) => false,
         Expression::Symbol(token_ref) => {
             match token_ref.token_type() {
-                // If we have an ellipse inside of parentheses, we may also be culling values
+                // If we have an ellipsis inside of parentheses, we may also be culling values
                 // Therefore, we don't remove parentheses
-                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipse),
+                TokenType::Symbol { symbol } => !matches!(symbol, Symbol::Ellipsis),
                 _ => true,
             }
         }
@@ -194,9 +194,9 @@ fn format_expression_internal(
     shape: Shape,
 ) -> Expression {
     match expression {
-        Expression::Function((token_reference, function_body)) => Expression::Function(
-            format_anonymous_function(ctx, token_reference, function_body, shape),
-        ),
+        Expression::Function(anonymous_function) => {
+            Expression::Function(format_anonymous_function(ctx, anonymous_function, shape))
+        }
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(format_function_call(ctx, function_call, shape))
         }

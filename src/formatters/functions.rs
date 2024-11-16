@@ -42,17 +42,17 @@ use super::expression::process_dot_name;
 /// This doesn't have its own struct, but it is part of Value::Function
 pub fn format_anonymous_function(
     ctx: &Context,
-    function_token: &TokenReference,
-    function_body: &FunctionBody,
+    anonymous_function: &(TokenReference, FunctionBody),
     shape: Shape,
-) -> (TokenReference, FunctionBody) {
+) -> Box<(TokenReference, FunctionBody)> {
     const FUNCTION_LEN: usize = "function".len();
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
-    let function_token = fmt_symbol!(ctx, function_token, "function", shape)
+    let function_token = fmt_symbol!(ctx, &anonymous_function.0, "function", shape)
         .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
-    let function_body = format_function_body(ctx, function_body, shape.add_width(FUNCTION_LEN));
+    let function_body =
+        format_function_body(ctx, &anonymous_function.1, shape.add_width(FUNCTION_LEN));
 
-    (function_token, function_body)
+    Box::new((function_token, function_body))
 }
 
 /// An enum providing information regarding the next AST node after a function call.
@@ -228,9 +228,9 @@ fn function_args_multiline_heuristic(
     for pair in first_iter_formatted_arguments {
         let argument = pair.value();
         match argument {
-            Expression::Function((_, function_body)) => {
+            Expression::Function(anonymous_function) => {
                 // Check to see whether it has been expanded
-                let is_expanded = !should_collapse_function_body(ctx, function_body);
+                let is_expanded = !should_collapse_function_body(ctx, &anonymous_function.1);
                 if is_expanded {
                     // If we have a mixture of multiline args, and other arguments
                     // Then the function args should be expanded
@@ -1241,7 +1241,7 @@ pub fn format_method_call(
 /// Formats a single Parameter node
 pub fn format_parameter(ctx: &Context, parameter: &Parameter, shape: Shape) -> Parameter {
     match parameter {
-        Parameter::Ellipse(token) => Parameter::Ellipse(fmt_symbol!(ctx, token, "...", shape)),
+        Parameter::Ellipsis(token) => Parameter::Ellipsis(fmt_symbol!(ctx, token, "...", shape)),
         Parameter::Name(token_reference) => {
             Parameter::Name(format_token_reference(ctx, token_reference, shape))
         }

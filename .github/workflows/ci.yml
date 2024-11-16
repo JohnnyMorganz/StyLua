@@ -21,16 +21,6 @@ jobs:
       - name: Test (Luau)
         run: cargo test --features luau
 
-  # TODO: ideally this step isn't needed, but we have to gate some tests behind release mode
-  # we do this to ensure they still run in CI
-  # https://github.com/Kampfkarren/full-moon/issues/140
-  test_luau_release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test (Luau - Release mode)
-        run: cargo test --features luau --release
-
   test_lua52:
     runs-on: ubuntu-latest
     steps:
@@ -52,6 +42,13 @@ jobs:
       - name: Test (Lua 5.4)
         run: cargo test --features lua54
 
+  test_luajit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test (LuaJIT)
+        run: cargo test --features luajit
+
   test_wasm:
     runs-on: ubuntu-latest
     steps:
@@ -59,7 +56,7 @@ jobs:
       - name: Test Build (wasm)
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo check --target wasm32-unknown-unknown
+          cargo check --target wasm32-unknown-unknown --features luau,lua52,lua53,lua54,luajit
 
   test_wasm_build:
     runs-on: ubuntu-latest

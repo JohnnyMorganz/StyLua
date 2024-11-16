@@ -1,12 +1,10 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/type-callback-hanging.lua
 ---
 export type Thenable<R, U> = {
-	andTheeeeeeeeeeeeeeen: (
-		any,
-		(R) -> () | Thenable<R, U> | U,
-		(any) -> () | Thenable<R, U> | U
-	) -> () | Thenable<R, U>,
+	andTheeeeeeeeeeeeeeen: (any, (R) -> () | Thenable<R, U> | U, (any) -> () | Thenable<R, U> | U) -> ()
+		| Thenable<R, U>,
 }
 

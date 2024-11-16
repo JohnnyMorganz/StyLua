@@ -4,15 +4,15 @@ use crate::{
     shape::Shape,
 };
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
+use full_moon::ast::luau::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeInfo, TypeSpecifier,
+    TypeDeclaration, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::{
     ast::{
-        punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
-        LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var,
-        VarExpression,
+        punctuated::{Pair, Punctuated},
+        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
+        Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -156,6 +156,50 @@ pub fn is_block_simple(block: &Block) -> bool {
             })
 }
 
+impl<T> GetLeadingTrivia for &T
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        (*self).leading_trivia()
+    }
+}
+
+impl<T> GetLeadingTrivia for Option<&T>
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Some(node) => node.leading_trivia(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl<T> GetTrailingTrivia for Option<&T>
+where
+    T: GetTrailingTrivia,
+{
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Some(node) => node.trailing_trivia(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl<T> GetLeadingTrivia for Pair<T>
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Pair::Punctuated(node, _) | Pair::End(node) => node.leading_trivia(),
+        }
+    }
+}
+
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
 impl GetTrailingTrivia for FunctionArgs {
     fn trailing_trivia(&self) -> Vec<Token> {
@@ -247,8 +291,8 @@ impl GetTrailingTrivia for GenericDeclarationParameter {
         } else {
             match self.parameter() {
                 GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
-                GenericParameterInfo::Variadic { ellipse, .. } => {
-                    ellipse.trailing_trivia().cloned().collect()
+                GenericParameterInfo::Variadic { ellipsis, .. } => {
+                    ellipsis.trailing_trivia().cloned().collect()
                 }
                 other => panic!("unknown node {:?}", other),
             }
@@ -290,7 +334,9 @@ impl GetLeadingTrivia for Expression {
                 other => panic!("unknown node {:?}", other),
             },
             Expression::BinaryOperator { lhs, .. } => lhs.leading_trivia(),
-            Expression::Function((token_ref, _)) => GetLeadingTrivia::leading_trivia(token_ref),
+            Expression::Function(anonymous_function) => {
+                GetLeadingTrivia::leading_trivia(&anonymous_function.0)
+            }
             Expression::FunctionCall(function_call) => function_call.prefix().leading_trivia(),
             #[cfg(feature = "luau")]
             Expression::IfExpression(if_expression) => {
@@ -326,8 +372,8 @@ impl GetTrailingTrivia for Expression {
             }
             Expression::UnaryOperator { expression, .. } => expression.trailing_trivia(),
             Expression::BinaryOperator { rhs, .. } => rhs.trailing_trivia(),
-            Expression::Function((_, function_body)) => {
-                GetTrailingTrivia::trailing_trivia(function_body.end_token())
+            Expression::Function(anonymous_function) => {
+                GetTrailingTrivia::trailing_trivia(anonymous_function.1.end_token())
             }
             Expression::FunctionCall(function_call) => function_call
                 .suffixes()
@@ -458,7 +504,7 @@ pub fn take_trailing_comments<T: GetTrailingTrivia + UpdateTrailingTrivia>(
 impl GetTrailingTrivia for Parameter {
     fn trailing_trivia(&self) -> Vec<Token> {
         match self {
-            Parameter::Name(token) | Parameter::Ellipse(token) => {
+            Parameter::Name(token) | Parameter::Ellipsis(token) => {
                 GetTrailingTrivia::trailing_trivia(token)
             }
             other => panic!("unknown node {:?}", other),
@@ -494,6 +540,28 @@ impl GetTrailingTrivia for IndexedTypeInfo {
 }
 
 #[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeIntersection {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.types()
+            .last()
+            .expect("TypeIntersection was empty")
+            .value()
+            .trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeUnion {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.types()
+            .last()
+            .expect("TypeIntersection was empty")
+            .value()
+            .trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
 impl GetTrailingTrivia for TypeInfo {
     fn trailing_trivia(&self) -> Vec<Token> {
         match self {
@@ -505,8 +573,8 @@ impl GetTrailingTrivia for TypeInfo {
             TypeInfo::Generic { arrows, .. } => {
                 GetTrailingTrivia::trailing_trivia(arrows.tokens().1)
             }
-            TypeInfo::GenericPack { ellipse, .. } => GetTrailingTrivia::trailing_trivia(ellipse),
-            TypeInfo::Intersection { right, .. } => right.trailing_trivia(),
+            TypeInfo::GenericPack { ellipsis, .. } => GetTrailingTrivia::trailing_trivia(ellipsis),
+            TypeInfo::Intersection(intersection) => intersection.trailing_trivia(),
             TypeInfo::Module { type_info, .. } => type_info.trailing_trivia(),
             TypeInfo::Optional { question_mark, .. } => {
                 GetTrailingTrivia::trailing_trivia(question_mark)
@@ -518,10 +586,40 @@ impl GetTrailingTrivia for TypeInfo {
             TypeInfo::Tuple { parentheses, .. } => {
                 GetTrailingTrivia::trailing_trivia(parentheses.tokens().1)
             }
-            TypeInfo::Union { right, .. } => right.trailing_trivia(),
+            TypeInfo::Union(union) => union.trailing_trivia(),
             TypeInfo::Variadic { type_info, .. } => type_info.trailing_trivia(),
             TypeInfo::VariadicPack { name, .. } => GetTrailingTrivia::trailing_trivia(name),
             other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetLeadingTrivia for TypeIntersection {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self.leading() {
+            Some(leading) => GetLeadingTrivia::leading_trivia(leading),
+            None => self
+                .types()
+                .first()
+                .expect("TypeIntersection was empty")
+                .value()
+                .leading_trivia(),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetLeadingTrivia for TypeUnion {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self.leading() {
+            Some(leading) => GetLeadingTrivia::leading_trivia(leading),
+            None => self
+                .types()
+                .first()
+                .expect("TypeUnion was empty")
+                .value()
+                .leading_trivia(),
         }
     }
 }
@@ -544,7 +642,7 @@ impl GetLeadingTrivia for TypeInfo {
             },
             TypeInfo::Generic { base, .. } => GetLeadingTrivia::leading_trivia(base),
             TypeInfo::GenericPack { name, .. } => GetLeadingTrivia::leading_trivia(name),
-            TypeInfo::Intersection { left, .. } => left.leading_trivia(),
+            TypeInfo::Intersection(intersection) => intersection.leading_trivia(),
             TypeInfo::Module { module, .. } => GetLeadingTrivia::leading_trivia(module),
             TypeInfo::Optional { base, .. } => base.leading_trivia(),
             TypeInfo::Table { braces, .. } => GetLeadingTrivia::leading_trivia(braces.tokens().0),
@@ -552,9 +650,9 @@ impl GetLeadingTrivia for TypeInfo {
             TypeInfo::Tuple { parentheses, .. } => {
                 GetLeadingTrivia::leading_trivia(parentheses.tokens().0)
             }
-            TypeInfo::Union { left, .. } => left.leading_trivia(),
-            TypeInfo::Variadic { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
-            TypeInfo::VariadicPack { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
+            TypeInfo::Union(union) => union.leading_trivia(),
+            TypeInfo::Variadic { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
+            TypeInfo::VariadicPack { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
             other => panic!("unknown node {:?}", other),
         }
     }

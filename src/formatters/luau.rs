@@ -21,10 +21,14 @@ use crate::{
     },
     shape::Shape,
 };
-use full_moon::ast::types::{
-    CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+use full_moon::ast::{
+    luau::{
+        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
+        TypeSpecifier, TypeUnion,
+    },
+    punctuated::Pair,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -70,9 +74,8 @@ pub fn format_compound_assignment(
 // we should try and hug them together if possible
 fn should_hug_type(type_info: &TypeInfo) -> bool {
     match type_info {
-        TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
-            should_hug_type(left) || should_hug_type(right)
-        }
+        TypeInfo::Union(union) => union.types().iter().any(should_hug_type),
+        TypeInfo::Intersection(intersection) => intersection.types().iter().any(should_hug_type),
         TypeInfo::Table { .. } => true,
         _ => false,
     }
@@ -296,20 +299,37 @@ fn format_type_info_internal(
     shape: Shape,
 ) -> TypeInfo {
     match type_info {
-        TypeInfo::Array { braces, type_info } => {
+        TypeInfo::Array {
+            braces,
+            access,
+            type_info,
+        } => {
             const BRACKET_LEN: usize = "{ ".len();
 
             let (start_brace, end_brace) = braces.tokens().to_owned();
 
             let contains_comments = start_brace.trailing_trivia().any(trivia_is_comment)
                 || end_brace.leading_trivia().any(trivia_is_comment)
+                || contains_comments(access)
                 || contains_comments(type_info);
+
+            let access = access.as_ref().map(|token_reference| {
+                format_token_reference(ctx, token_reference, shape + BRACKET_LEN)
+            });
+
+            let access_shape_increment = access
+                .as_ref()
+                .map_or(0, |token| token.to_string().len() + 1);
 
             let (table_type, new_type_info) = if contains_comments {
                 (TableType::MultiLine, None)
             } else {
-                let new_type_info =
-                    format_hangable_type_info(ctx, type_info, shape + BRACKET_LEN, 0);
+                let new_type_info = format_hangable_type_info(
+                    ctx,
+                    type_info,
+                    shape + BRACKET_LEN + access_shape_increment,
+                    0,
+                );
 
                 (
                     if spans_multiple_lines(&new_type_info) {
@@ -345,6 +365,7 @@ fn format_type_info_internal(
 
             TypeInfo::Array {
                 braces,
+                access,
                 type_info: Box::new(new_type_info.update_trivia(leading_trivia, trailing_trivia)),
             }
         }
@@ -441,36 +462,53 @@ fn format_type_info_internal(
             }
         }
 
-        TypeInfo::GenericPack { name, ellipse } => {
+        TypeInfo::GenericPack { name, ellipsis } => {
             let name = format_token_reference(ctx, name, shape);
-            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+            let ellipsis = fmt_symbol!(ctx, ellipsis, "...", shape);
 
-            TypeInfo::GenericPack { name, ellipse }
+            TypeInfo::GenericPack { name, ellipsis }
         }
 
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => {
-            let left = Box::new(format_type_info_internal(
-                ctx,
-                left,
-                context.mark_contains_intersect(),
-                shape,
-            ));
-            let ampersand = fmt_symbol!(ctx, ampersand, " & ", shape);
-            let right = Box::new(format_type_info_internal(
-                ctx,
-                right,
-                context.mark_contains_intersect(),
-                shape + 3,
-            )); // 3 = " & "
-            TypeInfo::Intersection {
-                left,
-                ampersand,
-                right,
+        TypeInfo::Intersection(intersection) => {
+            // TODO: reuse 'format_punctuated' from general.rs?
+            let mut types = Punctuated::new();
+            let mut shape = shape;
+
+            let leading = match intersection.leading() {
+                Some(leading) => {
+                    let result = fmt_symbol!(ctx, leading, "& ", shape);
+                    shape = shape + 2;
+                    Some(result)
+                }
+                None => None,
+            };
+
+            for pair in intersection.types().pairs() {
+                let new_pair = match pair {
+                    Pair::Punctuated(left, pipe) => {
+                        let result = Pair::Punctuated(
+                            format_type_info_internal(
+                                ctx,
+                                left,
+                                context.mark_contains_intersect(),
+                                shape,
+                            ),
+                            fmt_symbol!(ctx, pipe, " & ", shape),
+                        );
+                        shape = shape + 3;
+                        result
+                    }
+                    Pair::End(right) => Pair::End(format_type_info_internal(
+                        ctx,
+                        right,
+                        context.mark_contains_intersect(),
+                        shape + 3,
+                    )),
+                };
+                types.push(new_pair);
             }
+
+            TypeInfo::Intersection(TypeIntersection::new(leading, types))
         }
 
         TypeInfo::Module {
@@ -632,26 +670,53 @@ fn format_type_info_internal(
             TypeInfo::Tuple { parentheses, types }
         }
 
-        TypeInfo::Union { left, pipe, right } => {
-            let left = Box::new(format_type_info_internal(
-                ctx,
-                left,
-                context.mark_contains_union(),
-                shape,
-            ));
-            let pipe = fmt_symbol!(ctx, pipe, " | ", shape);
-            let right = Box::new(format_type_info_internal(
-                ctx,
-                right,
-                context.mark_contains_union(),
-                shape + 3,
-            )); // 3 = " | "
+        TypeInfo::Union(union) => {
+            // TODO: reuse 'format_punctuated' from general.rs?
+            let mut types = Punctuated::new();
+            let mut shape = shape;
 
-            TypeInfo::Union { left, pipe, right }
+            let leading = match union.leading() {
+                Some(leading) => {
+                    let result = fmt_symbol!(ctx, leading, "| ", shape);
+                    shape = shape + 2;
+                    Some(result)
+                }
+                None => None,
+            };
+
+            for pair in union.types().pairs() {
+                let new_pair = match pair {
+                    Pair::Punctuated(left, pipe) => {
+                        let result = Pair::Punctuated(
+                            format_type_info_internal(
+                                ctx,
+                                left,
+                                context.mark_contains_union(),
+                                shape,
+                            ),
+                            fmt_symbol!(ctx, pipe, " | ", shape),
+                        );
+                        shape = shape + 3;
+                        result
+                    }
+                    Pair::End(right) => Pair::End(format_type_info_internal(
+                        ctx,
+                        right,
+                        context.mark_contains_union(),
+                        shape + 3,
+                    )),
+                };
+                types.push(new_pair);
+            }
+
+            TypeInfo::Union(TypeUnion::new(leading, types))
         }
 
-        TypeInfo::Variadic { ellipse, type_info } => {
-            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+        TypeInfo::Variadic {
+            ellipsis,
+            type_info,
+        } => {
+            let ellipsis = fmt_symbol!(ctx, ellipsis, "...", shape);
             let type_info = Box::new(format_type_info_internal(
                 ctx,
                 type_info,
@@ -659,14 +724,17 @@ fn format_type_info_internal(
                 shape + 3,
             )); // 3 = "..."
 
-            TypeInfo::Variadic { ellipse, type_info }
+            TypeInfo::Variadic {
+                ellipsis,
+                type_info,
+            }
         }
 
-        TypeInfo::VariadicPack { ellipse, name } => {
+        TypeInfo::VariadicPack { ellipsis, name } => {
             let name = format_token_reference(ctx, name, shape);
-            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+            let ellipsis = fmt_symbol!(ctx, ellipsis, "...", shape);
 
-            TypeInfo::VariadicPack { ellipse, name }
+            TypeInfo::VariadicPack { ellipsis, name }
         }
 
         other => panic!("unknown node {:?}", other),
@@ -678,7 +746,7 @@ fn hang_type_info_binop(
     ctx: &Context,
     binop: TokenReference,
     shape: Shape,
-    rhs: &TypeInfo,
+    next_comments: Vec<Token>,
 ) -> TokenReference {
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
@@ -702,7 +770,7 @@ fn hang_type_info_binop(
                 .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
         )
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
-        .chain(rhs.leading_comments().iter().flat_map(|x| {
+        .chain(next_comments.iter().flat_map(|x| {
             vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
@@ -733,42 +801,94 @@ fn hang_type_info(
     let hanging_shape = shape.with_indent(shape.indent().add_indent_level(hang_level));
 
     match type_info {
-        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: Box::new(format_type_info_internal(
-                ctx,
-                left,
-                context.mark_contains_union(),
-                shape,
-            )),
-            pipe: hang_type_info_binop(ctx, pipe.to_owned(), hanging_shape, right),
-            right: Box::new(hang_type_info(
-                ctx,
-                &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                context.mark_contains_union(),
-                hanging_shape.reset() + PIPE_LENGTH,
-                0,
-            )),
-        },
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => TypeInfo::Intersection {
-            left: Box::new(format_type_info_internal(
-                ctx,
-                left,
-                context.mark_contains_intersect(),
-                shape,
-            )),
-            ampersand: hang_type_info_binop(ctx, ampersand.to_owned(), hanging_shape, right),
-            right: Box::new(hang_type_info(
-                ctx,
-                &right.update_leading_trivia(FormatTriviaType::Replace(vec![])),
-                context.mark_contains_intersect(),
-                hanging_shape.reset() + PIPE_LENGTH,
-                0,
-            )),
-        },
+        TypeInfo::Union(union) => {
+            let mut types = Punctuated::new();
+            let mut iter = union.types().pairs().peekable();
+            let mut is_first = true;
+            while let Some(pair) = iter.next() {
+                let new_pair = match pair {
+                    Pair::Punctuated(type_info, next_pipe) => {
+                        let next_comments = iter.peek().leading_comments();
+                        Pair::Punctuated(
+                            format_type_info_internal(
+                                ctx,
+                                &(if is_first {
+                                    type_info.clone()
+                                } else {
+                                    type_info
+                                        .update_leading_trivia(FormatTriviaType::Replace(vec![]))
+                                }),
+                                context.mark_contains_union(),
+                                if is_first { shape } else { hanging_shape },
+                            ),
+                            hang_type_info_binop(
+                                ctx,
+                                next_pipe.to_owned(),
+                                hanging_shape,
+                                next_comments,
+                            ),
+                        )
+                    }
+                    Pair::End(type_info) => Pair::End(format_type_info_internal(
+                        ctx,
+                        &type_info.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                        context.mark_contains_union(),
+                        hanging_shape.reset() + PIPE_LENGTH,
+                    )),
+                };
+                types.push(new_pair);
+                is_first = false;
+            }
+
+            // TODO: handle leading
+            TypeInfo::Union(TypeUnion::new(union.leading().cloned(), types))
+        }
+
+        TypeInfo::Intersection(intersection) => {
+            let mut types = Punctuated::new();
+            let mut iter = intersection.types().pairs().peekable();
+            let mut is_first = true;
+            while let Some(pair) = iter.next() {
+                let new_pair = match pair {
+                    Pair::Punctuated(type_info, next_pipe) => {
+                        let next_comments = iter.peek().leading_comments();
+                        Pair::Punctuated(
+                            format_type_info_internal(
+                                ctx,
+                                &(if is_first {
+                                    type_info.clone()
+                                } else {
+                                    type_info
+                                        .update_leading_trivia(FormatTriviaType::Replace(vec![]))
+                                }),
+                                context.mark_contains_intersect(),
+                                if is_first { shape } else { hanging_shape },
+                            ),
+                            hang_type_info_binop(
+                                ctx,
+                                next_pipe.to_owned(),
+                                hanging_shape,
+                                next_comments,
+                            ),
+                        )
+                    }
+                    Pair::End(type_info) => Pair::End(format_type_info_internal(
+                        ctx,
+                        &type_info.update_leading_trivia(FormatTriviaType::Replace(vec![])),
+                        context.mark_contains_intersect(),
+                        hanging_shape.reset() + PIPE_LENGTH,
+                    )),
+                };
+                types.push(new_pair);
+                is_first = false;
+            }
+
+            // TODO: handle leading
+            TypeInfo::Intersection(TypeIntersection::new(
+                intersection.leading().cloned(),
+                types,
+            ))
+        }
         other => format_type_info_internal(ctx, other, context, shape),
     }
 }
@@ -777,7 +897,7 @@ fn can_hang_type(type_info: &TypeInfo) -> bool {
     matches!(
         type_info,
         // Can hang a binary operation
-        TypeInfo::Union { .. } | TypeInfo::Intersection { .. }
+        TypeInfo::Union(_) | TypeInfo::Intersection(_)
     )
 }
 
@@ -851,9 +971,30 @@ pub fn format_type_field(
         _ => FormatTriviaType::NoChange,
     };
 
-    let key = format_type_field_key(ctx, type_field.key(), leading_trivia, shape);
+    let access = type_field.access().map(|token_reference| {
+        format_token_reference(ctx, token_reference, shape)
+            .update_leading_trivia(leading_trivia.clone())
+            .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                TokenType::spaces(1),
+            )]))
+    });
+    let access_shape_increment = access
+        .as_ref()
+        .map_or(0, |token| strip_leading_trivia(token).to_string().len() + 1);
+
+    let key = format_type_field_key(
+        ctx,
+        type_field.key(),
+        if access.is_some() {
+            FormatTriviaType::NoChange
+        } else {
+            leading_trivia
+        },
+        shape,
+    );
     let colon_token = fmt_symbol!(ctx, type_field.colon_token(), ": ", shape);
-    let shape = shape + (strip_leading_trivia(&key).to_string().len() + 2);
+    let shape = shape + access_shape_increment + (strip_leading_trivia(&key).to_string().len() + 2);
+
     let mut value = format_type_info(ctx, type_field.value(), shape);
 
     // Trailing trivia consists only of single line comments - multiline comments are kept in place
@@ -876,6 +1017,7 @@ pub fn format_type_field(
     (
         type_field
             .to_owned()
+            .with_access(access)
             .with_key(key)
             .with_colon_token(colon_token)
             .with_value(value),
@@ -922,21 +1064,39 @@ pub fn format_type_assertion(
 fn should_hang_type(type_info: &TypeInfo, comment_search: CommentSearch) -> bool {
     // Only hang if its a binary type info, since it doesn't matter for unary types
     match type_info {
-        TypeInfo::Union {
-            left,
-            pipe: binop,
-            right,
+        TypeInfo::Union(union) => {
+            let has_leading = union.leading().is_some();
+            union.leading().has_trailing_comments(comment_search)
+                || union
+                    .types()
+                    .pairs()
+                    .enumerate()
+                    .any(|(idx, pair)| match pair {
+                        Pair::Punctuated(type_info, binop) => {
+                            ((idx != 0 || has_leading)
+                                && type_info.has_leading_comments(comment_search))
+                                || type_info.has_trailing_comments(comment_search)
+                                || contains_comments(binop)
+                        }
+                        Pair::End(type_info) => type_info.has_leading_comments(comment_search),
+                    })
         }
-        | TypeInfo::Intersection {
-            left,
-            ampersand: binop,
-            right,
-        } => {
-            left.has_trailing_comments(comment_search)
-                || should_hang_type(left, comment_search)
-                || contains_comments(binop)
-                || right.has_leading_comments(comment_search)
-                || should_hang_type(right, comment_search)
+        TypeInfo::Intersection(intersection) => {
+            let has_leading = intersection.leading().is_some();
+            intersection.leading().has_trailing_comments(comment_search)
+                || intersection
+                    .types()
+                    .pairs()
+                    .enumerate()
+                    .any(|(idx, pair)| match pair {
+                        Pair::Punctuated(type_info, binop) => {
+                            ((idx != 0 || has_leading)
+                                && type_info.has_leading_comments(comment_search))
+                                || type_info.has_trailing_comments(comment_search)
+                                || contains_comments(binop)
+                        }
+                        Pair::End(type_info) => type_info.has_leading_comments(comment_search),
+                    })
         }
         _ => false,
     }
@@ -1188,11 +1348,11 @@ fn format_generic_parameter(
         GenericParameterInfo::Name(token_reference) => {
             GenericParameterInfo::Name(format_token_reference(ctx, token_reference, shape))
         }
-        GenericParameterInfo::Variadic { name, ellipse } => {
+        GenericParameterInfo::Variadic { name, ellipsis } => {
             let name = format_token_reference(ctx, name, shape);
-            let ellipse = fmt_symbol!(ctx, ellipse, "...", shape);
+            let ellipsis = fmt_symbol!(ctx, ellipsis, "...", shape);
 
-            GenericParameterInfo::Variadic { name, ellipse }
+            GenericParameterInfo::Variadic { name, ellipsis }
         }
 
         other => panic!("unknown node {:?}", other),

@@ -47,60 +47,49 @@ struct ErrorFileWrapper {
     error: anyhow::Error,
 }
 
-fn convert_parse_error_to_json(file: &str, err: &full_moon::Error) -> Option<serde_json::Value> {
-    Some(match err {
-        full_moon::Error::AstError(full_moon::ast::AstError::UnexpectedToken {
-            token,
-            additional,
-        }) => json!({
-            "type": "parse_error",
-            "message": format!("unexpected token `{}`{}", token, additional.as_ref().map(|x| format!(": {x}")).unwrap_or_default()),
-            "filename": file,
-            "location": {
-                "start": token.start_position().bytes(),
-                "start_line": token.start_position().line(),
-                "start_column": token.start_position().character(),
-                "end": token.end_position().bytes(),
-                "end_line": token.end_position().line(),
-                "end_column": token.end_position().character(),
-            },
-        }),
-        full_moon::Error::TokenizerError(error) => json!({
-            "type": "parse_error",
-            "message": match error.error() {
-                full_moon::tokenizer::TokenizerErrorType::UnclosedComment => {
-                    "unclosed comment".to_string()
-                }
-                full_moon::tokenizer::TokenizerErrorType::UnclosedString => {
-                    "unclosed string".to_string()
-                }
-                full_moon::tokenizer::TokenizerErrorType::UnexpectedShebang => {
-                    "unexpected shebang".to_string()
-                }
-                full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(
-                    character,
-                ) => {
-                    format!("unexpected character {character}")
-                }
-                full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
-                    format!("invalid symbol {symbol}")
-                }
-            },
-            "filename": file,
-            "location": {
-                "start": error.position().bytes(),
-                "start_line": error.position().line(),
-                "start_column": error.position().character(),
-                "end": error.position().bytes(),
-                "end_line": error.position().line(),
-                "end_column": error.position().character(),
-            },
-        }),
-        _ => {
-            error!("{:#}", err);
-            return None;
-        }
-    })
+fn convert_parse_error_to_json(file: &str, errs: Vec<full_moon::Error>) -> serde_json::Value {
+    errs.iter()
+        .map(|err| {
+            let message = match err {
+                full_moon::Error::AstError(ast_error) => format!(
+                    "unexpected token `{}`: {}",
+                    ast_error.token(),
+                    ast_error.error_message()
+                ),
+                full_moon::Error::TokenizerError(error) => match error.error() {
+                    full_moon::tokenizer::TokenizerErrorType::UnclosedComment => {
+                        "unclosed comment".to_string()
+                    }
+                    full_moon::tokenizer::TokenizerErrorType::UnclosedString => {
+                        "unclosed string".to_string()
+                    }
+                    full_moon::tokenizer::TokenizerErrorType::InvalidNumber => {
+                        "invalid number".to_string()
+                    }
+                    full_moon::tokenizer::TokenizerErrorType::UnexpectedToken(character) => {
+                        format!("unexpected character {character}")
+                    }
+                    full_moon::tokenizer::TokenizerErrorType::InvalidSymbol(symbol) => {
+                        format!("invalid symbol {symbol}")
+                    }
+                },
+            };
+            let (start_position, end_position) = err.range();
+            json!({
+                "type": "parse_error",
+                "message": message,
+                "filename": file,
+                "location": {
+                    "start": start_position.bytes(),
+                    "start_line": start_position.line(),
+                    "start_column": start_position.character(),
+                    "end": end_position.bytes(),
+                    "end_line": end_position.line(),
+                    "end_column": end_position.character(),
+                },
+            })
+        })
+        .collect()
 }
 
 fn create_diff(
@@ -394,22 +383,18 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         Some(ErrorFileWrapper { file, error }) => {
                             match error.downcast_ref::<stylua_lib::Error>() {
                                 Some(stylua_lib::Error::ParseError(err)) => {
-                                    if let Some(structured_err) =
-                                        convert_parse_error_to_json(file, err)
-                                    {
-                                        // Force write to stderr directly
-                                        // TODO: can we do this through error! instead?
-                                        let stderr = stderr();
-                                        let mut handle = stderr.lock();
-                                        match handle
-                                            .write_all(structured_err.to_string().as_bytes())
-                                        {
-                                            Ok(_) => (),
-                                            Err(err) => {
-                                                error!("could not output to stdout: {:#}", err)
-                                            }
-                                        };
-                                    }
+                                    let structured_err =
+                                        convert_parse_error_to_json(file, err.to_vec());
+                                    // Force write to stderr directly
+                                    // TODO: can we do this through error! instead?
+                                    let stderr = stderr();
+                                    let mut handle = stderr.lock();
+                                    match handle.write_all(structured_err.to_string().as_bytes()) {
+                                        Ok(_) => (),
+                                        Err(err) => {
+                                            error!("could not output to stdout: {:#}", err)
+                                        }
+                                    };
                                 }
                                 _ => error!("{:#}", err),
                             }

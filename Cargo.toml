@@ -30,6 +30,7 @@ luau = ["full_moon/roblox"]
 lua52 = ["full_moon/lua52"]
 lua53 = ["lua52", "full_moon/lua53"]
 lua54 = ["lua53", "full_moon/lua54"]
+luajit = ["full_moon/luajit"]
 editorconfig = ["ec4rs"]
 
 [dependencies]
@@ -40,7 +41,7 @@ console = "0.15.7"
 crossbeam-channel = "0.5.8"
 ec4rs = { version = "1.0.2", optional = true }
 env_logger = { version = "0.10.0", default-features = false }
-full_moon = "0.19.0"
+full_moon = "1.1.1"
 globset = "0.4.13"
 ignore = "0.4.20"
 lazy_static = "1.4.0"
@@ -57,6 +58,11 @@ toml = "0.8.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.81", optional = true }
+
+# full-moon should be compiled to release optimisations in debug mode due to stack overflows
+# https://github.com/Kampfkarren/full-moon/issues/140
+[profile.dev.package.full_moon]
+opt-level = 3
 
 [dev-dependencies]
 criterion = "0.4.0"

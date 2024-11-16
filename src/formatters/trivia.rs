@@ -1,10 +1,11 @@
 #[cfg(feature = "lua54")]
 use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
+use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
+    TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -241,10 +242,10 @@ define_update_leading_trivia!(Expression, |this, leading| {
             binop: binop.to_owned(),
             rhs: rhs.to_owned(),
         },
-        Expression::Function((token, function_body)) => Expression::Function((
-            token.update_leading_trivia(leading),
-            function_body.to_owned(),
-        )),
+        Expression::Function(anonymous_function) => Expression::Function(Box::new((
+            anonymous_function.0.update_leading_trivia(leading),
+            anonymous_function.1.to_owned(),
+        ))),
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_leading_trivia(leading))
         }
@@ -283,10 +284,10 @@ define_update_leading_trivia!(Expression, |this, leading| {
 
 define_update_trailing_trivia!(Expression, |this, trailing| {
     match this {
-        Expression::Function((token, function_body)) => Expression::Function((
-            token.to_owned(),
-            function_body.update_trailing_trivia(trailing),
-        )),
+        Expression::Function(anonymous_function) => Expression::Function(Box::new((
+            anonymous_function.0.to_owned(),
+            anonymous_function.1.update_trailing_trivia(trailing),
+        ))),
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_trailing_trivia(trailing))
         }
@@ -450,7 +451,7 @@ define_update_trivia!(MethodCall, |this, leading, trailing| {
 
 define_update_trivia!(Parameter, |this, leading, trailing| {
     match this {
-        Parameter::Ellipse(token) => Parameter::Ellipse(token.update_trivia(leading, trailing)),
+        Parameter::Ellipsis(token) => Parameter::Ellipsis(token.update_trivia(leading, trailing)),
         Parameter::Name(token) => Parameter::Name(token.update_trivia(leading, trailing)),
         other => panic!("unknown node {:?}", other),
     }
@@ -759,10 +760,49 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trivia!(TypeUnion, |this, leading, trailing| {
+    if let Some(leading_token) = this.leading() {
+        TypeUnion::new(
+            Some(leading_token.update_leading_trivia(leading)),
+            this.types().update_trailing_trivia(trailing),
+        )
+    } else {
+        TypeUnion::new(
+            None,
+            this.types()
+                .update_leading_trivia(leading)
+                .update_trailing_trivia(trailing),
+        )
+    }
+});
+
+#[cfg(feature = "luau")]
+define_update_trivia!(TypeIntersection, |this, leading, trailing| {
+    if let Some(leading_token) = this.leading() {
+        TypeIntersection::new(
+            Some(leading_token.update_leading_trivia(leading)),
+            this.types().update_trailing_trivia(trailing),
+        )
+    } else {
+        TypeIntersection::new(
+            None,
+            this.types()
+                .update_leading_trivia(leading)
+                .update_trailing_trivia(trailing),
+        )
+    }
+});
+
+#[cfg(feature = "luau")]
 define_update_trivia!(TypeInfo, |this, leading, trailing| {
     match this {
-        TypeInfo::Array { braces, type_info } => TypeInfo::Array {
+        TypeInfo::Array {
+            braces,
+            access,
+            type_info,
+        } => TypeInfo::Array {
             braces: braces.update_trivia(leading, trailing),
+            access: access.to_owned(),
             type_info: type_info.to_owned(),
         },
         TypeInfo::Basic(token_reference) => {
@@ -807,20 +847,14 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             generics: generics.to_owned(),
         },
 
-        TypeInfo::GenericPack { name, ellipse } => TypeInfo::GenericPack {
+        TypeInfo::GenericPack { name, ellipsis } => TypeInfo::GenericPack {
             name: name.update_leading_trivia(leading),
-            ellipse: ellipse.update_trailing_trivia(trailing),
+            ellipsis: ellipsis.update_trailing_trivia(trailing),
         },
 
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => TypeInfo::Intersection {
-            left: Box::new(left.update_leading_trivia(leading)),
-            ampersand: ampersand.to_owned(),
-            right: Box::new(right.update_trailing_trivia(trailing)),
-        },
+        TypeInfo::Intersection(intersection) => {
+            TypeInfo::Intersection(intersection.update_trivia(leading, trailing))
+        }
 
         TypeInfo::Module {
             module,
@@ -860,19 +894,18 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             types: types.to_owned(),
         },
 
-        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: Box::new(left.update_leading_trivia(leading)),
-            pipe: pipe.to_owned(),
-            right: Box::new(right.update_trailing_trivia(trailing)),
-        },
+        TypeInfo::Union(union) => TypeInfo::Union(union.update_trivia(leading, trailing)),
 
-        TypeInfo::Variadic { ellipse, type_info } => TypeInfo::Variadic {
-            ellipse: ellipse.update_leading_trivia(leading),
+        TypeInfo::Variadic {
+            ellipsis,
+            type_info,
+        } => TypeInfo::Variadic {
+            ellipsis: ellipsis.update_leading_trivia(leading),
             type_info: Box::new(type_info.update_trailing_trivia(trailing)),
         },
 
-        TypeInfo::VariadicPack { ellipse, name } => TypeInfo::VariadicPack {
-            ellipse: ellipse.update_leading_trivia(leading),
+        TypeInfo::VariadicPack { ellipsis, name } => TypeInfo::VariadicPack {
+            ellipsis: ellipsis.update_leading_trivia(leading),
             name: name.update_trailing_trivia(trailing),
         },
 
@@ -935,8 +968,13 @@ define_update_trivia!(TypeAssertion, |this, leading, trailing| {
 
 #[cfg(feature = "luau")]
 define_update_leading_trivia!(TypeField, |this, leading| {
-    this.to_owned()
-        .with_key(this.key().update_leading_trivia(leading))
+    if let Some(access) = this.access() {
+        this.to_owned()
+            .with_access(Some(access.update_leading_trivia(leading)))
+    } else {
+        this.to_owned()
+            .with_key(this.key().update_leading_trivia(leading))
+    }
 });
 
 #[cfg(feature = "luau")]
@@ -975,9 +1013,9 @@ define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
         GenericParameterInfo::Name(token) => {
             GenericParameterInfo::Name(token.update_leading_trivia(leading))
         }
-        GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+        GenericParameterInfo::Variadic { name, ellipsis } => GenericParameterInfo::Variadic {
             name: name.update_leading_trivia(leading),
-            ellipse: ellipse.to_owned(),
+            ellipsis: ellipsis.to_owned(),
         },
         other => panic!("unknown node {:?}", other),
     };
@@ -996,9 +1034,9 @@ define_update_trailing_trivia!(GenericDeclarationParameter, |this, trailing| {
             GenericParameterInfo::Name(token) => {
                 GenericParameterInfo::Name(token.update_trailing_trivia(trailing))
             }
-            GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+            GenericParameterInfo::Variadic { name, ellipsis } => GenericParameterInfo::Variadic {
                 name: name.to_owned(),
-                ellipse: ellipse.update_trailing_trivia(trailing),
+                ellipsis: ellipsis.update_trailing_trivia(trailing),
             },
             other => panic!("unknown node {:?}", other),
         };
