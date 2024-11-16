@@ -10,7 +10,7 @@ use full_moon::{
 };
 
 #[cfg(feature = "luau")]
-use full_moon::ast::types::TypeInfo;
+use full_moon::ast::luau::TypeInfo;
 
 pub struct AstVerifier {}
 

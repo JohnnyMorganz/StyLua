@@ -1,7 +1,7 @@
 #[cfg(feature = "lua54")]
 use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
+use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
     TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
@@ -807,9 +807,9 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             generics: generics.to_owned(),
         },
 
-        TypeInfo::GenericPack { name, ellipse } => TypeInfo::GenericPack {
+        TypeInfo::GenericPack { name, ellipsis } => TypeInfo::GenericPack {
             name: name.update_leading_trivia(leading),
-            ellipse: ellipse.update_trailing_trivia(trailing),
+            ellipsis: ellipsis.update_trailing_trivia(trailing),
         },
 
         TypeInfo::Intersection {
@@ -866,13 +866,16 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             right: Box::new(right.update_trailing_trivia(trailing)),
         },
 
-        TypeInfo::Variadic { ellipse, type_info } => TypeInfo::Variadic {
-            ellipse: ellipse.update_leading_trivia(leading),
+        TypeInfo::Variadic {
+            ellipsis,
+            type_info,
+        } => TypeInfo::Variadic {
+            ellipsis: ellipsis.update_leading_trivia(leading),
             type_info: Box::new(type_info.update_trailing_trivia(trailing)),
         },
 
-        TypeInfo::VariadicPack { ellipse, name } => TypeInfo::VariadicPack {
-            ellipse: ellipse.update_leading_trivia(leading),
+        TypeInfo::VariadicPack { ellipsis, name } => TypeInfo::VariadicPack {
+            ellipsis: ellipsis.update_leading_trivia(leading),
             name: name.update_trailing_trivia(trailing),
         },
 
@@ -975,9 +978,9 @@ define_update_leading_trivia!(GenericDeclarationParameter, |this, leading| {
         GenericParameterInfo::Name(token) => {
             GenericParameterInfo::Name(token.update_leading_trivia(leading))
         }
-        GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+        GenericParameterInfo::Variadic { name, ellipsis } => GenericParameterInfo::Variadic {
             name: name.update_leading_trivia(leading),
-            ellipse: ellipse.to_owned(),
+            ellipsis: ellipsis.to_owned(),
         },
         other => panic!("unknown node {:?}", other),
     };
@@ -996,9 +999,9 @@ define_update_trailing_trivia!(GenericDeclarationParameter, |this, trailing| {
             GenericParameterInfo::Name(token) => {
                 GenericParameterInfo::Name(token.update_trailing_trivia(trailing))
             }
-            GenericParameterInfo::Variadic { name, ellipse } => GenericParameterInfo::Variadic {
+            GenericParameterInfo::Variadic { name, ellipsis } => GenericParameterInfo::Variadic {
                 name: name.to_owned(),
-                ellipse: ellipse.update_trailing_trivia(trailing),
+                ellipsis: ellipsis.update_trailing_trivia(trailing),
             },
             other => panic!("unknown node {:?}", other),
         };

@@ -1,5 +1,5 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::types::TypeSpecifier;
+use full_moon::ast::luau::TypeSpecifier;
 use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{

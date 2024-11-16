@@ -4,7 +4,7 @@ use crate::{
     shape::Shape,
 };
 #[cfg(feature = "luau")]
-use full_moon::ast::types::{
+use full_moon::ast::luau::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
     TypeDeclaration, TypeInfo, TypeSpecifier,
 };
@@ -247,8 +247,8 @@ impl GetTrailingTrivia for GenericDeclarationParameter {
         } else {
             match self.parameter() {
                 GenericParameterInfo::Name(token) => token.trailing_trivia().cloned().collect(),
-                GenericParameterInfo::Variadic { ellipse, .. } => {
-                    ellipse.trailing_trivia().cloned().collect()
+                GenericParameterInfo::Variadic { ellipsis, .. } => {
+                    ellipsis.trailing_trivia().cloned().collect()
                 }
                 other => panic!("unknown node {:?}", other),
             }
@@ -507,7 +507,7 @@ impl GetTrailingTrivia for TypeInfo {
             TypeInfo::Generic { arrows, .. } => {
                 GetTrailingTrivia::trailing_trivia(arrows.tokens().1)
             }
-            TypeInfo::GenericPack { ellipse, .. } => GetTrailingTrivia::trailing_trivia(ellipse),
+            TypeInfo::GenericPack { ellipsis, .. } => GetTrailingTrivia::trailing_trivia(ellipsis),
             TypeInfo::Intersection { right, .. } => right.trailing_trivia(),
             TypeInfo::Module { type_info, .. } => type_info.trailing_trivia(),
             TypeInfo::Optional { question_mark, .. } => {
@@ -555,8 +555,8 @@ impl GetLeadingTrivia for TypeInfo {
                 GetLeadingTrivia::leading_trivia(parentheses.tokens().0)
             }
             TypeInfo::Union { left, .. } => left.leading_trivia(),
-            TypeInfo::Variadic { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
-            TypeInfo::VariadicPack { ellipse, .. } => GetLeadingTrivia::leading_trivia(ellipse),
+            TypeInfo::Variadic { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
+            TypeInfo::VariadicPack { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
             other => panic!("unknown node {:?}", other),
         }
     }
