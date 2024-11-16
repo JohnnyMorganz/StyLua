@@ -43,6 +43,7 @@ pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape)
         PercentEqual = " %= ",
         CaretEqual = " ^= ",
         TwoDotsEqual = " ..= ",
+        DoubleSlashEqual = " //= ",
     }, |other| panic!("unknown node {:?}", other))
 }
 
