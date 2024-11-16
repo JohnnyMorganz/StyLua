@@ -130,7 +130,7 @@ impl VisitorMut for AstVerifier {
                 #[cfg(feature = "luau")]
                 let text = text.replace('_', "");
                 // LuaJIT (Lua52): remove suffixes
-                #[cfg(feature = "lua52")]
+                #[cfg(feature = "luajit")]
                 let text = text
                     .trim_end_matches("ULL")
                     .trim_end_matches("LL")
