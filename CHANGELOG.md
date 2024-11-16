@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- For automated downloaders: the legacy release artifacts `stylua-win64.zip`, `stylua-linux.zip` and `stylua-macos.zip` are no longer produced in GitHub releases, in favour of more specific names (e.g., `stylua-windows-x86_64`, `stylua-linux-x86_64` and `stylua-macos-x86_64`).
+
 ### Added
 
 - Added runtime syntax configuration option `syntax` to help handle ambiguous syntax. By default, StyLua builds and runs with a parser to handle all Lua versions. However, the syntax of some Lua versions conflict with eachother: most notably, Lua 5.2+ goto label syntax `::label::` and Luau type assertion operator `::`. This option allows choosing what syntax to parse, to handle these conflicts. ([#407](https://github.com/JohnnyMorganz/StyLua/issues/407))
