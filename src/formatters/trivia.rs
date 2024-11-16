@@ -4,7 +4,8 @@ use full_moon::ast::lua54::Attribute;
 use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeSpecifier,
+    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
+    TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
@@ -759,6 +760,40 @@ define_update_trivia!(VarExpression, |this, leading, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trivia!(TypeUnion, |this, leading, trailing| {
+    if let Some(leading_token) = this.leading() {
+        TypeUnion::new(
+            Some(leading_token.update_leading_trivia(leading)),
+            this.types().update_trailing_trivia(trailing),
+        )
+    } else {
+        TypeUnion::new(
+            None,
+            this.types()
+                .update_leading_trivia(leading)
+                .update_trailing_trivia(trailing),
+        )
+    }
+});
+
+#[cfg(feature = "luau")]
+define_update_trivia!(TypeIntersection, |this, leading, trailing| {
+    if let Some(leading_token) = this.leading() {
+        TypeIntersection::new(
+            Some(leading_token.update_leading_trivia(leading)),
+            this.types().update_trailing_trivia(trailing),
+        )
+    } else {
+        TypeIntersection::new(
+            None,
+            this.types()
+                .update_leading_trivia(leading)
+                .update_trailing_trivia(trailing),
+        )
+    }
+});
+
+#[cfg(feature = "luau")]
 define_update_trivia!(TypeInfo, |this, leading, trailing| {
     match this {
         TypeInfo::Array {
@@ -817,15 +852,9 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             ellipsis: ellipsis.update_trailing_trivia(trailing),
         },
 
-        TypeInfo::Intersection {
-            left,
-            ampersand,
-            right,
-        } => TypeInfo::Intersection {
-            left: Box::new(left.update_leading_trivia(leading)),
-            ampersand: ampersand.to_owned(),
-            right: Box::new(right.update_trailing_trivia(trailing)),
-        },
+        TypeInfo::Intersection(intersection) => {
+            TypeInfo::Intersection(intersection.update_trivia(leading, trailing))
+        }
 
         TypeInfo::Module {
             module,
@@ -865,11 +894,7 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             types: types.to_owned(),
         },
 
-        TypeInfo::Union { left, pipe, right } => TypeInfo::Union {
-            left: Box::new(left.update_leading_trivia(leading)),
-            pipe: pipe.to_owned(),
-            right: Box::new(right.update_trailing_trivia(trailing)),
-        },
+        TypeInfo::Union(union) => TypeInfo::Union(union.update_trivia(leading, trailing)),
 
         TypeInfo::Variadic {
             ellipsis,

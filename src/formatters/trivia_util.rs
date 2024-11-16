@@ -10,9 +10,10 @@ use full_moon::ast::luau::{
 };
 use full_moon::{
     ast::{
-        punctuated::Punctuated, BinOp, Block, Call, Expression, Field, FunctionArgs, Index,
-        LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var,
-        VarExpression,
+        luau::{TypeIntersection, TypeUnion},
+        punctuated::{Pair, Punctuated},
+        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
+        Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -154,6 +155,50 @@ pub fn is_block_simple(block: &Block) -> bool {
                 Stmt::Goto(_) => true,
                 _ => false,
             })
+}
+
+impl<T> GetLeadingTrivia for &T
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        (*self).leading_trivia()
+    }
+}
+
+impl<T> GetLeadingTrivia for Option<&T>
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Some(node) => node.leading_trivia(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl<T> GetTrailingTrivia for Option<&T>
+where
+    T: GetTrailingTrivia,
+{
+    fn trailing_trivia(&self) -> Vec<Token> {
+        match self {
+            Some(node) => node.trailing_trivia(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl<T> GetLeadingTrivia for Pair<T>
+where
+    T: GetLeadingTrivia,
+{
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self {
+            Pair::Punctuated(node, _) | Pair::End(node) => node.leading_trivia(),
+        }
+    }
 }
 
 // TODO: Can we clean this up? A lot of this code is repeated in trivia_formatter
@@ -496,6 +541,28 @@ impl GetTrailingTrivia for IndexedTypeInfo {
 }
 
 #[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeIntersection {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.types()
+            .last()
+            .expect("TypeIntersection was empty")
+            .value()
+            .trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeUnion {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.types()
+            .last()
+            .expect("TypeIntersection was empty")
+            .value()
+            .trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
 impl GetTrailingTrivia for TypeInfo {
     fn trailing_trivia(&self) -> Vec<Token> {
         match self {
@@ -508,7 +575,7 @@ impl GetTrailingTrivia for TypeInfo {
                 GetTrailingTrivia::trailing_trivia(arrows.tokens().1)
             }
             TypeInfo::GenericPack { ellipsis, .. } => GetTrailingTrivia::trailing_trivia(ellipsis),
-            TypeInfo::Intersection { right, .. } => right.trailing_trivia(),
+            TypeInfo::Intersection(intersection) => intersection.trailing_trivia(),
             TypeInfo::Module { type_info, .. } => type_info.trailing_trivia(),
             TypeInfo::Optional { question_mark, .. } => {
                 GetTrailingTrivia::trailing_trivia(question_mark)
@@ -520,10 +587,40 @@ impl GetTrailingTrivia for TypeInfo {
             TypeInfo::Tuple { parentheses, .. } => {
                 GetTrailingTrivia::trailing_trivia(parentheses.tokens().1)
             }
-            TypeInfo::Union { right, .. } => right.trailing_trivia(),
+            TypeInfo::Union(union) => union.trailing_trivia(),
             TypeInfo::Variadic { type_info, .. } => type_info.trailing_trivia(),
             TypeInfo::VariadicPack { name, .. } => GetTrailingTrivia::trailing_trivia(name),
             other => panic!("unknown node {:?}", other),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetLeadingTrivia for TypeIntersection {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self.leading() {
+            Some(leading) => GetLeadingTrivia::leading_trivia(leading),
+            None => self
+                .types()
+                .first()
+                .expect("TypeIntersection was empty")
+                .value()
+                .leading_trivia(),
+        }
+    }
+}
+
+#[cfg(feature = "luau")]
+impl GetLeadingTrivia for TypeUnion {
+    fn leading_trivia(&self) -> Vec<Token> {
+        match self.leading() {
+            Some(leading) => GetLeadingTrivia::leading_trivia(leading),
+            None => self
+                .types()
+                .first()
+                .expect("TypeUnion was empty")
+                .value()
+                .leading_trivia(),
         }
     }
 }
@@ -546,7 +643,7 @@ impl GetLeadingTrivia for TypeInfo {
             },
             TypeInfo::Generic { base, .. } => GetLeadingTrivia::leading_trivia(base),
             TypeInfo::GenericPack { name, .. } => GetLeadingTrivia::leading_trivia(name),
-            TypeInfo::Intersection { left, .. } => left.leading_trivia(),
+            TypeInfo::Intersection(intersection) => intersection.leading_trivia(),
             TypeInfo::Module { module, .. } => GetLeadingTrivia::leading_trivia(module),
             TypeInfo::Optional { base, .. } => base.leading_trivia(),
             TypeInfo::Table { braces, .. } => GetLeadingTrivia::leading_trivia(braces.tokens().0),
@@ -554,7 +651,7 @@ impl GetLeadingTrivia for TypeInfo {
             TypeInfo::Tuple { parentheses, .. } => {
                 GetLeadingTrivia::leading_trivia(parentheses.tokens().0)
             }
-            TypeInfo::Union { left, .. } => left.leading_trivia(),
+            TypeInfo::Union(union) => union.leading_trivia(),
             TypeInfo::Variadic { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
             TypeInfo::VariadicPack { ellipsis, .. } => GetLeadingTrivia::leading_trivia(ellipsis),
             other => panic!("unknown node {:?}", other),
