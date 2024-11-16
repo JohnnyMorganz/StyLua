@@ -11,6 +11,8 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.7.0] - 2024-11-16
+
 ### Changed
 
 - The VSCode extension will now defer to using `stylua` itself to determine ignores and other configuration, rather than rolling its own ignore system
