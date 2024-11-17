@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731860708337,
+  "lastUpdate": 1731862182288,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12557,6 +12557,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15221293,
             "range": "± 252833",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d8f820e14dd230492533b5037cde0bb920e492b4",
+          "message": "collapse_simple_stmt: check if return expressions are \"simple\" (#923)\n\n* Add test case\r\n\r\n* Check if return expression is simple under collapse_simple_stmt\r\n\r\n* Update changelog and snapshots\r\n\r\n* Update changelog link",
+          "timestamp": "2024-11-17T17:47:44+01:00",
+          "tree_id": "9e1ccac426d1c0f48353f1041562bd5917ae1322",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d8f820e14dd230492533b5037cde0bb920e492b4"
+        },
+        "date": 1731862181555,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26078292,
+            "range": "± 132090",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213122398,
+            "range": "± 391570",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14870512,
+            "range": "± 44687",
             "unit": "ns/iter"
           }
         ]
