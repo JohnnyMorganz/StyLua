@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731860130845,
+  "lastUpdate": 1731860143304,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12473,6 +12473,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15222187,
             "range": "± 311069",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d11797b39099799c65f219edf6a45492baefe5f3",
+          "message": "Switch to closest file configuration resolution (#916)\n\n* Closest file config resolution\r\n\r\n* Respect config path override for stdin filepath",
+          "timestamp": "2024-11-17T17:13:52+01:00",
+          "tree_id": "a9fe917f34c6492feb2ee08a4911e5316c6d6a0a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d11797b39099799c65f219edf6a45492baefe5f3"
+        },
+        "date": 1731860142709,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26076041,
+            "range": "± 521866",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213567010,
+            "range": "± 1280968",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14827650,
+            "range": "± 43017",
             "unit": "ns/iter"
           }
         ]
