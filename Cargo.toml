@@ -41,7 +41,7 @@ console = "0.15.7"
 crossbeam-channel = "0.5.8"
 ec4rs = { version = "1.0.2", optional = true }
 env_logger = { version = "0.10.0", default-features = false }
-full_moon = "1.1.1"
+full_moon = "1.1.2"
 globset = "0.4.13"
 ignore = "0.4.20"
 lazy_static = "1.4.0"
