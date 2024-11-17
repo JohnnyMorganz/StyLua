@@ -271,9 +271,6 @@ fn format(opt: opt::Opt) -> Result<i32> {
     let opt_for_config_resolver = opt.clone();
     let mut config_resolver = config::ConfigResolver::new(&opt_for_config_resolver)?;
 
-    // TODO:
-    // debug!("config: {:#?}", config);
-
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
         Some(Range::from_values(opt.range_start, opt.range_end))
@@ -946,6 +943,76 @@ mod tests {
         let mut cmd = create_stylua();
         cmd.current_dir(cwd.path())
             .args(["--config-path", "build/stylua.toml", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_default_configuration() {
+        let cwd = construct_tree!({
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_default_configuration_stdin_filepath() {
+        let cwd = construct_tree!({
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_found_configuration() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_found_configuration_stdin_filepath() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "-"])
             .write_stdin("local x = \"hello\"")
             .assert()
             .success()
