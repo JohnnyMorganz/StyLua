@@ -457,7 +457,7 @@ fn print_full_moon_errors(errors: &[full_moon::Error]) -> String {
     } else {
         errors
             .iter()
-            .map(|err| "\n- ".to_string() + &print_full_moon_error(err))
+            .map(|err| "\n - ".to_string() + &print_full_moon_error(err))
             .collect::<String>()
     }
 }
