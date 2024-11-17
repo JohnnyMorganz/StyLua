@@ -436,11 +436,37 @@ pub enum OutputVerification {
     None,
 }
 
+fn print_full_moon_error(error: &full_moon::Error) -> String {
+    match error {
+        full_moon::Error::AstError(ast_error) => format!(
+            "unexpected token `{}` ({}:{} to {}:{}), {}",
+            ast_error.token(),
+            ast_error.range().0.line(),
+            ast_error.range().0.character(),
+            ast_error.range().1.line(),
+            ast_error.range().1.character(),
+            ast_error.error_message()
+        ),
+        full_moon::Error::TokenizerError(tokenizer_error) => tokenizer_error.to_string(),
+    }
+}
+
+fn print_full_moon_errors(errors: &[full_moon::Error]) -> String {
+    if errors.len() == 1 {
+        print_full_moon_error(errors.first().unwrap())
+    } else {
+        errors
+            .iter()
+            .map(|err| "\n- ".to_string() + &print_full_moon_error(err))
+            .collect::<String>()
+    }
+}
+
 /// A formatting error
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
-    #[error("error parsing: {0:?}")]
+    #[error("error parsing: {}", print_full_moon_errors(.0))]
     ParseError(Vec<full_moon::Error>),
     /// The output AST after formatting generated a parse error. This is a definite error.
     #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0:?}")]
