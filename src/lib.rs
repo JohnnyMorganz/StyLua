@@ -469,7 +469,7 @@ pub enum Error {
     #[error("error parsing: {}", print_full_moon_errors(.0))]
     ParseError(Vec<full_moon::Error>),
     /// The output AST after formatting generated a parse error. This is a definite error.
-    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{}", print_full_moon_errors(.0))]
+    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues: {}", print_full_moon_errors(.0))]
     VerificationAstError(Vec<full_moon::Error>),
     /// The output AST after formatting differs from the input AST.
     #[error("INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues")]
