@@ -1,4 +1,4 @@
-FROM rust:1.67 AS build
+FROM rust:1.75 AS build
 ARG CARGO_FLAGS="--all-features --release"
 
 WORKDIR /app
