@@ -134,8 +134,50 @@ pub fn is_block_empty(block: &Block) -> bool {
     block.stmts().next().is_none() && block.last_stmt().is_none()
 }
 
+fn is_expression_simple(expression: &Expression) -> bool {
+    match expression {
+        Expression::Function(_) => false,
+        Expression::FunctionCall(function_call) => {
+            function_call.suffixes().all(|suffix| match suffix {
+                Suffix::Index(_) => true,
+                Suffix::Call(call) => match call {
+                    Call::AnonymousCall(function_args) => match function_args {
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            arguments.iter().all(is_expression_simple)
+                        }
+                        _ => true,
+                    },
+                    Call::MethodCall(method_call) => match method_call.args() {
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            arguments.iter().all(is_expression_simple)
+                        }
+                        _ => true,
+                    },
+                    other => unreachable!("unknown node: {:?}", other),
+                },
+                other => unreachable!("unknown node: {:?}", other),
+            })
+        }
+        _ => true,
+    }
+}
+
+fn is_last_stmt_simple(last_stmt: &LastStmt) -> bool {
+    match last_stmt {
+        LastStmt::Break(_) => true,
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(_) => true,
+        LastStmt::Return(r#return) => {
+            r#return.returns().is_empty() || r#return.returns().iter().all(is_expression_simple)
+        }
+        other => unreachable!("unknown node {:?}", other),
+    }
+}
+
 pub fn is_block_simple(block: &Block) -> bool {
-    (block.stmts().next().is_none() && block.last_stmt().is_some())
+    (block.stmts().next().is_none()
+        && block.last_stmt().is_some()
+        && is_last_stmt_simple(block.last_stmt().unwrap()))
         || (block.stmts().count() == 1
             && block.last_stmt().is_none()
             && match block.stmts().next().unwrap() {
