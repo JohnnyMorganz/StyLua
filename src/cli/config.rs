@@ -87,6 +87,10 @@ impl ConfigResolver<'_> {
     }
 
     pub fn load_configuration_for_stdin(&mut self) -> Result<Config> {
+        if let Some(configuration) = self.forced_configuration {
+            return Ok(configuration);
+        }
+
         match &self.opt.stdin_filepath {
             Some(filepath) => self.load_configuration(filepath),
             None => {

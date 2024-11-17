@@ -933,8 +933,23 @@ mod tests {
             .args(["--config-path", "build/stylua.toml", "foo.lua"])
             .assert()
             .success();
+    }
 
-        cwd.child("foo.lua").assert("local x = 'hello'\n");
+    #[test]
+    fn test_respect_config_path_override_for_stdin_filepath() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--config-path", "build/stylua.toml", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
 
         cwd.close().unwrap();
     }
