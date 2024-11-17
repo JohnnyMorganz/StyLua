@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731860143304,
+  "lastUpdate": 1731860708337,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12515,6 +12515,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14827650,
             "range": "± 43017",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26047670e05ba310afe9c1c1f91be6749e1f3ac9",
+          "message": "Remove deprecated access patterns on `Config` struct (#922)\n\nRemove deprecated access patterns",
+          "timestamp": "2024-11-17T17:23:11+01:00",
+          "tree_id": "c29706a47ff1b630168ce44fbe21d9a539b68328",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/26047670e05ba310afe9c1c1f91be6749e1f3ac9"
+        },
+        "date": 1731860707020,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28081771,
+            "range": "± 525050",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 215678611,
+            "range": "± 762848",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15221293,
+            "range": "± 252833",
             "unit": "ns/iter"
           }
         ]
