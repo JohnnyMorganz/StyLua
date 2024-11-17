@@ -248,7 +248,7 @@ export async function activate(context: vscode.ExtensionContext) {
             outputChannel,
             styluaBinaryPath.path,
             text,
-            document.uri.fsPath,
+            document.uri.scheme === "file" ? document.uri.fsPath : undefined,
             cwd,
             byteOffset(document, range.start),
             byteOffset(document, range.end)
