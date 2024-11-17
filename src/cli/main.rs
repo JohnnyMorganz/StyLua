@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::StructOpt;
 use console::style;
-use ignore::{gitignore::Gitignore, overrides::OverrideBuilder, WalkBuilder};
+use ignore::{gitignore::Gitignore, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
 use std::collections::HashSet;
@@ -315,20 +315,21 @@ fn format(opt: opt::Opt) -> Result<i32> {
         walker_builder.add_ignore(ignore_path);
     }
 
-    let use_default_glob = match opt.glob {
+    let mut glob_builder = globset::GlobSetBuilder::new();
+    match opt.glob {
         Some(ref globs) => {
-            // Build overriders with any patterns given
-            let mut overrides = OverrideBuilder::new(cwd);
             for pattern in globs {
-                overrides.add(pattern)?;
+                glob_builder.add(globset::Glob::new(pattern)?);
             }
-            let overrides = overrides.build()?;
-            walker_builder.overrides(overrides);
-            // We shouldn't use the default glob anymore
-            false
         }
-        None => true,
-    };
+        None => {
+            glob_builder.add(globset::Glob::new("**/*.lua").context("cannot create default glob")?);
+            #[cfg(feature = "luau")]
+            glob_builder
+                .add(globset::Glob::new("**/*.luau").context("cannot create default luau glob")?);
+        }
+    }
+    let glob_matcher = glob_builder.build().context("cannot build globset")?;
 
     debug!("creating a pool with {} threads", opt.num_threads);
     let pool = ThreadPool::new(std::cmp::max(opt.num_threads, 2)); // Use a minimum of 2 threads, because we need at least one output reader as well as a formatter
@@ -480,28 +481,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     seen_files.insert(path.clone());
 
                     if path.is_file() {
-                        // If the user didn't provide a glob pattern, we should match against our default one
-                        if use_default_glob && should_respect_ignores(opt.as_ref(), path.as_path())
-                        {
-                            lazy_static::lazy_static! {
-                                static ref DEFAULT_GLOB: globset::GlobSet = {
-                                    let mut builder = globset::GlobSetBuilder::new();
-                                    builder.add(globset::Glob::new("**/*.lua").expect("cannot create default glob"));
-                                    #[cfg(feature = "luau")]
-                                    builder.add(globset::Glob::new("**/*.luau").expect("cannot create default luau glob"));
-                                    builder.build().expect("cannot build default globset")
-                                };
-                            }
-                            if !DEFAULT_GLOB.is_match(&path) {
-                                continue;
-                            }
-                        }
-
                         // If `--respect-ignores` was given and this is an explicit file path,
                         // we should check .styluaignore
-                        if is_explicitly_provided(opt.as_ref(), &path)
-                            && should_respect_ignores(opt.as_ref(), &path)
-                            && path_is_stylua_ignored(&path, opt.search_parent_directories)?
+                        // Match against glob pattern, as well as .styluaignore if --respect-ignores specified
+                        if should_respect_ignores(opt.as_ref(), &path)
+                            && (!glob_matcher.is_match(&path)
+                                || path_is_stylua_ignored(&path, opt.search_parent_directories)?)
                         {
                             continue;
                         }
@@ -805,6 +790,124 @@ mod tests {
             .args(["--check", "--respect-ignores", "build/foo.lua"])
             .assert()
             .success();
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_glob_patterns() {
+        let cwd = construct_tree!({
+            "foo.txt": "local    x   =   1",
+            "foo.lua": "local    x   =   1",
+            "folder/foo.txt": "local    x   =   1",
+            "folder/foo.lua": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--glob", "**/*.txt", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.txt").assert("local x = 1\n");
+        cwd.child("folder/foo.txt").assert("local x = 1\n");
+
+        cwd.child("foo.lua").assert("local    x   =   1");
+        cwd.child("folder/foo.lua").assert("local    x   =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_negative_glob_patterns() {
+        let cwd = construct_tree!({
+            "foo.lua": "local    x   =   1",
+            "foo.spec.lua": "local    x   =   1",
+            "folder/foo.lua": "local    x   =   1",
+            "folder/foo.spec.lua": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--glob", "!**/*.spec.lua", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
+        cwd.child("folder/foo.lua").assert("local x = 1\n");
+
+        cwd.child("foo.spec.lua").assert("local    x   =   1");
+        cwd.child("folder/foo.spec.lua")
+            .assert("local    x   =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_still_formats_file_even_if_it_doesnt_match_glob() {
+        let cwd = construct_tree!({
+            "foo.txt": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--glob", "*.lua", "foo.txt"])
+            .assert()
+            .success();
+
+        cwd.child("foo.txt").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_doesnt_format_file_if_doesnt_match_default_glob_and_respect_ignores_enabled() {
+        let cwd = construct_tree!({
+            "foo.txt": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--respect-ignores", "foo.txt"])
+            .assert()
+            .success();
+
+        cwd.child("foo.txt").assert("local    x   =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_doesnt_format_file_if_doesnt_match_explicit_glob_and_respect_ignores_enabled() {
+        let cwd = construct_tree!({
+            "foo.txt": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--glob", "*.lua", "--respect-ignores", "foo.txt"])
+            .assert()
+            .success();
+
+        cwd.child("foo.txt").assert("local    x   =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_doesnt_format_file_if_present_in_styluaignore_and_custom_glob_provided() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+            "foo.lua": "local    x   =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--glob", "*.lua", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local    x   =   1");
 
         cwd.close().unwrap();
     }
