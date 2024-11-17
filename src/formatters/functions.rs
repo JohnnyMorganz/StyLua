@@ -750,6 +750,9 @@ pub fn format_function_body(
     function_body: &FunctionBody,
     shape: Shape,
 ) -> FunctionBody {
+    const SINGLE_PAREN_LEN: usize = "(".len();
+    const PARENS_LEN: usize = SINGLE_PAREN_LEN * 2;
+
     // Calculate trivia
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
@@ -814,14 +817,26 @@ pub fn format_function_body(
             shape
         };
 
+        let type_specifiers = function_body
+            .type_specifiers()
+            .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
+            .collect::<Vec<_>>();
+
+        let return_type_shape = if multiline_params {
+            shape.reset() + SINGLE_PAREN_LEN
+        } else {
+            shape.take_first_line(&formatted_parameters)
+                + PARENS_LEN
+                + type_specifiers.iter().fold(0, |acc, x| {
+                    acc + x.as_ref().map_or(0, |x| x.to_string().len())
+                })
+        };
+
         (
-            function_body
-                .type_specifiers()
-                .map(|x| x.map(|specifier| format_type_specifier(ctx, specifier, parameters_shape)))
-                .collect::<Vec<_>>(),
+            type_specifiers,
             function_body
                 .return_type()
-                .map(|return_type| format_type_specifier(ctx, return_type, shape)),
+                .map(|return_type| format_type_specifier(ctx, return_type, return_type_shape)),
         )
     };
 
@@ -834,7 +849,6 @@ pub fn format_function_body(
         if trivia_util::is_block_empty(function_body.block()) {
             Block::new()
         } else {
-            const PARENS_LEN: usize = "()".len();
             let block_shape = shape.take_first_line(&formatted_parameters) + PARENS_LEN;
 
             #[cfg(feature = "luau")]
