@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Luau: Fixed incorrect removal of semicolon before compound assignment with parentheses leading to ambiguous syntax error ([#885](https://github.com/JohnnyMorganz/StyLua/issues/885))
 - Luau: Fixed incorrect collapsing of union/intersection type value with comments in a type table leading to a syntax error ([#893](https://github.com/JohnnyMorganz/StyLua/issues/893))
 - Fixed `--verify` panicing due to overflow for very large Hex numbers ([#875](https://github.com/JohnnyMorganz/StyLua/issues/875), [#889](https://github.com/JohnnyMorganz/StyLua/issues/889))
+- Fixed `.styluaignore` not being respected when passing custom globs to matching ([#869](https://github.com/JohnnyMorganz/StyLua/issues/869))
 
 ## [0.20.0] - 2024-01-20
 
