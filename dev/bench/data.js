@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731859545854,
+  "lastUpdate": 1731860130845,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12431,6 +12431,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14945789,
             "range": "± 92121",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "597268389a7d486f6856a4525dbd11678e324cff",
+          "message": "Improve error reporting on full moon errors (#921)\n\n* Improve error reporting on full moon errors\r\n\r\n* Add space before error\r\n\r\n* Improve printing for verification AST error\r\n\r\n* Remove newline",
+          "timestamp": "2024-11-17T17:13:26+01:00",
+          "tree_id": "8950eb4bc05fcf60e5f564065ff12fd313350dfa",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/597268389a7d486f6856a4525dbd11678e324cff"
+        },
+        "date": 1731860129481,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27715887,
+            "range": "± 788472",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 216027915,
+            "range": "± 1734357",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15222187,
+            "range": "± 311069",
             "unit": "ns/iter"
           }
         ]
