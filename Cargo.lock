@@ -377,9 +377,9 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "full_moon"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56693bf48edbbe906076ed17158ad642146e94d7a8c64c4c40cb9b6ab96194b6"
+checksum = "4c7dafc2cbadd914f7019a08395a3a29c5d735cb6762751c5669e48c5ff2c775"
 dependencies = [
  "bytecount",
  "cfg-if",
