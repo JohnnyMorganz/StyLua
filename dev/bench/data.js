@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731862602046,
+  "lastUpdate": 1731877513982,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12683,6 +12683,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14884680,
             "range": "± 144584",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "51da190c037cbd25a50cc09c26410f2f6304cada",
+          "message": "Bump rust version in Dockerfile",
+          "timestamp": "2024-11-17T22:02:09+01:00",
+          "tree_id": "d405aadb07a643daaafb1e2344bb0be870e215fe",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/51da190c037cbd25a50cc09c26410f2f6304cada"
+        },
+        "date": 1731877512597,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28088873,
+            "range": "± 1013656",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 217248766,
+            "range": "± 2217752",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15106655,
+            "range": "± 109244",
             "unit": "ns/iter"
           }
         ]
