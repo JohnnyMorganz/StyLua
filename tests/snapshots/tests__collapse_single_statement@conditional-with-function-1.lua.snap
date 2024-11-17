@@ -1,0 +1,15 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config {\n            collapse_simple_statement: CollapseSimpleStatement::Always,\n            ..Config::default()\n        }, None, OutputVerification::None).unwrap()"
+input_file: tests/inputs-collapse-single-statement/conditional-with-function-1.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/898
+
+if bar then
+	return function() foo() end
+end
+
+if bar then
+	return Array.filter({}, function() return true end)
+end
+

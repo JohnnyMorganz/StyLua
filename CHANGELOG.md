@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.stylua.toml` config resolution now supports looking up config files next to files being formatted, recursively going
   upwards until reaching the current working directory, then stopping (unless `--search-parent-directories` was specified).
   For example, for a file `./src/test.lua`, executing `stylua src/` will look for `./src/stylua.toml` and then `./stylua.toml`.
+- When `collapse_simple_statement` is enabled, if the enclosing block is a return, we will check if the return expression is "simple" (currently, not containing a function definition) ([#898](https://github.com/JohnnyMorganz/StyLua/issues/898))
 
 ### Fixed
 
