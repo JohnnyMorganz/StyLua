@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731877513982,
+  "lastUpdate": 1731877676240,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12725,6 +12725,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15106655,
             "range": "± 109244",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8207130bc40dce73c8258b5d0dbd6b6e8a9fb64",
+          "message": "Fix CLI overrides not applying on top of resolved configuration (#926)\n\n* Apply CLI overrides when configuration is found\r\n\r\n* Update changelog",
+          "timestamp": "2024-11-17T22:06:03+01:00",
+          "tree_id": "3ba7df131085e788dafe7e7149d2e01500dbb47e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a8207130bc40dce73c8258b5d0dbd6b6e8a9fb64"
+        },
+        "date": 1731877675693,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26462108,
+            "range": "± 507194",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 214302340,
+            "range": "± 3534208",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14802498,
+            "range": "± 139706",
             "unit": "ns/iter"
           }
         ]
