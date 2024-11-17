@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test (all features)
-        run: cargo test --all_features
+        run: cargo test --all-features
 
   test_wasm:
     runs-on: ubuntu-latest
