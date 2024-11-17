@@ -113,7 +113,9 @@ impl ConfigResolver<'_> {
         match config_file {
             Some(file_path) => {
                 debug!("config: found config at {}", file_path.display());
-                read_config_file(&file_path).map(Some)
+                let config = read_and_apply_overrides(&file_path, self.opt)?;
+                debug!("config: {:#?}", config);
+                Ok(Some(config))
             }
             None => Ok(None),
         }
