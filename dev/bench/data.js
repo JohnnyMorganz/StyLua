@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731862182288,
+  "lastUpdate": 1731862290013,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12599,6 +12599,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14870512,
             "range": "± 44687",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef4ae379561c665c20e74e75d45a1a6e0d57b994",
+          "message": "Update contents of readme about syntax selection (#914)",
+          "timestamp": "2024-11-17T17:49:41+01:00",
+          "tree_id": "7ba5750e1e7a9294557b0c8cc3ad03cc08953ca6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ef4ae379561c665c20e74e75d45a1a6e0d57b994"
+        },
+        "date": 1731862289468,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26012889,
+            "range": "± 265143",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 212841359,
+            "range": "± 873312",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14772271,
+            "range": "± 339784",
             "unit": "ns/iter"
           }
         ]
