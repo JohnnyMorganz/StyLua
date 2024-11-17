@@ -98,6 +98,10 @@ pub struct Opt {
     #[structopt(short, long)]
     pub allow_hidden: bool,
 
+    /// Whether to continue formatting files listed in .gitignore / .ignore
+    #[structopt(long)]
+    pub allow_gitignore: bool,
+
     /// Disables the EditorConfig feature.
     ///
     /// Has no effect if a stylua.toml configuration file is found.

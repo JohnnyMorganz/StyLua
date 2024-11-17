@@ -304,7 +304,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     walker_builder
-        .standard_filters(true)
+        .standard_filters(!opt.allow_gitignore)
         .hidden(!opt.allow_hidden)
         .parents(true)
         .add_custom_ignore_filename(".styluaignore");
@@ -805,6 +805,41 @@ mod tests {
             .args(["--check", "--respect-ignores", "build/foo.lua"])
             .assert()
             .success();
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_formatting_respects_gitignore() {
+        let cwd = construct_tree!({
+            ".git/dummy.txt": "", // Need a .git folder for .gitignore lookup
+            ".gitignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path()).args(["."]).assert().success();
+
+        cwd.child("foo.lua").assert("local   x    =   1");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_formatting_still_formats_gitignore_files_if_requested() {
+        let cwd = construct_tree!({
+            ".git/dummy.txt": "", // Need a .git folder for .gitignore lookup
+            ".gitignore": "foo.lua",
+            "foo.lua": "local   x    =   1",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--allow-gitignore", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 1\n");
 
         cwd.close().unwrap();
     }
