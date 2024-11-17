@@ -8,16 +8,12 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
-#[cfg(feature = "editorconfig")]
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
 use threadpool::ThreadPool;
 
-#[cfg(feature = "editorconfig")]
-use stylua_lib::editorconfig;
 use stylua_lib::{format_code, Config, OutputVerification, Range};
 
 use crate::config::find_ignore_file_path;
@@ -272,14 +268,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     // Load the configuration
-    let loaded = config::load_config(&opt)?;
-    #[cfg(feature = "editorconfig")]
-    let is_default_config = loaded.is_none();
-    let config = loaded.unwrap_or_default();
+    let opt_for_config_resolver = opt.clone();
+    let mut config_resolver = config::ConfigResolver::new(&opt_for_config_resolver)?;
 
-    // Handle any configuration overrides provided by options
-    let config = config::load_overrides(config, &opt);
-    debug!("config: {:#?}", config);
+    // TODO:
+    // debug!("config: {:#?}", config);
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -425,40 +418,24 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         None => false,
                     };
 
-                    pool.execute(move || {
-                        #[cfg(not(feature = "editorconfig"))]
-                        let used_config = Ok(config);
-                        #[cfg(feature = "editorconfig")]
-                        let used_config = match is_default_config && !&opt.no_editorconfig {
-                            true => {
-                                let path = match &opt.stdin_filepath {
-                                    Some(filepath) => filepath.to_path_buf(),
-                                    None => PathBuf::from("*.lua"),
-                                };
-                                editorconfig::parse(config, &path)
-                                    .context("could not parse editorconfig")
-                            }
-                            false => Ok(config),
-                        };
+                    let config = config_resolver.load_configuration_for_stdin()?;
 
+                    pool.execute(move || {
                         let mut buf = String::new();
                         tx.send(
-                            used_config
-                                .and_then(|used_config| {
-                                    stdin()
-                                        .read_to_string(&mut buf)
-                                        .map_err(|err| err.into())
-                                        .and_then(|_| {
-                                            format_string(
-                                                buf,
-                                                used_config,
-                                                range,
-                                                &opt,
-                                                verify_output,
-                                                should_skip_format,
-                                            )
-                                            .context("could not format from stdin")
-                                        })
+                            stdin()
+                                .read_to_string(&mut buf)
+                                .map_err(|err| err.into())
+                                .and_then(|_| {
+                                    format_string(
+                                        buf,
+                                        config,
+                                        range,
+                                        &opt,
+                                        verify_output,
+                                        should_skip_format,
+                                    )
+                                    .context("could not format from stdin")
                                 })
                                 .map_err(|error| {
                                     ErrorFileWrapper {
@@ -506,29 +483,20 @@ fn format(opt: opt::Opt) -> Result<i32> {
                             continue;
                         }
 
+                        let config = config_resolver.load_configuration(&path)?;
+
                         let tx = tx.clone();
                         pool.execute(move || {
-                            #[cfg(not(feature = "editorconfig"))]
-                            let used_config = Ok(config);
-                            #[cfg(feature = "editorconfig")]
-                            let used_config = match is_default_config && !&opt.no_editorconfig {
-                                true => editorconfig::parse(config, &path)
-                                    .context("could not parse editorconfig"),
-                                false => Ok(config),
-                            };
-
                             tx.send(
-                                used_config
-                                    .and_then(|used_config| {
-                                        format_file(&path, used_config, range, &opt, verify_output)
-                                    })
-                                    .map_err(|error| {
+                                format_file(&path, config, range, &opt, verify_output).map_err(
+                                    |error| {
                                         ErrorFileWrapper {
                                             file: path.display().to_string(),
                                             error,
                                         }
                                         .into()
-                                    }),
+                                    },
+                                ),
                             )
                             .unwrap()
                         });
@@ -805,6 +773,183 @@ mod tests {
             .args(["--check", "--respect-ignores", "build/foo.lua"])
             .assert()
             .success();
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stdin_filepath_respects_cwd_configuration_next_to_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--stdin-filepath", "foo.lua", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stdin_filepath_respects_cwd_configuration_for_nested_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--stdin-filepath", "build/foo.lua", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_cwd_configuration_respected_for_file_in_cwd() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_cwd_configuration_respected_for_nested_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_not_used_outside_of_cwd() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.child("build").path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = \"hello\"\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_used_outside_of_cwd_when_search_parent_directories_is_enabled() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.child("build").path())
+            .args(["--search-parent-directories", "foo.lua"])
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_searched_next_to_file() {
+        let cwd = construct_tree!({
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_used_closest_to_the_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_config_path_override() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--config-path", "build/stylua.toml", "foo.lua"])
+            .assert()
+            .success();
+    }
+
+    #[test]
+    fn test_respect_config_path_override_for_stdin_filepath() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--config-path", "build/stylua.toml", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
 
         cwd.close().unwrap();
     }

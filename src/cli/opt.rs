@@ -9,7 +9,7 @@ lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Clone, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code", version)]
 pub struct Opt {
     /// Specify path to stylua.toml configuration file.
@@ -160,7 +160,7 @@ pub enum OutputFormat {
     Summary,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Clone, Copy, Debug)]
 pub struct FormatOpts {
     /// The type of Lua syntax to parse
     #[structopt(long, arg_enum, ignore_case = true)]
