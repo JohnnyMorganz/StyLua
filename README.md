@@ -229,7 +229,8 @@ StyLua has opinionated defaults, but also provides a few options that can be set
 
 ### Finding the configuration
 
-The CLI looks for `stylua.toml` or `.stylua.toml` in the directory where the tool was executed.
+The CLI looks for a `stylua.toml` or `.stylua.toml` starting from the directory of the file being formatted.
+It will keep searching upwards until it reaches the current directory where the tool was executed.
 If not found, we search for an `.editorconfig` file, otherwise fall back to the default configuration.
 This feature can be disabled using `--no-editorconfig`.
 See [EditorConfig](https://editorconfig.org/) for more details.
