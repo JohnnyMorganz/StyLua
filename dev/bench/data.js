@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731849011428,
+  "lastUpdate": 1731858009100,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12347,6 +12347,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14818178,
             "range": "± 100358",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d7d532b4baf2bcf2adf1925d7248f659788e5b58",
+          "message": "Update to full-moon 1.1.2 (#920)",
+          "timestamp": "2024-11-17T16:38:15+01:00",
+          "tree_id": "632420dc7d8539f3eeff3d7fcc6c0ec0cca1e357",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d7d532b4baf2bcf2adf1925d7248f659788e5b58"
+        },
+        "date": 1731858007940,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26349129,
+            "range": "± 229413",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213002284,
+            "range": "± 530655",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15119212,
+            "range": "± 318228",
             "unit": "ns/iter"
           }
         ]
