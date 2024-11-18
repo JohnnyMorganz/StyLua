@@ -29,7 +29,7 @@ Alternatively, see [installing from crates.io](#from-cratesio) on how to install
 
 If you have [Rust](https://www.rust-lang.org/) installed, you can install StyLua using cargo.
 By default, this builds for just Lua 5.1.
-You can pass the `--features <flag>` argument to build for Lua 5.2 (`lua52`), Lua 5.3 (`lua53`), Lua 5.4 (`lua54`), LuaJIT (`luajit`) or Luau (`luau`)
+You can pass the `--features <flag>` argument to add extra syntax variants:
 
 ```sh
 cargo install stylua
@@ -40,12 +40,12 @@ cargo install stylua --features luajit
 cargo install stylua --features luau
 ```
 
-You can specify multiple features in a single installation, and then use [configuration in a `.stylua.toml` file](#configuring-runtime-syntax-selection) to defer syntax selection to runtime.
+You can specify multiple features at once, and then use [configuration in a `.stylua.toml` file](#configuring-runtime-syntax-selection) to defer syntax selection to runtime.
 
 ### GitHub Actions
 
-You can use the [stylua-action](https://github.com/marketplace/actions/stylua) GitHub Action in your CI to install and run StyLua.
-This action uses the prebuilt GitHub release binaries, instead of running cargo install, for faster CI times.
+The [stylua-action](https://github.com/marketplace/actions/stylua) GitHub Action can install and run StyLua.
+This action uses the prebuilt GitHub release binaries, instead of running cargo install, for faster CI startup times.
 
 ### pre-commit
 
@@ -68,7 +68,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 ### npm
 
 StyLua is available as a binary [published to npm](https://www.npmjs.com/package/@johnnymorganz/stylua-bin) as `@johnnymorganz/stylua-bin`.
-This is a thin wrapper which installs the binary and allows it to be run through npm.
+This is a thin wrapper that installs the binary and makes it available through npm / npx.
 
 ```sh
 npx @johnnymorganz/stylua-bin --help
@@ -136,16 +136,16 @@ stylua --glob '**/*.luau' -- src # format all files in src matching **/*.luau
 stylua -g '*.lua' -g '!*.spec.lua' -- . # format all Lua files except test files ending with `.spec.lua`
 ```
 
-Note, if you are using the glob argument, it can take in multiple strings, so `--` is required to break between the glob pattern and the files to format.
+Note that the `-g/--glob` argument can take multiple strings at once, so `--` is required to separate between the glob patterns and the files to format.
 
-By default, glob filtering (and `.styluaignore` files) are only applied for directory traversal and searching.
+By default, glob filtering (and `.styluaignore` files) are only applied during directory traversal and searching.
 Files passed directly (e.g. `stylua foo.txt`) will override the glob / ignore and always be formatted.
 To disable this behaviour, pass the `--respect-ignores` flag (`stylua --respect-ignores foo.txt`).
 
 ### Filtering using `.styluaignore`
 
 You can create a `.styluaignore` file, with a format similar to `.gitignore`.
-Any files matching the globs in the ignore file will be ignored by StyLua.
+Any files matching the globs in the ignore file are ignored by StyLua.
 For example, for a `.styluaignore` file with the following contents:
 
 ```
@@ -156,31 +156,30 @@ running `stylua .` will ignore the `vendor/` directory.
 
 ### `--check`: Checking files for formatting
 
-To check whether files have been formatted (but not write directly to them), use the `--check` flag.
+To check whether files require formatting (but not write directly to them), use the `--check` flag.
 It will take files as input, and output a diff to stdout instead of rewriting the file contents.
-If there are files which haven't been fully formatted, StyLua will exit with status code 1.
+If there are any files that require formatting, StyLua will exit with status code 1.
 
-There are different styles of output that are available:
+There are different styles of output available:
 
-- `--output-format=standard`: output a custom pretty diff (default)
-- `--output-format=unified`: output a unified diff, which can be consumed by tools like `patch` or `delta`
-- `--output-format=json`: output JSON representing the changes, useful for machine-readable output (usable in non-check mode as well)
+- `--output-format=standard`: output a custom diff (default)
+- `--output-format=unified`: output a unified diff, consumable by tools like `patch` or `delta`
+- `--output-format=json`: output JSON representing the changes, useful for machine-readable output
 - `--output-format=summary`: output a summary list of file paths that are incorrectly formatted
 
 ### `--verify`: Verifying formatting output
 
-As a safety measure, the `--verify` flag can be passed to StyLua, and StyLua will verify the output of all formatting
-before saving it to a file.
+As a safety measure, you can use the `--verify` flag to verify the output of all formatting before saving the file.
 
 If enabled, the tool will re-parse the formatted output to verify if the AST is still valid (no syntax errors) and is similar to the input (possible semantic changes).
 
-Useful when adopting StyLua in a large codebase, where it is difficult to verify all formatting is correct.
+This is useful when adopting StyLua in a large codebase, where it is difficult to manually check all formatting is correct.
 Note that this may produce false positives and negatives - we recommend manual verification as well as running tests to confirm.
 
 ### Ignoring parts of a file
 
 To skip formatting a particular part of a file, you can add `-- stylua: ignore` before it.
-This may be useful if there is a particular style you want to preseve for readability, e.g.:
+This is useful if there is a particular style you want to preseve for readability, e.g.:
 
 ```lua
 -- stylua: ignore
@@ -191,7 +190,7 @@ local matrix = {
 }
 ```
 
-Formatting can also be skipped over a block of code using `-- stylua: ignore start` and `-- stylua: ignore end`:
+To skip a block of code, use `-- stylua: ignore start` and `-- stylua: ignore end`:
 
 ```lua
 local foo = true
@@ -202,15 +201,15 @@ local  baz      = 0
 local foobar = false
 ```
 
-Note that ignoring cannot cross scope boundaries - once a block is exited, formatting will be re-enabled.
+Note that ignoring cannot cross scope boundaries - once a block is exited, formatting is re-enabled.
 
 ### Formatting Ranges
 
 To format a specific range within a file, use `--range-start <num>` and/or `--range-end <num>`.
-Both arguments are inclusive and optional - if an argument is not provided, the start/end of the file will be used respectively.
+Both arguments are inclusive and optional - if an argument is not provided, the start/end of the file is used respectively.
 
-Only whole statements lying within the range will be formatted.
-If part of a statement falls outside the range, the statement will be ignored.
+Only whole statements lying within the range are formatted.
+If part of a statement falls outside the range, the statement is ignored.
 
 In editors, `Format Selection` is supported.
 
@@ -219,8 +218,8 @@ In editors, `Format Selection` is supported.
 StyLua has built-in support for sorting require statements. We group consecutive require statements into a single "block",
 and then requires are sorted only within that block. Blocks of requires do not move around the file.
 
-We only include requires of the form `local NAME = require(EXPR)`, and sort lexicographically based on `NAME`.
-(We also sort Roblox services of the form `local NAME = game:GetService(EXPR)`)
+StyLua only considers requires of the form `local NAME = require(EXPR)`, and sorts lexicographically based on `NAME`.
+(StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`)
 
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
@@ -241,12 +240,12 @@ If not found, we search for an `.editorconfig` file, otherwise fall back to the 
 This feature can be disabled using `--no-editorconfig`.
 See [EditorConfig](https://editorconfig.org/) for more details.
 
-A custom path can be provided using `--config-path <path>`.
-If the path provided is not found/malformed, StyLua will exit with an error.
+Use `--config-path <path>` to provide a custom path to the configuration.
+If the file provided is not found/malformed, StyLua will exit with an error.
 
-By default, the tool does not search further than the current directory.
-Recursively searching parent directories can be enabled using `--search-parent-directories`.
-This will keep searching ancestors. If not found, it will then look in `$XDG_CONFIG_HOME` / `$XDG_CONFIG_HOME/stylua`.
+By default, StyLua does not search further than the current directory.
+Use `--search-parent-directories` to recursively search parent directories.
+This will keep searching ancestors and, if not found, will then look in `$XDG_CONFIG_HOME` / `$XDG_CONFIG_HOME/stylua` / `$HOME/.config` and `$HOME/.config/stylua`.
 
 **Note: enabling searching outside of the current directory is NOT recommended due to possibilities of conflicting formatting:**
 
