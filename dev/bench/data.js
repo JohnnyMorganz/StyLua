@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731954395111,
+  "lastUpdate": 1731955434687,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12851,6 +12851,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14985325,
             "range": "± 322188",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "d6b8e7e57fdd3bd4d87df1c6859e4df327b5ee0c",
+          "message": "Log if an ignore file was resolved during --respect-ignores",
+          "timestamp": "2024-11-18T19:41:51+01:00",
+          "tree_id": "df6fe0de9f5be33c49db67f3ac37133842ca592c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d6b8e7e57fdd3bd4d87df1c6859e4df327b5ee0c"
+        },
+        "date": 1731955433966,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27256342,
+            "range": "± 421877",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 214650791,
+            "range": "± 396739",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14940907,
+            "range": "± 100799",
             "unit": "ns/iter"
           }
         ]
