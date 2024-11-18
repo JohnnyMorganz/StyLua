@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2024-11-18
+
 ### Added
 
 - Verbose mode will now show resolved options
@@ -792,7 +794,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.0.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.1
 [2.0.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.0
 [0.20.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.20.0
 [0.19.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.1
