@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Verbose mode will now show resolved options
+
 ### Fixed
 
 - Fixed CLI overrides not applying on top of a resolved `stylua.toml` file ([#925](https://github.com/JohnnyMorganz/StyLua/issues/925))

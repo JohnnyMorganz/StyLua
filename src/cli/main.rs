@@ -253,6 +253,8 @@ fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Resul
 }
 
 fn format(opt: opt::Opt) -> Result<i32> {
+    debug!("resolved options: {:#?}", opt);
+
     if opt.files.is_empty() {
         bail!("no files provided");
     }
