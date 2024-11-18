@@ -223,6 +223,7 @@ pub fn find_ignore_file_path(mut directory: PathBuf, recursive: bool) -> Option<
     debug!("config: looking for ignore file in {}", directory.display());
     let file_path = directory.join(".styluaignore");
     if file_path.is_file() {
+        debug!("config: resolved ignore file at {}", file_path.display());
         Some(file_path)
     } else if recursive && directory.pop() {
         find_ignore_file_path(directory, recursive)
