@@ -160,10 +160,12 @@ To check whether files have been formatted (but not write directly to them), use
 It will take files as input, and output a diff to stdout instead of rewriting the file contents.
 If there are files which haven't been fully formatted, StyLua will exit with status code 1.
 
-By default, we provide a custom Standard diff view, but this can be configured:
+There are different styles of output that are available:
 
+- `--output-format=standard`: output a custom pretty diff (default)
 - `--output-format=unified`: output a unified diff, which can be consumed by tools like `patch` or `delta`
-- `--output-format=json`: output JSON representing the changes, useful for machine-readable output
+- `--output-format=json`: output JSON representing the changes, useful for machine-readable output (usable in non-check mode as well)
+- `--output-format=summary`: output a summary list of file paths that are incorrectly formatted
 
 ### `--verify`: Verifying formatting output
 
