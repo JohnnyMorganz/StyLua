@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732968670550,
+  "lastUpdate": 1732970291940,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -12977,6 +12977,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14926605,
             "range": "± 729254",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f581279895a7040a36abaea4a6c8a6f50f112cd7",
+          "message": "Use configuration from cwd when formatting from stdin (#931)\n\nUse configuration from current working directory when formatting\r\nfrom stdin and no stdin filepath provided",
+          "timestamp": "2024-11-30T13:36:12+01:00",
+          "tree_id": "2b38d42e749193fb6ca9cc2e4015ebba2993a022",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f581279895a7040a36abaea4a6c8a6f50f112cd7"
+        },
+        "date": 1732970290752,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27115172,
+            "range": "± 327585",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 213853983,
+            "range": "± 1558803",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15052608,
+            "range": "± 698086",
             "unit": "ns/iter"
           }
         ]
