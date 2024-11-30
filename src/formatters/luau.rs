@@ -841,8 +841,15 @@ fn hang_type_info(
                 is_first = false;
             }
 
-            // TODO: handle leading
-            TypeInfo::Union(TypeUnion::new(union.leading().cloned(), types))
+            // TODO: leading should play a role in the shape computation
+            // TODO(#910): we should decide whether we add or remove a leading token (maybe if hang_level = 0?)
+
+            TypeInfo::Union(TypeUnion::new(
+                union
+                    .leading()
+                    .map(|token| fmt_symbol!(ctx, token, "| ", shape)),
+                types,
+            ))
         }
 
         TypeInfo::Intersection(intersection) => {
@@ -884,9 +891,13 @@ fn hang_type_info(
                 is_first = false;
             }
 
-            // TODO: handle leading
+            // TODO: leading should play a role in the shape computation
+            // TODO(#910): we should decide whether we add or remove a leading token (maybe if hang_level = 0?)
+
             TypeInfo::Intersection(TypeIntersection::new(
-                intersection.leading().cloned(),
+                intersection
+                    .leading()
+                    .map(|token| fmt_symbol!(ctx, token, "& ", shape)),
                 types,
             ))
         }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed regression where configuration present in current working directory not used when formatting from stdin and no `--stdin-filepath` is provided ([#928](https://github.com/JohnnyMorganz/StyLua/issues/928))
+- Luau: fixed incorrect indentation for leading token in union / intersection when hanging ([#932](https://github.com/JohnnyMorganz/StyLua/issues/932))
 
 ## [2.0.1] - 2024-11-18
 
