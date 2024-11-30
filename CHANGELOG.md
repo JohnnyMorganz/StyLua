@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed regression where configuration present in current working directory not used when formatting from stdin and no `--stdin-filepath` is provided ([#928](https://github.com/JohnnyMorganz/StyLua/issues/928))
+
 ## [2.0.1] - 2024-11-18
 
 ### Added

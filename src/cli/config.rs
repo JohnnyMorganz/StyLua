@@ -55,15 +55,22 @@ impl ConfigResolver<'_> {
         })
     }
 
+    /// Returns the root used when searching for configuration
+    /// If `--search-parent-directories`, then there is no root, and we keep searching
+    /// Else, the root is the current working directory, and we do not search higher than the cwd
+    fn get_configuration_search_root(&self) -> Option<PathBuf> {
+        match self.opt.search_parent_directories {
+            true => None,
+            false => Some(self.current_directory.to_path_buf()),
+        }
+    }
+
     pub fn load_configuration(&mut self, path: &Path) -> Result<Config> {
         if let Some(configuration) = self.forced_configuration {
             return Ok(configuration);
         }
 
-        let root = match self.opt.search_parent_directories {
-            true => None,
-            false => Some(self.current_directory.to_path_buf()),
-        };
+        let root = self.get_configuration_search_root();
 
         let absolute_path = self.current_directory.join(path);
         let parent_path = &absolute_path
@@ -91,19 +98,25 @@ impl ConfigResolver<'_> {
             return Ok(configuration);
         }
 
+        let root = self.get_configuration_search_root();
+        let my_current_directory = self.current_directory.to_owned();
+
         match &self.opt.stdin_filepath {
             Some(filepath) => self.load_configuration(filepath),
-            None => {
-                #[cfg(feature = "editorconfig")]
-                if self.opt.no_editorconfig {
+            None => match self.find_config_file(&my_current_directory, root)? {
+                Some(config) => Ok(config),
+                None => {
+                    #[cfg(feature = "editorconfig")]
+                    if self.opt.no_editorconfig {
+                        Ok(self.default_configuration)
+                    } else {
+                        editorconfig::parse(self.default_configuration, &PathBuf::from("*.lua"))
+                            .context("could not parse editorconfig")
+                    }
+                    #[cfg(not(feature = "editorconfig"))]
                     Ok(self.default_configuration)
-                } else {
-                    editorconfig::parse(self.default_configuration, &PathBuf::from("*.lua"))
-                        .context("could not parse editorconfig")
                 }
-                #[cfg(not(feature = "editorconfig"))]
-                Ok(self.default_configuration)
-            }
+            },
         }
     }
 

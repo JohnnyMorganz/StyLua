@@ -811,6 +811,24 @@ mod tests {
     }
 
     #[test]
+    fn test_cwd_configuration_respected_when_formatting_from_stdin() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("-")
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
     fn test_cwd_configuration_respected_for_file_in_cwd() {
         let cwd = construct_tree!({
             "stylua.toml": "quote_style = 'AutoPreferSingle'",
