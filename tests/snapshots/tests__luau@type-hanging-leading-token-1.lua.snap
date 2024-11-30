@@ -1,0 +1,15 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/type-hanging-leading-token-1.lua
+---
+export type Foo =
+	| numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	| numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	| numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+export type Foo =
+	& numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	& numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	& numberaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
