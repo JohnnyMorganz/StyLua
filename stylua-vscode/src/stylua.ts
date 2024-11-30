@@ -46,7 +46,7 @@ export function formatCode(
 
     args.push("-");
 
-    outputChannel.debug(`${path} {args.join(" ")}`);
+    outputChannel.debug(`${path} ${args.join(" ")}`);
 
     const child = spawn(`${path}`, args, {
       cwd,
