@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732970291940,
+  "lastUpdate": 1732971127634,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13019,6 +13019,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15052608,
             "range": "± 698086",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d570166502f922e96ace770be7f773e72b185d5b",
+          "message": "Luau: fix indentation of leading token in union/intersection when hanging (#933)\n\n* Add test case\r\n\r\n* Fix indentation formatting of leading token in hanging type info\r\n\r\n* Update changelog and snapshots",
+          "timestamp": "2024-11-30T13:49:46+01:00",
+          "tree_id": "7491237f9ed911237e574b5d9eafb7eb6ecad464",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d570166502f922e96ace770be7f773e72b185d5b"
+        },
+        "date": 1732971127116,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26440805,
+            "range": "± 232234",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 216605772,
+            "range": "± 1767826",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15130020,
+            "range": "± 749219",
             "unit": "ns/iter"
           }
         ]
