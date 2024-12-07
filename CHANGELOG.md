@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2024-12-07
+
 ### Fixed
 
 - Fixed regression where configuration present in current working directory not used when formatting from stdin and no `--stdin-filepath` is provided ([#928](https://github.com/JohnnyMorganz/StyLua/issues/928))
@@ -799,7 +801,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.0.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.2
 [2.0.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.1
 [2.0.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.0
 [0.20.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.20.0

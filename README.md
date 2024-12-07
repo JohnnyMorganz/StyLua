@@ -60,7 +60,7 @@ Add the following to your `.pre-commit-config.yaml` file:
 
 ```yaml
 - repo: https://github.com/JohnnyMorganz/StyLua
-  rev: v2.0.1
+  rev: v2.0.2
   hooks:
     - id: stylua # or stylua-system / stylua-github
 ```
@@ -84,7 +84,7 @@ StyLua is available on the [Docker Hub](https://hub.docker.com/r/johnnymorganz/s
 If you are using Docker, the easiest way to install StyLua is:
 
 ```dockerfile
-COPY --from=JohnnyMorganz/StyLua:2.0.1 /stylua /usr/bin/stylua
+COPY --from=JohnnyMorganz/StyLua:2.0.2 /stylua /usr/bin/stylua
 ```
 
 ### Homebrew
@@ -101,7 +101,7 @@ brew install stylua
 - [Aftman](https://github.com/LPGhatguy/aftman)
 
 ```sh
-aftman add johnnymorganz/stylua@2.0.1
+aftman add johnnymorganz/stylua@2.0.2
 ```
 
 - A community maintained package repository. Please note, these packages are maintained by third-parties and we do not control their packaging manifests.
