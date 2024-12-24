@@ -1124,6 +1124,7 @@ fn hang_binop_expression(
     top_binop: BinOp,
     shape: Shape,
     lhs_range: Option<LeftmostRangeHang>,
+    expression_context: ExpressionContext,
 ) -> Expression {
     const SPACE_LEN: usize = " ".len();
 
@@ -1182,9 +1183,17 @@ fn hang_binop_expression(
                                 },
                                 lhs_shape,
                                 lhs_range,
+                                expression_context,
                             ),
                             if contains_comments(&*rhs) {
-                                hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                                hang_binop_expression(
+                                    ctx,
+                                    *rhs,
+                                    binop,
+                                    shape,
+                                    lhs_range,
+                                    expression_context,
+                                )
                             } else {
                                 format_expression_internal(
                                     ctx,
@@ -1196,7 +1205,14 @@ fn hang_binop_expression(
                         ),
                         ExpressionSide::Right => (
                             if contains_comments(&*lhs) {
-                                hang_binop_expression(ctx, *lhs, binop.clone(), shape, lhs_range)
+                                hang_binop_expression(
+                                    ctx,
+                                    *lhs,
+                                    binop.clone(),
+                                    shape,
+                                    lhs_range,
+                                    expression_context,
+                                )
                             } else {
                                 let context = if let BinOp::Caret(_) = binop {
                                     ExpressionContext::BinaryLHSExponent
@@ -1211,6 +1227,7 @@ fn hang_binop_expression(
                                 if same_op_level { top_binop } else { binop },
                                 rhs_shape,
                                 lhs_range,
+                                expression_context,
                             ),
                         ),
                     };
@@ -1223,7 +1240,14 @@ fn hang_binop_expression(
                     // Check if the chain still has comments deeper inside of it.
                     // If it does, we need to hang that part of the chain still, otherwise the comments will mess it up
                     let lhs = if contains_comments(&*lhs) {
-                        hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
+                        hang_binop_expression(
+                            ctx,
+                            *lhs,
+                            binop.to_owned(),
+                            shape,
+                            lhs_range,
+                            expression_context,
+                        )
                     } else {
                         let context = if let BinOp::Caret(_) = binop {
                             ExpressionContext::BinaryLHSExponent
@@ -1234,7 +1258,14 @@ fn hang_binop_expression(
                     };
 
                     let rhs = if contains_comments(&*rhs) {
-                        hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                        hang_binop_expression(
+                            ctx,
+                            *rhs,
+                            binop,
+                            shape,
+                            lhs_range,
+                            expression_context,
+                        )
                     } else {
                         format_expression_internal(
                             ctx,
@@ -1255,13 +1286,7 @@ fn hang_binop_expression(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => format_hanging_expression_(
-            ctx,
-            &expression,
-            shape,
-            ExpressionContext::Standard,
-            lhs_range,
-        ),
+        _ => format_hanging_expression_(ctx, &expression, shape, expression_context, lhs_range),
     }
 }
 
@@ -1402,8 +1427,14 @@ fn format_hanging_expression_(
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
-            let lhs =
-                hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, lhs_range);
+            let lhs = hang_binop_expression(
+                ctx,
+                *lhs.to_owned(),
+                binop.to_owned(),
+                shape,
+                lhs_range,
+                ExpressionContext::UnaryOrBinary,
+            );
 
             let current_shape = shape.take_last_line(&lhs) + 1; // 1 = space before binop
             let mut new_binop = format_binop(ctx, binop, current_shape);
@@ -1416,6 +1447,7 @@ fn format_hanging_expression_(
                 binop.to_owned(),
                 singleline_shape,
                 None,
+                ExpressionContext::Standard,
             );
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
@@ -1434,6 +1466,7 @@ fn format_hanging_expression_(
                     binop.to_owned(),
                     hanging_shape,
                     None,
+                    ExpressionContext::Standard,
                 )
                 .update_leading_trivia(FormatTriviaType::Replace(Vec::new()));
             }
