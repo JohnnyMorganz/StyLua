@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736684968933,
+  "lastUpdate": 1736689171059,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13187,6 +13187,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14838888,
             "range": "± 204662",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "57408a808b234b3c8a3bd69dcfc8c21b734e695a",
+          "message": "Luau: Support user-defined type functions (#947)\n\n* Support user-defined type functions\r\n\r\n* Add test case\r\n\r\n* Update changelog",
+          "timestamp": "2025-01-12T13:37:32Z",
+          "tree_id": "3c69636c18b1353c9b1836ebcff380b39652d91a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/57408a808b234b3c8a3bd69dcfc8c21b734e695a"
+        },
+        "date": 1736689169886,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26391382,
+            "range": "± 179566",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 216889809,
+            "range": "± 1469012",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14849246,
+            "range": "± 242011",
             "unit": "ns/iter"
           }
         ]
