@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1735051698216,
+  "lastUpdate": 1736684968933,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13145,6 +13145,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14790065,
             "range": "± 72646",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ukendio@gmail.com",
+            "name": "Marcus",
+            "username": "Ukendio"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b349c0aa0eb036bb49d4ce82eaabbb173f627a6f",
+          "message": "Bump fullmoon to 1.2.0 (#945)\n\n* Bump fullmoon to 1.2.0\r\n\r\nThis is the latest version that supports user defined type functions.\r\n\r\n* Update lock file\r\n\r\n* Revert changes to lockfile\r\n\r\n* Only repin full moon in lock file\r\n\r\n---------\r\n\r\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-01-12T12:27:29Z",
+          "tree_id": "6d5d22ed6b7c581b04d6e10c00c74e7bbfa5fb66",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b349c0aa0eb036bb49d4ce82eaabbb173f627a6f"
+        },
+        "date": 1736684967803,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26803673,
+            "range": "± 196067",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 215826233,
+            "range": "± 456001",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14838888,
+            "range": "± 204662",
             "unit": "ns/iter"
           }
         ]
