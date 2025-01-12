@@ -6,13 +6,14 @@ use crate::{
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
+    TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
-        Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
+        BinOp, Block, Call, Expression, Field, FunctionArgs, FunctionBody, Index, LastStmt,
+        LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var,
+        VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -260,6 +261,12 @@ impl GetTrailingTrivia for FunctionArgs {
             }
             other => panic!("unknown node {:?}", other),
         }
+    }
+}
+
+impl GetTrailingTrivia for FunctionBody {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        GetTrailingTrivia::trailing_trivia(self.end_token())
     }
 }
 
@@ -522,7 +529,6 @@ pub fn take_leading_comments<T: GetLeadingTrivia + UpdateLeadingTrivia>(
     )
 }
 
-#[cfg(feature = "luau")]
 pub fn take_trailing_trivia<T: GetTrailingTrivia + UpdateTrailingTrivia>(
     node: &T,
 ) -> (T, Vec<Token>) {
@@ -715,6 +721,13 @@ impl GetTrailingTrivia for TypeDeclaration {
 }
 
 #[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeFunction {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.function_body().trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
 impl GetTrailingTrivia for TypeSpecifier {
     fn trailing_trivia(&self) -> Vec<Token> {
         self.type_info().trailing_trivia()
@@ -873,22 +886,14 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             end_stmt_trailing_trivia!(If, stmt)
         }
         Stmt::FunctionDeclaration(stmt) => {
-            let end_token = stmt.body().end_token();
-            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
             (
                 Stmt::FunctionDeclaration(stmt.with_body(body)),
                 trailing_trivia,
             )
         }
         Stmt::LocalFunction(stmt) => {
-            let end_token = stmt.body().end_token();
-            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
             (Stmt::LocalFunction(stmt.with_body(body)), trailing_trivia)
         }
         Stmt::NumericFor(stmt) => {
@@ -921,6 +926,19 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::TypeDeclaration(stmt) => {
             let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
             (Stmt::TypeDeclaration(type_declaration), trailing_trivia)
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeFunction(stmt) => {
+            let (type_function, trailing_trivia) = take_trailing_trivia(stmt.type_function());
+            (
+                Stmt::ExportedTypeFunction(stmt.with_type_function(type_function)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeFunction(stmt) => {
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
+            (Stmt::TypeFunction(type_declaration), trailing_trivia)
         }
         #[cfg(feature = "lua52")]
         Stmt::Goto(stmt) => {

@@ -2,8 +2,8 @@
 use crate::formatters::lua52::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_compound_assignment, format_exported_type_declaration, format_type_declaration_stmt,
-    format_type_specifier,
+    format_compound_assignment, format_exported_type_declaration, format_exported_type_function,
+    format_type_declaration_stmt, format_type_function_stmt, format_type_specifier,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
@@ -793,6 +793,8 @@ pub fn format_function_call_stmt(
 /// These are used for range formatting
 pub(crate) mod stmt_block {
     use crate::{context::Context, formatters::block::format_block, shape::Shape};
+    #[cfg(feature = "luau")]
+    use full_moon::ast::luau::TypeFunction;
     use full_moon::ast::{
         Call, Expression, Field, FunctionArgs, FunctionCall, Index, Prefix, Stmt, Suffix,
         TableConstructor,
@@ -905,6 +907,17 @@ pub(crate) mod stmt_block {
             .to_owned()
             .with_prefix(prefix)
             .with_suffixes(suffixes)
+    }
+
+    #[cfg(feature = "luau")]
+    fn format_type_function_block(
+        ctx: &Context,
+        type_function: &TypeFunction,
+        shape: Shape,
+    ) -> TypeFunction {
+        let block = format_block(ctx, type_function.function_body().block(), shape);
+        let body = type_function.function_body().to_owned().with_block(block);
+        type_function.to_owned().with_function_body(body)
     }
 
     /// Only formats a block within an expression
@@ -1057,6 +1070,23 @@ pub(crate) mod stmt_block {
             Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
             #[cfg(feature = "luau")]
             Stmt::TypeDeclaration(node) => Stmt::TypeDeclaration(node.to_owned()),
+            #[cfg(feature = "luau")]
+            Stmt::ExportedTypeFunction(exported_type_function) => {
+                let type_function = format_type_function_block(
+                    ctx,
+                    exported_type_function.type_function(),
+                    block_shape,
+                );
+                Stmt::ExportedTypeFunction(
+                    exported_type_function
+                        .to_owned()
+                        .with_type_function(type_function),
+                )
+            }
+            #[cfg(feature = "luau")]
+            Stmt::TypeFunction(type_function) => {
+                Stmt::TypeFunction(format_type_function_block(ctx, type_function, block_shape))
+            }
             #[cfg(feature = "lua52")]
             Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
             #[cfg(feature = "lua52")]
@@ -1090,6 +1120,8 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         #[cfg(feature = "luau")] CompoundAssignment = format_compound_assignment,
         #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
         #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
+        #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function,
+        #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt,
         #[cfg(feature = "lua52")] Goto = format_goto,
         #[cfg(feature = "lua52")] Label = format_label,
     })
