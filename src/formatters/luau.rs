@@ -1,9 +1,12 @@
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
+    context::{
+        create_function_definition_trivia, create_indent_trivia, create_newline_trivia, Context,
+    },
     fmt_op, fmt_symbol,
     formatters::{
         assignment::hang_equal_token,
         expression::{format_expression, format_var},
+        functions::format_function_body,
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_punctuated,
             format_symbol, format_token_reference,
@@ -23,10 +26,10 @@ use crate::{
 };
 use full_moon::ast::{
     luau::{
-        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
-        TypeSpecifier, TypeUnion,
+        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, ExportedTypeFunction,
+        GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo,
+        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
+        TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
 };
@@ -1351,6 +1354,63 @@ pub fn format_type_declaration_stmt(
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
+fn format_type_function(
+    ctx: &Context,
+    type_function: &TypeFunction,
+    add_leading_trivia: bool,
+    shape: Shape,
+) -> TypeFunction {
+    const TYPE_TOKEN_LENGTH: usize = "type ".len();
+    const FUNCTION_TOKEN_LENGTH: usize = "function ".len();
+
+    // Calculate trivia
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
+
+    let mut type_token = format_symbol(
+        ctx,
+        type_function.type_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "type".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    );
+
+    if add_leading_trivia {
+        let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+        type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
+    }
+
+    let function_token = fmt_symbol!(ctx, type_function.function_token(), "function ", shape);
+    let function_name = format_token_reference(ctx, type_function.function_name(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
+
+    let shape = shape
+        + (TYPE_TOKEN_LENGTH
+            + FUNCTION_TOKEN_LENGTH
+            + strip_trivia(&function_name).to_string().len());
+    let function_body = format_function_body(ctx, type_function.function_body(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+
+    TypeFunction::new(function_name, function_body)
+        .with_type_token(type_token)
+        .with_function_token(function_token)
+}
+
+/// Wrapper around `format_type_function` for statements
+/// This is required as `format_type_function` is also used for ExportedTypeFunction, and we don't want leading trivia there
+pub fn format_type_function_stmt(
+    ctx: &Context,
+    type_function: &TypeFunction,
+    shape: Shape,
+) -> TypeFunction {
+    format_type_function(ctx, type_function, true, shape)
+}
+
 fn format_generic_parameter(
     ctx: &Context,
     generic_parameter: &GenericDeclarationParameter,
@@ -1477,4 +1537,39 @@ pub fn format_exported_type_declaration(
         .to_owned()
         .with_export_token(export_token)
         .with_type_declaration(type_declaration)
+}
+
+pub fn format_exported_type_function(
+    ctx: &Context,
+    exported_type_function: &ExportedTypeFunction,
+    shape: Shape,
+) -> ExportedTypeFunction {
+    // Calculate trivia
+    let shape = shape.reset();
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+
+    let export_token = format_symbol(
+        ctx,
+        exported_type_function.export_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "export".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    )
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let type_function = format_type_function(
+        ctx,
+        exported_type_function.type_function(),
+        false,
+        shape + 7, // 7 = "export "
+    );
+
+    exported_type_function
+        .to_owned()
+        .with_export_token(export_token)
+        .with_type_function(type_function)
 }

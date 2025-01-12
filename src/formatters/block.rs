@@ -411,6 +411,20 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             type_declaration.type_token(),
             with_type_token
         ),
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeFunction(exported_type_function) => update_first_token!(
+            ExportedTypeFunction,
+            exported_type_function,
+            exported_type_function.export_token(),
+            with_export_token
+        ),
+        #[cfg(feature = "luau")]
+        Stmt::TypeFunction(type_function) => update_first_token!(
+            TypeFunction,
+            type_function,
+            type_function.type_token(),
+            with_type_token
+        ),
         #[cfg(feature = "lua52")]
         Stmt::Goto(goto) => update_first_token!(Goto, goto, goto.goto_token(), with_goto_token),
         #[cfg(feature = "lua52")]
