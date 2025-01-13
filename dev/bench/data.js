@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736789473134,
+  "lastUpdate": 1736789850442,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13271,6 +13271,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14876870,
             "range": "± 84208",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "4740959+eitamal@users.noreply.github.com",
+            "name": "Itamar Lencovsky",
+            "username": "eitamal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7c07c54f9cfc9814fa27792811191ab886be5bbb",
+          "message": "fix: use \"summary\" for the missing `--check` error message (#949)",
+          "timestamp": "2025-01-13T18:35:30+01:00",
+          "tree_id": "4b1c492a3bda235bb5befa92307c487c000e7d55",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7c07c54f9cfc9814fa27792811191ab886be5bbb"
+        },
+        "date": 1736789849936,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28081999,
+            "range": "± 662032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 217963204,
+            "range": "± 516365",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14863158,
+            "range": "± 162372",
             "unit": "ns/iter"
           }
         ]
