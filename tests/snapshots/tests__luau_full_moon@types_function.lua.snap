@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/types_function.lua
+---
+type function f(...)
+	-- implementation of the type function
+end
+
+export type function f(...)
+	-- implementation of the type function
+end
