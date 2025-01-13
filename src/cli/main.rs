@@ -266,7 +266,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
             opt::OutputFormat::Unified | opt::OutputFormat::Summary
         )
     {
-        bail!("--output-format=unified and --output-format=standard can only be used when --check is enabled");
+        bail!("--output-format=unified and --output-format=summary can only be used when --check is enabled");
     }
 
     // Load the configuration
