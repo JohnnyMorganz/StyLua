@@ -186,10 +186,21 @@ pub fn format_token(
                         }
                     })
                     .into();
-                TokenType::StringLiteral {
-                    literal,
-                    multi_line_depth: *multi_line_depth,
-                    quote_type: quote_to_use,
+                // if we are using CFXLua and the quote type is backtick, then we need stick with backticks
+                #[cfg(feature = "cfxlua")]
+                use crate::LuaVersion;
+                if ctx.config().syntax == LuaVersion::CFXLua && matches!(quote_type, StringLiteralQuoteType::Backtick) {
+                    TokenType::StringLiteral {
+                        literal,
+                        multi_line_depth: *multi_line_depth,
+                        quote_type: StringLiteralQuoteType::Backtick,
+                    }
+                } else {
+                    TokenType::StringLiteral {
+                        literal,
+                        multi_line_depth: *multi_line_depth,
+                        quote_type: quote_to_use,
+                    }
                 }
             }
         }
