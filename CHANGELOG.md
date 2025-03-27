@@ -13,12 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```lua
 local t = {
-    plus_one =
-    ---@param n number
-    ---@return number
-    function(n)
-      return n + 1
-    end,
+	plus_one =
+	---@param n number
+	---@return number
+	function(n)
+		return n + 1
+	end,
 }
 ```
 
