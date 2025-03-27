@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Correct indentation for a documented function defined as table value ([#942](https://github.com/JohnnyMorganz/StyLua/issues/942))
 
+```lua
+local t = {
+    plus_one =
+    ---@param n number
+    ---@return number
+    function(n)
+      return n + 1
+    end,
+}
+```
+
 ### Added
 
 - Luau: Added support for parsing user-defined type functions ([#938](https://github.com/JohnnyMorganz/StyLua/issues/938))
