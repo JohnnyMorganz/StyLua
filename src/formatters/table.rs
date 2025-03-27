@@ -34,7 +34,18 @@ pub enum TableType {
     Empty,
 }
 
+fn is_function_with_leading_trivia(expression: &Expression) -> bool {
+    match expression {
+        Expression::Function(anonymous_function) => {
+            !trivia_util::GetLeadingTrivia::leading_trivia(&anonymous_function.0).is_empty()
+        }
+        _ => false,
+    }
+}
+
 /// Formats an Expression value part of a k,v field pair
+/// If value is an anonymous function with trivia, will prepend a newline so the trivia will align
+/// to the function definition
 fn format_field_expression_value(
     ctx: &Context,
     expression: &Expression,
@@ -64,7 +75,12 @@ fn format_field_expression_value(
             }
         }
     } else {
-        format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia)
+        let formatted_expr =
+            format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia);
+        if is_function_with_leading_trivia(expression) {
+            trivia_util::prepend_newline_indent(ctx, &formatted_expr, shape);
+        }
+        formatted_expr
     }
 }
 
