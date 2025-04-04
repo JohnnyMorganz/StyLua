@@ -86,7 +86,7 @@ fn format_field_expression_value(
                 )]));
             return trivia_util::prepend_newline_indent(ctx, &formatted_expr, shape.reset());
         }
-        formatted_expr
+        formatted_expr.update_trailing_trivia(trailing_trivia)
     }
 }
 
