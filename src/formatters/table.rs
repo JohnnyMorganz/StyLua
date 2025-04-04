@@ -77,16 +77,15 @@ fn format_field_expression_value(
             }
         }
     } else {
-        let formatted_expr = format_expression(ctx, expression, shape);
         if is_function_with_leading_trivia(expression) {
-            let formatted_expr = formatted_expr
+            let incr_shape = shape.increment_additional_indent();
+            let incr_leading_trivia = vec![create_indent_trivia(ctx, incr_shape)];
+            let formatted_expr = format_expression(ctx, expression, incr_shape)
                 .update_trailing_trivia(trailing_trivia)
-                .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
-                    ctx, shape,
-                )]));
-            return trivia_util::prepend_newline_indent(ctx, &formatted_expr, shape.reset());
+                .update_leading_trivia(FormatTriviaType::Append(incr_leading_trivia));
+            return trivia_util::prepend_newline_indent(ctx, &formatted_expr, incr_shape);
         }
-        formatted_expr.update_trailing_trivia(trailing_trivia)
+        format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia)
     }
 }
 
