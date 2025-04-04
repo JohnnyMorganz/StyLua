@@ -1,0 +1,17 @@
+---
+source: tests/tests.rs
+assertion_line: 18
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/function-as-table-value.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/942
+local t = {
+	plus_one =
+	---@param n number
+	---@return number
+	function(n)
+		return n + 1
+	end,
+}
+
+
