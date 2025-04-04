@@ -1,0 +1,21 @@
+---
+source: tests/tests.rs
+assertion_line: 21
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/function-as-table-value-in-mixed-def.lua
+---
+local mixed = {
+	--- identity
+	---@param n number
+	---@return number
+		function(n)
+		return n
+	end,
+	plus_one =
+		---@param n number
+		---@return number
+		function(n)
+			return n + 1
+		end,
+}
+
