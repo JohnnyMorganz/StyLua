@@ -34,6 +34,8 @@ pub enum TableType {
     Empty,
 }
 
+/// Detect function with leading comments/doc-comments when used as a table value
+/// Such (anonymous) function definition gets formatted differently, in a separate line line
 fn is_function_with_leading_trivia(expression: &Expression) -> bool {
     match expression {
         Expression::Function(anonymous_function) => {
