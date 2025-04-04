@@ -75,10 +75,14 @@ fn format_field_expression_value(
             }
         }
     } else {
-        let formatted_expr =
-            format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia);
+        let formatted_expr = format_expression(ctx, expression, shape);
         if is_function_with_leading_trivia(expression) {
-            trivia_util::prepend_newline_indent(ctx, &formatted_expr, shape);
+            let formatted_expr = formatted_expr
+                .update_trailing_trivia(trailing_trivia)
+                .update_leading_trivia(FormatTriviaType::Append(vec![create_indent_trivia(
+                    ctx, shape,
+                )]));
+            return trivia_util::prepend_newline_indent(ctx, &formatted_expr, shape.reset());
         }
         formatted_expr
     }
@@ -220,6 +224,15 @@ fn format_field(
 
             let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
             let value = format_field_expression_value(ctx, value, shape);
+
+            let equal = if is_function_with_leading_trivia(&value) {
+                // function definition goes in the next line, so we remove space between = and newline
+                equal.update_trailing_trivia(FormatTriviaType::Replace(vec![Token::new(
+                    TokenType::spaces(0),
+                )]))
+            } else {
+                equal
+            };
 
             Field::NameKey { key, equal, value }
         }
