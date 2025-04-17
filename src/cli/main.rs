@@ -19,6 +19,7 @@ use stylua_lib::{format_code, Config, OutputVerification, Range};
 use crate::config::find_ignore_file_path;
 
 mod config;
+mod lsp;
 mod opt;
 mod output_diff;
 
@@ -264,6 +265,11 @@ fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Resul
 
 fn format(opt: opt::Opt) -> Result<i32> {
     debug!("resolved options: {:#?}", opt);
+
+    if opt.lsp {
+        lsp::run(opt)?;
+        return Ok(0);
+    }
 
     if opt.files.is_empty() {
         bail!("no files provided");
