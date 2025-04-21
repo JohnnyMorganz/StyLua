@@ -1,5 +1,7 @@
 use context::Context;
 use full_moon::ast::Ast;
+#[cfg(all(feature = "luau", any(feature = "lua52", feature = "lua53")))]
+use full_moon::tokenizer::{Symbol, TokenType};
 use serde::Deserialize;
 use thiserror::Error;
 #[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
@@ -299,6 +301,29 @@ pub enum OutputVerification {
     None,
 }
 
+#[cfg(all(feature = "luau", feature = "lua53"))]
+fn is_luau_and_lua53_conflict(error: &full_moon::Error) -> bool {
+    match error {
+        full_moon::Error::AstError(ast_error) => match ast_error.token().token_type() {
+            TokenType::Symbol {
+                symbol: Symbol::DoubleGreaterThan,
+            } => ast_error.error_message() == "expected '>' to close generic type parameter list",
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+#[cfg(all(feature = "luau", feature = "lua52"))]
+fn is_luau_and_lua52_conflict(error: &full_moon::Error) -> bool {
+    match error {
+        full_moon::Error::AstError(ast_error) => {
+            ast_error.error_message() == "expected label name after `::`"
+        }
+        _ => false,
+    }
+}
+
 fn print_full_moon_error(error: &full_moon::Error) -> String {
     match error {
         full_moon::Error::AstError(ast_error) => format!(
@@ -315,14 +340,33 @@ fn print_full_moon_error(error: &full_moon::Error) -> String {
 }
 
 fn print_full_moon_errors(errors: &[full_moon::Error]) -> String {
-    if errors.len() == 1 {
+    #[allow(unused_mut)]
+    let mut error_message = if errors.len() == 1 {
         print_full_moon_error(errors.first().unwrap())
     } else {
         errors
             .iter()
             .map(|err| "\n - ".to_string() + &print_full_moon_error(err))
             .collect::<String>()
+    };
+
+    #[cfg(all(feature = "luau", feature = "lua53"))]
+    {
+        let recommend_luau_syntax = errors.iter().any(is_luau_and_lua53_conflict);
+        if recommend_luau_syntax {
+            error_message += "\nhint: this looks like a conflict with Lua 5.3 and Luau generics syntax, add `syntax = \"Luau\"` to stylua.toml to resolve";
+        }
     }
+
+    #[cfg(all(feature = "luau", feature = "lua52"))]
+    {
+        let recommend_lua52_syntax = errors.iter().any(is_luau_and_lua52_conflict);
+        if recommend_lua52_syntax {
+            error_message += "\nhint: this looks like a conflict with Luau and Lua 5.2 label syntax, add `syntax = \"Lua52\"` to stylua.toml to resolve";
+        }
+    }
+
+    error_message
 }
 
 /// A formatting error
