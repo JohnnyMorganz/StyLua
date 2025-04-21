@@ -184,3 +184,83 @@ local still_got_em = my_function({
     "###
     );
 }
+
+#[test]
+fn test_keep_parens_for_leading_comment() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+foo( -- test
+"string")
+
+foo(
+  -- test
+"string")
+
+foo( -- test
+    {})
+
+foo(
+  -- test
+        {})
+"#
+        ),
+        @r#"
+    foo( -- test
+    	"string"
+    )
+
+    foo(
+    	-- test
+    	"string"
+    )
+
+    foo( -- test
+    	{}
+    )
+
+    foo(
+    	-- test
+    	{}
+    )
+    "#
+    );
+}
+
+#[test]
+fn test_keep_parens_for_trailing_comment() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+foo("string" -- test
+)
+
+foo("string"
+    -- test
+)
+
+foo({} -- test
+)
+
+foo({}
+    -- test
+)
+"#
+        ),
+        @r#"
+    foo "string" -- test
+
+    foo(
+    	"string"
+    	-- test
+    )
+
+    foo {} -- test
+
+    foo(
+    	{}
+    	-- test
+    )
+    "#
+    );
+}
