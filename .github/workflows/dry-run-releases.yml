@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact-name: stylua-windows-x86_64
+            cargo-target: x86_64-pc-windows-msvc
+          - os: ubuntu-20.04
+            artifact-name: stylua-linux-x86_64
+            cargo-target: x86_64-unknown-linux-gnu
+          - os: ubuntu-20.04
+            artifact-name: stylua-linux-x86_64-musl
+            cargo-target: x86_64-unknown-linux-musl
+          - os: ubuntu-20.04
+            artifact-name: stylua-linux-aarch64
+            cargo-target: aarch64-unknown-linux-gnu
+            linker: gcc-aarch64-linux-gnu
+          - os: macos-latest
+            artifact-name: stylua-macos-x86_64
+            cargo-target: x86_64-apple-darwin
+          - os: macos-latest
+            artifact-name: stylua-macos-aarch64
+            cargo-target: aarch64-apple-darwin
+
+    name: Build (${{ matrix.artifact-name }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.cargo-target }}
+
+      - name: Install Linker packages
+        if: ${{ matrix.linker != '' }}
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.linker }}
+
+      - name: Build Binary (All features)
+        run: cargo build --verbose --locked --release --features lua52,lua53,lua54,luau,luajit,cfxlua --target ${{ matrix.cargo-target }}
+        env:
+          CARGO_TARGET_DIR: output
+
+      - name: Setup Archive + Extension
+        shell: bash
+        run: |
+          mkdir -p staging
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp "output/${{ matrix.cargo-target }}/release/stylua.exe" staging/
+            cd staging
+            7z a ../release.zip *
+          else
+            cp "output/${{ matrix.cargo-target }}/release/stylua" staging/
+            cd staging
+            zip ../release.zip *
+          fi
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: release.zip
