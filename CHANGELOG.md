@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Luau: Added support for parsing user-defined type functions ([#938](https://github.com/JohnnyMorganz/StyLua/issues/938))
+- Luau: Added support for parsing attributes (`@native` / `@deprecated`) on functions
 
 ### Fixed
 
 - Luau: fixed parentheses incorrectly removed in `(expr :: assertion) < foo` when multilining the expression, leading to a syntax error ([#940](https://github.com/JohnnyMorganz/StyLua/issues/940))
+- Fixed panic when attempting to format a file outside of the current working directory when `--respect-ignores` is enabled ([#969](https://github.com/JohnnyMorganz/StyLua/pull/969))
 
 ## [2.0.2] - 2024-12-07
 

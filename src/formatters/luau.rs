@@ -26,12 +26,13 @@ use crate::{
 };
 use full_moon::ast::{
     luau::{
-        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, ExportedTypeFunction,
-        GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo,
+        ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
         TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
         TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
+    CompoundAssignment, CompoundOp,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
@@ -142,7 +143,7 @@ fn format_type_info_generics(
                     || generic_pair.value().has_leading_comments(CommentSearch::All) // Look for leading multiline comments - these suggest expansion
                     || generic_pair
                         .punctuation()
-                        .map_or(false, contains_singleline_comments)
+                        .is_some_and(contains_singleline_comments)
         });
 
     let should_expand = contains_comments
@@ -1257,7 +1258,7 @@ fn format_type_declaration(
 
     // If there are comments in between the type name and the generics, then handle them
     let (type_name, equal_token, generics) = if type_name.has_trailing_comments(CommentSearch::All)
-        || generics.as_ref().map_or(false, |generics| {
+        || generics.as_ref().is_some_and(|generics| {
             generics
                 .arrows()
                 .tokens()
@@ -1572,4 +1573,15 @@ pub fn format_exported_type_function(
         .to_owned()
         .with_export_token(export_token)
         .with_type_function(type_function)
+}
+
+pub fn format_luau_attribute(
+    ctx: &Context,
+    attribute: &LuauAttribute,
+    shape: Shape,
+) -> LuauAttribute {
+    let at_sign = fmt_symbol!(ctx, attribute.at_sign(), "@", shape);
+    let name = format_token_reference(ctx, attribute.name(), shape);
+
+    attribute.clone().with_at_sign(at_sign).with_name(name)
 }

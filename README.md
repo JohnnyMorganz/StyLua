@@ -114,6 +114,7 @@ Note that these integrations require the StyLua binary to already be installed a
 
 - Sublime: [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
 - Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim)
+- Zed: [Zed Lua StyLua formatter settings](https://zed.dev/docs/languages/lua#stylua)
 
 ## Usage
 
@@ -153,6 +154,15 @@ vendor/
 ```
 
 running `stylua .` will ignore the `vendor/` directory.
+
+### Filtering when using stdin
+
+If you are formatting stdin by specifying `-` as the filename (usually as part of an editor integration)
+you can optionally provide the filename via `--stdin-filepath`. To respect glob or `.styluaignore` filtering, pass `--respect-ignores`.
+
+```stylua
+stylua --respect-ignores --stdin-filepath src/foo.lua -
+```
 
 ### `--check`: Checking files for formatting
 

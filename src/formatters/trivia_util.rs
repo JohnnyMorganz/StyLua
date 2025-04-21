@@ -11,9 +11,9 @@ use full_moon::ast::luau::{
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        BinOp, Block, Call, Expression, Field, FunctionArgs, FunctionBody, Index, LastStmt,
-        LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var,
-        VarExpression,
+        AnonymousFunction, BinOp, Block, Call, Expression, Field, FunctionArgs, FunctionBody,
+        Index, LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -368,6 +368,18 @@ impl GetTrailingTrivia for Var {
     }
 }
 
+impl GetLeadingTrivia for AnonymousFunction {
+    fn leading_trivia(&self) -> Vec<Token> {
+        GetLeadingTrivia::leading_trivia(self.function_token())
+    }
+}
+
+impl GetTrailingTrivia for AnonymousFunction {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.body().trailing_trivia()
+    }
+}
+
 impl GetLeadingTrivia for Expression {
     fn leading_trivia(&self) -> Vec<Token> {
         match self {
@@ -383,9 +395,7 @@ impl GetLeadingTrivia for Expression {
                 other => panic!("unknown node {:?}", other),
             },
             Expression::BinaryOperator { lhs, .. } => lhs.leading_trivia(),
-            Expression::Function(anonymous_function) => {
-                GetLeadingTrivia::leading_trivia(&anonymous_function.0)
-            }
+            Expression::Function(anonymous_function) => anonymous_function.leading_trivia(),
             Expression::FunctionCall(function_call) => function_call.prefix().leading_trivia(),
             #[cfg(feature = "luau")]
             Expression::IfExpression(if_expression) => {
@@ -421,9 +431,7 @@ impl GetTrailingTrivia for Expression {
             }
             Expression::UnaryOperator { expression, .. } => expression.trailing_trivia(),
             Expression::BinaryOperator { rhs, .. } => rhs.trailing_trivia(),
-            Expression::Function(anonymous_function) => {
-                GetTrailingTrivia::trailing_trivia(anonymous_function.1.end_token())
-            }
+            Expression::Function(anonymous_function) => anonymous_function.trailing_trivia(),
             Expression::FunctionCall(function_call) => function_call
                 .suffixes()
                 .last()
@@ -1060,7 +1068,7 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
             other => panic!("unknown node {:?}", other),
         };
 
-        comments || field.punctuation().map_or(false, contains_comments)
+        comments || field.punctuation().is_some_and(contains_comments)
     })
 }
 
@@ -1086,7 +1094,7 @@ pub fn punctuated_inline_comments<T: GetLeadingTrivia + GetTrailingTrivia + HasI
             return true;
         }
 
-        if pair.punctuation().map_or(false, token_contains_comments)
+        if pair.punctuation().is_some_and(token_contains_comments)
             || (include_leading && !pair.value().leading_comments().is_empty())
             || pair.value().has_inline_comments()
         {

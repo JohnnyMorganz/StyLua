@@ -944,11 +944,9 @@ pub(crate) mod stmt_block {
                 expression: Box::new(format_expression_block(ctx, expression, shape)),
             },
             Expression::Function(anonymous_function) => {
-                let block = format_block(ctx, anonymous_function.1.block(), shape);
-                Expression::Function(Box::new((
-                    anonymous_function.0.to_owned(),
-                    anonymous_function.1.to_owned().with_block(block),
-                )))
+                let block = format_block(ctx, anonymous_function.body().block(), shape);
+                let body = anonymous_function.body().clone().with_block(block);
+                Expression::Function(Box::new(anonymous_function.clone().with_body(body)))
             }
             Expression::FunctionCall(function_call) => {
                 Expression::FunctionCall(format_function_call_block(ctx, function_call, shape))
