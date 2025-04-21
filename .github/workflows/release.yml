@@ -64,7 +64,7 @@ jobs:
           sudo apt install ${{ matrix.linker }}
 
       - name: Build Binary (All features)
-        run: cargo build --verbose --locked --release --features lua52,lua53,lua54,luau,luajit --target ${{ matrix.cargo-target }}
+        run: cargo build --verbose --locked --release --features lua52,lua53,lua54,luau,luajit,cfxlua --target ${{ matrix.cargo-target }}
         env:
           CARGO_TARGET_DIR: output
 

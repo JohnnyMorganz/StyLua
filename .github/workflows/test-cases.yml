@@ -21,6 +21,7 @@ jobs:
           CI=false cargo insta test --features lua53 --accept
           CI=false cargo insta test --features lua54 --accept
           CI=false cargo insta test --features luau --accept
+          CI=false cargo insta test --features cfxlua --accept
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
