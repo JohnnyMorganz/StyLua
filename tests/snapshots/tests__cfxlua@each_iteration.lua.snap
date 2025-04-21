@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/each_iteration.lua
+snapshot_kind: text
+---
+local t = { 1, 2, 3 }
+for k, v in each(t) do
+	print(k, v)
+end

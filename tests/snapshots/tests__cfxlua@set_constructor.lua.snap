@@ -1,0 +1,7 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/set_constructor.lua
+snapshot_kind: text
+---
+t = { .a, b = false }

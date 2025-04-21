@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/multiplication_assignment_operator.lua
+snapshot_kind: text
+---
+local base = 10
+base *= 2
