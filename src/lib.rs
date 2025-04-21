@@ -50,7 +50,7 @@ pub enum LuaVersion {
 impl From<LuaVersion> for full_moon::LuaVersion {
     fn from(val: LuaVersion) -> Self {
         match val {
-            LuaVersion::All => full_moon::LuaVersion::new(),
+            LuaVersion::All => full_moon::LuaVersion::new().with_cfxlua(),
             LuaVersion::Lua51 => full_moon::LuaVersion::lua51(),
             #[cfg(feature = "lua52")]
             LuaVersion::Lua52 => full_moon::LuaVersion::lua52(),

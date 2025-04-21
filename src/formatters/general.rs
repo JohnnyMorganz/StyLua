@@ -47,7 +47,7 @@ macro_rules! fmt_symbol {
         $crate::formatters::general::format_symbol(
             $ctx,
             $token,
-            &TokenReference::symbol($x).unwrap(),
+            &TokenReference::symbol_specific_lua_version($x, $ctx.config().syntax.into()).unwrap(),
             $shape,
         )
     };
