@@ -81,7 +81,7 @@ fn hang_field_value_at_equals_due_to_comments(
     let multiline_comments = expression.trailing_comments_search(CommentSearch::Multiline);
     let trailing_trivia = FormatTriviaType::Replace(multiline_comments);
 
-    let (equal_token, expression) = hang_at_equals_due_to_comments(ctx, &equal, expression, shape);
+    let (equal_token, expression) = hang_at_equals_due_to_comments(ctx, equal, expression, shape);
 
     (
         equal_token,
