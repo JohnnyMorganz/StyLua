@@ -666,15 +666,13 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         || trivia_util::contains_comments(if_expression.else_token())
         || if_expression
             .else_if_expressions()
-            .map_or(false, |else_ifs| {
-                else_ifs.iter().any(trivia_util::contains_comments)
-            })
+            .is_some_and(|else_ifs| else_ifs.iter().any(trivia_util::contains_comments))
         || if_expression.else_expression().has_inline_comments()
         || trivia_util::spans_multiple_lines(&singleline_condition)
         || trivia_util::spans_multiple_lines(&singleline_expression)
-        || else_ifs.as_ref().map_or(false, |else_ifs| {
-            else_ifs.iter().any(trivia_util::spans_multiple_lines)
-        })
+        || else_ifs
+            .as_ref()
+            .is_some_and(|else_ifs| else_ifs.iter().any(trivia_util::spans_multiple_lines))
         || trivia_util::spans_multiple_lines(&singleline_else_expression);
 
     if require_multiline_expression {

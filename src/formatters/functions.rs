@@ -130,7 +130,7 @@ fn function_args_contains_comments(
             // Punctuation contains comments
             || argument
                 .punctuation()
-                .map_or(false, |token| token.leading_trivia().chain(token.trailing_trivia()).any(function_trivia_contains_comments))
+                .is_some_and(|token| token.leading_trivia().chain(token.trailing_trivia()).any(function_trivia_contains_comments))
         })
     }
 }
@@ -764,15 +764,13 @@ pub fn format_function_body(
         let contains_comments = function_body.parameters().pairs().any(|pair| {
             let contains_comments = pair
                 .punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
+                .is_some_and(trivia_util::token_contains_comments)
                 || trivia_util::contains_comments(pair.value());
             #[cfg(feature = "luau")]
             let type_specifier_comments = type_specifiers
                 .next()
                 .flatten()
-                .map_or(false, |type_specifier| {
-                    trivia_util::contains_comments(type_specifier)
-                });
+                .is_some_and(trivia_util::contains_comments);
             #[cfg(not(feature = "luau"))]
             let type_specifier_comments = false;
             contains_comments || type_specifier_comments

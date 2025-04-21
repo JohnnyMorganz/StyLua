@@ -142,7 +142,7 @@ fn format_type_info_generics(
                     || generic_pair.value().has_leading_comments(CommentSearch::All) // Look for leading multiline comments - these suggest expansion
                     || generic_pair
                         .punctuation()
-                        .map_or(false, contains_singleline_comments)
+                        .is_some_and(contains_singleline_comments)
         });
 
     let should_expand = contains_comments
@@ -1257,7 +1257,7 @@ fn format_type_declaration(
 
     // If there are comments in between the type name and the generics, then handle them
     let (type_name, equal_token, generics) = if type_name.has_trailing_comments(CommentSearch::All)
-        || generics.as_ref().map_or(false, |generics| {
+        || generics.as_ref().is_some_and(|generics| {
             generics
                 .arrows()
                 .tokens()
