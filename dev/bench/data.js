@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745253590417,
+  "lastUpdate": 1745255066342,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13817,6 +13817,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15143306,
             "range": "± 141337",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d1a6a51fce8767a5e5cb4cead9641c3bf3f1d5f4",
+          "message": "Check for comments before removing parentheses when call_parentheses is configured for removal (#981)\n\n* Add test cases\n\n* Check comments before removing parentheses\n\n* Update changelog\n\n* Add more complex snapshot example",
+          "timestamp": "2025-04-21T19:02:38+02:00",
+          "tree_id": "b9dd734d904f7bc407a5baa7bf08ee7acb01e82e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d1a6a51fce8767a5e5cb4cead9641c3bf3f1d5f4"
+        },
+        "date": 1745255065595,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26373346,
+            "range": "± 669560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 227116554,
+            "range": "± 749611",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15109599,
+            "range": "± 530419",
             "unit": "ns/iter"
           }
         ]
