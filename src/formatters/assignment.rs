@@ -1,6 +1,8 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::TypeSpecifier;
-use full_moon::tokenizer::{Symbol, Token, TokenReference};
+#[cfg(feature = "cfxlua")]
+use full_moon::tokenizer::Symbol;
+use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
