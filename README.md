@@ -158,8 +158,7 @@ running `stylua .` will ignore the `vendor/` directory.
 ### Filtering when using stdin
 
 If you are formatting stdin by specifying `-` as the filename (usually as part of an editor integration)
-you can optionally provide the filename via `--stdin-filepath` and `--respect-ignores` to use glob filtering
-via `-g` or via `.styluaignore` to ignore certain files.
+you can optionally provide the filename via `--stdin-filepath`. To respect glob or `.styluaignore` filtering, pass `--respect-ignores`.
 
 ```stylua
 stylua --respect-ignores --stdin-filepath src/foo.lua -
