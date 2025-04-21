@@ -264,3 +264,33 @@ foo({}
     "#
     );
 }
+
+#[test]
+fn test_keep_parentheses_large_example() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+wk.add(
+  { { key, "zv" .. key, "Same, but open folds" } }
+  -- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+)
+
+wk.add(
+  -- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+  { { key, "zv" .. key, "Same, but open folds" } }
+)
+"#
+        ),
+        @r#"
+    wk.add(
+    	{ { key, "zv" .. key, "Same, but open folds" } }
+    	-- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+    )
+
+    wk.add(
+    	-- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+    	{ { key, "zv" .. key, "Same, but open folds" } }
+    )
+    "#
+    );
+}
