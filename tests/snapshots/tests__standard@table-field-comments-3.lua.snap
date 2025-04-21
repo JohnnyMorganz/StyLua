@@ -1,0 +1,21 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/table-field-comments-3.lua
+snapshot_kind: text
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/942
+local mixed = {
+	--- identity
+	---@param n number
+	---@return number
+	function(n)
+		return n
+	end,
+	plus_one =
+		---@param n number
+		---@return number
+		function(n)
+			return n + 1
+		end,
+}
