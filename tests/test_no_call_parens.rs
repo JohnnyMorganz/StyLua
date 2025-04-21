@@ -184,3 +184,113 @@ local still_got_em = my_function({
     "###
     );
 }
+
+#[test]
+fn test_keep_parens_for_leading_comment() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+foo( -- test
+"string")
+
+foo(
+  -- test
+"string")
+
+foo( -- test
+    {})
+
+foo(
+  -- test
+        {})
+"#
+        ),
+        @r#"
+    foo( -- test
+    	"string"
+    )
+
+    foo(
+    	-- test
+    	"string"
+    )
+
+    foo( -- test
+    	{}
+    )
+
+    foo(
+    	-- test
+    	{}
+    )
+    "#
+    );
+}
+
+#[test]
+fn test_keep_parens_for_trailing_comment() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+foo("string" -- test
+)
+
+foo("string"
+    -- test
+)
+
+foo({} -- test
+)
+
+foo({}
+    -- test
+)
+"#
+        ),
+        @r#"
+    foo "string" -- test
+
+    foo(
+    	"string"
+    	-- test
+    )
+
+    foo {} -- test
+
+    foo(
+    	{}
+    	-- test
+    )
+    "#
+    );
+}
+
+#[test]
+fn test_keep_parentheses_large_example() {
+    insta::assert_snapshot!(
+        format(
+            r#"
+wk.add(
+  { { key, "zv" .. key, "Same, but open folds" } }
+  -- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+)
+
+wk.add(
+  -- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+  { { key, "zv" .. key, "Same, but open folds" } }
+)
+"#
+        ),
+        @r#"
+    wk.add(
+    	{ { key, "zv" .. key, "Same, but open folds" } }
+    	-- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+    )
+
+    wk.add(
+    	-- { noremap = true, mode = { 'n', key:find '^<' and 'v' or 'x' } }
+    	{ { key, "zv" .. key, "Same, but open folds" } }
+    )
+    "#
+    );
+}
