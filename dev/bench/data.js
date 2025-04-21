@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745240483311,
+  "lastUpdate": 1745240549499,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13439,6 +13439,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14629587,
             "range": "± 337589",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aad1b7de1d1f8c19055060231b626543bc4444a5",
+          "message": "Bump crossbeam-channel from 0.5.11 to 0.5.15 (#968)\n\nBumps [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) from 0.5.11 to 0.5.15.\n- [Release notes](https://github.com/crossbeam-rs/crossbeam/releases)\n- [Changelog](https://github.com/crossbeam-rs/crossbeam/blob/master/CHANGELOG.md)\n- [Commits](https://github.com/crossbeam-rs/crossbeam/compare/crossbeam-channel-0.5.11...crossbeam-channel-0.5.15)\n\n---\nupdated-dependencies:\n- dependency-name: crossbeam-channel\n  dependency-version: 0.5.15\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-04-21T15:00:22+02:00",
+          "tree_id": "e2d96f8b2d7b5247ae0fbf8cff3e0e9a23c96520",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/aad1b7de1d1f8c19055060231b626543bc4444a5"
+        },
+        "date": 1745240548890,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27049277,
+            "range": "± 335008",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 219096579,
+            "range": "± 2481107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14749034,
+            "range": "± 75184",
             "unit": "ns/iter"
           }
         ]
