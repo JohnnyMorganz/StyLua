@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745255066342,
+  "lastUpdate": 1745256792491,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13859,6 +13859,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15109599,
             "range": "± 530419",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "87fc69e4b19078486fed98cc78692cfce3a9154b",
+          "message": "Hang at equals token in table field if comments before value (#982)\n\n* Add test case\n\n* Hang after equals in table if comments present\n\n* Update changelog\n\n* Update snapshots\n\n* Add another test case\n\n* Clippy",
+          "timestamp": "2025-04-21T19:31:20+02:00",
+          "tree_id": "de20837a8b783e663446638cd03b77cae8e6aa6d",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/87fc69e4b19078486fed98cc78692cfce3a9154b"
+        },
+        "date": 1745256791319,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27111599,
+            "range": "± 652909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230594428,
+            "range": "± 858039",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15342838,
+            "range": "± 115717",
             "unit": "ns/iter"
           }
         ]
