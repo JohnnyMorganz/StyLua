@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745242946079,
+  "lastUpdate": 1745243112029,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13565,6 +13565,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15304308,
             "range": "± 194861",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "91544758+phanen@users.noreply.github.com",
+            "name": "phanium",
+            "username": "phanen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "923e912f18cf9380d98d6fac39b74a2201a49e59",
+          "message": "Fix panic when `--respect-ignores --stdin-filepath` on external path to cwd (#969)\n\n* Fix panic when `--respect-ignores --stdin-filepath` on external path to cwd\n\n* Update changelog\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-04-21T15:43:22+02:00",
+          "tree_id": "b526bf4c40132e3f9133c2949ad1bf6bf668985b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/923e912f18cf9380d98d6fac39b74a2201a49e59"
+        },
+        "date": 1745243110873,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26595247,
+            "range": "± 1122626",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 227725516,
+            "range": "± 1065472",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15234533,
+            "range": "± 394492",
             "unit": "ns/iter"
           }
         ]
