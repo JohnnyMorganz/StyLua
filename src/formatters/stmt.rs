@@ -1,3 +1,5 @@
+#[cfg(any(feature = "luau", feature = "cfxlua"))]
+use crate::formatters::compound_assignment::format_compound_assignment;
 #[cfg(feature = "lua52")]
 use crate::formatters::lua52::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
