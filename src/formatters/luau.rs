@@ -26,12 +26,13 @@ use crate::{
 };
 use full_moon::ast::{
     luau::{
-        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, ExportedTypeFunction,
-        GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo,
-        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
-        TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
+        ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
+        TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
+    CompoundAssignment, CompoundOp,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
