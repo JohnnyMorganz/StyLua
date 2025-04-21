@@ -473,18 +473,46 @@ fn var_has_parentheses(var: &Var) -> bool {
     }
 }
 
+fn expression_ends_with_identifier_or_parentheses(expression: &Expression) -> bool {
+    match expression {
+        Expression::Parentheses { .. } => true,
+        Expression::FunctionCall(_) => true,
+        Expression::Var(_) => true,
+        Expression::BinaryOperator { rhs, .. } => {
+            expression_ends_with_identifier_or_parentheses(rhs)
+        }
+        Expression::UnaryOperator { expression, .. } => {
+            expression_ends_with_identifier_or_parentheses(expression)
+        }
+        _ => false,
+    }
+}
+
+// Ambiguous syntax can only occur if the current statement ends with an identifier, function call, or parentheses
+fn stmt_ends_with_identifier_or_parentheses(stmt: &Stmt) -> bool {
+    match stmt {
+        Stmt::Assignment(assignment) => match assignment.expressions().last() {
+            Some(pair) => expression_ends_with_identifier_or_parentheses(pair.value()),
+            None => false,
+        },
+        Stmt::LocalAssignment(local_assignment) => match local_assignment.expressions().last() {
+            Some(pair) => expression_ends_with_identifier_or_parentheses(pair.value()),
+            None => false,
+        },
+        Stmt::FunctionCall(_) => true,
+        Stmt::Repeat(repeat) => expression_ends_with_identifier_or_parentheses(repeat.until()),
+        _ => false,
+    }
+}
+
 fn check_stmt_requires_semicolon(
     stmt: &Stmt,
     next_stmt: Option<&&(Stmt, Option<TokenReference>)>,
 ) -> bool {
     // Need to check next statement if it is a function call, with a parameters expression as the prefix
     // If so, removing a semicolon may lead to ambiguous syntax
-    // Ambiguous syntax can only occur if the current statement is a (Local)Assignment, FunctionCall or a Repeat block
-    match stmt {
-        Stmt::Assignment(_)
-        | Stmt::LocalAssignment(_)
-        | Stmt::FunctionCall(_)
-        | Stmt::Repeat(_) => match next_stmt {
+    stmt_ends_with_identifier_or_parentheses(stmt)
+        && match next_stmt {
             Some((Stmt::FunctionCall(function_call), _)) => match function_call.prefix() {
                 Prefix::Expression(expression) => {
                     matches!(&**expression, Expression::Parentheses { .. })
@@ -500,9 +528,7 @@ fn check_stmt_requires_semicolon(
                 var_has_parentheses(compound_assignment.lhs())
             }
             _ => false,
-        },
-        _ => false,
-    }
+        }
 }
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level

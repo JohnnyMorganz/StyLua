@@ -1,0 +1,26 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/ambiguous-syntax-2.lua
+snapshot_kind: text
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/963
+local value = nil
+
+(Foo):Call()
+
+local tbl = {}
+
+(Foo):Call()
+
+local x = 1
+
+(Foo):Call()
+
+local x = "value"
+
+(Foo):Call()
+
+local x = function() end
+
+(Foo):Call()
