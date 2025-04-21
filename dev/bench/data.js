@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745252071195,
+  "lastUpdate": 1745253590417,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13775,6 +13775,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15383210,
             "range": "± 51944",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b799f2abe5da4ba80b99c978b36980dfe195e697",
+          "message": "Don't add semicolons unnecessarily for non-ambiguous statements (#980)\n\n* Add tests\n\n* Check before adding semicolons\n\n* Update snapshots\n\n* Update changelog",
+          "timestamp": "2025-04-21T18:37:58+02:00",
+          "tree_id": "eee2b0824979cdf874a565ea4889a905c546cce3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/b799f2abe5da4ba80b99c978b36980dfe195e697"
+        },
+        "date": 1745253589161,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27394502,
+            "range": "± 383511",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 228038684,
+            "range": "± 3263480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15143306,
+            "range": "± 141337",
             "unit": "ns/iter"
           }
         ]
