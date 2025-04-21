@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745244055786,
+  "lastUpdate": 1745247995525,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13649,6 +13649,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15245034,
             "range": "± 145040",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nilscosmo@hotmail.com",
+            "name": "Nils Gerersdorfer",
+            "username": "Kuuzoo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fb9119b1041428c6337439e12d848d6a4654f7db",
+          "message": "Support Cfx Lua Syntax (#972)\n\n* start with cfxlua support\n\n* fix: enhance CFXLua support for backtick string literals in format_token function\n\n* CFXLua -> CfxLua\n\n* Add tests\n\n* Add CfxLua to CI\n\n* Move compound op formatting to generic location\n\n* Handle set constructor field\n\n* Extract out string literal handling\n\n* Ensure cfxlua is enabled in \"All\" mode, and fix symbol parsing\n\n* Update snapshots\n\n* Handle in unpacking\n\n* Update snapshot\n\n* Formatting\n\n* Update changelog and readme\n\n* Fix compilation\n\n* Enable compound op for cfxlua\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-04-21T17:04:34+02:00",
+          "tree_id": "5641c3233fa67f84dcaae6601611ccedcfefc9cd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/fb9119b1041428c6337439e12d848d6a4654f7db"
+        },
+        "date": 1745247994889,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26394700,
+            "range": "± 191596",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 228553467,
+            "range": "± 542814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15195844,
+            "range": "± 63534",
             "unit": "ns/iter"
           }
         ]
