@@ -36,7 +36,20 @@ pub enum TableType {
     Empty,
 }
 
+/// Detect function with leading comments/doc-comments when used as a table value
+/// Such (anonymous) function definition gets formatted differently, in a separate line line
+fn is_function_with_leading_trivia(expression: &Expression) -> bool {
+    match expression {
+        Expression::Function(anonymous_function) => {
+            !trivia_util::GetLeadingTrivia::leading_trivia(&anonymous_function.0).is_empty()
+        }
+        _ => false,
+    }
+}
+
 /// Formats an Expression value part of a k,v field pair
+/// If value is an anonymous function with trivia, will prepend a newline so the trivia will align
+/// to the function definition
 fn format_field_expression_value(
     ctx: &Context,
     expression: &Expression,
@@ -66,6 +79,14 @@ fn format_field_expression_value(
             }
         }
     } else {
+        if is_function_with_leading_trivia(expression) {
+            let incr_shape = shape.increment_additional_indent();
+            let incr_leading_trivia = vec![create_indent_trivia(ctx, incr_shape)];
+            let formatted_expr = format_expression(ctx, expression, incr_shape)
+                .update_trailing_trivia(trailing_trivia)
+                .update_leading_trivia(FormatTriviaType::Append(incr_leading_trivia));
+            return trivia_util::prepend_newline_indent(ctx, &formatted_expr, incr_shape);
+        }
         format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia)
     }
 }
@@ -235,6 +256,15 @@ fn format_field(
                 let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
                 let value = format_field_expression_value(ctx, value, shape);
                 (equal, value)
+            };
+
+            let equal = if is_function_with_leading_trivia(&value) {
+                // function definition goes in the next line, so we remove space between = and newline
+                equal.update_trailing_trivia(FormatTriviaType::Replace(vec![Token::new(
+                    TokenType::spaces(0),
+                )]))
+            } else {
+                equal
             };
 
             Field::NameKey { key, equal, value }
