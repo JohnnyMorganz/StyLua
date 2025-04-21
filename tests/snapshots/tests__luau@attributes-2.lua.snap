@@ -1,0 +1,12 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/attributes-2.lua
+snapshot_kind: text
+---
+@native
+function foo() end
+
+@native
+@deprecated
+function bar() end
