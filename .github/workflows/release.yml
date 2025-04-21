@@ -36,10 +36,12 @@ jobs:
           - os: ubuntu-22.04
             artifact-name: stylua-linux-x86_64-musl
             cargo-target: x86_64-unknown-linux-musl
-          - os: ubuntu-22.04
+          - os: ubuntu-22.04-arm
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
-            linker: gcc-aarch64-linux-gnu
+          - os: ubuntu-22.04-arm
+            artifact-name: stylua-linux-aarch64-musl
+            cargo-target: aarch64-unknown-linux-musl
           - os: macos-latest
             artifact-name: stylua-macos-x86_64
             cargo-target: x86_64-apple-darwin
@@ -56,12 +58,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.cargo-target }}
-
-      - name: Install Linker packages
-        if: ${{ matrix.linker != '' }}
-        run: |
-          sudo apt update
-          sudo apt install ${{ matrix.linker }}
 
       - name: Build Binary (All features)
         run: cargo build --verbose --locked --release --features lua52,lua53,lua54,luau,luajit,cfxlua --target ${{ matrix.cargo-target }}
@@ -84,7 +80,7 @@ jobs:
           fi
 
       - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: release.zip
