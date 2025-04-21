@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/addition_assignment_operator.lua
+snapshot_kind: text
+---
+local index = 1
+
+index += 1

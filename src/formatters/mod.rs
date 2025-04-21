@@ -6,6 +6,8 @@ pub mod block;
 pub mod general;
 #[macro_use]
 pub mod expression;
+#[cfg(any(feature = "luau", feature = "cfxlua"))]
+pub mod compound_assignment;
 pub mod functions;
 #[cfg(feature = "lua52")]
 pub mod lua52;

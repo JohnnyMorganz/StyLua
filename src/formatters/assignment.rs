@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::TypeSpecifier;
+#[cfg(feature = "cfxlua")]
+use full_moon::tokenizer::Symbol;
 use full_moon::tokenizer::{Token, TokenReference};
 use full_moon::{
     ast::{
@@ -451,6 +453,15 @@ pub fn format_local_assignment_no_trivia(
             Some(1),
         );
         let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ", shape);
+
+        // In CfxLua, the equal token could actually be an "in" token for table unpacking
+        #[cfg(feature = "cfxlua")]
+        if let TokenType::Symbol { symbol: Symbol::In } =
+            assignment.equal_token().unwrap().token_type()
+        {
+            equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " in ", shape);
+        }
+
         let mut expr_list = format_punctuated(
             ctx,
             assignment.expressions(),

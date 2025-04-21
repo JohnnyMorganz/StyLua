@@ -31,6 +31,7 @@ lua52 = ["full_moon/lua52"]
 lua53 = ["lua52", "full_moon/lua53"]
 lua54 = ["lua53", "full_moon/lua54"]
 luajit = ["full_moon/luajit"]
+cfxlua = ["lua54", "full_moon/cfxlua"]
 editorconfig = ["ec4rs"]
 
 [dependencies]

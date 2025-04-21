@@ -207,6 +207,14 @@ fn format_field(
 
             Field::NameKey { key, equal, value }
         }
+        #[cfg(feature = "cfxlua")]
+        Field::SetConstructor { dot, name } => {
+            trailing_trivia = name.trailing_comments_search(CommentSearch::Single);
+            let dot = fmt_symbol!(ctx, dot, ".", shape);
+            let name = format_token_reference(ctx, name, shape);
+
+            Field::SetConstructor { dot, name }
+        }
         Field::NoKey(expression) => {
             trailing_trivia = expression.trailing_comments_search(CommentSearch::Single);
 
@@ -437,6 +445,8 @@ fn should_expand(ctx: &Context, table_constructor: &TableConstructor) -> bool {
                         || expression_is_multiline_function(ctx, value)
                 }
                 Field::NameKey { value, .. } => expression_is_multiline_function(ctx, value),
+                #[cfg(feature = "cfxlua")]
+                Field::SetConstructor { .. } => false,
                 Field::NoKey(expression) => expression_is_multiline_function(ctx, expression),
                 other => panic!("unknown node {:?}", other),
             };

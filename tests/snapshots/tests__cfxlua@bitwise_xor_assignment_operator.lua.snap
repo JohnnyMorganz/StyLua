@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/bitwise_xor_assignment_operator.lua
+snapshot_kind: text
+---
+local num = 5
+num ^= 3

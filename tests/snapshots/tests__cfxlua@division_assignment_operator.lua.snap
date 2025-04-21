@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/division_assignment_operator.lua
+snapshot_kind: text
+---
+local num = 10
+num /= 2

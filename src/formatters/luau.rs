@@ -2,10 +2,10 @@ use crate::{
     context::{
         create_function_definition_trivia, create_indent_trivia, create_newline_trivia, Context,
     },
-    fmt_op, fmt_symbol,
+    fmt_symbol,
     formatters::{
         assignment::hang_equal_token,
-        expression::{format_expression, format_var},
+        expression::format_expression,
         functions::format_function_body,
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_punctuated,
@@ -32,45 +32,10 @@ use full_moon::ast::{
         TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
-    CompoundAssignment, CompoundOp,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
-
-pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape) -> CompoundOp {
-    fmt_op!(ctx, CompoundOp, compound_op, shape, {
-        PlusEqual = " += ",
-        MinusEqual = " -= ",
-        StarEqual = " *= ",
-        SlashEqual = " /= ",
-        PercentEqual = " %= ",
-        CaretEqual = " ^= ",
-        TwoDotsEqual = " ..= ",
-        DoubleSlashEqual = " //= ",
-    }, |other| panic!("unknown node {:?}", other))
-}
-
-pub fn format_compound_assignment(
-    ctx: &Context,
-    compound_assignment: &CompoundAssignment,
-    shape: Shape,
-) -> CompoundAssignment {
-    // Calculate trivia
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
-
-    let lhs = format_var(ctx, compound_assignment.lhs(), shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let compound_operator = format_compound_op(ctx, compound_assignment.compound_operator(), shape);
-    let shape = shape
-        + (strip_leading_trivia(&lhs).to_string().len() + compound_operator.to_string().len());
-
-    let rhs = format_expression(ctx, compound_assignment.rhs(), shape)
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-
-    CompoundAssignment::new(lhs, compound_operator, rhs)
-}
 
 // If we have a type like
 // A | B | {

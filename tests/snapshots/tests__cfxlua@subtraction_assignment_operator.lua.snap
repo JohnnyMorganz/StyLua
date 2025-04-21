@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/subtraction_assignment_operator.lua
+snapshot_kind: text
+---
+local ten = 10
+ten -= 5

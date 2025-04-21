@@ -42,11 +42,17 @@ pub enum LuaVersion {
     /// Parse LuaJIT code
     #[cfg(feature = "luajit")]
     LuaJIT,
+    /// Parse Cfx Lua code
+    #[cfg(feature = "cfxlua")]
+    CfxLua,
 }
 
 impl From<LuaVersion> for full_moon::LuaVersion {
     fn from(val: LuaVersion) -> Self {
         match val {
+            #[cfg(feature = "cfxlua")]
+            LuaVersion::All => full_moon::LuaVersion::new().with_cfxlua(),
+            #[cfg(not(feature = "cfxlua"))]
             LuaVersion::All => full_moon::LuaVersion::new(),
             LuaVersion::Lua51 => full_moon::LuaVersion::lua51(),
             #[cfg(feature = "lua52")]
@@ -59,6 +65,8 @@ impl From<LuaVersion> for full_moon::LuaVersion {
             LuaVersion::Luau => full_moon::LuaVersion::luau(),
             #[cfg(feature = "luajit")]
             LuaVersion::LuaJIT => full_moon::LuaVersion::luajit(),
+            #[cfg(feature = "cfxlua")]
+            LuaVersion::CfxLua => full_moon::LuaVersion::cfxlua(),
         }
     }
 }

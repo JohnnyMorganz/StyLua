@@ -665,6 +665,8 @@ fn table_constructor_contains_nested_function(table_constructor: &TableConstruct
         Field::ExpressionKey { key, value, .. } => {
             contains_nested_function(key) || contains_nested_function(value)
         }
+        #[cfg(feature = "cfxlua")]
+        Field::SetConstructor { .. } => false,
         Field::NameKey { value, .. } => contains_nested_function(value),
         other => unreachable!("unknown node {:?}", other),
     })

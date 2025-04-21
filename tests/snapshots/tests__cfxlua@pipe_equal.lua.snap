@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/pipe_equal.lua
+snapshot_kind: text
+---
+local num = 4
+num |= 1

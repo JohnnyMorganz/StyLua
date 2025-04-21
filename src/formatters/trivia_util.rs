@@ -1064,6 +1064,10 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
             Field::NameKey { key, equal, value } => {
                 contains_comments(key) || contains_comments(equal) || contains_comments(value)
             }
+            #[cfg(feature = "cfxlua")]
+            Field::SetConstructor { dot, name } => {
+                contains_comments(dot) || contains_comments(name)
+            }
             Field::NoKey(expression) => contains_comments(expression),
             other => panic!("unknown node {:?}", other),
         };
@@ -1077,6 +1081,8 @@ impl GetTrailingTrivia for Field {
         match self {
             Field::ExpressionKey { value, .. } => value.trailing_trivia(),
             Field::NameKey { value, .. } => value.trailing_trivia(),
+            #[cfg(feature = "cfxlua")]
+            Field::SetConstructor { name, .. } => GetTrailingTrivia::trailing_trivia(name),
             Field::NoKey(expression) => expression.trailing_trivia(),
             other => panic!("unknown node {:?}", other),
         }
