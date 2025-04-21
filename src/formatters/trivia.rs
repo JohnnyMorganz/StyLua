@@ -3,8 +3,8 @@ use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
-    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
+    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, LuauAttribute,
+    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
     TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
@@ -1113,4 +1113,11 @@ define_update_leading_trivia!(InterpolatedStringSegment, |this, leading| {
         literal: this.literal.update_leading_trivia(leading),
         expression: this.expression.to_owned(),
     }
+});
+
+#[cfg(feature = "luau")]
+define_update_trivia!(LuauAttribute, |this, leading, trailing| {
+    this.clone()
+        .with_at_sign(this.at_sign().update_leading_trivia(leading))
+        .with_name(this.name().update_trailing_trivia(trailing))
 });

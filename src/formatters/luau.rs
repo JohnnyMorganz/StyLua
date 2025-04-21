@@ -27,9 +27,9 @@ use crate::{
 use full_moon::ast::{
     luau::{
         ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
-        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
-        TypeIntersection, TypeSpecifier, TypeUnion,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
+        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
+        TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
     CompoundAssignment, CompoundOp,
@@ -1573,4 +1573,15 @@ pub fn format_exported_type_function(
         .to_owned()
         .with_export_token(export_token)
         .with_type_function(type_function)
+}
+
+pub fn format_luau_attribute(
+    ctx: &Context,
+    attribute: &LuauAttribute,
+    shape: Shape,
+) -> LuauAttribute {
+    let at_sign = fmt_symbol!(ctx, attribute.at_sign(), "@", shape);
+    let name = format_token_reference(ctx, attribute.name(), shape);
+
+    attribute.clone().with_at_sign(at_sign).with_name(name)
 }

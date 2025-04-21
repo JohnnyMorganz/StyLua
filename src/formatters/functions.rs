@@ -8,7 +8,9 @@ use full_moon::ast::{
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
-use crate::formatters::luau::{format_generic_declaration, format_type_specifier};
+use crate::formatters::luau::{
+    format_generic_declaration, format_luau_attribute, format_type_specifier,
+};
 use crate::{
     context::{
         create_function_call_trivia, create_function_definition_trivia, create_indent_trivia,
@@ -46,6 +48,18 @@ pub fn format_anonymous_function(
     shape: Shape,
 ) -> Box<AnonymousFunction> {
     const FUNCTION_LEN: usize = "function".len();
+
+    // Format attributes on one line, space separated
+    #[cfg(feature = "luau")]
+    let attributes = anonymous_function
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape).update_trailing_trivia(
+                FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+            )
+        })
+        .collect();
+
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
     let function_token = fmt_symbol!(ctx, anonymous_function.function_token(), "function", shape)
         .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
@@ -55,12 +69,15 @@ pub fn format_anonymous_function(
         shape.add_width(FUNCTION_LEN),
     );
 
-    Box::new(
-        anonymous_function
-            .clone()
-            .with_function_token(function_token)
-            .with_body(function_body),
-    )
+    let anonymous_function = anonymous_function
+        .clone()
+        .with_function_token(function_token)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let anonymous_function = anonymous_function.with_attributes(attributes);
+
+    Box::new(anonymous_function)
 }
 
 /// An enum providing information regarding the next AST node after a function call.
@@ -1179,6 +1196,16 @@ pub fn format_function_declaration(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
+    #[cfg(feature = "luau")]
+    let attributes = function_declaration
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone()))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
+        })
+        .collect();
+
     let function_token = fmt_symbol!(
         ctx,
         function_declaration.function_token(),
@@ -1193,9 +1220,14 @@ pub fn format_function_declaration(
     let function_body = format_function_body(ctx, function_declaration.body(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-    FunctionDeclaration::new(formatted_function_name)
+    let function_declaration = FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let function_declaration = function_declaration.with_attributes(attributes);
+
+    function_declaration
 }
 
 /// Formats a LocalFunction node
@@ -1209,6 +1241,15 @@ pub fn format_local_function(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
+    #[cfg(feature = "luau")]
+    let attributes = local_function
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone()))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
+        })
+        .collect();
     let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ", shape);
@@ -1219,10 +1260,15 @@ pub fn format_local_function(
     let function_body = format_function_body(ctx, local_function.body(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-    LocalFunction::new(formatted_name)
+    let local_function = LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let local_function = local_function.with_attributes(attributes);
+
+    local_function
 }
 
 /// Formats a MethodCall node
