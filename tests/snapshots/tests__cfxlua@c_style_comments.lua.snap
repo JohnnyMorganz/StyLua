@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/c_style_comments.lua
+snapshot_kind: text
+---
+print("Hello, World!")
+/* Comment */
+/*
+Multi
+Line
+Comment
+*/
