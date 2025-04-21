@@ -25,6 +25,9 @@ jobs:
           - os: ubuntu-22.04-arm
             artifact-name: stylua-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
+          - os: ubuntu-22.04-arm
+            artifact-name: stylua-linux-aarch64-musl
+            cargo-target: aarch64-unknown-linux-musl
           - os: macos-latest
             artifact-name: stylua-macos-x86_64
             cargo-target: x86_64-apple-darwin
