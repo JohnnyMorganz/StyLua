@@ -437,7 +437,7 @@ pub fn format_local_assignment_no_trivia(
         // and format multiline
         let contains_comments = assignment
             .equal_token()
-            .map_or(false, trivia_util::token_contains_comments)
+            .is_some_and(trivia_util::token_contains_comments)
             || trivia_util::punctuated_inline_comments(assignment.expressions(), true);
 
         // Firstly attempt to format the assignment onto a single line, using an infinite column width shape

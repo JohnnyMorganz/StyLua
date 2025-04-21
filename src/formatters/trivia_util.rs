@@ -1060,7 +1060,7 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
             other => panic!("unknown node {:?}", other),
         };
 
-        comments || field.punctuation().map_or(false, contains_comments)
+        comments || field.punctuation().is_some_and(contains_comments)
     })
 }
 
@@ -1086,7 +1086,7 @@ pub fn punctuated_inline_comments<T: GetLeadingTrivia + GetTrailingTrivia + HasI
             return true;
         }
 
-        if pair.punctuation().map_or(false, token_contains_comments)
+        if pair.punctuation().is_some_and(token_contains_comments)
             || (include_leading && !pair.value().leading_comments().is_empty())
             || pair.value().has_inline_comments()
         {
