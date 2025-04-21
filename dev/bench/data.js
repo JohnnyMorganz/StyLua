@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745247995525,
+  "lastUpdate": 1745249587582,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13691,6 +13691,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15195844,
             "range": "± 63534",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1b49ab037fb021b1bb58886446b422944564e708",
+          "message": "Update GitHub Action runs (#977)\n\n* commit base\n\n* Bump to 22.04\n\n* Use native arm runners for linux arm release\n\n* Create a linux aarch64 musl target\n\n* Update upload artifact version\n\n* Update main workflow\n\n* Delete dummy workflow\n\n* Update changelog\n\n* Publish ARM docker images",
+          "timestamp": "2025-04-21T17:31:16+02:00",
+          "tree_id": "bdb644fe1d1d901eae5f5b8e594d2fc2addcf5b1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1b49ab037fb021b1bb58886446b422944564e708"
+        },
+        "date": 1745249587066,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26958902,
+            "range": "± 302908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229068220,
+            "range": "± 1228364",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15207956,
+            "range": "± 370416",
             "unit": "ns/iter"
           }
         ]
