@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Luau: Added support for parsing user-defined type functions ([#938](https://github.com/JohnnyMorganz/StyLua/issues/938))
 - Luau: Added support for parsing attributes (`@native` / `@deprecated`) on functions
 - Added support for CfxLua (FiveM) syntax formatting. This is available with `syntax = "cfxlua"` ([#855](https://github.com/JohnnyMorganz/StyLua/issues/855))
+- Added a pre-built binary release for `stylua-linux-aarch64-musl.zip`
+
+### Changed
+
+- Updated StyLua release GitHub action to `ubuntu-22.04` workers due to GitHub's deprecation of `ubuntu-20.04`. This may mean the pre-built release artifacts published to GitHub no longer work on `ubuntu-20.04` and require a manual build.
 
 ### Fixed
 
