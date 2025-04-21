@@ -4,8 +4,8 @@ use crate::formatters::compound_assignment::format_compound_assignment;
 use crate::formatters::lua52::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_compound_assignment, format_exported_type_declaration, format_exported_type_function,
-    format_type_declaration_stmt, format_type_function_stmt, format_type_specifier,
+    format_exported_type_declaration, format_exported_type_function, format_type_declaration_stmt,
+    format_type_function_stmt, format_type_specifier,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
@@ -828,6 +828,8 @@ pub(crate) mod stmt_block {
                         equal,
                         value: format_expression_block(ctx, &value, shape),
                     },
+                    #[cfg(feature = "cfxlua")]
+                    Field::SetConstructor { dot, name } => Field::SetConstructor { dot, name },
                     Field::NoKey(expression) => {
                         Field::NoKey(format_expression_block(ctx, &expression, shape))
                     }
