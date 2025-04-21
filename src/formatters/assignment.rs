@@ -162,6 +162,48 @@ fn prevent_equals_hanging(expression: &Expression) -> bool {
     }
 }
 
+pub fn hang_at_equals_due_to_comments(
+    ctx: &Context,
+    equal_token: &TokenReference,
+    expression: &Expression,
+    shape: Shape,
+) -> (TokenReference, Expression) {
+    // We will hang at the equals token, and then format the expression as necessary
+    let equal_token = hang_equal_token(ctx, equal_token, shape, false);
+
+    let shape = shape.reset().increment_additional_indent();
+
+    // As we know that there is only a single element in the list, we can extract it to work with it
+    // Format the expression given - if it contains comments, make sure to hang the expression
+    // Ignore the leading comments though (as they are solved by hanging at the equals), and the
+    // trailing comments, as they don't affect anything
+    let expression = if strip_trivia(expression).has_inline_comments() {
+        hang_expression(ctx, expression, shape, None)
+    } else {
+        format_expression(ctx, expression, shape)
+    };
+
+    // We need to take all the leading trivia from the expr_list
+    let (expression, leading_comments) = trivia_util::take_leading_comments(&expression);
+
+    // Indent each comment and trail them with a newline
+    let leading_comments = leading_comments
+        .iter()
+        .flat_map(|x| {
+            vec![
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+                create_newline_trivia(ctx),
+            ]
+        })
+        .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    let expression = expression.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
+
+    (equal_token, expression)
+}
+
 /// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
 /// formatting output.
 fn attempt_assignment_tactics(
@@ -240,39 +282,8 @@ fn attempt_assignment_tactics(
         if trivia_util::token_contains_comments(&equal_token)
             || expression.has_leading_comments(CommentSearch::Single)
         {
-            // We will hang at the equals token, and then format the expression as necessary
-            let equal_token = hang_equal_token(ctx, &equal_token, shape, false);
-
-            let shape = shape.reset().increment_additional_indent();
-
-            // As we know that there is only a single element in the list, we can extract it to work with it
-            // Format the expression given - if it contains comments, make sure to hang the expression
-            // Ignore the leading comments though (as they are solved by hanging at the equals), and the
-            // trailing comments, as they don't affect anything
-            let expression = if strip_trivia(expression).has_inline_comments() {
-                hang_expression(ctx, expression, shape, None)
-            } else {
-                format_expression(ctx, expression, shape)
-            };
-
-            // We need to take all the leading trivia from the expr_list
-            let (expression, leading_comments) = trivia_util::take_leading_comments(&expression);
-
-            // Indent each comment and trail them with a newline
-            let leading_comments = leading_comments
-                .iter()
-                .flat_map(|x| {
-                    vec![
-                        create_indent_trivia(ctx, shape),
-                        x.to_owned(),
-                        create_newline_trivia(ctx),
-                    ]
-                })
-                .chain(std::iter::once(create_indent_trivia(ctx, shape)))
-                .collect();
-
-            let expression =
-                expression.update_leading_trivia(FormatTriviaType::Replace(leading_comments));
+            let (equal_token, expression) =
+                hang_at_equals_due_to_comments(ctx, &equal_token, expression, shape);
 
             // Rebuild expression back into a list
             let expr_list = std::iter::once(Pair::new(expression, None)).collect();
