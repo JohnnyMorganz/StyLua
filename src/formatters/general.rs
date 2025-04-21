@@ -1,3 +1,5 @@
+#[cfg(feature = "cfxlua")]
+use crate::LuaVersion;
 use crate::{
     context::{
         create_indent_trivia, create_newline_trivia, line_ending_character, Context, FormatNode,
@@ -12,12 +14,15 @@ use crate::{
     shape::Shape,
     QuoteStyle,
 };
-use full_moon::ast::{
-    punctuated::{Pair, Punctuated},
-    span::ContainedSpan,
-};
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
+use full_moon::{
+    ast::{
+        punctuated::{Pair, Punctuated},
+        span::ContainedSpan,
+    },
+    ShortString,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum FormatTokenType {
@@ -91,6 +96,98 @@ pub fn trivia_to_vec(
     output
 }
 
+fn format_string_literal(
+    ctx: &Context,
+    literal: &ShortString,
+    multi_line_depth: &usize,
+    quote_type: &StringLiteralQuoteType,
+) -> TokenType {
+    // CfxLua: if we have a backtick string, don't mess with it
+    #[cfg(feature = "cfxlua")]
+    if ctx.config().syntax == LuaVersion::CfxLua
+        && matches!(quote_type, StringLiteralQuoteType::Backtick)
+    {
+        return TokenType::StringLiteral {
+            literal: literal.clone(),
+            multi_line_depth: *multi_line_depth,
+            quote_type: StringLiteralQuoteType::Backtick,
+        };
+    }
+
+    // If we have a brackets string, don't mess with it
+    if let StringLiteralQuoteType::Brackets = quote_type {
+        // Convert the string to the correct line endings, by first normalising to LF
+        // then converting LF to output
+        let literal = literal
+            .replace("\r\n", "\n")
+            .replace('\n', &line_ending_character(ctx.config().line_endings));
+
+        TokenType::StringLiteral {
+            literal: literal.into(),
+            multi_line_depth: *multi_line_depth,
+            quote_type: StringLiteralQuoteType::Brackets,
+        }
+    } else {
+        // Match all escapes within the string
+        // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
+        lazy_static::lazy_static! {
+            static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
+            static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-9\\abfnrtuvxz]$"#).unwrap();
+        }
+        let quote_to_use = get_quote_to_use(ctx, literal);
+        let literal = RE
+            .replace_all(literal, |caps: &regex::Captures| {
+                let quote = caps.get(1);
+                let escaped = caps.get(2);
+
+                match quote {
+                    Some(quote) => {
+                        // We have a quote, find what type it is, and see if we need to escape it
+                        // then return the output string
+                        match quote.as_str() {
+                            "'" => {
+                                // Check whether to escape the quote
+                                if let StringLiteralQuoteType::Single = quote_to_use {
+                                    String::from("\\'")
+                                } else {
+                                    String::from("'")
+                                }
+                            }
+                            "\"" => {
+                                // Check whether to escape the quote
+                                if let StringLiteralQuoteType::Double = quote_to_use {
+                                    String::from("\\\"")
+                                } else {
+                                    String::from("\"")
+                                }
+                            }
+                            other => unreachable!("unknown quote type {:?}", other),
+                        }
+                    }
+                    None => {
+                        // We have a normal escape
+                        // Test to see if it is necessary, and if not, then unescape it
+                        let text = escaped
+                            .expect("have a match which was neither an escape or a quote")
+                            .as_str();
+                        if UNNECESSARY_ESCAPES.is_match(text) {
+                            text.to_owned()
+                        } else {
+                            format!("\\{}", text.to_owned())
+                        }
+                    }
+                }
+            })
+            .into();
+
+        TokenType::StringLiteral {
+            literal,
+            multi_line_depth: *multi_line_depth,
+            quote_type: quote_to_use,
+        }
+    }
+}
+
 /// Formats a Token Node
 /// Also returns any extra leading or trailing trivia to add for the Token node
 /// This should only ever be called from format_token_reference
@@ -120,104 +217,7 @@ pub fn format_token(
             literal,
             multi_line_depth,
             quote_type,
-        } => {
-            // If we have a brackets string, don't mess with it
-            if let StringLiteralQuoteType::Brackets = quote_type {
-                // Convert the string to the correct line endings, by first normalising to LF
-                // then converting LF to output
-                let literal = literal
-                    .replace("\r\n", "\n")
-                    .replace('\n', &line_ending_character(ctx.config().line_endings));
-
-                TokenType::StringLiteral {
-                    literal: literal.into(),
-                    multi_line_depth: *multi_line_depth,
-                    quote_type: StringLiteralQuoteType::Brackets,
-                }
-            } else {
-                // Match all escapes within the string
-                // Based off https://github.com/prettier/prettier/blob/181a325c1c07f1a4f3738665b7b28288dfb960bc/src/common/util.js#L439
-                lazy_static::lazy_static! {
-                    static ref RE: regex::Regex = regex::Regex::new(r#"\\?(["'])|\\([\S\s])"#).unwrap();
-                    static ref UNNECESSARY_ESCAPES: regex::Regex = regex::Regex::new(r#"^[^\n\r"'0-9\\abfnrtuvxz]$"#).unwrap();
-                }
-                let quote_to_use = get_quote_to_use(ctx, literal);
-                let literal = RE
-                    .replace_all(literal, |caps: &regex::Captures| {
-                        let quote = caps.get(1);
-                        let escaped = caps.get(2);
-
-                        match quote {
-                            Some(quote) => {
-                                // We have a quote, find what type it is, and see if we need to escape it
-                                // then return the output string
-                                match quote.as_str() {
-                                    "'" => {
-                                        // Check whether to escape the quote
-                                        if let StringLiteralQuoteType::Single = quote_to_use {
-                                            String::from("\\'")
-                                        } else {
-                                            String::from("'")
-                                        }
-                                    }
-                                    "\"" => {
-                                        // Check whether to escape the quote
-                                        if let StringLiteralQuoteType::Double = quote_to_use {
-                                            String::from("\\\"")
-                                        } else {
-                                            String::from("\"")
-                                        }
-                                    }
-                                    other => unreachable!("unknown quote type {:?}", other),
-                                }
-                            }
-                            None => {
-                                // We have a normal escape
-                                // Test to see if it is necessary, and if not, then unescape it
-                                let text = escaped
-                                    .expect("have a match which was neither an escape or a quote")
-                                    .as_str();
-                                if UNNECESSARY_ESCAPES.is_match(text) {
-                                    text.to_owned()
-                                } else {
-                                    format!("\\{}", text.to_owned())
-                                }
-                            }
-                        }
-                    })
-                    .into();
-
-                // If the syntax is CFXLua and the quote type is backtick, retain the use of backticks since those have a runtime functionality in CFXLua
-                #[cfg(feature = "cfxlua")]
-                {
-                    use crate::LuaVersion;
-                    if ctx.config().syntax == LuaVersion::CfxLua
-                        && matches!(quote_type, StringLiteralQuoteType::Backtick)
-                    {
-                        TokenType::StringLiteral {
-                            literal,
-                            multi_line_depth: *multi_line_depth,
-                            quote_type: StringLiteralQuoteType::Backtick,
-                        }
-                    } else {
-                        TokenType::StringLiteral {
-                            literal,
-                            multi_line_depth: *multi_line_depth,
-                            quote_type: quote_to_use,
-                        }
-                    }
-                }
-
-                #[cfg(not(feature = "cfxlua"))]
-                {
-                    TokenType::StringLiteral {
-                        literal,
-                        multi_line_depth: *multi_line_depth,
-                        quote_type: quote_to_use,
-                    }
-                }
-            }
-        }
+        } => format_string_literal(ctx, literal, multi_line_depth, quote_type),
         TokenType::Shebang { line } => {
             let line = format_single_line_comment_string(line).into();
 
