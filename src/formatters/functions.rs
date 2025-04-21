@@ -397,11 +397,20 @@ pub fn format_function_args(
             parentheses,
             arguments,
         } => {
+            let (start_parens, end_parens) = parentheses.tokens();
+
             // Handle config where parentheses are omitted, and there is only one argument
             if ctx.config().call_parentheses != CallParenType::Input
                 && (ctx.should_omit_string_parens() || ctx.should_omit_table_parens())
                 && arguments.len() == 1
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+                && !start_parens.has_trailing_comments(CommentSearch::Single)
+                && !end_parens.has_leading_comments(CommentSearch::Single)
+                && !arguments
+                    .first()
+                    .unwrap()
+                    .value()
+                    .has_leading_comments(CommentSearch::Single)
             {
                 let argument = arguments.iter().next().unwrap();
 
@@ -473,7 +482,6 @@ pub fn format_function_args(
                 // parentheses as well. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
-                let (start_parens, end_parens) = parentheses.tokens();
                 let start_parens = format_token_reference(ctx, start_parens, shape);
                 let start_parens = if start_parens.has_trailing_comments(CommentSearch::All)
                     && !arguments.is_empty()
