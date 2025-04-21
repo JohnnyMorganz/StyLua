@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745240549499,
+  "lastUpdate": 1745241651183,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13481,6 +13481,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14749034,
             "range": "± 75184",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5138d48e741a7ea4a8379ef2b1ac45d03ab332e5",
+          "message": "Bump full_moon to v2.0.0 (#974)\n\n* Bump full_moon to v2.0.0\n\n* Fix compound location switch",
+          "timestamp": "2025-04-21T15:18:54+02:00",
+          "tree_id": "fbbb5377d85eefccc460dfa7336e51b3dd68de98",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5138d48e741a7ea4a8379ef2b1ac45d03ab332e5"
+        },
+        "date": 1745241650051,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27812010,
+            "range": "± 449742",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229822854,
+            "range": "± 826127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15344626,
+            "range": "± 385076",
             "unit": "ns/iter"
           }
         ]
