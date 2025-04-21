@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745243112029,
+  "lastUpdate": 1745244055786,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13607,6 +13607,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15234533,
             "range": "± 394492",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0aa2b48ac875071af7b69d24ff805a5645581991",
+          "message": "Bump axios from 1.7.4 to 1.8.2 in /stylua-npm-bin (#976)\n\nBumps [axios](https://github.com/axios/axios) from 1.7.4 to 1.8.2.\n- [Release notes](https://github.com/axios/axios/releases)\n- [Changelog](https://github.com/axios/axios/blob/v1.x/CHANGELOG.md)\n- [Commits](https://github.com/axios/axios/compare/v1.7.4...v1.8.2)\n\n---\nupdated-dependencies:\n- dependency-name: axios\n  dependency-version: 1.8.2\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-04-21T15:58:58+02:00",
+          "tree_id": "c3e7fda47438319d93cc5e705bb92b8478c1f211",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0aa2b48ac875071af7b69d24ff805a5645581991"
+        },
+        "date": 1745244054961,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27776377,
+            "range": "± 395639",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229924243,
+            "range": "± 1316956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15245034,
+            "range": "± 145040",
             "unit": "ns/iter"
           }
         ]
