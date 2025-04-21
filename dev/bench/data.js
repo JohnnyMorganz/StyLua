@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745240439888,
+  "lastUpdate": 1745240483311,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13397,6 +13397,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14731377,
             "range": "± 31058",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "16a503d06bd6d2d135dcead9cd74068edefb52b4",
+          "message": "Bump serialize-javascript and mocha in /stylua-vscode (#959)\n\nBumps [serialize-javascript](https://github.com/yahoo/serialize-javascript) to 6.0.2 and updates ancestor dependency [mocha](https://github.com/mochajs/mocha). These dependencies need to be updated together.\n\n\nUpdates `serialize-javascript` from 6.0.1 to 6.0.2\n- [Release notes](https://github.com/yahoo/serialize-javascript/releases)\n- [Commits](https://github.com/yahoo/serialize-javascript/compare/v6.0.1...v6.0.2)\n\nUpdates `mocha` from 10.2.0 to 10.8.2\n- [Release notes](https://github.com/mochajs/mocha/releases)\n- [Changelog](https://github.com/mochajs/mocha/blob/main/CHANGELOG.md)\n- [Commits](https://github.com/mochajs/mocha/compare/v10.2.0...v10.8.2)\n\n---\nupdated-dependencies:\n- dependency-name: serialize-javascript\n  dependency-type: indirect\n- dependency-name: mocha\n  dependency-type: direct:development\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-04-21T14:59:31+02:00",
+          "tree_id": "b9127d16daed2753dc5134fd236de21acc7219cf",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/16a503d06bd6d2d135dcead9cd74068edefb52b4"
+        },
+        "date": 1745240482756,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26610100,
+            "range": "± 203561",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 214174208,
+            "range": "± 2652305",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14629587,
+            "range": "± 337589",
             "unit": "ns/iter"
           }
         ]
