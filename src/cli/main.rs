@@ -246,6 +246,16 @@ fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Resul
     )
     .context("failed to parse ignore file")?;
 
+    // matched_path_or_any_parents panics when path is not in cwd
+    // can happen when `--respect-ignores --stdin-filepath {path}`
+    if !path
+        .canonicalize()
+        .unwrap_or_default()
+        .starts_with(ignore.path().canonicalize().unwrap_or_default())
+    {
+        return Ok(false);
+    }
+
     Ok(matches!(
         ignore.matched_path_or_any_parents(path, false),
         ignore::Match::Ignore(_)
@@ -624,12 +634,12 @@ mod tests {
     use assert_fs::prelude::*;
 
     macro_rules! construct_tree {
-        ({ $($file_name:literal:$file_contents:literal,)+ }) => {{
+        ({ $($file_name:literal:$file_contents:literal,)* }) => {{
             let cwd = assert_fs::TempDir::new().unwrap();
 
             $(
                 cwd.child($file_name).write_str($file_contents).unwrap();
-            )+
+            )*
 
             cwd
         }};
@@ -716,6 +726,30 @@ mod tests {
         let mut cmd = create_stylua();
         cmd.current_dir(cwd.path())
             .args(["--stdin-filepath", "foo.lua", "-"])
+            .write_stdin("local   x    =   1")
+            .assert()
+            .success()
+            .stdout("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn explicitly_provided_files_not_in_cwd() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+        });
+
+        let another = construct_tree!({});
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args([
+                "--respect-ignores",
+                "--stdin-filepath",
+                another.child("foo.lua").to_str().unwrap(),
+                "-",
+            ])
             .write_stdin("local   x    =   1")
             .assert()
             .success()
