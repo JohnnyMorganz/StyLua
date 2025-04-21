@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745240199415,
+  "lastUpdate": 1745240439888,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13355,6 +13355,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14791974,
             "range": "± 238409",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "petertripp@gmail.com",
+            "name": "Peter Tripp",
+            "username": "notpeter"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "712544922b6b62c2333a54ee9b733d253ecb8ba0",
+          "message": "Document --stdin-filepath in README.md (#954)\n\n* Document --stdin-filepath in README.md. Fixes #953\n\n* Update README.md\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-04-21T14:58:53+02:00",
+          "tree_id": "da68e8d99b12bb4c2a94564c276a72dd245b266f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/712544922b6b62c2333a54ee9b733d253ecb8ba0"
+        },
+        "date": 1745240439401,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26310488,
+            "range": "± 99515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 215379233,
+            "range": "± 685268",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14731377,
+            "range": "± 31058",
             "unit": "ns/iter"
           }
         ]
