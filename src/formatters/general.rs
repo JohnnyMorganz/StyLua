@@ -191,7 +191,7 @@ pub fn format_token(
                 #[cfg(feature = "cfxlua")]
                 {
                     use crate::LuaVersion;
-                    if ctx.config().syntax == LuaVersion::CFXLua
+                    if ctx.config().syntax == LuaVersion::CfxLua
                         && matches!(quote_type, StringLiteralQuoteType::Backtick)
                     {
                         TokenType::StringLiteral {

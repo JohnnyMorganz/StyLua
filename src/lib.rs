@@ -42,9 +42,9 @@ pub enum LuaVersion {
     /// Parse LuaJIT code
     #[cfg(feature = "luajit")]
     LuaJIT,
-    /// Parse CFX Lua code
+    /// Parse Cfx Lua code
     #[cfg(feature = "cfxlua")]
-    CFXLua,
+    CfxLua,
 }
 
 impl From<LuaVersion> for full_moon::LuaVersion {
@@ -63,7 +63,7 @@ impl From<LuaVersion> for full_moon::LuaVersion {
             #[cfg(feature = "luajit")]
             LuaVersion::LuaJIT => full_moon::LuaVersion::luajit(),
             #[cfg(feature = "cfxlua")]
-            LuaVersion::CFXLua => full_moon::LuaVersion::cfxlua(),
+            LuaVersion::CfxLua => full_moon::LuaVersion::cfxlua(),
         }
     }
 }
