@@ -1,6 +1,8 @@
+#[cfg(all(feature = "luau", any(feature = "lua52", feature = "lua53")))]
 use stylua_lib::{format_code, Config, OutputVerification};
 
 #[test]
+#[cfg(all(feature = "luau", feature = "lua53"))]
 fn test_hint_syntax_luau_for_generic_parameter_list() {
     let code = r#"
         export type Foo = A<B<C>>
@@ -11,6 +13,7 @@ fn test_hint_syntax_luau_for_generic_parameter_list() {
 }
 
 #[test]
+#[cfg(all(feature = "luau", feature = "lua52"))]
 fn test_hint_syntax_lua52_for_labels() {
     let code = r#"
         do

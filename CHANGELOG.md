@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Luau: Added support for parsing attributes (`@native` / `@deprecated`) on functions
 - Added support for CfxLua (FiveM) syntax formatting. This is available with `syntax = "cfxlua"` ([#855](https://github.com/JohnnyMorganz/StyLua/issues/855))
 - Added a pre-built binary release for `stylua-linux-aarch64-musl.zip`
+- Added error hints on parse failurse when a potential Lua syntax conflict is noticed (e.g., Lua 5.2 vs Luau syntax for labels `::` and generics `>>`) ([#960](https://github.com/JohnnyMorganz/StyLua/issues/960) / [#962](https://github.com/JohnnyMorganz/StyLua/issues/962))
 
 ### Changed
 
