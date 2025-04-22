@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745318817074,
+  "lastUpdate": 1745318890865,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -13985,6 +13985,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15146482,
             "range": "± 334437",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "992568db6b4a95382c053706bb78d0793cda970f",
+          "message": "Fix rust version in docker build (#984)\n\n* Add docker builder to CI\n\n* Bump rust version\n\n* This is just too slow for CI",
+          "timestamp": "2025-04-22T12:46:13+02:00",
+          "tree_id": "a73ebcc8e2fc0e0b682f905d385857b63ae5d5fc",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/992568db6b4a95382c053706bb78d0793cda970f"
+        },
+        "date": 1745318889236,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26744669,
+            "range": "± 361543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229458602,
+            "range": "± 633153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15306458,
+            "range": "± 47894",
             "unit": "ns/iter"
           }
         ]
