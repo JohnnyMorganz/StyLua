@@ -369,6 +369,7 @@ pub fn is_brackets_string(expression: &Expression) -> bool {
                 ..
             }
         ),
+        Expression::Parentheses { expression, .. } => is_brackets_string(expression),
         #[cfg(feature = "luau")]
         Expression::TypeAssertion { expression, .. } => is_brackets_string(expression),
         _ => false,
