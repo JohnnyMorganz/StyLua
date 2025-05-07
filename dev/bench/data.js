@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745318890865,
+  "lastUpdate": 1746647758843,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14027,6 +14027,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15306458,
             "range": "± 47894",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "91544758+phanen@users.noreply.github.com",
+            "name": "phanium",
+            "username": "phanen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "145a7c3822754cccde80f9006e82ffc21650d02b",
+          "message": "Fix formatting of index containing brackets string in parentheses (#992)",
+          "timestamp": "2025-05-07T21:54:05+02:00",
+          "tree_id": "2e9b5cecae020ed800b968c84cab4d214e3a6311",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/145a7c3822754cccde80f9006e82ffc21650d02b"
+        },
+        "date": 1746647758101,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28803059,
+            "range": "± 1092634",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229185253,
+            "range": "± 1319457",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15105572,
+            "range": "± 35632",
             "unit": "ns/iter"
           }
         ]
