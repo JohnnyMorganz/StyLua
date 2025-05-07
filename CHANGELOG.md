@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix formatting of index containing brackets string in parentheses ([#992](https://github.com/JohnnyMorganz/StyLua/pull/992))
+
 ## [2.1.0] - 2025-04-21
 
 ### Added
