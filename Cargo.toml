@@ -57,6 +57,10 @@ thiserror = "1.0.49"
 threadpool = "1.8.1"
 toml = "0.8.1"
 
+lsp-server = "0.7"
+lsp-types = "0.97"
+lsp-textdocument = "0.4.2"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.81", optional = true }
 
