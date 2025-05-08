@@ -1,0 +1,16 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config {\n            preserve_block_newline_gaps: PreserveBlockNewlineGaps::Always,\n            ..Config::default()\n        }, None, OutputVerification::None).unwrap()"
+input_file: tests/inputs-preserve-block-newline-gaps/empty-function.lua
+---
+local function noop() -- comment
+end
+
+function noop()
+	-- comment
+end
+
+call(function()
+	-- comment
+
+end)

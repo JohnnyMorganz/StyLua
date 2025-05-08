@@ -679,7 +679,7 @@ pub fn format_end_token(
     shape: Shape,
 ) -> TokenReference {
     // Indent any comments leading a token, as these comments are technically part of the function body block
-    let formatted_leading_trivia: Vec<Token> = load_token_trivia(
+    let mut formatted_leading_trivia: Vec<Token> = load_token_trivia(
         ctx,
         current_token.leading_trivia().collect(),
         FormatTokenType::LeadingTrivia,
@@ -698,37 +698,39 @@ pub fn format_end_token(
         shape,
     );
 
-    // Special case for block end tokens:
-    // We will reverse the leading trivia, and keep removing any newlines we find, until we find something else, then we stop.
-    // This is to remove unnecessary newlines at the end of the block.
-    let mut iter = formatted_leading_trivia.iter().rev().peekable();
+    if !ctx.should_preserve_trailing_block_newline_gaps() {
+        // Special case for block end tokens:
+        // We will reverse the leading trivia, and keep removing any newlines we find, until we find something else, then we stop.
+        // This is to remove unnecessary newlines at the end of the block.
+        let original_leading_trivia = std::mem::take(&mut formatted_leading_trivia);
+        let mut iter = original_leading_trivia.iter().cloned().rev().peekable();
 
-    let mut formatted_leading_trivia = Vec::new();
-    let mut stop_removal = false;
-    while let Some(x) = iter.next() {
-        match x.token_type() {
-            TokenType::Whitespace { ref characters } => {
-                if !stop_removal
-                    && characters.contains('\n')
-                    && !matches!(
-                        iter.peek().map(|x| x.token_kind()),
-                        Some(TokenKind::SingleLineComment) | Some(TokenKind::MultiLineComment)
-                    )
-                {
-                    continue;
-                } else {
+        let mut stop_removal = false;
+        while let Some(x) = iter.next() {
+            match x.token_type() {
+                TokenType::Whitespace { ref characters } => {
+                    if !stop_removal
+                        && characters.contains('\n')
+                        && !matches!(
+                            iter.peek().map(|x| x.token_kind()),
+                            Some(TokenKind::SingleLineComment) | Some(TokenKind::MultiLineComment)
+                        )
+                    {
+                        continue;
+                    } else {
+                        formatted_leading_trivia.push(x.to_owned());
+                    }
+                }
+                _ => {
                     formatted_leading_trivia.push(x.to_owned());
+                    stop_removal = true; // Stop removing newlines once we have seen some sort of comment
                 }
             }
-            _ => {
-                formatted_leading_trivia.push(x.to_owned());
-                stop_removal = true; // Stop removing newlines once we have seen some sort of comment
-            }
         }
-    }
 
-    // Need to reverse the vector since we reversed the iterator
-    formatted_leading_trivia.reverse();
+        // Need to reverse the vector since we reversed the iterator
+        formatted_leading_trivia.reverse();
+    }
 
     TokenReference::new(
         formatted_leading_trivia,
