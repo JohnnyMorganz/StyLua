@@ -173,19 +173,31 @@ impl Range {
 }
 
 /// Configuration for the Sort Requires codemod
-#[derive(Copy, Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 pub struct SortRequiresConfig {
     /// Whether the sort requires codemod is enabled
     pub enabled: bool,
+    /// An optional glob pattern to sort requires by
+    #[cfg_attr(
+        all(target_arch = "wasm32", feature = "wasm-bindgen"),
+        wasm_bindgen(skip)
+    )]
+    pub glob: Option<String>,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 impl SortRequiresConfig {
     pub fn new() -> Self {
         SortRequiresConfig::default()
+    }
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            glob: None,
+        }
     }
     #[deprecated(since = "0.19.0", note = "access `.enabled` directly instead")]
     #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
@@ -194,7 +206,10 @@ impl SortRequiresConfig {
     }
     #[deprecated(since = "0.19.0", note = "modify `.enabled` directly instead")]
     pub fn set_enabled(&self, enabled: bool) -> Self {
-        Self { enabled }
+        Self {
+            enabled,
+            glob: self.glob.clone(),
+        }
     }
 }
 
@@ -216,7 +231,7 @@ pub enum SpaceAfterFunctionNames {
 }
 
 /// The configuration to use when formatting.
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
@@ -398,7 +413,7 @@ pub fn format_ast(
         None
     };
 
-    let ctx = Context::new(config, range);
+    let ctx = Context::new(config.clone(), range);
 
     // Perform require sorting beforehand if necessary
     let input_ast = match config.sort_requires.enabled {
@@ -410,7 +425,7 @@ pub fn format_ast(
     let ast = code_formatter.format(input_ast);
 
     // If we are verifying, reparse the output then check it matches the original input
-    if let Some(input_ast) = input_ast_for_verification {
+    if let Some(original_input_ast) = input_ast_for_verification {
         let output = ast.to_string();
         let reparsed_output =
             match full_moon::parse_fallible(&output, config.syntax.into()).into_result() {
@@ -421,7 +436,7 @@ pub fn format_ast(
             };
 
         let mut ast_verifier = verify_ast::AstVerifier::new();
-        if !ast_verifier.compare(input_ast, reparsed_output) {
+        if !ast_verifier.compare(original_input_ast, reparsed_output) {
             return Err(Error::VerificationAstDifference);
         }
     }

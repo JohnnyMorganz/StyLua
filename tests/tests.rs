@@ -140,7 +140,10 @@ fn test_sort_requires() {
         insta::assert_snapshot!(format_code(
             &contents,
             Config {
-                sort_requires: SortRequiresConfig { enabled: true },
+                sort_requires: SortRequiresConfig {
+                    enabled: true,
+                    glob: None
+                },
                 ..Config::default()
             },
             None,
@@ -148,6 +151,34 @@ fn test_sort_requires() {
         )
         .unwrap());
     })
+}
+
+#[test]
+fn test_sort_requires_with_glob() {
+    let glob_patterns = vec!["C*", "{B*,b*}", "S*"]; // Add your desired glob patterns here
+
+    for glob_pattern in glob_patterns {
+        insta::glob!("inputs-sort-requires/*.lua", |path| {
+            let contents = std::fs::read_to_string(path).unwrap();
+            insta::assert_snapshot!(format!(
+                "glob_pattern: {}\n{}",
+                glob_pattern,
+                format_code(
+                    &contents,
+                    Config {
+                        sort_requires: SortRequiresConfig {
+                            enabled: true,
+                            glob: Some(glob_pattern.to_string())
+                        },
+                        ..Config::default()
+                    },
+                    None,
+                    OutputVerification::None
+                )
+                .unwrap()
+            ));
+        })
+    }
 }
 
 #[test]

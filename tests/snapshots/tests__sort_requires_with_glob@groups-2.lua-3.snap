@@ -1,0 +1,28 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/groups-2.lua
+---
+glob_pattern: S*
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Binder = require(ReplicatedStorage.Packages.Binder)
+local Roact = require(ReplicatedStorage.Packages.Roact)
+local RoactRodux = require(ReplicatedStorage.Packages.RoactRodux)
+local Rodux = require(ReplicatedStorage.Packages.Rodux)
+
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+
+local ATM = require(script.ATM)
+local ATMMachine = require(script.Components.Banking.ATM)
+local Bank = require(script.Bank)
+local BankTeller = require(script.BankTeller)
+local BankTellerScreen = require(script.Components.Banking.BankTellerScreen)
+local CleaningMoney = require(script.Components.CleaningMoney)
+local DisablePower = require(script.Components.DisablePower)
+local MoneyInfo = require(script.Parent:WaitForChild("MoneyInfo"))
+local MoneyLaunderer = require(script.MoneyLaunderer)
+local Reducers = require(script.Reducers)
+local RobAmount = require(script.Components.RobAmount)
+local VaultHacking = require(script.Components.VaultHacking)
+local LocalPlayer = Players.LocalPlayer

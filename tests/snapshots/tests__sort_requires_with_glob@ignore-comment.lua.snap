@@ -1,0 +1,20 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/ignore-comment.lua
+---
+glob_pattern: C*
+-- stylua: ignore
+local c   = require("c")
+local b = require("b")
+local a = require("a")
+
+local c = require("c")
+-- stylua: ignore
+local b   = require("b")
+local a = require("a")
+
+local b = require("b")
+local c = require("c")
+-- stylua: ignore
+local a   = require("a")

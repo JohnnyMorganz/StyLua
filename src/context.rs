@@ -17,7 +17,7 @@ pub enum FormatNode {
     Normal,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Context {
     /// The configuration passed to the formatter
     config: Config,
@@ -38,8 +38,8 @@ impl Context {
     }
 
     /// Get the configuration for this context
-    pub fn config(&self) -> Config {
-        self.config
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 
     /// Determines whether we need to toggle whether formatting is enabled or disabled.
@@ -74,8 +74,9 @@ impl Context {
         }
 
         Self {
+            config: self.config.clone(),
+            range: self.range,
             formatting_disabled,
-            ..*self
         }
     }
 

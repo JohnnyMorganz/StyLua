@@ -393,7 +393,7 @@ where
     let current_fields = fields.pairs();
     let mut fields = Punctuated::new();
 
-    let mut ctx = *ctx;
+    let mut ctx = ctx.clone();
 
     for pair in current_fields {
         let (field, punctuation) = (pair.value(), pair.punctuation());
