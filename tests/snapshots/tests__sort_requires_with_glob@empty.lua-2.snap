@@ -1,0 +1,6 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/empty.lua
+---
+glob_pattern: {B*,b*}

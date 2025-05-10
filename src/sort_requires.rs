@@ -199,7 +199,27 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
                 };
 
                 // Sort our list of requires
-                list.sort_by_key(|key| key.0.clone());
+                if let Some(glob_pattern_str) = &ctx.config().sort_requires.glob {
+                    if let Ok(glob) = globset::Glob::new(glob_pattern_str) {
+                        let matcher = glob.compile_matcher();
+                        list.sort_by(|(a_name, _), (b_name, _)| {
+                            let a_matches = matcher.is_match(a_name);
+                            let b_matches = matcher.is_match(b_name);
+
+                            if a_matches && !b_matches {
+                                std::cmp::Ordering::Less
+                            } else if !a_matches && b_matches {
+                                std::cmp::Ordering::Greater
+                            } else {
+                                a_name.cmp(b_name)
+                            }
+                        });
+                    } else {
+                        list.sort_by_key(|key| key.0.clone());
+                    }
+                } else {
+                    list.sort_by_key(|key| key.0.clone());
+                }
 
                 // Mutate the first element with our leading trivia
                 match list.first_mut() {

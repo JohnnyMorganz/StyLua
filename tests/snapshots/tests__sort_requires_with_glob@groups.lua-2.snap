@@ -1,0 +1,19 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/groups.lua
+---
+glob_pattern: {B*,b*}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local mainA = require(ReplicatedStorage.A)
+local mainB = require(ReplicatedStorage.B)
+
+local Packages = ReplicatedStorage.Packages
+local X = require(Packages.X)
+local Y = require(Packages.Y)
+local Z = require(Packages.Z)
+
+local Modules = ReplicatedStorage.Modules
+local B = require(Modules.B)
+local A = require(Modules.A)
+local C = require(Modules.C)

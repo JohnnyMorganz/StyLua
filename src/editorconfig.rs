@@ -81,10 +81,62 @@ property_choice! {
     (Always, "always")
 }
 
-property_choice! {
-    SortRequiresChoice, "sort_requires";
-    (True, "true"),
-    (False, "false")
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SortRequiresChoice {
+    True,
+    False,
+    Glob(String),
+}
+
+impl PropertyValue for SortRequiresChoice {
+    const MAYBE_UNSET: bool = false;
+    type Err = UnknownValueError;
+    fn parse(raw: &RawValue) -> Result<Self, Self::Err> {
+        let val_str = raw.into_str().to_lowercase();
+        match val_str.as_str() {
+            "true" => Ok(SortRequiresChoice::True),
+            "false" => Ok(SortRequiresChoice::False),
+            s if s.starts_with("glob:") => {
+                let pattern = s.trim_start_matches("glob:");
+                if !pattern.is_empty() {
+                    Ok(SortRequiresChoice::Glob(pattern.to_string()))
+                } else {
+                    Err(UnknownValueError)
+                }
+            }
+            _ => Err(UnknownValueError),
+        }
+    }
+}
+
+impl From<SortRequiresChoice> for RawValue {
+    fn from(val: SortRequiresChoice) -> RawValue {
+        match val {
+            SortRequiresChoice::True => RawValue::from("true"),
+            SortRequiresChoice::False => RawValue::from("false"),
+            SortRequiresChoice::Glob(pattern) => RawValue::from(pattern),
+        }
+    }
+}
+
+impl PropertyKey for SortRequiresChoice {
+    fn key() -> &'static str {
+        "sort_requires"
+    }
+}
+
+impl std::fmt::Display for SortRequiresChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                SortRequiresChoice::True => "true",
+                SortRequiresChoice::False => "false",
+                SortRequiresChoice::Glob(pattern) => pattern,
+            }
+        )
+    }
 }
 
 // Override StyLua config with EditorConfig properties
@@ -170,9 +222,23 @@ fn load(mut config: Config, properties: &Properties) -> Config {
     }
     if let Ok(sort_requires) = properties.get::<SortRequiresChoice>() {
         match sort_requires {
-            SortRequiresChoice::True => config.sort_requires = SortRequiresConfig { enabled: true },
+            SortRequiresChoice::True => {
+                config.sort_requires = SortRequiresConfig {
+                    enabled: true,
+                    glob: None,
+                }
+            }
             SortRequiresChoice::False => {
-                config.sort_requires = SortRequiresConfig { enabled: false }
+                config.sort_requires = SortRequiresConfig {
+                    enabled: false,
+                    glob: None,
+                }
+            }
+            SortRequiresChoice::Glob(pattern) => {
+                config.sort_requires = SortRequiresConfig {
+                    enabled: true,
+                    glob: Some(pattern),
+                }
             }
         }
     }

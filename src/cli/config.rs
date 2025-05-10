@@ -66,8 +66,8 @@ impl ConfigResolver<'_> {
     }
 
     pub fn load_configuration(&mut self, path: &Path) -> Result<Config> {
-        if let Some(configuration) = self.forced_configuration {
-            return Ok(configuration);
+        if let Some(configuration) = self.forced_configuration.as_ref() {
+            return Ok(configuration.clone());
         }
 
         let root = self.get_configuration_search_root();
@@ -82,20 +82,20 @@ impl ConfigResolver<'_> {
             None => {
                 #[cfg(feature = "editorconfig")]
                 if self.opt.no_editorconfig {
-                    Ok(self.default_configuration)
+                    Ok(self.default_configuration.clone())
                 } else {
-                    editorconfig::parse(self.default_configuration, path)
+                    editorconfig::parse(self.default_configuration.clone(), path)
                         .context("could not parse editorconfig")
                 }
                 #[cfg(not(feature = "editorconfig"))]
-                Ok(self.default_configuration)
+                Ok(self.default_configuration.clone())
             }
         }
     }
 
     pub fn load_configuration_for_stdin(&mut self) -> Result<Config> {
-        if let Some(configuration) = self.forced_configuration {
-            return Ok(configuration);
+        if let Some(configuration) = self.forced_configuration.as_ref() {
+            return Ok(configuration.clone());
         }
 
         let root = self.get_configuration_search_root();
@@ -108,13 +108,13 @@ impl ConfigResolver<'_> {
                 None => {
                     #[cfg(feature = "editorconfig")]
                     if self.opt.no_editorconfig {
-                        Ok(self.default_configuration)
+                        Ok(self.default_configuration.clone())
                     } else {
-                        editorconfig::parse(self.default_configuration, &PathBuf::from("*.lua"))
+                        editorconfig::parse(self.default_configuration.clone(), &PathBuf::from("*.lua"))
                             .context("could not parse editorconfig")
                     }
                     #[cfg(not(feature = "editorconfig"))]
-                    Ok(self.default_configuration)
+                    Ok(self.default_configuration.clone())
                 }
             },
         }
@@ -143,7 +143,7 @@ impl ConfigResolver<'_> {
         root: Option<PathBuf>,
     ) -> Result<Option<Config>> {
         if let Some(config) = self.config_cache.get(directory) {
-            return Ok(*config);
+            return Ok(config.clone());
         }
 
         let resolved_configuration = match self.lookup_config_file_in_directory(directory)? {
@@ -169,7 +169,7 @@ impl ConfigResolver<'_> {
         };
 
         self.config_cache
-            .insert(directory.to_path_buf(), resolved_configuration);
+            .insert(directory.to_path_buf(), resolved_configuration.clone());
         Ok(resolved_configuration)
     }
 
@@ -277,7 +277,10 @@ fn load_overrides(config: Config, opt: &Opt) -> Config {
         new_config.collapse_simple_statement = collapse_simple_statement.into();
     }
     if opt.format_opts.sort_requires {
-        new_config.sort_requires = SortRequiresConfig { enabled: true }
+        new_config.sort_requires = SortRequiresConfig { 
+            enabled: true, 
+            glob: new_config.sort_requires.glob,
+        };
     }
 
     new_config

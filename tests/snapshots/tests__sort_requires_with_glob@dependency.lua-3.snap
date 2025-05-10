@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/dependency.lua
+---
+glob_pattern: S*
+local parent = script.Parent
+local x = foo()
+local aaa = require(parent.Script)
+local bee = require("aaa")
+local cee = require(parent.Cee)
+
+print("hello world")

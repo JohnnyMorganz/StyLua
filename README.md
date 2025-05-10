@@ -238,6 +238,21 @@ Requires sorting is off by default. To enable it, add the following to your `sty
 enabled = true
 ```
 
+Additionally, you may use the `glob` option to specify a glob pattern to match
+against when sorting statements.
+
+```toml
+[sort_requires]
+enabled = true
+glob = "require*"
+```
+
+```lua
+local require = require("SomeDependency")
+local Bar = require("Baz")
+local Foo = require("Foo")
+```
+
 ## Configuration
 
 StyLua has opinionated defaults, but also provides a few options that can be set per project.

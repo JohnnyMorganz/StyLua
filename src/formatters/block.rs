@@ -533,7 +533,7 @@ fn check_stmt_requires_semicolon(
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
-    let mut ctx = *ctx;
+    let mut ctx = ctx.clone();
     let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
     let mut found_first_stmt = false;
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();

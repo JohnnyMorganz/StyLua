@@ -1,0 +1,15 @@
+---
+source: tests/tests.rs
+expression: "format!(\"glob_pattern: {}\\n{}\", glob_pattern,\nformat_code(&contents, Config\n{\n    sort_requires: SortRequiresConfig\n    { enabled: true, glob: Some(glob_pattern.to_string()) },\n    ..Config::default()\n}, None, OutputVerification::None).unwrap())"
+input_file: tests/inputs-sort-requires/separated-by-comments.lua
+---
+glob_pattern: {B*,b*}
+-- Services
+local B = require("B")
+local A = require("A")
+local C = require("C")
+
+-- Packages
+local X = require("X")
+local Y = require("Y")
+local Z = require("Z")
