@@ -425,9 +425,9 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             type_function.type_token(),
             with_type_token
         ),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(goto) => update_first_token!(Goto, goto, goto.goto_token(), with_goto_token),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(label) => {
             update_first_token!(Label, label, label.left_colons(), with_left_colons)
         }

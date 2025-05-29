@@ -1,7 +1,7 @@
 #[cfg(any(feature = "luau", feature = "cfxlua"))]
 use crate::formatters::compound_assignment::format_compound_assignment;
-#[cfg(feature = "lua52")]
-use crate::formatters::lua52::{format_goto, format_goto_no_trivia, format_label};
+#[cfg(any(feature = "lua52", feature = "luajit"))]
+use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
     format_exported_type_declaration, format_exported_type_function, format_type_declaration_stmt,
@@ -1089,9 +1089,9 @@ pub(crate) mod stmt_block {
             Stmt::TypeFunction(type_function) => {
                 Stmt::TypeFunction(format_type_function_block(ctx, type_function, block_shape))
             }
-            #[cfg(feature = "lua52")]
+            #[cfg(any(feature = "lua52", feature = "luajit"))]
             Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
-            #[cfg(feature = "lua52")]
+            #[cfg(any(feature = "lua52", feature = "luajit"))]
             Stmt::Label(node) => Stmt::Label(node.to_owned()),
             other => panic!("unknown node {:?}", other),
         }
@@ -1124,8 +1124,8 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
         #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function,
         #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt,
-        #[cfg(feature = "lua52")] Goto = format_goto,
-        #[cfg(feature = "lua52")] Label = format_label,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Goto = format_goto,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Label = format_label,
     })
 }
 
@@ -1141,7 +1141,7 @@ pub fn format_stmt_no_trivia(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         }
         Stmt::Assignment(stmt) => Stmt::Assignment(format_assignment_no_trivia(ctx, stmt, shape)),
         Stmt::FunctionCall(stmt) => Stmt::FunctionCall(format_function_call(ctx, stmt, shape)),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(goto) => Stmt::Goto(format_goto_no_trivia(ctx, goto, shape)),
         _ => unreachable!("format_stmt_no_trivia: node != assignment/function call/goto"),
     }
