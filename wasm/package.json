@@ -16,12 +16,7 @@
         "stylua.web/stylua_lib_bg.wasm",
         "stylua.web/stylua_lib.d.ts",
         "stylua.web/stylua_lib.js",
-        "stylua_lib_bundler_wbg.cjs",
-        "stylua_lib_bundler.d.ts",
-        "stylua_lib_bundler.js",
         "stylua_lib.cjs",
-        "stylua_lib.d.cts",
-        "stylua_lib.d.mts",
         "stylua_lib.mjs",
         "LICENSE.md"
     ],
@@ -45,12 +40,9 @@
         "./package.json": "./package.json",
         "./*": "./*"
     },
-    "browser": {
-        "wbg": "./stylua_lib_bundler_wbg.cjs"
-    },
     "sideEffects": [
         "stylua_lib.mjs",
-        "stylua_lib_bundler.js"
+        "stylua_lib.cjs"
     ],
     "keywords": [
         "cli",
