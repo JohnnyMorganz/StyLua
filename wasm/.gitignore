@@ -1,5 +1,7 @@
 stylua.web/
 stylua_lib.cjs
+stylua_lib.mjs
 LICENSE.md
 README.md
 *.tgz
+node_modules
