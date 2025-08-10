@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::LuaJIT)"
+input_file: tests/inputs-luajit/goto.lua
+---
+if opaque then
+	goto label
+end
+::label::
