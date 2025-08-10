@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754829294764,
+  "lastUpdate": 1754830286127,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14111,6 +14111,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15255141,
             "range": "± 44679",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c2f8394756abb072cca81ace2cc39a8fdda99def",
+          "message": "Bump form-data from 4.0.0 to 4.0.4 in /stylua-npm-bin (#1012)\n\nBumps [form-data](https://github.com/form-data/form-data) from 4.0.0 to 4.0.4.\n- [Release notes](https://github.com/form-data/form-data/releases)\n- [Changelog](https://github.com/form-data/form-data/blob/master/CHANGELOG.md)\n- [Commits](https://github.com/form-data/form-data/compare/v4.0.0...v4.0.4)\n\n---\nupdated-dependencies:\n- dependency-name: form-data\n  dependency-version: 4.0.4\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-08-10T14:49:34+02:00",
+          "tree_id": "fd1c8dbae5409173b4d75e242327944adabb3328",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c2f8394756abb072cca81ace2cc39a8fdda99def"
+        },
+        "date": 1754830285547,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26079631,
+            "range": "± 142384",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 227811453,
+            "range": "± 2598093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15203375,
+            "range": "± 39109",
             "unit": "ns/iter"
           }
         ]
