@@ -153,6 +153,19 @@ pub enum CollapseSimpleStatement {
     Always,
 }
 
+/// If blocks should be allowed to have leading and trailing newline gaps.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum BlockNewlineGaps {
+    /// Never allow leading or trailing newline gaps
+    #[default]
+    Never,
+    /// Preserve both leading and trailing newline gaps if present in input
+    Preserve,
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -254,6 +267,10 @@ pub struct Config {
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     pub collapse_simple_statement: CollapseSimpleStatement,
+    /// Whether we should allow blocks to preserve leading and trailing newline gaps.
+    /// if set to [`BlockNewlineGaps::Never`] then newline gaps are never allowed at the start or end of blocks.
+    /// if set to [`BlockNewlineGaps::Preserve`] then newline gaps are preserved at the start and end of blocks.
+    pub block_newline_gaps: BlockNewlineGaps,
     /// Configuration for the sort requires codemod
     pub sort_requires: SortRequiresConfig,
     /// Whether we should include a space between the function name and arguments.
@@ -287,6 +304,7 @@ impl Default for Config {
             collapse_simple_statement: CollapseSimpleStatement::default(),
             sort_requires: SortRequiresConfig::default(),
             space_after_function_names: SpaceAfterFunctionNames::default(),
+            block_newline_gaps: BlockNewlineGaps::default(),
         }
     }
 }
