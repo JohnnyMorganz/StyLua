@@ -507,8 +507,19 @@ pub fn format_local_assignment_no_trivia(
             });
         }
 
+        #[cfg(feature = "luau")]
+        let var_list_ends_with_comments = match type_specifiers.last() {
+            Some(Some(specifier)) => {
+                specifier.has_trailing_comments(trivia_util::CommentSearch::Single)
+            }
+            _ => name_list.has_trailing_comments(trivia_util::CommentSearch::Single),
+        };
+        #[cfg(not(feature = "luau"))]
+        let var_list_ends_with_comments =
+            name_list.has_trailing_comments(trivia_util::CommentSearch::Single);
+
         // If the var list ended with a comment, we need to hang the equals token
-        if name_list.has_trailing_comments(trivia_util::CommentSearch::Single) {
+        if var_list_ends_with_comments {
             const EQUAL_TOKEN_LEN: usize = "= ".len();
             shape = shape
                 .reset()
