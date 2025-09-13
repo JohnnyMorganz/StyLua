@@ -1,6 +1,5 @@
 ---
 source: tests/tests.rs
-assertion_line: 36
 expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau/type-union-tables-1.lua
 ---
@@ -27,4 +26,3 @@ export type AstExprTableItem =
 		value: AstExpr,
 		separator: Token<"," | ";">?,
 	}
-
