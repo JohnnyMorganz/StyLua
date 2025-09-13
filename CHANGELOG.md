@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added option `block_newline_gaps` to determine whether newline gaps at the start / end of blocks should be preserved. Defaults to `Never`, which is the original behaviour. ([#857](https://github.com/JohnnyMorganz/StyLua/pull/857))
 
+### Changed
+
+- Luau: Improved union of tables formatting to hang the union type rather than attempt to hug all the tables together ([#958](https://github.com/JohnnyMorganz/StyLua/issues/958))
+
 ### Fixed
 
 - Fixed formatting of index containing brackets string in parentheses ([#992](https://github.com/JohnnyMorganz/StyLua/pull/992))
