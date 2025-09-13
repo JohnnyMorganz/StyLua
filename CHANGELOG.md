@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed goto not being recognised for LuaJIT ([#986](https://github.com/JohnnyMorganz/StyLua/issues/986))
 - Fixed semicolon removed after a statement ending with an if-expression leading to ambiguous syntax when the next line begins with parentheses ([#1010](https://github.com/JohnnyMorganz/StyLua/issues/1010))
 - Luau: Fixed malformed formatting when there is a comment after a type specifier in a local assignment ([#995](https://github.com/JohnnyMorganz/StyLua/issues/995))
+- Fixed malformed formatting when a binary expression inside of a function call with comments around the operators is incorrectly collapsed onto one line ([#996](https://github.com/JohnnyMorganz/StyLua/issues/996))
 
 ## [2.1.0] - 2025-04-21
 
