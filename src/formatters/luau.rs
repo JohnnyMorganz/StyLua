@@ -1101,7 +1101,12 @@ fn attempt_assigned_type_tactics(
         let declaration = if contains_comments(strip_trivia(type_info)) {
             hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
         } else {
-            format_type_info(ctx, type_info, shape)
+            let proper_declaration = format_type_info(ctx, type_info, shape);
+            if shape.test_over_budget(&proper_declaration) {
+                hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
+            } else {
+                proper_declaration
+            }
         };
 
         // Take the leading comments and format them nicely
