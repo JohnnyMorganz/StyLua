@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757762614749,
+  "lastUpdate": 1757763694372,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14237,6 +14237,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15364734,
             "range": "± 50148",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d517f37292e7d51fbc94bb01f2265dd0f20d67e4",
+          "message": "Test Docker in CI (#1020)\n\n* Test Docker in CI\n\n* Fix test\n\n* Fix test\n\n* Fix test",
+          "timestamp": "2025-09-13T13:39:42+02:00",
+          "tree_id": "2110c9ef35dec4501f7744b4c14df027b29f1bc7",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d517f37292e7d51fbc94bb01f2265dd0f20d67e4"
+        },
+        "date": 1757763693081,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26287186,
+            "range": "± 268208",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 228924568,
+            "range": "± 2273901",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15504128,
+            "range": "± 322899",
             "unit": "ns/iter"
           }
         ]
