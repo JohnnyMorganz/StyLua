@@ -193,7 +193,7 @@ pub fn is_block_simple(block: &Block) -> bool {
                     true
                 }
                 Stmt::FunctionCall(_) => true,
-                #[cfg(feature = "lua52")]
+                #[cfg(any(feature = "lua52", feature = "luajit"))]
                 Stmt::Goto(_) => true,
                 _ => false,
             })
@@ -948,7 +948,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
             (Stmt::TypeFunction(type_declaration), trailing_trivia)
         }
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => {
             let trailing_trivia = stmt
                 .label_name()
@@ -963,7 +963,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 trailing_trivia,
             )
         }
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(stmt) => {
             let trailing_trivia = stmt
                 .right_colons()
