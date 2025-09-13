@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757765858909,
+  "lastUpdate": 1757766024163,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14405,6 +14405,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15783801,
             "range": "± 373432",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "336b6fa519493dab5875050ba889e3b3a94bac5c",
+          "message": "Bump brace-expansion in /stylua-vscode (#1021)\n\nBumps  and [brace-expansion](https://github.com/juliangruber/brace-expansion). These dependencies needed to be updated together.\n\nUpdates `brace-expansion` from 1.1.11 to 1.1.12\n- [Release notes](https://github.com/juliangruber/brace-expansion/releases)\n- [Commits](https://github.com/juliangruber/brace-expansion/compare/1.1.11...v1.1.12)\n\nUpdates `brace-expansion` from 2.0.1 to 2.0.2\n- [Release notes](https://github.com/juliangruber/brace-expansion/releases)\n- [Commits](https://github.com/juliangruber/brace-expansion/compare/1.1.11...v1.1.12)\n\n---\nupdated-dependencies:\n- dependency-name: brace-expansion\n  dependency-version: 1.1.12\n  dependency-type: indirect\n- dependency-name: brace-expansion\n  dependency-version: 2.0.2\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-09-13T14:18:31+02:00",
+          "tree_id": "e325a4fef2a48234b5c94bc0ec80b6af9e10b197",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/336b6fa519493dab5875050ba889e3b3a94bac5c"
+        },
+        "date": 1757766022907,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26681127,
+            "range": "± 207346",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 235026487,
+            "range": "± 638510",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15478924,
+            "range": "± 195067",
             "unit": "ns/iter"
           }
         ]
