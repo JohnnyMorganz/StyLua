@@ -51,6 +51,16 @@ fn should_hug_type(type_info: &TypeInfo) -> bool {
     }
 }
 
+fn is_union_of_tables(type_info: &TypeInfo) -> bool {
+    match type_info {
+        TypeInfo::Union(union) => union
+            .types()
+            .iter()
+            .all(|ty| matches!(ty, TypeInfo::Table { .. })),
+        _ => false,
+    }
+}
+
 fn format_hangable_type_info_internal(
     ctx: &Context,
     type_info: &TypeInfo,
@@ -1140,11 +1150,13 @@ fn attempt_assigned_type_tactics(
         // If we can hang the type definition, and its over width, then lets try doing so
         if can_hang_type(type_info)
             && (must_hang
-                || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
+                || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))
+                || spans_multiple_lines(&singleline_type_definition))
         {
             // If we should hug the type, then lets check out the proper definition and see if it fits
             if !must_hang
                 && should_hug_type(type_info)
+                && !is_union_of_tables(type_info)
                 && !shape.test_over_budget(&proper_type_definition)
             {
                 type_definition = proper_type_definition;
