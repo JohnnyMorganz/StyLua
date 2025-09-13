@@ -696,13 +696,13 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeFunction(stmt) => Stmt::TypeFunction(stmt.update_trivia(leading, trailing)),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
                 .with_goto_token(stmt.goto_token().update_leading_trivia(leading))
                 .with_label_name(stmt.label_name().update_trailing_trivia(trailing)),
         ),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(stmt) => Stmt::Label(
             stmt.to_owned()
                 .with_left_colons(stmt.left_colons().update_leading_trivia(leading))

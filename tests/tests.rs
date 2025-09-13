@@ -74,6 +74,15 @@ fn test_lua54() {
 }
 
 #[test]
+#[cfg(feature = "luajit")]
+fn test_luajit() {
+    insta::glob!("inputs-luajit/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format(&contents, LuaVersion::LuaJIT));
+    })
+}
+
+#[test]
 #[cfg(feature = "cfxlua")]
 fn test_cfxlua() {
     insta::glob!("inputs-cfxlua/*.lua", |path| {

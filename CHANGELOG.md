@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added option `block_newline_gaps` to determine whether newline gaps at the start / end of blocks should be preserved. Defaults to `Never`, which is the original behaviour. ([#857](https://github.com/JohnnyMorganz/StyLua/pull/857))
 
 ### Fixed
-- Fix formatting of index containing brackets string in parentheses ([#992](https://github.com/JohnnyMorganz/StyLua/pull/992))
+- Fixed formatting of index containing brackets string in parentheses ([#992](https://github.com/JohnnyMorganz/StyLua/pull/992))
+- Fixed goto not being recognised for LuaJIT ([#986](https://github.com/JohnnyMorganz/StyLua/issues/986))
 
 ## [2.1.0] - 2025-04-21
 
