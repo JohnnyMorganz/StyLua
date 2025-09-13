@@ -33,7 +33,7 @@ pub struct ConfigResolver<'a> {
 }
 
 impl ConfigResolver<'_> {
-    pub fn new(opt: &Opt) -> Result<ConfigResolver> {
+    pub fn new(opt: &Opt) -> Result<ConfigResolver<'_>> {
         let forced_configuration = opt
             .config_path
             .as_ref()
