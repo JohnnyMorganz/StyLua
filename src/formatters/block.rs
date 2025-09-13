@@ -484,6 +484,10 @@ fn expression_ends_with_identifier_or_parentheses(expression: &Expression) -> bo
         Expression::UnaryOperator { expression, .. } => {
             expression_ends_with_identifier_or_parentheses(expression)
         }
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(if_expression) => {
+            expression_ends_with_identifier_or_parentheses(if_expression.else_expression())
+        }
         _ => false,
     }
 }
