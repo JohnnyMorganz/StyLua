@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757768440599,
+  "lastUpdate": 1757770160092,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14573,6 +14573,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15466786,
             "range": "± 73441",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6a3da948d229352f7517ef88fde3365f93f4ad6",
+          "message": "Improve formatting for unions of tables to enforce hanging (#1027)\n\n* Add test case\n\n* Ensure unions of (multiline) tables are always formatted multiline\n\n* Update snapshot\n\n* Update changelog\n\n* fix snapshot",
+          "timestamp": "2025-09-13T13:27:31Z",
+          "tree_id": "0111752aeb1a700c91d5c3c3cdfdd49156bbe13a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/d6a3da948d229352f7517ef88fde3365f93f4ad6"
+        },
+        "date": 1757770159584,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27065454,
+            "range": "± 150000",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233573573,
+            "range": "± 722141",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15419108,
+            "range": "± 203008",
             "unit": "ns/iter"
           }
         ]
