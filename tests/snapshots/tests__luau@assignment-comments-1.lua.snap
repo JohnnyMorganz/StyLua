@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/assignment-comments-1.lua
+---
+local Dictionary: { [string]: number } -- comment
+	= {
+	["A"] = 1,
+	["B"] = 2,
+	["C"] = c,
+}
