@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757767242710,
+  "lastUpdate": 1757768440599,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14531,6 +14531,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15453272,
             "range": "± 247296",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c185fc1cd1e49c0491cf9b4e9203eb746c396635",
+          "message": "Check type declaration size when hanging at equal token due to comment (#1026)\n\n* Add test case\n\n* Check if formatted type declaration fits budget after hanging at equal token\n\n* Update snapshot\n\n* Update changelog",
+          "timestamp": "2025-09-13T12:58:35Z",
+          "tree_id": "05fd4e9f9bfe9aabdb14df5a2d5a8b2d4446fece",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c185fc1cd1e49c0491cf9b4e9203eb746c396635"
+        },
+        "date": 1757768439781,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27174695,
+            "range": "± 268074",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234562386,
+            "range": "± 976342",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15466786,
+            "range": "± 73441",
             "unit": "ns/iter"
           }
         ]
