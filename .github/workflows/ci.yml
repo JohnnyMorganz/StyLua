@@ -100,6 +100,40 @@ jobs:
           chmod u+x ./wasm/build-wasm.sh
           ./wasm/build-wasm.sh
 
+  test_docker_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+        id: buildx
+        with:
+          install: true
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        env:
+          DOCKER_METADATA_PR_HEAD_SHA: "true"
+        with:
+          images: johnnymorganz/stylua
+          tags: |
+            type=sha
+
+      - uses: docker/build-push-action@v5
+        with:
+          load: true
+          context: .
+          file: Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha
+
+      - name: Test
+        run: |
+          docker run --rm ${{ steps.meta.outputs.tags }}
+
   lint:
     runs-on: ubuntu-latest
     steps:
