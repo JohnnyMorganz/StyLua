@@ -1,0 +1,20 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/hang-binop-comments-3.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/996
+
+local function f()
+	local a = "ab"
+	a = a:gsub(
+		"a" -- "
+			.. "b",
+		function()
+			return "c"
+		end
+	)
+	print(a)
+end
+
+f()
