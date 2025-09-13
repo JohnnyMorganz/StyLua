@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757766086074,
+  "lastUpdate": 1757767242710,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14489,6 +14489,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15876372,
             "range": "± 256637",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2cf31d7001f0a9bf55aac6f25244d6f7fb37349c",
+          "message": "Handle comments after type specifiers in local assignments (#1024)\n\n* Add test case\n\n* Handle comments after a type specifier in a local assignment\n\n* Update snapshots\n\n* Update changelog",
+          "timestamp": "2025-09-13T12:38:48Z",
+          "tree_id": "cdedb02855c46b38daf2043f9603f020c0b3d5e0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2cf31d7001f0a9bf55aac6f25244d6f7fb37349c"
+        },
+        "date": 1757767241438,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27386272,
+            "range": "± 556120",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232139107,
+            "range": "± 2562174",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15453272,
+            "range": "± 247296",
             "unit": "ns/iter"
           }
         ]
