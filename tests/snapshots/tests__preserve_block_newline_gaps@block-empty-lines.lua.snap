@@ -1,0 +1,29 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents,\n        Config {\n            preserve_block_newline_gaps: PreserveBlockNewlineGaps::Always,\n            ..Config::default()\n        }, None, OutputVerification::None).unwrap()"
+input_file: tests/inputs-preserve-block-newline-gaps/block-empty-lines.lua
+---
+function foo()
+
+	local x = 1
+
+	return true
+
+end
+
+function bar()
+
+	return
+
+end
+
+do
+
+	-- comment
+	local x = 1
+
+	local foo = bar
+
+	-- comment
+
+end

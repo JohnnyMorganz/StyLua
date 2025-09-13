@@ -535,7 +535,7 @@ fn check_stmt_requires_semicolon(
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let mut ctx = *ctx;
     let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
-    let mut found_first_stmt = false;
+    let mut remove_next_stmt_leading_newlines = !ctx.should_preserve_leading_block_newline_gaps();
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
 
     while let Some((stmt, semi)) = stmt_iterator.next() {
@@ -544,12 +544,12 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
         let shape = shape.reset();
         let mut stmt = format_stmt(&ctx, stmt, shape);
 
-        // If this is the first stmt, then remove any leading newlines
-        if !found_first_stmt {
+        // If this is the first stmt, and leading newlines should be removed, then remove them
+        if remove_next_stmt_leading_newlines {
             if let FormatNode::Normal = ctx.should_format_node(&stmt) {
                 stmt = stmt_remove_leading_newlines(stmt);
             }
-            found_first_stmt = true;
+            remove_next_stmt_leading_newlines = false;
         }
 
         // If we have a semicolon, we need to push all the trailing trivia from the statement
@@ -611,8 +611,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
 
             let shape = shape.reset();
             let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
-            // If this is the first stmt, then remove any leading newlines
-            if !found_first_stmt && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal)
+            // If this is the first stmt, and leading newlines should be removed, then remove them
+            if remove_next_stmt_leading_newlines
+                && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal)
             {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
             }
