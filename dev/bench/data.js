@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754830286127,
+  "lastUpdate": 1757762222031,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14153,6 +14153,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15203375,
             "range": "± 39109",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "63328889+Sainan@users.noreply.github.com",
+            "name": "Sainan",
+            "username": "Sainan"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e6a12510b1bab5a2cfc64a11dd71ef324b96b5d8",
+          "message": "Fix goto not being recognised for LuaJIT (#998)\n\n* Fix goto not being recognised for LuaJIT\n\n* Add test\n\n* Update changelog",
+          "timestamp": "2025-09-13T13:15:11+02:00",
+          "tree_id": "118d7bc4eae0beed0efb0dcc484d3a694b2dd7cc",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e6a12510b1bab5a2cfc64a11dd71ef324b96b5d8"
+        },
+        "date": 1757762221410,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26539978,
+            "range": "± 282569",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231564244,
+            "range": "± 2585538",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15420958,
+            "range": "± 121698",
             "unit": "ns/iter"
           }
         ]
