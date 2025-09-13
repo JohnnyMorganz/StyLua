@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757763694372,
+  "lastUpdate": 1757764507263,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14279,6 +14279,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15504128,
             "range": "± 322899",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "inoiown@gmail.com",
+            "name": "InoUno",
+            "username": "InoUno"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0617defe52e57300eda70b74b44648151cefb086",
+          "message": "Add option to preserve newline gaps for blocks (#857)\n\n* Add option to preserve newline gaps for blocks\n\n* Update changelog\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-09-13T13:53:14+02:00",
+          "tree_id": "6716c913943ecea8a1da2918ba20db7cea19e35f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0617defe52e57300eda70b74b44648151cefb086"
+        },
+        "date": 1757764506669,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27201172,
+            "range": "± 424413",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232886059,
+            "range": "± 2719568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15411809,
+            "range": "± 358279",
             "unit": "ns/iter"
           }
         ]
