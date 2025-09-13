@@ -9,6 +9,7 @@ use wasm_bindgen::prelude::*;
 
 #[macro_use]
 mod context;
+pub mod config_resolver;
 #[cfg(feature = "editorconfig")]
 pub mod editorconfig;
 mod formatters;
@@ -375,6 +376,9 @@ pub enum Error {
     /// The input AST has a parsing error.
     #[error("error parsing: {}", print_full_moon_errors(.0))]
     ParseError(Vec<full_moon::Error>),
+    /// Resolving the configuration failed.
+    #[error("Config resolution error: {0}")]
+    ConfigResolutionError(String),
     /// The output AST after formatting generated a parse error. This is a definite error.
     #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues: {}", print_full_moon_errors(.0))]
     VerificationAstError(Vec<full_moon::Error>),

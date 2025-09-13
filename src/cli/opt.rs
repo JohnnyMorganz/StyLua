@@ -1,8 +1,8 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
 use stylua_lib::{
-    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion, QuoteStyle,
-    SpaceAfterFunctionNames,
+    config_resolver::CliConfig, CallParenType, CollapseSimpleStatement, IndentType, LineEndings,
+    LuaVersion, QuoteStyle, SpaceAfterFunctionNames,
 };
 
 lazy_static::lazy_static! {
@@ -108,6 +108,32 @@ pub struct Opt {
     /// Respect .styluaignore and glob matching for file paths provided directly to the tool
     #[structopt(long)]
     pub respect_ignores: bool,
+}
+
+impl From<Opt> for CliConfig {
+    fn from(value: Opt) -> Self {
+        CliConfig {
+            forced_config_path: value.config_path,
+            stdin_filepath: value.stdin_filepath,
+            search_parent_directories: value.search_parent_directories,
+            #[cfg(feature = "editorconfig")]
+            no_editorconfig: value.no_editorconfig,
+
+            syntax: value.format_opts.syntax.map(Into::into),
+            column_width: value.format_opts.column_width,
+            line_endings: value.format_opts.line_endings.map(Into::into),
+            indent_type: value.format_opts.indent_type.map(Into::into),
+            indent_width: value.format_opts.indent_width,
+            quote_style: value.format_opts.quote_style.map(Into::into),
+            call_parentheses: value.format_opts.call_parentheses.map(Into::into),
+            collapse_simple_statement: value.format_opts.collapse_simple_statement.map(Into::into),
+            sort_requires: value.format_opts.sort_requires,
+            space_after_function_names: value
+                .format_opts
+                .space_after_function_names
+                .map(Into::into),
+        }
+    }
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]

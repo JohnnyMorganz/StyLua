@@ -7,18 +7,15 @@ use serde_json::json;
 use std::collections::HashSet;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
 use threadpool::ThreadPool;
 
-use stylua_lib::{format_code, Config, OutputVerification, Range};
+use stylua_lib::{config_resolver, format_code, Config, OutputVerification, Range};
 
-use crate::config::find_ignore_file_path;
-
-mod config;
 mod opt;
 mod output_diff;
 
@@ -204,6 +201,19 @@ fn format_string(
     }
 }
 
+fn find_ignore_file_path(mut directory: PathBuf, recursive: bool) -> Option<PathBuf> {
+    debug!("config: looking for ignore file in {}", directory.display());
+    let file_path = directory.join(".styluaignore");
+    if file_path.is_file() {
+        debug!("config: resolved ignore file at {}", file_path.display());
+        Some(file_path)
+    } else if recursive && directory.pop() {
+        find_ignore_file_path(directory, recursive)
+    } else {
+        None
+    }
+}
+
 fn get_ignore(
     directory: &Path,
     search_parent_directories: bool,
@@ -281,7 +291,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
 
     // Load the configuration
     let opt_for_config_resolver = opt.clone();
-    let mut config_resolver = config::ConfigResolver::new(&opt_for_config_resolver)?;
+    let config_resolver = config_resolver::ConfigResolver::new(opt_for_config_resolver.into())?;
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
