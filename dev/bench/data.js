@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757764507263,
+  "lastUpdate": 1757765305311,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14321,6 +14321,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15411809,
             "range": "± 358279",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "49c5ede200e94ce562d2c28b5620d8d7b09cc5ae",
+          "message": "Check for if expression ending with identifier during ambiguity check for semicolons (#1023)\n\n* Add test case\n\n* Handle if expression when checking if expression ends with identifier\n\n* Update snapshot\n\n* Update changelog",
+          "timestamp": "2025-09-13T12:06:26Z",
+          "tree_id": "7dd73f7a525f25a3f65892702ff1dbc4f45305ea",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/49c5ede200e94ce562d2c28b5620d8d7b09cc5ae"
+        },
+        "date": 1757765304497,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27697566,
+            "range": "± 938242",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234338766,
+            "range": "± 2162531",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16148125,
+            "range": "± 555223",
             "unit": "ns/iter"
           }
         ]
