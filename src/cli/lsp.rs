@@ -4,8 +4,9 @@ use lsp_server::{Connection, ErrorCode, Message, Response};
 use lsp_textdocument::{FullTextDocument, TextDocuments};
 use lsp_types::{
     request::{Formatting, RangeFormatting, Request},
-    DocumentFormattingParams, DocumentRangeFormattingParams, OneOf, Position, Range,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, Uri,
+    DocumentFormattingParams, DocumentRangeFormattingParams, InitializeResult, OneOf, Position,
+    Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextEdit, Uri,
 };
 use stylua_lib::{format_code, OutputVerification};
 
@@ -125,14 +126,22 @@ fn handle_request(
 }
 
 fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> anyhow::Result<()> {
-    let capabilities = ServerCapabilities {
-        document_formatting_provider: Some(OneOf::Left(true)),
-        text_document_sync: Some(TextDocumentSyncCapability::Kind(
-            TextDocumentSyncKind::INCREMENTAL,
-        )),
-        ..Default::default()
+    let initialize_result = InitializeResult {
+        capabilities: ServerCapabilities {
+            document_formatting_provider: Some(OneOf::Left(true)),
+            text_document_sync: Some(TextDocumentSyncCapability::Kind(
+                TextDocumentSyncKind::INCREMENTAL,
+            )),
+            ..Default::default()
+        },
+        server_info: Some(ServerInfo {
+            name: "stylua".to_string(),
+            version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        }),
     };
-    connection.initialize(serde_json::to_value(capabilities)?)?;
+
+    let (id, _) = connection.initialize_start()?;
+    connection.initialize_finish(id, serde_json::to_value(initialize_result)?)?;
 
     let mut documents = TextDocuments::new();
     for msg in &connection.receiver {
@@ -184,7 +193,9 @@ mod tests {
         FormattingOptions, InitializeParams, Position, Range, TextDocumentIdentifier,
         TextDocumentItem, TextEdit, Uri, WorkDoneProgressParams,
     };
-    use lsp_types::{OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind};
+    use lsp_types::{
+        OneOf, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    };
     use serde::de::DeserializeOwned;
     use serde_json::to_value;
 
@@ -235,7 +246,12 @@ mod tests {
                             TextDocumentSyncKind::INCREMENTAL,
                         )),
                         ..Default::default()
-                    }}) => {}
+                    },
+                    "serverInfo": Some(ServerInfo {
+                        name: "stylua".to_string(),
+                        version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                    }),
+                    }) => {}
             _ => panic!("assertion failed"),
         }
     }
