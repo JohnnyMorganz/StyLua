@@ -1,4 +1,4 @@
-name: NPM Packaging
+name: Packaging Tests
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
       - main
 jobs:
   # Ensure it builds on all platforms
-  smoketest:
+  npm_smoketest:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -25,3 +25,14 @@ jobs:
       - name: Attempt run
         run: npx . --version
         working-directory: stylua-npm-bin
+  pip_smoketest:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v6
+      - name: Attempt install
+        run: pip install .
