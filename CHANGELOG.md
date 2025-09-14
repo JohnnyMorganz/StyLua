@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added option `block_newline_gaps` to determine whether newline gaps at the start / end of blocks should be preserved. Defaults to `Never`, which is the original behaviour. ([#857](https://github.com/JohnnyMorganz/StyLua/pull/857))
+- StyLua can now run in a language server mode. Start StyLua with `stylua --lsp` and connect with a language client. ([#936](https://github.com/JohnnyMorganz/StyLua/issues/936))
 
 ### Changed
 

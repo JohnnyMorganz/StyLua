@@ -108,6 +108,10 @@ pub struct Opt {
     /// Respect .styluaignore and glob matching for file paths provided directly to the tool
     #[structopt(long)]
     pub respect_ignores: bool,
+
+    /// Run Stylua as a language server (following LSP protocol)
+    #[structopt(long)]
+    pub lsp: bool,
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]

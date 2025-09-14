@@ -23,7 +23,7 @@ path = "src/cli/main.rs"
 bench = false
 
 [features]
-default = ["editorconfig", "wasm-bindgen"]
+default = ["editorconfig", "wasm-bindgen", "lsp"]
 serialize = []
 fromstr = ["strum"]
 luau = ["full_moon/roblox"]
@@ -33,6 +33,7 @@ lua54 = ["lua53", "full_moon/lua54"]
 luajit = ["full_moon/luajit"]
 cfxlua = ["lua54", "full_moon/cfxlua"]
 editorconfig = ["ec4rs"]
+lsp = ["lsp-server", "lsp-types", "lsp-textdocument"]
 
 [dependencies]
 anyhow = "1.0.75"
@@ -56,6 +57,9 @@ strum = { version = "0.25.0", features = ["derive"], optional = true }
 thiserror = "1.0.49"
 threadpool = "1.8.1"
 toml = "0.8.1"
+lsp-server = { version = "0.7", optional = true }
+lsp-types = { version = "0.97", optional = true }
+lsp-textdocument = { version = "0.4.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.81", optional = true }

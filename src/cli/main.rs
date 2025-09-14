@@ -19,6 +19,8 @@ use stylua_lib::{format_code, Config, OutputVerification, Range};
 use crate::config::find_ignore_file_path;
 
 mod config;
+#[cfg(feature = "lsp")]
+mod lsp;
 mod opt;
 mod output_diff;
 
@@ -264,6 +266,18 @@ fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Resul
 
 fn format(opt: opt::Opt) -> Result<i32> {
     debug!("resolved options: {:#?}", opt);
+
+    if opt.lsp {
+        #[cfg(feature = "lsp")]
+        {
+            lsp::run(opt)?;
+            return Ok(0);
+        }
+        #[cfg(not(feature = "lsp"))]
+        {
+            bail!("attempted to run stylua in LSP mode, but this binary was not built with 'lsp' feature enabled")
+        }
+    }
 
     if opt.files.is_empty() {
         bail!("no files provided");
