@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757877486950,
+  "lastUpdate": 1757878170124,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14741,6 +14741,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15671304,
             "range": "± 336850",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "rizal.fadlullah@gmail.com",
+            "name": "izzalDev",
+            "username": "izzalDev"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a9152d92098e62c2f7e5b80230670c2dad6d8f0",
+          "message": "fix(release-gitter): correct Windows asset name for pip build (#1018)\n\n* Switch to extract-all for release-gitter and fix architecture mapping\n\n- Replaced `extract-files` with `extract-all = true` for automatic\n  extraction\n- Added `AMD64 = \"x86_64\"` mapping for release-gitter\n- Removed chmod command for Windows compatibility\n\n* fix(build): set StyLua binary executable on Unix via Python exec",
+          "timestamp": "2025-09-14T21:27:28+02:00",
+          "tree_id": "b2322697754645a277f542a15a77c241c5963af0",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/5a9152d92098e62c2f7e5b80230670c2dad6d8f0"
+        },
+        "date": 1757878169493,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26785175,
+            "range": "± 223934",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229820554,
+            "range": "± 858139",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15386244,
+            "range": "± 124245",
             "unit": "ns/iter"
           }
         ]
