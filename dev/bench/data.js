@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757770287716,
+  "lastUpdate": 1757866032720,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14657,6 +14657,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15930347,
             "range": "± 521103",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "marynczak.bartlomiej@gmail.com",
+            "name": "Bartłomiej Maryńczak",
+            "username": "PolyMeilex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "320739f499f1db4353a293a90fd24bae0beb5db1",
+          "message": "feat: Stylua LSP server (#970)\n\n* feat: Stylua LSP server\n\n* Reorganise, handle range formatting\n\n* Add integration tests\n\n* Update help text\n\n* Update changelog\n\n* Gate LSP behind feature (enabled by default)\n\n* Update readme\n\n* Fix flakiness of integration tests\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2025-09-14T16:05:12Z",
+          "tree_id": "4199ac19b4315ed0aa4375c019807d3b44e11945",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/320739f499f1db4353a293a90fd24bae0beb5db1"
+        },
+        "date": 1757866031500,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28406017,
+            "range": "± 563510",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230090787,
+            "range": "± 1423928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15527344,
+            "range": "± 148732",
             "unit": "ns/iter"
           }
         ]
