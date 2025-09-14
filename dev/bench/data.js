@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757878170124,
+  "lastUpdate": 1757878773671,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14783,6 +14783,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15386244,
             "range": "± 124245",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "e1601238a8467754371485244849646e84904548",
+          "message": "Include pip / uv installation steps in README\n\nAnd also update changelog for #1018",
+          "timestamp": "2025-09-14T21:36:42+02:00",
+          "tree_id": "e11f49af0ba8f2f7373351abc1b87098d33041e7",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e1601238a8467754371485244849646e84904548"
+        },
+        "date": 1757878772761,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27161337,
+            "range": "± 407005",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231036046,
+            "range": "± 1571722",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15339054,
+            "range": "± 150554",
             "unit": "ns/iter"
           }
         ]
