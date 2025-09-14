@@ -4,7 +4,7 @@
         "JohnnyMorganz <johnnymorganz@outlook.com>"
     ],
     "description": "A code formatter for Lua",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "license": "MPL-2.0",
     "readme": "README.md",
     "repository": {

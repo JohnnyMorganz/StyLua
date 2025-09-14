@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-09-14
+
 ### Added
 
 - Added option `block_newline_gaps` to determine whether newline gaps at the start / end of blocks should be preserved. Defaults to `Never`, which is the original behaviour. ([#857](https://github.com/JohnnyMorganz/StyLua/pull/857))
@@ -841,7 +843,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.1.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.2.0
 [2.1.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.1.0
 [2.0.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.2
 [2.0.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.1
