@@ -19,6 +19,7 @@ use stylua_lib::{format_code, Config, OutputVerification, Range};
 use crate::config::find_ignore_file_path;
 
 mod config;
+#[cfg(feature = "lsp")]
 mod lsp;
 mod opt;
 mod output_diff;
@@ -267,8 +268,15 @@ fn format(opt: opt::Opt) -> Result<i32> {
     debug!("resolved options: {:#?}", opt);
 
     if opt.lsp {
-        lsp::run(opt)?;
-        return Ok(0);
+        #[cfg(feature = "lsp")]
+        {
+            lsp::run(opt)?;
+            return Ok(0);
+        }
+        #[cfg(not(feature = "lsp"))]
+        {
+            bail!("attempted to run stylua in LSP mode, but this binary was not built with 'lsp' feature enabled")
+        }
     }
 
     if opt.files.is_empty() {

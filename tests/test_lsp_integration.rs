@@ -1,3 +1,4 @@
+#![cfg(feature = "lsp")]
 use std::str::FromStr;
 
 use assert_cmd::Command;
