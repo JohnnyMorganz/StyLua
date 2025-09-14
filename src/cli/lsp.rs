@@ -8,9 +8,86 @@ use lsp_types::{
     Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
     TextEdit, Uri,
 };
+use similar::{DiffOp, TextDiff};
 use stylua_lib::{format_code, OutputVerification};
 
 use crate::{config::ConfigResolver, opt};
+
+fn diffop_to_textedit(op: DiffOp, formatted_contents: &str) -> Option<TextEdit> {
+    match op {
+        DiffOp::Equal {
+            old_index: _,
+            new_index: _,
+            len: _,
+        } => None,
+        DiffOp::Delete {
+            old_index,
+            old_len,
+            new_index: _,
+        } => Some(TextEdit {
+            range: Range {
+                start: Position {
+                    line: old_index.try_into().expect("usize fits into u32"),
+                    character: 0,
+                },
+                end: Position {
+                    line: (old_index + old_len)
+                        .try_into()
+                        .expect("usize fits into u32"),
+                    character: 0,
+                },
+            },
+            new_text: String::new(),
+        }),
+        DiffOp::Insert {
+            old_index,
+            new_index,
+            new_len,
+        } => {
+            let insert_position = Position {
+                line: old_index.try_into().expect("usize fits into u32"),
+                character: 0,
+            };
+            Some(TextEdit {
+                range: Range {
+                    start: insert_position,
+                    end: insert_position,
+                },
+                new_text: formatted_contents
+                    .lines()
+                    .skip(new_index)
+                    .take(new_len)
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            })
+        }
+        DiffOp::Replace {
+            old_index,
+            old_len,
+            new_index,
+            new_len,
+        } => Some(TextEdit {
+            range: Range {
+                start: Position {
+                    line: old_index.try_into().expect("usize fits into u32"),
+                    character: 0,
+                },
+                end: Position {
+                    line: (old_index + old_len)
+                        .try_into()
+                        .expect("usize fits into u32"),
+                    character: 0,
+                },
+            },
+            new_text: formatted_contents
+                .lines()
+                .skip(new_index)
+                .take(new_len)
+                .collect::<Vec<_>>()
+                .join("\n"),
+        }),
+    }
+}
 
 fn handle_formatting(
     uri: &Uri,
@@ -30,18 +107,16 @@ fn handle_formatting(
 
     let formatted_contents = format_code(contents, config, range, OutputVerification::None).ok()?;
 
-    let last_line_idx = document.line_count().saturating_sub(1);
-    let last_line_offset = document.offset_at(Position::new(last_line_idx, 0));
-    let last_col = document.content_len() - last_line_offset;
-
-    // TODO: We can be smarter about this in the future, and update only the parts that changed (using output_diff)
-    Some(vec![TextEdit {
-        range: Range {
-            start: Position::new(0, 0),
-            end: Position::new(last_line_idx, last_col),
-        },
-        new_text: formatted_contents,
-    }])
+    let operations = TextDiff::from_lines(contents, &formatted_contents).grouped_ops(0);
+    let edits = operations
+        .into_iter()
+        .flat_map(|operations| {
+            operations
+                .into_iter()
+                .filter_map(|op| diffop_to_textedit(op, &formatted_contents))
+        })
+        .collect();
+    Some(edits)
 }
 
 fn handle_request(
