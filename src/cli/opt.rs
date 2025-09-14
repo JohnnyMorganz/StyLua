@@ -109,7 +109,7 @@ pub struct Opt {
     #[structopt(long)]
     pub respect_ignores: bool,
 
-    /// Run Stylua LSP server
+    /// Run Stylua as a language server (following LSP protocol)
     #[structopt(long)]
     pub lsp: bool,
 }
