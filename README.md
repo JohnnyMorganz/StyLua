@@ -95,6 +95,15 @@ StyLua is available on macOS via the [Homebrew](https://brew.sh) package manager
 brew install stylua
 ```
 
+### pip / uv
+
+You can install StyLua using pip / uv, by passing in the git repository as the archive URL
+
+```sh
+pip install git+https://github.com/johnnymorganz/stylua
+uv tool install git+https://github.com/johnnymorganz/stylua
+```
+
 ### Other Installation Methods
 
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.stylua)

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed semicolon removed after a statement ending with an if-expression leading to ambiguous syntax when the next line begins with parentheses ([#1010](https://github.com/JohnnyMorganz/StyLua/issues/1010))
 - Luau: Fixed malformed formatting when there is a comment after a type specifier in a local assignment ([#995](https://github.com/JohnnyMorganz/StyLua/issues/995))
 - Luau: Fixed long type union formatted onto a single line if there is a comment in between the equals sign and the type union in a type declaration ([#1007](https://github.com/JohnnyMorganz/StyLua/issues/1007))
+- Fixed StyLua installation via pip / uv for Windows ([#1018](https://github.com/JohnnyMorganz/StyLua/pull/1018))
 
 ## [2.1.0] - 2025-04-21
 
