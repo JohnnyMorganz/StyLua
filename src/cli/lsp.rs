@@ -174,6 +174,7 @@ fn handle_request(
 fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> anyhow::Result<()> {
     let initialize_result = InitializeResult {
         capabilities: ServerCapabilities {
+            document_range_formatting_provider: Some(OneOf::Left(true)),
             document_formatting_provider: Some(OneOf::Left(true)),
             text_document_sync: Some(TextDocumentSyncCapability::Kind(
                 TextDocumentSyncKind::INCREMENTAL,
@@ -289,6 +290,7 @@ mod tests {
                 && result
                     == serde_json::json!({
                     "capabilities": ServerCapabilities {
+                        document_range_formatting_provider: Some(OneOf::Left(true)),
                         document_formatting_provider: Some(OneOf::Left(true)),
                         text_document_sync: Some(TextDocumentSyncCapability::Kind(
                             TextDocumentSyncKind::INCREMENTAL,
