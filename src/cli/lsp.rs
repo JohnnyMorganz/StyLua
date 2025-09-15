@@ -182,7 +182,7 @@ fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> an
             ..Default::default()
         },
         server_info: Some(ServerInfo {
-            name: "stylua".to_string(),
+            name: env!("CARGO_PKG_NAME").to_string(),
             version: Some(env!("CARGO_PKG_VERSION").to_string()),
         }),
     };
@@ -298,7 +298,7 @@ mod tests {
                         ..Default::default()
                     },
                     "serverInfo": Some(ServerInfo {
-                        name: "stylua".to_string(),
+                        name: env!("CARGO_PKG_NAME").to_string(),
                         version: Some(env!("CARGO_PKG_VERSION").to_string()),
                     }),
                     }) => {}
