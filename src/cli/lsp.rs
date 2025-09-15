@@ -348,7 +348,7 @@ mod tests {
         assert!(client.receiver.is_empty());
     }
 
-    fn with_edits(text: &str, mut edits: Vec<TextEdit>) -> String {
+    fn apply_text_edits_to(text: &str, mut edits: Vec<TextEdit>) -> String {
         edits.sort_by(|a, b| match a.range.start.line.cmp(&b.range.start.line) {
             Ordering::Equal => a
                 .range
@@ -424,7 +424,28 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        let formatted = with_edits(contents, edits);
+        assert_eq!(
+            edits,
+            [
+                TextEdit {
+                    range: Range::new(Position::new(0, 6), Position::new(0, 7)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(0, 8), Position::new(0, 9)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(0, 12), Position::new(0, 13)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(0, 14), Position::new(0, 14)),
+                    new_text: "\n".to_string()
+                },
+            ]
+        );
+        let formatted = apply_text_edits_to(contents, edits);
         assert_eq!(formatted, "local x = 1\n");
 
         expect_server_shutdown(&client.receiver, 3);
@@ -479,7 +500,36 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        let formatted = with_edits(contents, edits);
+        assert_eq!(
+            edits,
+            [
+                TextEdit {
+                    range: Range::new(Position::new(1, 6), Position::new(1, 9)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 10), Position::new(1, 11)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 12), Position::new(1, 13)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 14), Position::new(1, 15)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 16), Position::new(1, 17)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 18), Position::new(1, 18)),
+                    new_text: "\n".to_string()
+                },
+            ]
+        );
+        let formatted = apply_text_edits_to(contents, edits);
         assert_eq!(formatted, "local  x  =  1\nlocal y = 2\n");
 
         expect_server_shutdown(&client.receiver, 3);
