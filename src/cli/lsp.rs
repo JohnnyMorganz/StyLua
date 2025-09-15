@@ -4,16 +4,27 @@ use lsp_server::{Connection, ErrorCode, Message, Response};
 use lsp_textdocument::{FullTextDocument, TextDocuments};
 use lsp_types::{
     request::{Formatting, RangeFormatting, Request},
-    DocumentFormattingParams, DocumentRangeFormattingParams, InitializeResult, OneOf, Position,
-    Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextEdit, Uri,
+    DocumentFormattingParams, DocumentRangeFormattingParams, InitializeResult, OneOf, Range,
+    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
+    Uri,
 };
 use similar::{DiffOp, TextDiff};
 use stylua_lib::{format_code, OutputVerification};
 
 use crate::{config::ConfigResolver, opt};
 
-fn diffop_to_textedit(op: DiffOp, formatted_contents: &str) -> Option<TextEdit> {
+fn diffop_to_textedit(
+    op: DiffOp,
+    document: &FullTextDocument,
+    formatted_contents: &str,
+) -> Option<TextEdit> {
+    let range = |start: usize, len: usize| Range {
+        start: document.position_at(start.try_into().expect("usize fits into u32")),
+        end: document.position_at((start + len).try_into().expect("usize fits into u32")),
+    };
+
+    let lookup = |start: usize, len: usize| formatted_contents[start..start + len].to_string();
+
     match op {
         DiffOp::Equal {
             old_index: _,
@@ -25,66 +36,25 @@ fn diffop_to_textedit(op: DiffOp, formatted_contents: &str) -> Option<TextEdit> 
             old_len,
             new_index: _,
         } => Some(TextEdit {
-            range: Range {
-                start: Position {
-                    line: old_index.try_into().expect("usize fits into u32"),
-                    character: 0,
-                },
-                end: Position {
-                    line: (old_index + old_len)
-                        .try_into()
-                        .expect("usize fits into u32"),
-                    character: 0,
-                },
-            },
+            range: range(old_index, old_len),
             new_text: String::new(),
         }),
         DiffOp::Insert {
             old_index,
             new_index,
             new_len,
-        } => {
-            let insert_position = Position {
-                line: old_index.try_into().expect("usize fits into u32"),
-                character: 0,
-            };
-            Some(TextEdit {
-                range: Range {
-                    start: insert_position,
-                    end: insert_position,
-                },
-                new_text: formatted_contents
-                    .lines()
-                    .skip(new_index)
-                    .take(new_len)
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            })
-        }
+        } => Some(TextEdit {
+            range: range(old_index, 0),
+            new_text: lookup(new_index, new_len),
+        }),
         DiffOp::Replace {
             old_index,
             old_len,
             new_index,
             new_len,
         } => Some(TextEdit {
-            range: Range {
-                start: Position {
-                    line: old_index.try_into().expect("usize fits into u32"),
-                    character: 0,
-                },
-                end: Position {
-                    line: (old_index + old_len)
-                        .try_into()
-                        .expect("usize fits into u32"),
-                    character: 0,
-                },
-            },
-            new_text: formatted_contents
-                .lines()
-                .skip(new_index)
-                .take(new_len)
-                .collect::<Vec<_>>()
-                .join("\n"),
+            range: range(old_index, old_len),
+            new_text: lookup(new_index, new_len),
         }),
     }
 }
@@ -107,13 +77,14 @@ fn handle_formatting(
 
     let formatted_contents = format_code(contents, config, range, OutputVerification::None).ok()?;
 
-    let operations = TextDiff::from_lines(contents, &formatted_contents).grouped_ops(0);
+    let operations =
+        TextDiff::from_chars(contents.as_bytes(), formatted_contents.as_bytes()).grouped_ops(0);
     let edits = operations
         .into_iter()
         .flat_map(|operations| {
             operations
                 .into_iter()
-                .filter_map(|op| diffop_to_textedit(op, &formatted_contents))
+                .filter_map(|op| diffop_to_textedit(op, document, &formatted_contents))
         })
         .collect();
     Some(edits)
@@ -254,6 +225,8 @@ pub fn run(opt: opt::Opt) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::Ordering;
+    use std::convert::TryInto;
     use std::str::FromStr;
 
     use clap::Parser;
@@ -373,6 +346,35 @@ mod tests {
         assert!(client.receiver.is_empty());
     }
 
+    fn with_edits(text: &str, mut edits: Vec<TextEdit>) -> String {
+        edits.sort_by(|a, b| match a.range.start.line.cmp(&b.range.start.line) {
+            Ordering::Equal => a
+                .range
+                .start
+                .character
+                .cmp(&b.range.start.character)
+                .reverse(),
+            order => order.reverse(),
+        });
+        let mut text = text.to_string();
+        for edit in edits {
+            let start = text
+                .lines()
+                .take(edit.range.start.line.try_into().unwrap())
+                .map(|line| line.len() + '\n'.len_utf8())
+                .sum::<usize>()
+                + <u32 as TryInto<usize>>::try_into(edit.range.start.character).unwrap();
+            let end = text
+                .lines()
+                .take(edit.range.end.line.try_into().unwrap())
+                .map(|line| line.len() + '\n'.len_utf8())
+                .sum::<usize>()
+                + <u32 as TryInto<usize>>::try_into(edit.range.end.character).unwrap();
+            text.replace_range(start..end, &edit.new_text);
+        }
+        text
+    }
+
     #[test]
     fn test_lsp_document_formatting() {
         let uri = Uri::from_str("file:///home/documents/file.luau").unwrap();
@@ -420,17 +422,8 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        assert_eq!(edits.len(), 1);
-        assert_eq!(
-            edits[0],
-            TextEdit {
-                range: Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(0, 14),
-                },
-                new_text: "local x = 1\n".to_string(),
-            }
-        );
+        let formatted = with_edits(contents, edits);
+        assert_eq!(formatted, "local x = 1\n");
 
         expect_server_shutdown(&client.receiver, 3);
         assert!(client.receiver.is_empty());
@@ -484,17 +477,8 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        assert_eq!(edits.len(), 1);
-        assert_eq!(
-            edits[0],
-            TextEdit {
-                range: Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(1, 18),
-                },
-                new_text: "local  x  =  1\nlocal y = 2\n".to_string(),
-            }
-        );
+        let formatted = with_edits(contents, edits);
+        assert_eq!(formatted, "local  x  =  1\nlocal y = 2\n");
 
         expect_server_shutdown(&client.receiver, 3);
         assert!(client.receiver.is_empty());
