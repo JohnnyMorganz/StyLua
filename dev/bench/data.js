@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757878989564,
+  "lastUpdate": 1758378785322,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14867,6 +14867,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15647534,
             "range": "± 101776",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3e86a9dd6b5c027724a5be0722bc42dfb0908104",
+          "message": "Preserve comments after excess parentheses are removed when hanging expression (#1034)\n\n* Add test case\n\n* Preserve comments when removing parentheses in hanging expression\n\n* Update snapshot\n\n* Update changelog",
+          "timestamp": "2025-09-20T16:30:55+02:00",
+          "tree_id": "c7b6a711d5cd4e861b9622bb01e91c56750542ee",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/3e86a9dd6b5c027724a5be0722bc42dfb0908104"
+        },
+        "date": 1758378784388,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29296880,
+            "range": "± 331486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233890283,
+            "range": "± 2489584",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15560665,
+            "range": "± 96118",
             "unit": "ns/iter"
           }
         ]
