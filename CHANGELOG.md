@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed comments lost from expression after parentheses are removed when we are attempting to "hang" the expression. ([#1033](https://github.com/JohnnyMorganz/StyLua/issues/1033))
+
 ## [2.2.0] - 2025-09-14
 
 ### Added
