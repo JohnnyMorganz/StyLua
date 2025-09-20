@@ -4,12 +4,13 @@ use lsp_server::{Connection, ErrorCode, Message, Response};
 use lsp_textdocument::{FullTextDocument, TextDocuments};
 use lsp_types::{
     request::{Formatting, RangeFormatting, Request},
-    DocumentFormattingParams, DocumentRangeFormattingParams, InitializeResult, OneOf, Range,
-    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
-    Uri,
+    DocumentFormattingParams, DocumentRangeFormattingParams, FormattingOptions, InitializeParams,
+    InitializeResult, OneOf, Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextEdit, Uri,
 };
+use serde::Deserialize;
 use similar::{DiffOp, TextDiff};
-use stylua_lib::{format_code, OutputVerification};
+use stylua_lib::{format_code, IndentType, OutputVerification};
 
 use crate::{config::ConfigResolver, opt};
 
@@ -64,6 +65,7 @@ fn handle_formatting(
     document: &FullTextDocument,
     range: Option<stylua_lib::Range>,
     config_resolver: &mut ConfigResolver,
+    formatting_options: Option<&FormattingOptions>,
 ) -> Option<Vec<TextEdit>> {
     if document.language_id() != "lua" && document.language_id() != "luau" {
         return None;
@@ -71,9 +73,21 @@ fn handle_formatting(
 
     let contents = document.get_content(None);
 
-    let config = config_resolver
+    let mut config = config_resolver
         .load_configuration(uri.path().as_str().as_ref())
         .unwrap_or_default();
+
+    if let Some(formatting_options) = formatting_options {
+        config.indent_width = formatting_options
+            .tab_size
+            .try_into()
+            .expect("u32 fits into usize");
+        config.indent_type = if formatting_options.insert_spaces {
+            IndentType::Spaces
+        } else {
+            IndentType::Tabs
+        };
+    }
 
     let formatted_contents = format_code(contents, config, range, OutputVerification::None).ok()?;
 
@@ -94,6 +108,7 @@ fn handle_request(
     request: lsp_server::Request,
     documents: &TextDocuments,
     config_resolver: &mut ConfigResolver,
+    respect_editor_formatting_options: bool,
 ) -> Response {
     match request.method.as_str() {
         Formatting::METHOD => {
@@ -115,6 +130,7 @@ fn handle_request(
                         document,
                         None,
                         config_resolver,
+                        respect_editor_formatting_options.then_some(&params.options),
                     ) {
                         Some(edits) => Response::new_ok(request.id, edits),
                         None => Response::new_ok(request.id, serde_json::Value::Null),
@@ -151,6 +167,7 @@ fn handle_request(
                         document,
                         Some(range),
                         config_resolver,
+                        respect_editor_formatting_options.then_some(&params.options),
                     ) {
                         Some(edits) => Response::new_ok(request.id, edits),
                         None => Response::new_ok(request.id, serde_json::Value::Null),
@@ -171,6 +188,12 @@ fn handle_request(
     }
 }
 
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct InitializationOptions {
+    respect_editor_formatting_options: Option<bool>,
+}
+
 fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> anyhow::Result<()> {
     let initialize_result = InitializeResult {
         capabilities: ServerCapabilities {
@@ -187,7 +210,15 @@ fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> an
         }),
     };
 
-    let (id, _) = connection.initialize_start()?;
+    let (id, initialize_params) = connection.initialize_start()?;
+
+    let initialize_params = serde_json::from_value::<InitializeParams>(initialize_params)?;
+    let respect_editor_formatting_options = initialize_params
+        .initialization_options
+        .and_then(|opt| serde_json::from_value::<InitializationOptions>(opt).ok())
+        .and_then(|opt| opt.respect_editor_formatting_options)
+        .unwrap_or_default();
+
     connection.initialize_finish(id, serde_json::to_value(initialize_result)?)?;
 
     let mut documents = TextDocuments::new();
@@ -198,7 +229,12 @@ fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> an
                     break;
                 }
 
-                let response = handle_request(req, &documents, config_resolver);
+                let response = handle_request(
+                    req,
+                    &documents,
+                    config_resolver,
+                    respect_editor_formatting_options,
+                );
                 connection.sender.send(Message::Response(response))?
             }
             Message::Response(_) => {}

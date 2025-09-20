@@ -253,6 +253,8 @@ StyLua can run as a language server, connecting with language clients that follo
 It will then respond to `textDocument/formatting` and `textDocument/rangeFormatting` requests.
 Formatting is only performed on files with a `lua` or `luau` language ID.
 
+If the initialization option `respect_editor_formatting_options` is set to `true`, the formatting handler will override the configurations `indent-width` and `indent-type` with values from [FormattingOptions](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#formattingOptions).
+
 You can start the language server by running:
 
 ```sh
