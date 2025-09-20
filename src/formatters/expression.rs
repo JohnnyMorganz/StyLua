@@ -253,29 +253,8 @@ fn format_expression_internal(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !keep_parentheses {
-                // Get the leading and trailing comments from contained span and append them onto the expression
-                let (start_parens, end_parens) = contained.tokens();
-                let leading_comments = start_parens
-                    .leading_trivia()
-                    .filter(|token| trivia_util::trivia_is_comment(token))
-                    .flat_map(|x| {
-                        vec![
-                            create_indent_trivia(ctx, shape),
-                            x.to_owned(),
-                            create_newline_trivia(ctx),
-                        ]
-                    })
-                    // .chain(std::iter::once(create_indent_trivia(ctx, shape)))
-                    .collect();
-
-                let trailing_comments = end_parens
-                    .trailing_trivia()
-                    .filter(|token| trivia_util::trivia_is_comment(token))
-                    .flat_map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .collect();
+                let (leading_comments, trailing_comments) =
+                    contained_span_comments(ctx, contained, shape);
 
                 format_expression(ctx, expression, shape)
                     .update_leading_trivia(FormatTriviaType::Append(leading_comments))
@@ -356,6 +335,37 @@ fn format_expression_internal(
         }
         other => panic!("unknown node {:?}", other),
     }
+}
+
+fn contained_span_comments(
+    ctx: &Context,
+    contained_span: &ContainedSpan,
+    shape: Shape,
+) -> (Vec<Token>, Vec<Token>) {
+    // Get the leading and trailing comments from contained span and append them onto the expression
+    let (start_parens, end_parens) = contained_span.tokens();
+    let leading_comments = start_parens
+        .leading_trivia()
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .flat_map(|x| {
+            vec![
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+                create_newline_trivia(ctx),
+            ]
+        })
+        // .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    let trailing_comments = end_parens
+        .trailing_trivia()
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+    (leading_comments, trailing_comments)
 }
 
 /// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
@@ -1352,6 +1362,8 @@ fn format_hanging_expression_(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !keep_parentheses {
+                let (leading_comments, trailing_comments) =
+                    contained_span_comments(ctx, contained, shape);
                 format_hanging_expression_(
                     ctx,
                     expression,
@@ -1359,6 +1371,8 @@ fn format_hanging_expression_(
                     expression_context,
                     lhs_range,
                 )
+                .update_leading_trivia(FormatTriviaType::Append(leading_comments))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 let contained = format_contained_span(ctx, contained, lhs_shape);
 
