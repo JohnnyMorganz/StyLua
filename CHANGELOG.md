@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The language server has an initialization option called `respect_editor_formatting_options`.
+  If it's true, the formatting handler will override the configurations `indent-width` and `indent-type` with values from [FormattingOptions](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#formattingOptions)
+
+### Changed
+
+- In language server mode, compute the difference between the unformatted and formatted document and only respond with the changes.
+- Include `serverInfo` in the language server's [`InitializeResponse`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeResult)
+
 ### Fixed
 
 - Fixed comments lost from expression after parentheses are removed when we are attempting to "hang" the expression. ([#1033](https://github.com/JohnnyMorganz/StyLua/issues/1033))
+- `document_range_formatting_provider` field missing from `ServerCapabilities`
 
 ## [2.2.0] - 2025-09-14
 

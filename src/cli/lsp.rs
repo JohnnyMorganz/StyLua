@@ -4,18 +4,68 @@ use lsp_server::{Connection, ErrorCode, Message, Response};
 use lsp_textdocument::{FullTextDocument, TextDocuments};
 use lsp_types::{
     request::{Formatting, RangeFormatting, Request},
-    DocumentFormattingParams, DocumentRangeFormattingParams, OneOf, Position, Range,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, Uri,
+    DocumentFormattingParams, DocumentRangeFormattingParams, FormattingOptions, InitializeParams,
+    InitializeResult, OneOf, Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextEdit, Uri,
 };
-use stylua_lib::{format_code, OutputVerification};
+use serde::Deserialize;
+use similar::{DiffOp, TextDiff};
+use stylua_lib::{format_code, IndentType, OutputVerification};
 
 use crate::{config::ConfigResolver, opt};
+
+fn diffop_to_textedit(
+    op: DiffOp,
+    document: &FullTextDocument,
+    formatted_contents: &str,
+) -> Option<TextEdit> {
+    let range = |start: usize, len: usize| Range {
+        start: document.position_at(start.try_into().expect("usize fits into u32")),
+        end: document.position_at((start + len).try_into().expect("usize fits into u32")),
+    };
+
+    let lookup = |start: usize, len: usize| formatted_contents[start..start + len].to_string();
+
+    match op {
+        DiffOp::Equal {
+            old_index: _,
+            new_index: _,
+            len: _,
+        } => None,
+        DiffOp::Delete {
+            old_index,
+            old_len,
+            new_index: _,
+        } => Some(TextEdit {
+            range: range(old_index, old_len),
+            new_text: String::new(),
+        }),
+        DiffOp::Insert {
+            old_index,
+            new_index,
+            new_len,
+        } => Some(TextEdit {
+            range: range(old_index, 0),
+            new_text: lookup(new_index, new_len),
+        }),
+        DiffOp::Replace {
+            old_index,
+            old_len,
+            new_index,
+            new_len,
+        } => Some(TextEdit {
+            range: range(old_index, old_len),
+            new_text: lookup(new_index, new_len),
+        }),
+    }
+}
 
 fn handle_formatting(
     uri: &Uri,
     document: &FullTextDocument,
     range: Option<stylua_lib::Range>,
     config_resolver: &mut ConfigResolver,
+    formatting_options: Option<&FormattingOptions>,
 ) -> Option<Vec<TextEdit>> {
     if document.language_id() != "lua" && document.language_id() != "luau" {
         return None;
@@ -23,30 +73,42 @@ fn handle_formatting(
 
     let contents = document.get_content(None);
 
-    let config = config_resolver
+    let mut config = config_resolver
         .load_configuration(uri.path().as_str().as_ref())
         .unwrap_or_default();
 
+    if let Some(formatting_options) = formatting_options {
+        config.indent_width = formatting_options
+            .tab_size
+            .try_into()
+            .expect("u32 fits into usize");
+        config.indent_type = if formatting_options.insert_spaces {
+            IndentType::Spaces
+        } else {
+            IndentType::Tabs
+        };
+    }
+
     let formatted_contents = format_code(contents, config, range, OutputVerification::None).ok()?;
 
-    let last_line_idx = document.line_count().saturating_sub(1);
-    let last_line_offset = document.offset_at(Position::new(last_line_idx, 0));
-    let last_col = document.content_len() - last_line_offset;
-
-    // TODO: We can be smarter about this in the future, and update only the parts that changed (using output_diff)
-    Some(vec![TextEdit {
-        range: Range {
-            start: Position::new(0, 0),
-            end: Position::new(last_line_idx, last_col),
-        },
-        new_text: formatted_contents,
-    }])
+    let operations =
+        TextDiff::from_chars(contents.as_bytes(), formatted_contents.as_bytes()).grouped_ops(0);
+    let edits = operations
+        .into_iter()
+        .flat_map(|operations| {
+            operations
+                .into_iter()
+                .filter_map(|op| diffop_to_textedit(op, document, &formatted_contents))
+        })
+        .collect();
+    Some(edits)
 }
 
 fn handle_request(
     request: lsp_server::Request,
     documents: &TextDocuments,
     config_resolver: &mut ConfigResolver,
+    respect_editor_formatting_options: bool,
 ) -> Response {
     match request.method.as_str() {
         Formatting::METHOD => {
@@ -68,6 +130,7 @@ fn handle_request(
                         document,
                         None,
                         config_resolver,
+                        respect_editor_formatting_options.then_some(&params.options),
                     ) {
                         Some(edits) => Response::new_ok(request.id, edits),
                         None => Response::new_ok(request.id, serde_json::Value::Null),
@@ -104,6 +167,7 @@ fn handle_request(
                         document,
                         Some(range),
                         config_resolver,
+                        respect_editor_formatting_options.then_some(&params.options),
                     ) {
                         Some(edits) => Response::new_ok(request.id, edits),
                         None => Response::new_ok(request.id, serde_json::Value::Null),
@@ -124,15 +188,38 @@ fn handle_request(
     }
 }
 
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct InitializationOptions {
+    respect_editor_formatting_options: Option<bool>,
+}
+
 fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> anyhow::Result<()> {
-    let capabilities = ServerCapabilities {
-        document_formatting_provider: Some(OneOf::Left(true)),
-        text_document_sync: Some(TextDocumentSyncCapability::Kind(
-            TextDocumentSyncKind::INCREMENTAL,
-        )),
-        ..Default::default()
+    let initialize_result = InitializeResult {
+        capabilities: ServerCapabilities {
+            document_range_formatting_provider: Some(OneOf::Left(true)),
+            document_formatting_provider: Some(OneOf::Left(true)),
+            text_document_sync: Some(TextDocumentSyncCapability::Kind(
+                TextDocumentSyncKind::INCREMENTAL,
+            )),
+            ..Default::default()
+        },
+        server_info: Some(ServerInfo {
+            name: env!("CARGO_PKG_NAME").to_string(),
+            version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        }),
     };
-    connection.initialize(serde_json::to_value(capabilities)?)?;
+
+    let (id, initialize_params) = connection.initialize_start()?;
+
+    let initialize_params = serde_json::from_value::<InitializeParams>(initialize_params)?;
+    let respect_editor_formatting_options = initialize_params
+        .initialization_options
+        .and_then(|opt| serde_json::from_value::<InitializationOptions>(opt).ok())
+        .and_then(|opt| opt.respect_editor_formatting_options)
+        .unwrap_or_default();
+
+    connection.initialize_finish(id, serde_json::to_value(initialize_result)?)?;
 
     let mut documents = TextDocuments::new();
     for msg in &connection.receiver {
@@ -142,7 +229,12 @@ fn main_loop(connection: Connection, config_resolver: &mut ConfigResolver) -> an
                     break;
                 }
 
-                let response = handle_request(req, &documents, config_resolver);
+                let response = handle_request(
+                    req,
+                    &documents,
+                    config_resolver,
+                    respect_editor_formatting_options,
+                );
                 connection.sender.send(Message::Response(response))?
             }
             Message::Response(_) => {}
@@ -170,6 +262,8 @@ pub fn run(opt: opt::Opt) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::Ordering;
+    use std::convert::TryInto;
     use std::str::FromStr;
 
     use clap::Parser;
@@ -184,7 +278,9 @@ mod tests {
         FormattingOptions, InitializeParams, Position, Range, TextDocumentIdentifier,
         TextDocumentItem, TextEdit, Uri, WorkDoneProgressParams,
     };
-    use lsp_types::{OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind};
+    use lsp_types::{
+        OneOf, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    };
     use serde::de::DeserializeOwned;
     use serde_json::to_value;
 
@@ -230,12 +326,18 @@ mod tests {
                 && result
                     == serde_json::json!({
                     "capabilities": ServerCapabilities {
+                        document_range_formatting_provider: Some(OneOf::Left(true)),
                         document_formatting_provider: Some(OneOf::Left(true)),
                         text_document_sync: Some(TextDocumentSyncCapability::Kind(
                             TextDocumentSyncKind::INCREMENTAL,
                         )),
                         ..Default::default()
-                    }}) => {}
+                    },
+                    "serverInfo": Some(ServerInfo {
+                        name: env!("CARGO_PKG_NAME").to_string(),
+                        version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                    }),
+                    }) => {}
             _ => panic!("assertion failed"),
         }
     }
@@ -280,6 +382,35 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
         expect_server_shutdown(&client.receiver, 2);
         assert!(client.receiver.is_empty());
+    }
+
+    fn apply_text_edits_to(text: &str, mut edits: Vec<TextEdit>) -> String {
+        edits.sort_by(|a, b| match a.range.start.line.cmp(&b.range.start.line) {
+            Ordering::Equal => a
+                .range
+                .start
+                .character
+                .cmp(&b.range.start.character)
+                .reverse(),
+            order => order.reverse(),
+        });
+        let mut text = text.to_string();
+        for edit in edits {
+            let start = text
+                .lines()
+                .take(edit.range.start.line.try_into().unwrap())
+                .map(|line| line.len() + '\n'.len_utf8())
+                .sum::<usize>()
+                + <u32 as TryInto<usize>>::try_into(edit.range.start.character).unwrap();
+            let end = text
+                .lines()
+                .take(edit.range.end.line.try_into().unwrap())
+                .map(|line| line.len() + '\n'.len_utf8())
+                .sum::<usize>()
+                + <u32 as TryInto<usize>>::try_into(edit.range.end.character).unwrap();
+            text.replace_range(start..end, &edit.new_text);
+        }
+        text
     }
 
     #[test]
@@ -329,17 +460,29 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        assert_eq!(edits.len(), 1);
         assert_eq!(
-            edits[0],
-            TextEdit {
-                range: Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(0, 14),
+            edits,
+            [
+                TextEdit {
+                    range: Range::new(Position::new(0, 6), Position::new(0, 7)),
+                    new_text: "".to_string()
                 },
-                new_text: "local x = 1\n".to_string(),
-            }
+                TextEdit {
+                    range: Range::new(Position::new(0, 8), Position::new(0, 9)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(0, 12), Position::new(0, 13)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(0, 14), Position::new(0, 14)),
+                    new_text: "\n".to_string()
+                },
+            ]
         );
+        let formatted = apply_text_edits_to(contents, edits);
+        assert_eq!(formatted, "local x = 1\n");
 
         expect_server_shutdown(&client.receiver, 3);
         assert!(client.receiver.is_empty());
@@ -393,17 +536,37 @@ mod tests {
         expect_server_initialized(&client.receiver, 1);
 
         let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
-        assert_eq!(edits.len(), 1);
         assert_eq!(
-            edits[0],
-            TextEdit {
-                range: Range {
-                    start: Position::new(0, 0),
-                    end: Position::new(1, 18),
+            edits,
+            [
+                TextEdit {
+                    range: Range::new(Position::new(1, 6), Position::new(1, 9)),
+                    new_text: "".to_string()
                 },
-                new_text: "local  x  =  1\nlocal y = 2\n".to_string(),
-            }
+                TextEdit {
+                    range: Range::new(Position::new(1, 10), Position::new(1, 11)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 12), Position::new(1, 13)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 14), Position::new(1, 15)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 16), Position::new(1, 17)),
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range::new(Position::new(1, 18), Position::new(1, 18)),
+                    new_text: "\n".to_string()
+                },
+            ]
         );
+        let formatted = apply_text_edits_to(contents, edits);
+        assert_eq!(formatted, "local  x  =  1\nlocal y = 2\n");
 
         expect_server_shutdown(&client.receiver, 3);
         assert!(client.receiver.is_empty());
