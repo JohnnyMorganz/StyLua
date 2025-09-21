@@ -8,7 +8,7 @@ use lsp_types::{
     InitializeResult, OneOf, Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
     TextDocumentSyncKind, TextEdit, Uri, WorkspaceFolder,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use similar::{DiffOp, TextDiff};
 use stylua_lib::{format_code, IndentType, OutputVerification};
 
@@ -258,7 +258,7 @@ impl LanguageServer<'_> {
     }
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(default)]
 struct InitializationOptions {
     respect_editor_formatting_options: Option<bool>,
@@ -344,23 +344,24 @@ mod tests {
 
     use clap::Parser;
     use crossbeam_channel::Receiver;
-    use lsp_server::Connection;
 
-    use lsp_server::{ErrorCode, Message, Notification, Request, RequestId, Response};
+    use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
     use lsp_types::{
         notification::{DidOpenTextDocument, Exit, Initialized, Notification as NotificationType},
         request::{Formatting, Initialize, RangeFormatting, Request as RequestType, Shutdown},
         DidOpenTextDocumentParams, DocumentFormattingParams, DocumentRangeFormattingParams,
-        FormattingOptions, InitializeParams, Position, Range, TextDocumentIdentifier,
-        TextDocumentItem, TextEdit, Uri, WorkDoneProgressParams,
-    };
-    use lsp_types::{
-        OneOf, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+        FormattingOptions, InitializeParams, OneOf, Position, Range, ServerCapabilities,
+        ServerInfo, TextDocumentIdentifier, TextDocumentItem, TextDocumentSyncCapability,
+        TextDocumentSyncKind, TextEdit, Uri, WorkDoneProgressParams,
     };
     use serde::de::DeserializeOwned;
     use serde_json::to_value;
 
-    use crate::{config::ConfigResolver, lsp::main_loop, opt::Opt};
+    use crate::{
+        config::ConfigResolver,
+        lsp::{main_loop, InitializationOptions},
+        opt::Opt,
+    };
 
     use assert_fs::prelude::*;
 
@@ -386,7 +387,7 @@ mod tests {
     }
 
     macro_rules! lsp_test {
-        ($cwd:expr, [$( $arguments:expr ),*], [$( $messages:expr ),*], [$( $tests:expr ),*]) => {
+        ([$( $arguments:expr ),*], [$( $messages:expr ),*], [$( $tests:expr ),*]) => {
             let opt = Opt::parse_from(vec!["BINARY_NAME", "--lsp", $($arguments)*]);
             let mut config_resolver = ConfigResolver::new(&opt).unwrap();
 
@@ -410,6 +411,18 @@ mod tests {
             params: to_value(InitializeParams {
                 #[allow(deprecated)]
                 root_uri: root_path.map(|path| Uri::from_str(path.to_str().unwrap()).unwrap()),
+                ..Default::default()
+            })
+            .unwrap(),
+        })
+    }
+
+    fn initialize_with_options(id: i32, options: InitializationOptions) -> Message {
+        Message::Request(Request {
+            id: RequestId::from(id),
+            method: <Initialize as lsp_types::request::Request>::METHOD.to_string(),
+            params: to_value(InitializeParams {
+                initialization_options: Some(to_value(options).unwrap()),
                 ..Default::default()
             })
             .unwrap(),
@@ -804,7 +817,6 @@ mod tests {
         let uri = Uri::from_str(cwd.child("foo.lua").to_str().unwrap()).unwrap();
 
         lsp_test!(
-            cwd,
             [],
             [
                 initialize(1, Some(cwd.path())),
@@ -837,7 +849,6 @@ mod tests {
         let uri = Uri::from_str(cwd.child("foo.lua").to_str().unwrap()).unwrap();
 
         lsp_test!(
-            cwd,
             [],
             [
                 initialize(1, Some(cwd.path())),
@@ -871,7 +882,6 @@ mod tests {
         let uri = Uri::from_str(cwd.child("foo.lua").to_str().unwrap()).unwrap();
 
         lsp_test!(
-            cwd,
             [],
             [
                 initialize(1, Some(cwd.path())),
@@ -905,7 +915,6 @@ mod tests {
         let uri = Uri::from_str(cwd.child("foo.lua").to_str().unwrap()).unwrap();
 
         lsp_test!(
-            cwd,
             ["--search-parent-directories"],
             [
                 initialize(1, Some(cwd.path())),
@@ -938,7 +947,6 @@ mod tests {
         let uri = Uri::from_str(cwd.child("build/foo.lua").to_str().unwrap()).unwrap();
 
         lsp_test!(
-            cwd,
             [],
             [
                 initialize(1, Some(cwd.path())),
@@ -954,6 +962,86 @@ mod tests {
                     let edits: Vec<TextEdit> = expect_response(receiver, 2);
                     let formatted = apply_text_edits_to(contents, edits);
                     assert_eq!(formatted, "local x = 'hello'\n");
+                },
+                |receiver| expect_server_shutdown(receiver, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lsp_does_not_use_editor_formatting_options() {
+        let uri = Uri::from_str("file:///home/documents/file.luau").unwrap();
+        let contents = "do print(1) end";
+
+        lsp_test!(
+            [],
+            [
+                initialize_with_options(
+                    1,
+                    InitializationOptions {
+                        respect_editor_formatting_options: None,
+                    }
+                ),
+                initialized(),
+                open_text_document(uri.clone(), contents.to_string()),
+                format_document(
+                    2,
+                    uri.clone(),
+                    FormattingOptions {
+                        tab_size: 2,
+                        insert_spaces: true,
+                        ..Default::default()
+                    }
+                ),
+                shutdown(3),
+                exit()
+            ],
+            [
+                |receiver| expect_server_initialized(receiver, 1),
+                |receiver| {
+                    let edits: Vec<TextEdit> = expect_response(receiver, 2);
+                    let formatted = apply_text_edits_to(contents, edits);
+                    assert_eq!(formatted, "do\n\tprint(1)\nend\n");
+                },
+                |receiver| expect_server_shutdown(receiver, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lsp_respects_editor_formatting_options_if_enabled() {
+        let uri = Uri::from_str("file:///home/documents/file.luau").unwrap();
+        let contents = "do print(1) end";
+
+        lsp_test!(
+            [],
+            [
+                initialize_with_options(
+                    1,
+                    InitializationOptions {
+                        respect_editor_formatting_options: Some(true)
+                    }
+                ),
+                initialized(),
+                open_text_document(uri.clone(), contents.to_string()),
+                format_document(
+                    2,
+                    uri.clone(),
+                    FormattingOptions {
+                        tab_size: 2,
+                        insert_spaces: true,
+                        ..Default::default()
+                    }
+                ),
+                shutdown(3),
+                exit()
+            ],
+            [
+                |receiver| expect_server_initialized(receiver, 1),
+                |receiver| {
+                    let edits: Vec<TextEdit> = expect_response(receiver, 2);
+                    let formatted = apply_text_edits_to(contents, edits);
+                    assert_eq!(formatted, "do\n  print(1)\nend\n");
                 },
                 |receiver| expect_server_shutdown(receiver, 3)
             ]
