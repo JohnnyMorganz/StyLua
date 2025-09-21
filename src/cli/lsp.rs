@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use similar::{DiffOp, TextDiff};
 use stylua_lib::{format_code, IndentType, OutputVerification};
 
-use crate::{config::ConfigResolver, opt};
+use crate::{config::ConfigResolver, opt, stylua_ignore};
 
 fn diffop_to_textedit(
     op: DiffOp,
@@ -64,6 +64,7 @@ struct LanguageServer<'a> {
     documents: TextDocuments,
     workspace_folders: Vec<WorkspaceFolder>,
     root_uri: Option<Uri>,
+    search_parent_directories: bool,
     respect_editor_formatting_options: bool,
     config_resolver: &'a mut ConfigResolver<'a>,
 }
@@ -72,12 +73,14 @@ enum FormattingError {
     StyLuaError,
     NotLuaDocument,
     DocumentNotFound,
+    FileIsIgnored,
 }
 
 impl LanguageServer<'_> {
     fn new<'a>(
         workspace_folders: Vec<WorkspaceFolder>,
         root_uri: Option<Uri>,
+        search_parent_directories: bool,
         respect_editor_formatting_options: bool,
         config_resolver: &'a mut ConfigResolver<'a>,
     ) -> LanguageServer<'a> {
@@ -85,6 +88,7 @@ impl LanguageServer<'_> {
             documents: TextDocuments::new(),
             workspace_folders,
             root_uri,
+            search_parent_directories,
             respect_editor_formatting_options,
             config_resolver,
         }
@@ -140,14 +144,24 @@ impl LanguageServer<'_> {
             return Err(FormattingError::NotLuaDocument);
         }
 
+        let search_root = Some(self.find_config_root(uri));
+        let path = uri.path().as_str().as_ref();
+
+        if stylua_ignore::path_is_stylua_ignored(
+            path,
+            self.search_parent_directories,
+            search_root.clone(),
+        )
+        .unwrap_or(false)
+        {
+            return Err(FormattingError::FileIsIgnored);
+        }
+
         let contents = document.get_content(None);
 
         let mut config = self
             .config_resolver
-            .load_configuration_with_search_root(
-                uri.path().as_str().as_ref(),
-                Some(self.find_config_root(uri)),
-            )
+            .load_configuration_with_search_root(path, search_root)
             .unwrap_or_default();
 
         if let Some(formatting_options) = formatting_options {
@@ -193,7 +207,8 @@ impl LanguageServer<'_> {
                         ) {
                             Ok(edits) => Response::new_ok(request.id, edits),
                             Err(FormattingError::StyLuaError)
-                            | Err(FormattingError::NotLuaDocument) => {
+                            | Err(FormattingError::NotLuaDocument)
+                            | Err(FormattingError::FileIsIgnored) => {
                                 Response::new_ok(request.id, serde_json::Value::Null)
                             }
                             Err(FormattingError::DocumentNotFound) => Response::new_err(
@@ -224,7 +239,8 @@ impl LanguageServer<'_> {
                         ) {
                             Ok(edits) => Response::new_ok(request.id, edits),
                             Err(FormattingError::StyLuaError)
-                            | Err(FormattingError::NotLuaDocument) => {
+                            | Err(FormattingError::NotLuaDocument)
+                            | Err(FormattingError::FileIsIgnored) => {
                                 Response::new_ok(request.id, serde_json::Value::Null)
                             }
                             Err(FormattingError::DocumentNotFound) => Response::new_err(
@@ -266,6 +282,7 @@ struct InitializationOptions {
 
 fn main_loop<'a>(
     connection: Connection,
+    search_parent_directories: bool,
     config_resolver: &'a mut ConfigResolver<'a>,
 ) -> anyhow::Result<()> {
     let initialize_result = InitializeResult {
@@ -298,6 +315,7 @@ fn main_loop<'a>(
         initialize_params.workspace_folders.unwrap_or_default(),
         #[allow(deprecated)]
         initialize_params.root_uri,
+        search_parent_directories,
         respect_editor_formatting_options,
         config_resolver,
     );
@@ -328,7 +346,11 @@ pub fn run(opt: opt::Opt) -> anyhow::Result<()> {
 
     let (connection, io_threads) = Connection::stdio();
 
-    main_loop(connection, &mut config_resolver)?;
+    main_loop(
+        connection,
+        opt.search_parent_directories,
+        &mut config_resolver,
+    )?;
 
     io_threads.join()?;
 
@@ -396,7 +418,7 @@ mod tests {
                 client.sender.send($messages).unwrap();
             )*
 
-            main_loop(server, &mut config_resolver).unwrap();
+            main_loop(server, false, &mut config_resolver).unwrap();
 
             $(
                 $tests(&client.receiver);
@@ -540,7 +562,7 @@ mod tests {
         client.sender.send(shutdown(2)).unwrap();
         client.sender.send(exit()).unwrap();
 
-        main_loop(server, &mut config_resolver).unwrap();
+        main_loop(server, false, &mut config_resolver).unwrap();
 
         expect_server_initialized(&client.receiver, 1);
         expect_server_shutdown(&client.receiver, 2);
@@ -602,7 +624,7 @@ mod tests {
         client.sender.send(shutdown(3)).unwrap();
         client.sender.send(exit()).unwrap();
 
-        main_loop(server, &mut config_resolver).unwrap();
+        main_loop(server, false, &mut config_resolver).unwrap();
 
         expect_server_initialized(&client.receiver, 1);
 
@@ -667,7 +689,7 @@ mod tests {
         client.sender.send(shutdown(3)).unwrap();
         client.sender.send(exit()).unwrap();
 
-        main_loop(server, &mut config_resolver).unwrap();
+        main_loop(server, false, &mut config_resolver).unwrap();
 
         expect_server_initialized(&client.receiver, 1);
 
@@ -751,7 +773,7 @@ mod tests {
         client.sender.send(shutdown(3)).unwrap();
         client.sender.send(exit()).unwrap();
 
-        main_loop(server, &mut config_resolver).unwrap();
+        main_loop(server, false, &mut config_resolver).unwrap();
 
         expect_server_initialized(&client.receiver, 1);
 
@@ -783,7 +805,7 @@ mod tests {
         client.sender.send(shutdown(3)).unwrap();
         client.sender.send(exit()).unwrap();
 
-        main_loop(server, &mut config_resolver).unwrap();
+        main_loop(server, false, &mut config_resolver).unwrap();
 
         expect_server_initialized(&client.receiver, 1);
 
@@ -1044,6 +1066,46 @@ mod tests {
                     assert_eq!(formatted, "do\n  print(1)\nend\n");
                 },
                 |receiver| expect_server_shutdown(receiver, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lsp_stylua_ignore() {
+        let contents = "local   x    =   1";
+        let cwd = construct_tree!({
+            ".styluaignore": "ignored/",
+            "foo.lua": contents,
+            "ignored/bar.lua": contents,
+        });
+
+        let foo_uri = Uri::from_str(cwd.child("foo.lua").to_str().unwrap()).unwrap();
+        let bar_uri = Uri::from_str(cwd.child("ignored/bar.lua").to_str().unwrap()).unwrap();
+
+        lsp_test!(
+            [],
+            [
+                initialize(1, Some(cwd.path())),
+                initialized(),
+                open_text_document(foo_uri.clone(), contents.to_string()),
+                open_text_document(bar_uri.clone(), contents.to_string()),
+                format_document(2, foo_uri.clone(), FormattingOptions::default()),
+                format_document(3, bar_uri.clone(), FormattingOptions::default()),
+                shutdown(4),
+                exit()
+            ],
+            [
+                |receiver| expect_server_initialized(receiver, 1),
+                |receiver| {
+                    let edits: Vec<TextEdit> = expect_response(receiver, 2);
+                    let formatted = apply_text_edits_to(contents, edits);
+                    assert_eq!(formatted, "local x = 1\n");
+                },
+                |receiver| {
+                    let edits: serde_json::Value = expect_response(receiver, 3);
+                    assert_eq!(edits, serde_json::Value::Null);
+                },
+                |receiver| expect_server_shutdown(receiver, 4)
             ]
         );
     }
