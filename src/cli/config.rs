@@ -58,19 +58,28 @@ impl ConfigResolver<'_> {
     /// Returns the root used when searching for configuration
     /// If `--search-parent-directories`, then there is no root, and we keep searching
     /// Else, the root is the current working directory, and we do not search higher than the cwd
-    fn get_configuration_search_root(&self) -> Option<PathBuf> {
+    fn get_configuration_search_root(
+        &self,
+        search_root_override: Option<PathBuf>,
+    ) -> Option<PathBuf> {
         match self.opt.search_parent_directories {
             true => None,
-            false => Some(self.current_directory.to_path_buf()),
+            false => {
+                Some(search_root_override.unwrap_or_else(|| self.current_directory.to_path_buf()))
+            }
         }
     }
 
-    pub fn load_configuration(&mut self, path: &Path) -> Result<Config> {
+    pub(crate) fn load_configuration_with_search_root(
+        &mut self,
+        path: &Path,
+        search_root_override: Option<PathBuf>,
+    ) -> Result<Config> {
         if let Some(configuration) = self.forced_configuration {
             return Ok(configuration);
         }
 
-        let root = self.get_configuration_search_root();
+        let root = self.get_configuration_search_root(search_root_override);
 
         let absolute_path = self.current_directory.join(path);
         let parent_path = &absolute_path
@@ -93,12 +102,16 @@ impl ConfigResolver<'_> {
         }
     }
 
+    pub fn load_configuration(&mut self, path: &Path) -> Result<Config> {
+        self.load_configuration_with_search_root(path, None)
+    }
+
     pub fn load_configuration_for_stdin(&mut self) -> Result<Config> {
         if let Some(configuration) = self.forced_configuration {
             return Ok(configuration);
         }
 
-        let root = self.get_configuration_search_root();
+        let root = self.get_configuration_search_root(None);
         let my_current_directory = self.current_directory.to_owned();
 
         match &self.opt.stdin_filepath {

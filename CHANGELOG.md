@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed comments lost from expression after parentheses are removed when we are attempting to "hang" the expression. ([#1033](https://github.com/JohnnyMorganz/StyLua/issues/1033))
 - Fixed `document_range_formatting_provider` capability missing from `ServerCapabilities` in language server mode
+- Fixed current working directory incorrectly used as config search root in language server mode -- now, the root of the opened workspace is used instead ([#1032](https://github.com/JohnnyMorganz/StyLua/issues/1032))
 
 ## [2.2.0] - 2025-09-14
 
