@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758454375230,
+  "lastUpdate": 1758455779286,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15077,6 +15077,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15646164,
             "range": "± 170742",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e396103ed543b5b6bb403cd9d360914c5922c8ae",
+          "message": "Respect `.styluaignore` in language server mode (#1037)\n\n* Check against styluaignore in LSP\n\n* Update changelog",
+          "timestamp": "2025-09-21T11:54:18Z",
+          "tree_id": "a69c43bb9722893ebd4624f229fd93d0c06a073c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e396103ed543b5b6bb403cd9d360914c5922c8ae"
+        },
+        "date": 1758455778512,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27363595,
+            "range": "± 365542",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231339541,
+            "range": "± 1272649",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15580952,
+            "range": "± 99462",
             "unit": "ns/iter"
           }
         ]
