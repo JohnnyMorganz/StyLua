@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758378785322,
+  "lastUpdate": 1758447023981,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14909,6 +14909,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15560665,
             "range": "± 96118",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jonas.zeltner@posteo.de",
+            "name": "Jonas Zeltner",
+            "username": "TungstnBallon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "98e29c6b814d1428627dc0cd40ee8be7e1c5a959",
+          "message": "Smaller text edits in lsp formatting handler (#1031)\n\n* Reply with correct server information\n\n* Compute more granular textedits for formatting requests\n\n* Use byte diff instead of line diff\n\n* Add missing range formatting capability\n\n* Use correct package name\n\n* Test exact edits returned by formatting handler\n\n* Update CHANGELOG.md\n\n* Add initialization option to respect editor's formatting options",
+          "timestamp": "2025-09-21T09:28:21Z",
+          "tree_id": "446a349a1fecd0d46409e6bf27c59d6f6db1f492",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/98e29c6b814d1428627dc0cd40ee8be7e1c5a959"
+        },
+        "date": 1758447022717,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28464546,
+            "range": "± 620142",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230728188,
+            "range": "± 868428",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15328241,
+            "range": "± 553156",
             "unit": "ns/iter"
           }
         ]
