@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::StructOpt;
 use console::style;
-use ignore::{gitignore::Gitignore, overrides::OverrideBuilder, WalkBuilder};
+use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
 use std::collections::HashSet;
@@ -16,13 +16,14 @@ use threadpool::ThreadPool;
 
 use stylua_lib::{format_code, Config, OutputVerification, Range};
 
-use crate::config::find_ignore_file_path;
-
 mod config;
 #[cfg(feature = "lsp")]
 mod lsp;
 mod opt;
 mod output_diff;
+mod stylua_ignore;
+
+use stylua_ignore::{is_explicitly_provided, path_is_stylua_ignored, should_respect_ignores};
 
 static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
 static UNFORMATTED_FILE_COUNT: AtomicU32 = AtomicU32::new(0);
@@ -206,64 +207,6 @@ fn format_string(
     }
 }
 
-fn get_ignore(
-    directory: &Path,
-    search_parent_directories: bool,
-) -> Result<Gitignore, ignore::Error> {
-    let file_path = find_ignore_file_path(directory.to_path_buf(), search_parent_directories)
-        .or_else(|| {
-            std::env::current_dir()
-                .ok()
-                .and_then(|cwd| find_ignore_file_path(cwd, false))
-        });
-
-    if let Some(file_path) = file_path {
-        let (ignore, err) = Gitignore::new(file_path);
-        if let Some(err) = err {
-            Err(err)
-        } else {
-            Ok(ignore)
-        }
-    } else {
-        Ok(Gitignore::empty())
-    }
-}
-
-/// Whether the provided path was explicitly provided to the tool
-fn is_explicitly_provided(opt: &opt::Opt, path: &Path) -> bool {
-    opt.files.iter().any(|p| path == *p)
-}
-
-/// By default, files explicitly passed to the command line will be formatted regardless of whether
-/// they are present in .styluaignore / not glob matched. If `--respect-ignores` is provided,
-/// then we enforce .styluaignore / glob matching on explicitly passed paths.
-fn should_respect_ignores(opt: &opt::Opt, path: &Path) -> bool {
-    !is_explicitly_provided(opt, path) || opt.respect_ignores
-}
-
-fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Result<bool> {
-    let ignore = get_ignore(
-        path.parent().expect("cannot get parent directory"),
-        search_parent_directories,
-    )
-    .context("failed to parse ignore file")?;
-
-    // matched_path_or_any_parents panics when path is not in cwd
-    // can happen when `--respect-ignores --stdin-filepath {path}`
-    if !path
-        .canonicalize()
-        .unwrap_or_default()
-        .starts_with(ignore.path().canonicalize().unwrap_or_default())
-    {
-        return Ok(false);
-    }
-
-    Ok(matches!(
-        ignore.matched_path_or_any_parents(path, false),
-        ignore::Match::Ignore(_)
-    ))
-}
-
 fn format(opt: opt::Opt) -> Result<i32> {
     debug!("resolved options: {:#?}", opt);
 
@@ -436,7 +379,11 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let should_skip_format = match &opt.stdin_filepath {
                         Some(path) => {
                             opt.respect_ignores
-                                && path_is_stylua_ignored(path, opt.search_parent_directories)?
+                                && path_is_stylua_ignored(
+                                    path,
+                                    opt.search_parent_directories,
+                                    None,
+                                )?
                         }
                         None => false,
                     };
@@ -501,7 +448,7 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         // we should check .styluaignore
                         if is_explicitly_provided(opt.as_ref(), &path)
                             && should_respect_ignores(opt.as_ref(), &path)
-                            && path_is_stylua_ignored(&path, opt.search_parent_directories)?
+                            && path_is_stylua_ignored(&path, opt.search_parent_directories, None)?
                         {
                             continue;
                         }
