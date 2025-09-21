@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758447184384,
+  "lastUpdate": 1758452988001,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -14993,6 +14993,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15671068,
             "range": "± 496073",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "899fd0e7d198c63c420d6d595f1aeb8f3a7ed671",
+          "message": "Use workspace folder as search root for configuration in LSP mode (#1036)\n\n* Handle config search root in LSP\n\n* Update changelog",
+          "timestamp": "2025-09-21T13:07:46+02:00",
+          "tree_id": "d4647ce01dd6f258a0c7b72d88c9c11a4ad15df9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/899fd0e7d198c63c420d6d595f1aeb8f3a7ed671"
+        },
+        "date": 1758452986727,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26778856,
+            "range": "± 107762",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 227585600,
+            "range": "± 872123",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15390043,
+            "range": "± 73780",
             "unit": "ns/iter"
           }
         ]
