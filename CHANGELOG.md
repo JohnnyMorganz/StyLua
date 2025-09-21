@@ -14,13 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- In language server mode, compute the difference between the unformatted and formatted document and only respond with the changes.
+- In language server mode, compute the difference between the unformatted and formatted document and only respond with the changes, rather than sending an edit for the whole file
 - Include `serverInfo` in the language server's [`InitializeResponse`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeResult)
 
 ### Fixed
 
 - Fixed comments lost from expression after parentheses are removed when we are attempting to "hang" the expression. ([#1033](https://github.com/JohnnyMorganz/StyLua/issues/1033))
-- `document_range_formatting_provider` field missing from `ServerCapabilities`
+- Fixed `document_range_formatting_provider` capability missing from `ServerCapabilities` in language server mode
 
 ## [2.2.0] - 2025-09-14
 
