@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758455779286,
+  "lastUpdate": 1758967346705,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15119,6 +15119,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15580952,
             "range": "± 99462",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e628cc9c51dc0e1c5593e48a85105afc27cd2630",
+          "message": "Do not remove parentheses around single-value generic declaration default (#1040)\n\n* Add test case\n\n* Pass through variadic context when formatting default for generic declaration\n\n* Update snapshot\n\n* Update changelog",
+          "timestamp": "2025-09-27T10:00:23Z",
+          "tree_id": "1276c5d3817fbc32faa815aa99b419ff0da868ea",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e628cc9c51dc0e1c5593e48a85105afc27cd2630"
+        },
+        "date": 1758967345998,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28098328,
+            "range": "± 491499",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232112879,
+            "range": "± 424981",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15549078,
+            "range": "± 77925",
             "unit": "ns/iter"
           }
         ]
