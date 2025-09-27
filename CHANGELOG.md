@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2025-09-27
+
 ### Added
 
 - The language server has an initialization option called `respect_editor_formatting_options`.
@@ -149,13 +151,11 @@ failing tests ([#824](https://github.com/JohnnyMorganz/StyLua/issues/824))
 ### Changed
 
 - Updated parser crate with following changes:
-
   - Support Luau floor division (`//`)
   - Fix Luau string interpolation parsing
   - Fix Luau `\z` escape parsing
 
 - Simplified access and modification patterns for StyLua configuration. You can now access the properties directly
-
   - **Deprecated:** the old access patterns of `.property()` and `.with_property()` are now deprecated
   - **Breaking Change (WASM):** due to JS/TS lack of differentiation between `.property` / `.property()` implementation, the `.property()` functions were removed from WASM output.
 
@@ -861,7 +861,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.2.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.0
 [2.2.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.2.0
 [2.1.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.1.0
 [2.0.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.2

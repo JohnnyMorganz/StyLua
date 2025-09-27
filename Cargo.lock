@@ -967,7 +967,7 @@ dependencies = [
 
 [[package]]
 name = "stylua"
-version = "2.2.0"
+version = "2.3.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
