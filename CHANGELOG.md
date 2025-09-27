@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `document_range_formatting_provider` capability missing from `ServerCapabilities` in language server mode
 - Fixed current working directory incorrectly used as config search root in language server mode -- now, the root of the opened workspace is used instead ([#1032](https://github.com/JohnnyMorganz/StyLua/issues/1032))
 - Language server mode now correctly respects `.styluaignore` files ([#1035](https://github.com/JohnnyMorganz/StyLua/issues/1035))
+- Luau: Fixed parentheses incorrectly removed on a single type that is the default for a variadic generic parameter ([#1038](https://github.com/JohnnyMorganz/StyLua/issues/1038))
 
 ## [2.2.0] - 2025-09-14
 
