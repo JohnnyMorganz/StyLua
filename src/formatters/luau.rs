@@ -1097,6 +1097,7 @@ fn attempt_assigned_type_tactics(
     ctx: &Context,
     equal_token: TokenReference,
     type_info: &TypeInfo,
+    context: TypeInfoContext,
     shape: Shape,
 ) -> (TokenReference, TypeInfo) {
     const EQUAL_TOKEN_LENGTH: usize = " = ".len();
@@ -1109,11 +1110,11 @@ fn attempt_assigned_type_tactics(
 
         // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
         let declaration = if contains_comments(strip_trivia(type_info)) {
-            hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
+            hang_type_info(ctx, type_info, context, shape, 0)
         } else {
-            let proper_declaration = format_type_info(ctx, type_info, shape);
+            let proper_declaration = format_type_info_internal(ctx, type_info, context, shape);
             if shape.test_over_budget(&proper_declaration) {
-                hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
+                hang_type_info(ctx, type_info, context, shape, 0)
             } else {
                 proper_declaration
             }
@@ -1141,8 +1142,9 @@ fn attempt_assigned_type_tactics(
         let mut equal_token = equal_token;
         let type_definition;
         let singleline_type_definition =
-            format_type_info(ctx, type_info, shape.with_infinite_width());
-        let proper_type_definition = format_type_info(ctx, type_info, shape + EQUAL_TOKEN_LENGTH);
+            format_type_info_internal(ctx, type_info, context, shape.with_infinite_width());
+        let proper_type_definition =
+            format_type_info_internal(ctx, type_info, context, shape + EQUAL_TOKEN_LENGTH);
 
         // Test to see whether the type definition must be hung due to comments
         let must_hang = should_hang_type(type_info, CommentSearch::All);
@@ -1165,8 +1167,7 @@ fn attempt_assigned_type_tactics(
                 equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
                 let shape = shape.reset().increment_additional_indent();
-                let hanging_type_definition =
-                    hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0);
+                let hanging_type_definition = hang_type_info(ctx, type_info, context, shape, 0);
                 type_definition = hanging_type_definition;
             }
         } else {
@@ -1178,7 +1179,7 @@ fn attempt_assigned_type_tactics(
 
                 // Add the expression list into the indent range, as it will be indented by one
                 let shape = shape.reset().increment_additional_indent();
-                type_definition = format_type_info(ctx, type_info, shape);
+                type_definition = format_type_info_internal(ctx, type_info, context, shape);
             } else {
                 // Use the proper formatting
                 type_definition = proper_type_definition;
@@ -1232,8 +1233,13 @@ fn format_type_declaration(
     };
 
     let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let (equal_token, type_definition) =
-        attempt_assigned_type_tactics(ctx, equal_token, type_declaration.type_definition(), shape);
+    let (equal_token, type_definition) = attempt_assigned_type_tactics(
+        ctx,
+        equal_token,
+        type_declaration.type_definition(),
+        TypeInfoContext::new(),
+        shape,
+    );
 
     // Handle comments in between the type name and generics + generics and equal token
     // (or just type name and equal token if generics not present)
@@ -1413,11 +1419,16 @@ fn format_generic_parameter(
         other => panic!("unknown node {:?}", other),
     };
 
+    let context = match generic_parameter.parameter() {
+        GenericParameterInfo::Variadic { .. } => TypeInfoContext::new().mark_within_generic(),
+        _ => TypeInfoContext::new(),
+    };
+
     let default_type = match (generic_parameter.equals(), generic_parameter.default_type()) {
         (Some(equals), Some(default_type)) => {
             let equals = fmt_symbol!(ctx, equals, " = ", shape);
             let (equals, default_type) =
-                attempt_assigned_type_tactics(ctx, equals, default_type, shape);
+                attempt_assigned_type_tactics(ctx, equals, default_type, context, shape);
             Some((equals, default_type))
         }
         (None, None) => None,
