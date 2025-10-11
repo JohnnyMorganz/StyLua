@@ -37,7 +37,13 @@ fn diffop_to_textedit(
         }
     };
 
-    let lookup = |start: usize, len: usize| formatted_contents.chars().skip(start).take(len).collect::<String>();
+    let lookup = |start: usize, len: usize| {
+        formatted_contents
+            .chars()
+            .skip(start)
+            .take(len)
+            .collect::<String>()
+    };
 
     match op {
         DiffOp::Equal {
@@ -704,14 +710,110 @@ mod tests {
         assert_eq!(
             edits,
             [
-                TextEdit { range: Range { start: Position { line: 0, character: 6 }, end: Position { line: 0, character: 7 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 0, character: 8 }, end: Position { line: 0, character: 9 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 0, character: 11 }, end: Position { line: 0, character: 12 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 1, character: 5 }, end: Position { line: 1, character: 7 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 1, character: 8 }, end: Position { line: 1, character: 9 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 1, character: 10 }, end: Position { line: 1, character: 12 } }, new_text: "".to_string() },
-                TextEdit { range: Range { start: Position { line: 1, character: 14 }, end: Position { line: 1, character: 14 } }, new_text: " ".to_string() },
-                TextEdit { range: Range { start: Position { line: 1, character: 15 }, end: Position { line: 1, character: 15 } }, new_text: "\n".to_string() }
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 6
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 7
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 8
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 9
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 11
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 12
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 5
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 7
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 8
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 9
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 10
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 12
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 14
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 14
+                        }
+                    },
+                    new_text: " ".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 15
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 15
+                        }
+                    },
+                    new_text: "\n".to_string()
+                }
             ]
         );
         let formatted = apply_text_edits_to(contents, edits);
