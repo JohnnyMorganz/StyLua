@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758969782196,
+  "lastUpdate": 1760243465264,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15203,6 +15203,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15784822,
             "range": "± 153490",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30951234+Davidyz@users.noreply.github.com",
+            "name": "David",
+            "username": "Davidyz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4ea606cf2fd4e02754c1173146312890e1fed95a",
+          "message": "fix: Handle Unicode characters in LSP formatting (#1044)\n\n* fix: Handle Unicode characters in LSP formatting\n\n* chore: cargo fmt\n\n* docs: update CHANGELOG",
+          "timestamp": "2025-10-12T06:29:04+02:00",
+          "tree_id": "5b7f3ceb5967fc29a1a75dbc4652ff8c6a0665cd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4ea606cf2fd4e02754c1173146312890e1fed95a"
+        },
+        "date": 1760243464341,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26641085,
+            "range": "± 276997",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231361038,
+            "range": "± 2267874",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15414806,
+            "range": "± 78494",
             "unit": "ns/iter"
           }
         ]
