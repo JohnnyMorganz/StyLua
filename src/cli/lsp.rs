@@ -17,14 +17,33 @@ use crate::{config::ConfigResolver, opt, stylua_ignore};
 fn diffop_to_textedit(
     op: DiffOp,
     document: &FullTextDocument,
+    original_contents: &str,
     formatted_contents: &str,
 ) -> Option<TextEdit> {
-    let range = |start: usize, len: usize| Range {
-        start: document.position_at(start.try_into().expect("usize fits into u32")),
-        end: document.position_at((start + len).try_into().expect("usize fits into u32")),
+    let range = |start: usize, len: usize| {
+        let byte_start = original_contents
+            .char_indices()
+            .nth(start)
+            .map(|(i, _)| i)
+            .unwrap_or(original_contents.len());
+        let byte_end = original_contents
+            .char_indices()
+            .nth(start + len)
+            .map(|(i, _)| i)
+            .unwrap_or(original_contents.len());
+        Range {
+            start: document.position_at(byte_start.try_into().expect("usize fits into u32")),
+            end: document.position_at(byte_end.try_into().expect("usize fits into u32")),
+        }
     };
 
-    let lookup = |start: usize, len: usize| formatted_contents[start..start + len].to_string();
+    let lookup = |start: usize, len: usize| {
+        formatted_contents
+            .chars()
+            .skip(start)
+            .take(len)
+            .collect::<String>()
+    };
 
     match op {
         DiffOp::Equal {
@@ -181,14 +200,14 @@ impl LanguageServer<'_> {
             return Err(FormattingError::StyLuaError);
         };
 
-        let operations =
-            TextDiff::from_chars(contents.as_bytes(), formatted_contents.as_bytes()).grouped_ops(0);
+        let operations = TextDiff::from_chars(contents, &formatted_contents).grouped_ops(0);
+
         let edits = operations
             .into_iter()
             .flat_map(|operations| {
-                operations
-                    .into_iter()
-                    .filter_map(|op| diffop_to_textedit(op, document, &formatted_contents))
+                operations.into_iter().filter_map(|op| {
+                    diffop_to_textedit(op, document, contents, &formatted_contents)
+                })
             })
             .collect();
         Ok(edits)
@@ -652,6 +671,153 @@ mod tests {
         );
         let formatted = apply_text_edits_to(contents, edits);
         assert_eq!(formatted, "local x = 1\n");
+
+        expect_server_shutdown(&client.receiver, 3);
+        assert!(client.receiver.is_empty());
+    }
+
+    #[test]
+    fn test_lsp_document_formatting_with_unicode() {
+        let uri = Uri::from_str("file:///home/documents/file.lua").unwrap();
+        let contents = "local  x  =  1 -- 测试\nlocal    y   =2";
+
+        let opt = Opt::parse_from(vec!["BINARY_NAME"]);
+        let mut config_resolver = ConfigResolver::new(&opt).unwrap();
+
+        let (server, client) = Connection::memory();
+        client.sender.send(initialize(1, None)).unwrap();
+        client.sender.send(initialized()).unwrap();
+        client
+            .sender
+            .send(open_text_document(uri.clone(), contents.to_string()))
+            .unwrap();
+        client
+            .sender
+            .send(format_document(
+                2,
+                uri.clone(),
+                FormattingOptions::default(),
+            ))
+            .unwrap();
+        client.sender.send(shutdown(3)).unwrap();
+        client.sender.send(exit()).unwrap();
+
+        main_loop(server, false, &mut config_resolver).unwrap();
+
+        expect_server_initialized(&client.receiver, 1);
+
+        let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
+        assert_eq!(
+            edits,
+            [
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 6
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 7
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 8
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 9
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 11
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 12
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 5
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 7
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 8
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 9
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 10
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 12
+                        }
+                    },
+                    new_text: "".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 14
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 14
+                        }
+                    },
+                    new_text: " ".to_string()
+                },
+                TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            character: 15
+                        },
+                        end: Position {
+                            line: 1,
+                            character: 15
+                        }
+                    },
+                    new_text: "\n".to_string()
+                }
+            ]
+        );
+        let formatted = apply_text_edits_to(contents, edits);
+        assert_eq!(formatted, "local x = 1 -- 测试\nlocal y = 2\n");
 
         expect_server_shutdown(&client.receiver, 3);
         assert!(client.receiver.is_empty());
