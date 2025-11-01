@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2025-11-01
+
 ### Fixed
 
 - Use character-wised diff instead of byte-wise diff in the LSP server so that it can handle multi-byte characters ([#1042](https://github.com/JohnnyMorganz/StyLua/issues/1042), [#1043](https://github.com/JohnnyMorganz/StyLua/issues/1043)).
@@ -865,7 +867,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.3.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.1
 [2.3.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.0
 [2.2.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.2.0
 [2.1.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.1.0
