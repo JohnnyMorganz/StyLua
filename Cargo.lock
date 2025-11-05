@@ -993,6 +993,7 @@ dependencies = [
  "serde",
  "serde_json",
  "similar",
+ "smol_str",
  "strum",
  "thiserror",
  "threadpool",
