@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1762002412699,
+  "lastUpdate": 1764493434393,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15287,6 +15287,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15304540,
             "range": "± 314436",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "74b5f5775b3c4c67dff3095b37820f3b55e5253a",
+          "message": "Bump js-yaml from 4.1.0 to 4.1.1 in /stylua-vscode (#1049)\n\nBumps [js-yaml](https://github.com/nodeca/js-yaml) from 4.1.0 to 4.1.1.\n- [Changelog](https://github.com/nodeca/js-yaml/blob/master/CHANGELOG.md)\n- [Commits](https://github.com/nodeca/js-yaml/compare/4.1.0...4.1.1)\n\n---\nupdated-dependencies:\n- dependency-name: js-yaml\n  dependency-version: 4.1.1\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-11-30T10:01:54+01:00",
+          "tree_id": "ac9df08c8393820f1b53f341c2f13c2c5dde78bb",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/74b5f5775b3c4c67dff3095b37820f3b55e5253a"
+        },
+        "date": 1764493433768,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28148761,
+            "range": "± 183284",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230789389,
+            "range": "± 1087719",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15428410,
+            "range": "± 69878",
             "unit": "ns/iter"
           }
         ]
