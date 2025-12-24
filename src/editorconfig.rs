@@ -62,7 +62,8 @@ property_choice! {
     (Always, "always"),
     (NoSingleString, "nosinglestring"),
     (NoSingleTable, "nosingletable"),
-    (None, "none")
+    (None, "none"),
+    (Input, "input")
 }
 
 property_choice! {
@@ -134,6 +135,7 @@ fn load(mut config: Config, properties: &Properties) -> Config {
                 config.call_parentheses = CallParenType::NoSingleTable
             }
             CallParenthesesChoice::None => config.call_parentheses = CallParenType::None,
+            CallParenthesesChoice::Input => config.call_parentheses = CallParenType::Input,
         }
     }
     if let Ok(space_after_function_names) = properties.get::<SpaceAfterFunctionNamesChoice>() {
