@@ -1172,7 +1172,11 @@ impl HasInlineComments for Expression {
     fn has_inline_comments(&self) -> bool {
         match self {
             Expression::BinaryOperator { lhs, binop, rhs } => {
-                contains_comments(binop) || contains_comments(lhs) || rhs.has_inline_comments()
+                contains_comments(binop)
+                    || lhs.has_trailing_comments(CommentSearch::All)
+                    || rhs.has_leading_comments(CommentSearch::All)
+                    || lhs.has_inline_comments()
+                    || rhs.has_inline_comments()
             }
             Expression::UnaryOperator { unop, expression } => {
                 let op_contains_comments = match unop {
