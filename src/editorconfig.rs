@@ -315,6 +315,14 @@ mod tests {
     }
 
     #[test]
+    fn test_call_parentheses_input() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("call_parentheses", "Input");
+        let config = Config::from(&properties);
+        assert_eq!(config.call_parentheses, CallParenType::Input);
+    }
+
+    #[test]
     fn test_space_after_function_names_always() {
         let mut properties = Properties::new();
         properties.insert_raw_for_key("space_after_function_names", "Always");

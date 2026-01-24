@@ -6,11 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Fix `call_parentheses = Input` don't work in editorconfig ([#1057](https://github.com/JohnnyMorganz/StyLua/pull/1057))
 
 ### Added
 
 - Added flag `--no-ignore-vcs` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
+- Support `call_parentheses = Input` in editorconfig ([#1057](https://github.com/JohnnyMorganz/StyLua/pull/1057))
 
 ## [2.3.1] - 2025-11-01
 
