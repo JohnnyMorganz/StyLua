@@ -1,0 +1,21 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/hang-call-chain-comments-4.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/873
+
+x = a
+	.b -- comment
+	({
+		y,
+	})
+
+console.dialog = iup.dialog({
+	iup
+		.hbox -- use it to inherit margins
+		({
+			console.prompt,
+		}),
+	title = "Command:",
+})

@@ -1141,10 +1141,18 @@ pub fn format_function_call(
 
         let mut suffix = format_suffix(ctx, suffix, current_shape, ambiguous_next_suffix);
 
+        // Check if the previous suffix has trailing single-line comments.
+        // If it does, we MUST hang the AnonymousCall to avoid the opening parenthesis being commented out
+        let previous_suffix_has_trailing_singleline_comment = formatted_suffixes
+            .last()
+            .map(|s: &Suffix| s.has_trailing_comments(CommentSearch::Single))
+            .unwrap_or(false);
+
         // Hang the call, but don't hang if the previous suffix was an index and this is an anonymous call, i.e. `.foo()`
         if will_hang
             && !(previous_suffix_was_index
-                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_))))
+                && matches!(suffix, Suffix::Call(Call::AnonymousCall(_)))
+                && !previous_suffix_has_trailing_singleline_comment)
         {
             suffix = trivia_util::prepend_newline_indent(ctx, &suffix, current_shape);
         }
