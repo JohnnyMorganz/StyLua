@@ -1173,8 +1173,8 @@ impl HasInlineComments for Expression {
         match self {
             Expression::BinaryOperator { lhs, binop, rhs } => {
                 contains_comments(binop)
-                    || lhs.has_trailing_comments(CommentSearch::All)
-                    || rhs.has_leading_comments(CommentSearch::All)
+                    || lhs.has_trailing_comments(CommentSearch::Single)
+                    || rhs.has_leading_comments(CommentSearch::Single)
                     || lhs.has_inline_comments()
                     || rhs.has_inline_comments()
             }
