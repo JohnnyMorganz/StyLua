@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added flag `--no-ignore-vcs` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
 
+### Fixed
+
+- Fixed syntax error in output when a single-line comment appears between an index suffix and a table call argument, e.g. `foo.bar -- comment { }` ([#873](https://github.com/JohnnyMorganz/StyLua/issues/873))
+
 ## [2.3.1] - 2025-11-01
 
 ### Fixed
