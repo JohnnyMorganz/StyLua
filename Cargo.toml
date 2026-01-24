@@ -62,7 +62,7 @@ lsp-types = { version = "0.97", optional = true }
 lsp-textdocument = { version = "0.4.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.81", optional = true }
+wasm-bindgen = { version = "0.2.108", optional = true }
 
 # full-moon should be compiled to release optimisations in debug mode due to stack overflows
 # https://github.com/Kampfkarren/full-moon/issues/140

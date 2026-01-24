@@ -1,6 +1,6 @@
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
-    fmt_op, fmt_symbol,
+    fmt_symbol,
     formatters::{
         expression::{format_expression, format_var},
         trivia::{
