@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769270573113,
+  "lastUpdate": 1769271024816,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15581,6 +15581,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15330263,
             "range": "± 325493",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f02a23503447841ce066113081c3874bddfc12bd",
+          "message": "Fix syntax error when comment appears between index and table call (#1061)\n\nWhen a single-line comment appeared between an index suffix (like `.foo`)\nand a table call argument (`{}`), the formatter would place the opening\nparenthesis/brace on the same line as the comment, causing it to be\ncommented out and producing invalid Lua syntax.\n\nFor example, `foo.bar -- comment { x }` was being formatted as:\n```\nfoo\n    .bar -- comment({\n        x,\n    })\n```\n\nNow the anonymous call is correctly placed on a new line when the\nprevious suffix has trailing single-line comments:\n```\nfoo\n    .bar -- comment\n    ({\n        x,\n    })\n```",
+          "timestamp": "2026-01-24T16:08:15Z",
+          "tree_id": "3e3f12fe888c345e7cb97b5162d6a3d14fe3362b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f02a23503447841ce066113081c3874bddfc12bd"
+        },
+        "date": 1769271023567,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29380043,
+            "range": "± 221269",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230829669,
+            "range": "± 656008",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15669488,
+            "range": "± 387913",
             "unit": "ns/iter"
           }
         ]
