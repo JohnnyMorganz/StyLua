@@ -29,7 +29,7 @@ use full_moon::ast::{
         ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
         GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
         TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
-        TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
+        TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
 };
@@ -1496,6 +1496,22 @@ pub fn format_type_specifier(
         .to_owned()
         .with_punctuation(punctuation)
         .with_type_info(type_info)
+}
+
+pub fn format_type_instantiation(
+    ctx: &Context,
+    type_instantiation: &TypeInstantiation,
+    shape: Shape,
+) -> TypeInstantiation {
+    let outer_arrows = format_contained_span(ctx, type_instantiation.outer_arrows(), shape);
+    let inner_arrows = format_contained_span(ctx, type_instantiation.inner_arrows(), shape);
+    let types = format_punctuated(ctx, type_instantiation.types(), shape, format_type_info);
+
+    type_instantiation
+        .to_owned()
+        .with_outer_arrows(outer_arrows)
+        .with_inner_arrows(inner_arrows)
+        .with_types(types)
 }
 
 pub fn format_exported_type_declaration(

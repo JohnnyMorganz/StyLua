@@ -301,6 +301,12 @@ pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
             Call::MethodCall(method_call) => method_call.colon_token().leading_trivia(),
             other => panic!("unknown node {:?}", other),
         },
+        #[cfg(feature = "luau")]
+        Suffix::TypeInstantiation(type_instantiation) => type_instantiation
+            .outer_arrows()
+            .tokens()
+            .0
+            .leading_trivia(),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -327,6 +333,11 @@ impl GetTrailingTrivia for Suffix {
                 Call::MethodCall(method_call) => method_call.args().trailing_trivia(),
                 other => panic!("unknown node {:?}", other),
             },
+            #[cfg(feature = "luau")]
+            Suffix::TypeInstantiation(type_instantiation) => {
+                let (_, end_arrow) = type_instantiation.outer_arrows().tokens();
+                end_arrow.trailing_trivia().map(|x| x.to_owned()).collect()
+            }
             other => panic!("unknown node {:?}", other),
         }
     }

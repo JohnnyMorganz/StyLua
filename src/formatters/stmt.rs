@@ -903,6 +903,10 @@ pub(crate) mod stmt_block {
                     },
                     _ => index.to_owned(),
                 }),
+                #[cfg(feature = "luau")]
+                Suffix::TypeInstantiation(type_instantiation) => {
+                    Suffix::TypeInstantiation(type_instantiation.to_owned())
+                }
                 other => panic!("unknown node {:?}", other),
             })
             .collect();

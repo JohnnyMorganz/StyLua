@@ -5,7 +5,7 @@ use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
     IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, LuauAttribute,
     TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
-    TypeIntersection, TypeSpecifier, TypeUnion,
+    TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, AnonymousFunction, BinOp, Call, Expression,
@@ -716,6 +716,10 @@ define_update_trivia!(Suffix, |this, leading, trailing| {
     match this {
         Suffix::Call(call) => Suffix::Call(call.update_trivia(leading, trailing)),
         Suffix::Index(index) => Suffix::Index(index.update_trivia(leading, trailing)),
+        #[cfg(feature = "luau")]
+        Suffix::TypeInstantiation(type_instantiation) => {
+            Suffix::TypeInstantiation(type_instantiation.update_trivia(leading, trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -807,6 +811,12 @@ define_update_trivia!(TypeIntersection, |this, leading, trailing| {
                 .update_trailing_trivia(trailing),
         )
     }
+});
+
+#[cfg(feature = "luau")]
+define_update_trivia!(TypeInstantiation, |this, leading, trailing| {
+    this.to_owned()
+        .with_outer_arrows(this.outer_arrows().update_trivia(leading, trailing))
 });
 
 #[cfg(feature = "luau")]

@@ -9,7 +9,8 @@ use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_generic_declaration, format_luau_attribute, format_type_specifier,
+    format_generic_declaration, format_luau_attribute, format_type_instantiation,
+    format_type_specifier,
 };
 use crate::{
     context::{
@@ -1302,12 +1303,26 @@ pub fn format_method_call(
 
     let (colon_token, name) =
         process_dot_name(ctx, method_call.colon_token(), method_call.name(), shape);
-    let shape = shape + (colon_token.to_string().len() + name.to_string().len());
+    #[allow(unused_mut)]
+    let mut shape = shape + (colon_token.to_string().len() + name.to_string().len());
+
+    #[cfg(feature = "luau")]
+    let type_instantiation = method_call.type_instantiation().map(|ti| {
+        let formatted = format_type_instantiation(ctx, ti, shape);
+        shape = shape + strip_trivia(&formatted).to_string().len();
+        formatted
+    });
+
     let formatted_function_args =
         format_function_args(ctx, method_call.args(), shape, call_next_node)
             .update_leading_trivia(FormatTriviaType::Append(function_call_trivia));
 
-    MethodCall::new(name, formatted_function_args).with_colon_token(colon_token)
+    let method_call = MethodCall::new(name, formatted_function_args).with_colon_token(colon_token);
+
+    #[cfg(feature = "luau")]
+    let method_call = method_call.with_type_instanation(type_instantiation);
+
+    method_call
 }
 
 /// Formats a single Parameter node

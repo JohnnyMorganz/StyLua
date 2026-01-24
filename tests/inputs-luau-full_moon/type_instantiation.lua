@@ -1,0 +1,25 @@
+-- Basic type instantiation
+local result = identity<<number>>(1)
+
+-- Multiple type parameters
+local a, b = multipleReturns<<number, string>>(1, "a")
+
+-- Type packs
+local c, d = typePacks<<(string, number)>>(1, "a")
+
+-- Method call with type instantiation
+local value = obj:method<<number>>(42)
+
+-- Chained method calls with type instantiation
+local chained = obj:first<<A>>():second<<B>>()
+
+-- Complex nested types
+local nested = expr<<A<B<C>>>>()
+local nestedMethod = a:method<<A<B<C>>>>()
+
+-- Multiple suffixes
+local multi = foo.bar<<T>>()
+local multiMethod = foo:bar<<T>>().baz<<U>>()
+
+-- Long type parameters that may need formatting
+local long = func<<VeryLongTypeName, AnotherLongTypeName, YetAnotherLongTypeName>>(arg1, arg2)

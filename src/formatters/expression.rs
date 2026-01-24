@@ -14,8 +14,10 @@ use std::boxed::Box;
 
 #[cfg(feature = "luau")]
 use crate::formatters::{
-    assignment::calculate_hang_level, luau::format_type_assertion,
-    stmt::remove_condition_parentheses, trivia_util::HasInlineComments,
+    assignment::calculate_hang_level,
+    luau::{format_type_assertion, format_type_instantiation},
+    stmt::remove_condition_parentheses,
+    trivia_util::HasInlineComments,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
@@ -527,6 +529,10 @@ pub fn format_suffix(
     match suffix {
         Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape, call_next_node)),
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
+        #[cfg(feature = "luau")]
+        Suffix::TypeInstantiation(type_instantiation) => {
+            Suffix::TypeInstantiation(format_type_instantiation(ctx, type_instantiation, shape))
+        }
         other => panic!("unknown node {:?}", other),
     }
 }

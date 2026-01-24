@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added flag `--no-ignore-vcs` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
 - Support `call_parentheses = Input` in editorconfig ([#1057](https://github.com/JohnnyMorganz/StyLua/pull/1057))
+- Luau: Support formatting explicit type instantiations (`f<<T>>()`, `obj:method<<T>>()`)
 
 ### Fixed
 
