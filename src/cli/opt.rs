@@ -98,9 +98,9 @@ pub struct Opt {
     #[structopt(short, long)]
     pub allow_hidden: bool,
 
-    /// Whether to continue formatting files listed in .gitignore / .ignore
+    /// Whether to continue formatting files that are excluded from version control (e.g., listed in .gitignore)
     #[structopt(long)]
-    pub allow_gitignore: bool,
+    pub no_ignore_vcs: bool,
 
     /// Disables the EditorConfig feature.
     ///

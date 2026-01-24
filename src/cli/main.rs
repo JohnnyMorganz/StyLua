@@ -264,9 +264,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
     }
 
     walker_builder
-        .standard_filters(!opt.allow_gitignore)
+        .standard_filters(true)
         .hidden(!opt.allow_hidden)
         .parents(true)
+        .git_exclude(!opt.no_ignore_vcs)
+        .git_global(!opt.no_ignore_vcs)
+        .git_ignore(!opt.no_ignore_vcs)
         .add_custom_ignore_filename(".styluaignore");
 
     // Look for an ignore file in the current working directory
@@ -798,7 +801,7 @@ mod tests {
 
         let mut cmd = create_stylua();
         cmd.current_dir(cwd.path())
-            .args(["--allow-gitignore", "."])
+            .args(["--no-ignore-vcs", "."])
             .assert()
             .success();
 
