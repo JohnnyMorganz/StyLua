@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 PROJECT_ROOT=$(dirname $0)/..
 CURRENT_DIR=$PROJECT_ROOT/wasm
 
@@ -35,4 +38,10 @@ cp $CURRENT_DIR/stylua.deno/stylua_lib.d.ts $CURRENT_DIR/stylua_lib_deno.d.ts
 cp $CURRENT_DIR/stylua.web/stylua_lib.js $CURRENT_DIR/stylua_lib_web.js
 cp $CURRENT_DIR/stylua.web/stylua_lib.d.ts $CURRENT_DIR/stylua_lib_web.d.ts
 
-echo "Done"
+echo "Build complete!"
+
+# Run smoke tests if --test flag is passed
+if [ "$1" = "--test" ]; then
+    echo "Running smoke tests..."
+    cd $CURRENT_DIR && npm test
+fi

@@ -11,6 +11,9 @@
     "type": "git",
     "url": "https://github.com/johnnymorganz/stylua"
   },
+  "scripts": {
+    "test": "node --test tests/smoke.test.mjs tests/smoke.test.cjs"
+  },
   "files": [
     "stylua_lib_*",
     "stylua_lib.*",

@@ -92,13 +92,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "16.x"
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Test Build (wasm-pack)
+      - name: Test (WASM Build)
         run: |
           chmod u+x ./wasm/build-wasm.sh
-          ./wasm/build-wasm.sh
+          ./wasm/build-wasm.sh --test
 
   test_docker_build:
     runs-on: ubuntu-latest
