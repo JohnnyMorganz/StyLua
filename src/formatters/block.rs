@@ -411,9 +411,23 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             type_declaration.type_token(),
             with_type_token
         ),
-        #[cfg(feature = "lua52")]
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeFunction(exported_type_function) => update_first_token!(
+            ExportedTypeFunction,
+            exported_type_function,
+            exported_type_function.export_token(),
+            with_export_token
+        ),
+        #[cfg(feature = "luau")]
+        Stmt::TypeFunction(type_function) => update_first_token!(
+            TypeFunction,
+            type_function,
+            type_function.type_token(),
+            with_type_token
+        ),
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(goto) => update_first_token!(Goto, goto, goto.goto_token(), with_goto_token),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(label) => {
             update_first_token!(Label, label, label.left_colons(), with_left_colons)
         }
@@ -459,18 +473,50 @@ fn var_has_parentheses(var: &Var) -> bool {
     }
 }
 
+fn expression_ends_with_identifier_or_parentheses(expression: &Expression) -> bool {
+    match expression {
+        Expression::Parentheses { .. } => true,
+        Expression::FunctionCall(_) => true,
+        Expression::Var(_) => true,
+        Expression::BinaryOperator { rhs, .. } => {
+            expression_ends_with_identifier_or_parentheses(rhs)
+        }
+        Expression::UnaryOperator { expression, .. } => {
+            expression_ends_with_identifier_or_parentheses(expression)
+        }
+        #[cfg(feature = "luau")]
+        Expression::IfExpression(if_expression) => {
+            expression_ends_with_identifier_or_parentheses(if_expression.else_expression())
+        }
+        _ => false,
+    }
+}
+
+// Ambiguous syntax can only occur if the current statement ends with an identifier, function call, or parentheses
+fn stmt_ends_with_identifier_or_parentheses(stmt: &Stmt) -> bool {
+    match stmt {
+        Stmt::Assignment(assignment) => match assignment.expressions().last() {
+            Some(pair) => expression_ends_with_identifier_or_parentheses(pair.value()),
+            None => false,
+        },
+        Stmt::LocalAssignment(local_assignment) => match local_assignment.expressions().last() {
+            Some(pair) => expression_ends_with_identifier_or_parentheses(pair.value()),
+            None => false,
+        },
+        Stmt::FunctionCall(_) => true,
+        Stmt::Repeat(repeat) => expression_ends_with_identifier_or_parentheses(repeat.until()),
+        _ => false,
+    }
+}
+
 fn check_stmt_requires_semicolon(
     stmt: &Stmt,
     next_stmt: Option<&&(Stmt, Option<TokenReference>)>,
 ) -> bool {
     // Need to check next statement if it is a function call, with a parameters expression as the prefix
     // If so, removing a semicolon may lead to ambiguous syntax
-    // Ambiguous syntax can only occur if the current statement is a (Local)Assignment, FunctionCall or a Repeat block
-    match stmt {
-        Stmt::Assignment(_)
-        | Stmt::LocalAssignment(_)
-        | Stmt::FunctionCall(_)
-        | Stmt::Repeat(_) => match next_stmt {
+    stmt_ends_with_identifier_or_parentheses(stmt)
+        && match next_stmt {
             Some((Stmt::FunctionCall(function_call), _)) => match function_call.prefix() {
                 Prefix::Expression(expression) => {
                     matches!(&**expression, Expression::Parentheses { .. })
@@ -486,16 +532,14 @@ fn check_stmt_requires_semicolon(
                 var_has_parentheses(compound_assignment.lhs())
             }
             _ => false,
-        },
-        _ => false,
-    }
+        }
 }
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let mut ctx = *ctx;
     let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
-    let mut found_first_stmt = false;
+    let mut remove_next_stmt_leading_newlines = !ctx.should_preserve_leading_block_newline_gaps();
     let mut stmt_iterator = block.stmts_with_semicolon().peekable();
 
     while let Some((stmt, semi)) = stmt_iterator.next() {
@@ -504,12 +548,12 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
         let shape = shape.reset();
         let mut stmt = format_stmt(&ctx, stmt, shape);
 
-        // If this is the first stmt, then remove any leading newlines
-        if !found_first_stmt {
+        // If this is the first stmt, and leading newlines should be removed, then remove them
+        if remove_next_stmt_leading_newlines {
             if let FormatNode::Normal = ctx.should_format_node(&stmt) {
                 stmt = stmt_remove_leading_newlines(stmt);
             }
-            found_first_stmt = true;
+            remove_next_stmt_leading_newlines = false;
         }
 
         // If we have a semicolon, we need to push all the trailing trivia from the statement
@@ -571,8 +615,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
 
             let shape = shape.reset();
             let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
-            // If this is the first stmt, then remove any leading newlines
-            if !found_first_stmt && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal)
+            // If this is the first stmt, and leading newlines should be removed, then remove them
+            if remove_next_stmt_leading_newlines
+                && matches!(ctx.should_format_node(&last_stmt), FormatNode::Normal)
             {
                 last_stmt = last_stmt_remove_leading_newlines(last_stmt);
             }

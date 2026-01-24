@@ -1,6 +1,8 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/excess-parentheses.lua
+snapshot_kind: text
 ---
 local x
 something(x)
@@ -11,7 +13,7 @@ local z = (...) == nil and foo or bar
 local foo = not (bar and baz)
 local bar = #bar and baz
 local cond = condition and (not object or object.Value == y)
-local baz = (-4 + 3) * 2;
+local baz = (-4 + 3) * 2
 
 ({}):foo();
 ("hello"):format()
@@ -34,4 +36,3 @@ local y = "hello"
 local z = function()
 	return true
 end
-

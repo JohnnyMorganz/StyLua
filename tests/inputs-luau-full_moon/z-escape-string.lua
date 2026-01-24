@@ -3,3 +3,9 @@ print("testing \z
 
 print("Hello \
 	World")
+
+print(`testing \z
+	   twelve`)
+
+print(`Hello \
+	World`)

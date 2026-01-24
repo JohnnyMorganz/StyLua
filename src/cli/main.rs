@@ -1,30 +1,30 @@
+#![allow(unused_assignments)] // clippy false positive bug - https://github.com/rust-lang/rust/issues/147648. Remove once fixed
 use anyhow::{bail, Context, Result};
 use clap::StructOpt;
 use console::style;
-use ignore::{gitignore::Gitignore, overrides::OverrideBuilder, WalkBuilder};
+use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use log::{LevelFilter, *};
 use serde_json::json;
 use std::collections::HashSet;
 use std::fs;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::Path;
-#[cfg(feature = "editorconfig")]
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use thiserror::Error;
 use threadpool::ThreadPool;
 
-#[cfg(feature = "editorconfig")]
-use stylua_lib::editorconfig;
 use stylua_lib::{format_code, Config, OutputVerification, Range};
 
-use crate::config::find_ignore_file_path;
-
 mod config;
+#[cfg(feature = "lsp")]
+mod lsp;
 mod opt;
 mod output_diff;
+mod stylua_ignore;
+
+use stylua_ignore::{is_explicitly_provided, path_is_stylua_ignored, should_respect_ignores};
 
 static EXIT_CODE: AtomicI32 = AtomicI32::new(0);
 static UNFORMATTED_FILE_COUNT: AtomicU32 = AtomicU32::new(0);
@@ -208,55 +208,21 @@ fn format_string(
     }
 }
 
-fn get_ignore(
-    directory: &Path,
-    search_parent_directories: bool,
-) -> Result<Gitignore, ignore::Error> {
-    let file_path = find_ignore_file_path(directory.to_path_buf(), search_parent_directories)
-        .or_else(|| {
-            std::env::current_dir()
-                .ok()
-                .and_then(|cwd| find_ignore_file_path(cwd, false))
-        });
-
-    if let Some(file_path) = file_path {
-        let (ignore, err) = Gitignore::new(file_path);
-        if let Some(err) = err {
-            Err(err)
-        } else {
-            Ok(ignore)
-        }
-    } else {
-        Ok(Gitignore::empty())
-    }
-}
-
-/// Whether the provided path was explicitly provided to the tool
-fn is_explicitly_provided(opt: &opt::Opt, path: &Path) -> bool {
-    opt.files.iter().any(|p| path == *p)
-}
-
-/// By default, files explicitly passed to the command line will be formatted regardless of whether
-/// they are present in .styluaignore / not glob matched. If `--respect-ignores` is provided,
-/// then we enforce .styluaignore / glob matching on explicitly passed paths.
-fn should_respect_ignores(opt: &opt::Opt, path: &Path) -> bool {
-    !is_explicitly_provided(opt, path) || opt.respect_ignores
-}
-
-fn path_is_stylua_ignored(path: &Path, search_parent_directories: bool) -> Result<bool> {
-    let ignore = get_ignore(
-        path.parent().expect("cannot get parent directory"),
-        search_parent_directories,
-    )
-    .context("failed to parse ignore file")?;
-
-    Ok(matches!(
-        ignore.matched_path_or_any_parents(path, false),
-        ignore::Match::Ignore(_)
-    ))
-}
-
 fn format(opt: opt::Opt) -> Result<i32> {
+    debug!("resolved options: {:#?}", opt);
+
+    if opt.lsp {
+        #[cfg(feature = "lsp")]
+        {
+            lsp::run(opt)?;
+            return Ok(0);
+        }
+        #[cfg(not(feature = "lsp"))]
+        {
+            bail!("attempted to run stylua in LSP mode, but this binary was not built with 'lsp' feature enabled")
+        }
+    }
+
     if opt.files.is_empty() {
         bail!("no files provided");
     }
@@ -268,18 +234,12 @@ fn format(opt: opt::Opt) -> Result<i32> {
             opt::OutputFormat::Unified | opt::OutputFormat::Summary
         )
     {
-        bail!("--output-format=unified and --output-format=standard can only be used when --check is enabled");
+        bail!("--output-format=unified and --output-format=summary can only be used when --check is enabled");
     }
 
     // Load the configuration
-    let loaded = config::load_config(&opt)?;
-    #[cfg(feature = "editorconfig")]
-    let is_default_config = loaded.is_none();
-    let config = loaded.unwrap_or_default();
-
-    // Handle any configuration overrides provided by options
-    let config = config::load_overrides(config, &opt);
-    debug!("config: {:#?}", config);
+    let opt_for_config_resolver = opt.clone();
+    let mut config_resolver = config::ConfigResolver::new(&opt_for_config_resolver)?;
 
     // Create range if provided
     let range = if opt.range_start.is_some() || opt.range_end.is_some() {
@@ -420,45 +380,33 @@ fn format(opt: opt::Opt) -> Result<i32> {
                     let should_skip_format = match &opt.stdin_filepath {
                         Some(path) => {
                             opt.respect_ignores
-                                && path_is_stylua_ignored(path, opt.search_parent_directories)?
+                                && path_is_stylua_ignored(
+                                    path,
+                                    opt.search_parent_directories,
+                                    None,
+                                )?
                         }
                         None => false,
                     };
 
-                    pool.execute(move || {
-                        #[cfg(not(feature = "editorconfig"))]
-                        let used_config = Ok(config);
-                        #[cfg(feature = "editorconfig")]
-                        let used_config = match is_default_config && !&opt.no_editorconfig {
-                            true => {
-                                let path = match &opt.stdin_filepath {
-                                    Some(filepath) => filepath.to_path_buf(),
-                                    None => PathBuf::from("*.lua"),
-                                };
-                                editorconfig::parse(config, &path)
-                                    .context("could not parse editorconfig")
-                            }
-                            false => Ok(config),
-                        };
+                    let config = config_resolver.load_configuration_for_stdin()?;
 
+                    pool.execute(move || {
                         let mut buf = String::new();
                         tx.send(
-                            used_config
-                                .and_then(|used_config| {
-                                    stdin()
-                                        .read_to_string(&mut buf)
-                                        .map_err(|err| err.into())
-                                        .and_then(|_| {
-                                            format_string(
-                                                buf,
-                                                used_config,
-                                                range,
-                                                &opt,
-                                                verify_output,
-                                                should_skip_format,
-                                            )
-                                            .context("could not format from stdin")
-                                        })
+                            stdin()
+                                .read_to_string(&mut buf)
+                                .map_err(|err| err.into())
+                                .and_then(|_| {
+                                    format_string(
+                                        buf,
+                                        config,
+                                        range,
+                                        &opt,
+                                        verify_output,
+                                        should_skip_format,
+                                    )
+                                    .context("could not format from stdin")
                                 })
                                 .map_err(|error| {
                                     ErrorFileWrapper {
@@ -501,34 +449,25 @@ fn format(opt: opt::Opt) -> Result<i32> {
                         // we should check .styluaignore
                         if is_explicitly_provided(opt.as_ref(), &path)
                             && should_respect_ignores(opt.as_ref(), &path)
-                            && path_is_stylua_ignored(&path, opt.search_parent_directories)?
+                            && path_is_stylua_ignored(&path, opt.search_parent_directories, None)?
                         {
                             continue;
                         }
 
+                        let config = config_resolver.load_configuration(&path)?;
+
                         let tx = tx.clone();
                         pool.execute(move || {
-                            #[cfg(not(feature = "editorconfig"))]
-                            let used_config = Ok(config);
-                            #[cfg(feature = "editorconfig")]
-                            let used_config = match is_default_config && !&opt.no_editorconfig {
-                                true => editorconfig::parse(config, &path)
-                                    .context("could not parse editorconfig"),
-                                false => Ok(config),
-                            };
-
                             tx.send(
-                                used_config
-                                    .and_then(|used_config| {
-                                        format_file(&path, used_config, range, &opt, verify_output)
-                                    })
-                                    .map_err(|error| {
+                                format_file(&path, config, range, &opt, verify_output).map_err(
+                                    |error| {
                                         ErrorFileWrapper {
                                             file: path.display().to_string(),
                                             error,
                                         }
                                         .into()
-                                    }),
+                                    },
+                                ),
                             )
                             .unwrap()
                         });
@@ -657,12 +596,12 @@ mod tests {
     use assert_fs::prelude::*;
 
     macro_rules! construct_tree {
-        ({ $($file_name:literal:$file_contents:literal,)+ }) => {{
+        ({ $($file_name:literal:$file_contents:literal,)* }) => {{
             let cwd = assert_fs::TempDir::new().unwrap();
 
             $(
                 cwd.child($file_name).write_str($file_contents).unwrap();
-            )+
+            )*
 
             cwd
         }};
@@ -758,6 +697,30 @@ mod tests {
     }
 
     #[test]
+    fn explicitly_provided_files_not_in_cwd() {
+        let cwd = construct_tree!({
+            ".styluaignore": "foo.lua",
+        });
+
+        let another = construct_tree!({});
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args([
+                "--respect-ignores",
+                "--stdin-filepath",
+                another.child("foo.lua").to_str().unwrap(),
+                "-",
+            ])
+            .write_stdin("local   x    =   1")
+            .assert()
+            .success()
+            .stdout("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
     fn test_respect_ignores() {
         let cwd = construct_tree!({
             ".styluaignore": "foo.lua",
@@ -840,6 +803,271 @@ mod tests {
             .success();
 
         cwd.child("foo.lua").assert("local x = 1\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stdin_filepath_respects_cwd_configuration_next_to_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--stdin-filepath", "foo.lua", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_stdin_filepath_respects_cwd_configuration_for_nested_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--stdin-filepath", "build/foo.lua", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_cwd_configuration_respected_when_formatting_from_stdin() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("-")
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_cwd_configuration_respected_for_file_in_cwd() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_cwd_configuration_respected_for_nested_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_not_used_outside_of_cwd() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.child("build").path())
+            .arg("foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = \"hello\"\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_used_outside_of_cwd_when_search_parent_directories_is_enabled() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.child("build").path())
+            .args(["--search-parent-directories", "foo.lua"])
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_searched_next_to_file() {
+        let cwd = construct_tree!({
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_configuration_is_used_closest_to_the_file() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "build/foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("build/foo.lua")
+            .assert()
+            .success();
+
+        cwd.child("build/foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_respect_config_path_override() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--config-path", "build/stylua.toml", "foo.lua"])
+            .assert()
+            .success();
+    }
+
+    #[test]
+    fn test_respect_config_path_override_for_stdin_filepath() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "build/stylua.toml": "quote_style = 'AutoPreferSingle'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--config-path", "build/stylua.toml", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_default_configuration() {
+        let cwd = construct_tree!({
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_default_configuration_stdin_filepath() {
+        let cwd = construct_tree!({
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_found_configuration() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "."])
+            .assert()
+            .success();
+
+        cwd.child("foo.lua").assert("local x = 'hello'\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    fn test_uses_cli_overrides_instead_of_found_configuration_stdin_filepath() {
+        let cwd = construct_tree!({
+            "stylua.toml": "quote_style = 'AutoPreferDouble'",
+            "foo.lua": "local x = \"hello\"",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .args(["--quote-style", "AutoPreferSingle", "-"])
+            .write_stdin("local x = \"hello\"")
+            .assert()
+            .success()
+            .stdout("local x = 'hello'\n");
 
         cwd.close().unwrap();
     }

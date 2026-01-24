@@ -1,15 +1,15 @@
 use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
 use stylua_lib::{
-    CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion, QuoteStyle,
-    SpaceAfterFunctionNames,
+    BlockNewlineGaps, CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion,
+    QuoteStyle, SpaceAfterFunctionNames,
 };
 
 lazy_static::lazy_static! {
     static ref NUM_CPUS: String = num_cpus::get().to_string();
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Clone, Debug)]
 #[structopt(name = "stylua", about = "A utility to format Lua code", version)]
 pub struct Opt {
     /// Specify path to stylua.toml configuration file.
@@ -112,6 +112,10 @@ pub struct Opt {
     /// Respect .styluaignore and glob matching for file paths provided directly to the tool
     #[structopt(long)]
     pub respect_ignores: bool,
+
+    /// Run Stylua as a language server (following LSP protocol)
+    #[structopt(long)]
+    pub lsp: bool,
 }
 
 #[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
@@ -164,7 +168,7 @@ pub enum OutputFormat {
     Summary,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Clone, Copy, Debug)]
 pub struct FormatOpts {
     /// The type of Lua syntax to parse
     #[structopt(long, arg_enum, ignore_case = true)]
@@ -190,6 +194,9 @@ pub struct FormatOpts {
     /// Specify whether to collapse simple statements.
     #[structopt(long, arg_enum, ignore_case = true)]
     pub collapse_simple_statement: Option<ArgCollapseSimpleStatement>,
+    /// Specify whether to preserve leading and trailing newline gaps for blocks.
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub preserve_block_newline_gaps: Option<ArgBlockNewlineGaps>,
     /// Enable requires sorting
     #[structopt(long)]
     pub sort_requires: bool,
@@ -241,6 +248,7 @@ convert_enum!(LuaVersion, ArgLuaVersion, {
     #[cfg(feature = "lua54")] Lua54,
     #[cfg(feature = "luau")] Luau,
     #[cfg(feature = "luajit")] LuaJIT,
+    #[cfg(feature = "cfxlua")] CfxLua,
 });
 
 convert_enum!(LineEndings, ArgLineEndings, {
@@ -273,6 +281,11 @@ convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     FunctionOnly,
     ConditionalOnly,
     Always,
+});
+
+convert_enum!(BlockNewlineGaps, ArgBlockNewlineGaps, {
+    Never,
+    Preserve,
 });
 
 convert_enum!(SpaceAfterFunctionNames, ArgSpaceAfterFunctionNames, {

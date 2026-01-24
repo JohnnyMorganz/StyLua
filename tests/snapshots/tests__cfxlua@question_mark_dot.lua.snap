@@ -1,0 +1,16 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/question_mark_dot.lua
+snapshot_kind: text
+---
+local a = {
+	b = 1,
+	c = 2,
+	d = {
+		e = 3,
+	},
+}
+
+local x = a?.b
+local y = a?.d?.e

@@ -38,7 +38,7 @@ REPOS = {
     # }
     "CorePackages": {
         "url": "https://github.com/grilme99/CorePackages",
-        "command": "."
+        "command": "--syntax luau ."
     }
 }
 

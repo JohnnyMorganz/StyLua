@@ -1,9 +1,12 @@
 use crate::{
-    context::{create_indent_trivia, create_newline_trivia, Context},
-    fmt_op, fmt_symbol,
+    context::{
+        create_function_definition_trivia, create_indent_trivia, create_newline_trivia, Context,
+    },
+    fmt_symbol,
     formatters::{
         assignment::hang_equal_token,
-        expression::{format_expression, format_var},
+        expression::format_expression,
+        functions::format_function_body,
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_punctuated,
             format_symbol, format_token_reference,
@@ -23,50 +26,16 @@ use crate::{
 };
 use full_moon::ast::{
     luau::{
-        CompoundAssignment, CompoundOp, ExportedTypeDeclaration, GenericDeclaration,
-        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-        TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
-        TypeSpecifier, TypeUnion,
+        ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
+        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
+        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
+        TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
 };
 use full_moon::ast::{punctuated::Punctuated, span::ContainedSpan};
 use full_moon::tokenizer::{Token, TokenReference, TokenType};
 use std::boxed::Box;
-
-pub fn format_compound_op(ctx: &Context, compound_op: &CompoundOp, shape: Shape) -> CompoundOp {
-    fmt_op!(ctx, CompoundOp, compound_op, shape, {
-        PlusEqual = " += ",
-        MinusEqual = " -= ",
-        StarEqual = " *= ",
-        SlashEqual = " /= ",
-        PercentEqual = " %= ",
-        CaretEqual = " ^= ",
-        TwoDotsEqual = " ..= ",
-        DoubleSlashEqual = " //= ",
-    }, |other| panic!("unknown node {:?}", other))
-}
-
-pub fn format_compound_assignment(
-    ctx: &Context,
-    compound_assignment: &CompoundAssignment,
-    shape: Shape,
-) -> CompoundAssignment {
-    // Calculate trivia
-    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
-    let trailing_trivia = vec![create_newline_trivia(ctx)];
-
-    let lhs = format_var(ctx, compound_assignment.lhs(), shape)
-        .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
-    let compound_operator = format_compound_op(ctx, compound_assignment.compound_operator(), shape);
-    let shape = shape
-        + (strip_leading_trivia(&lhs).to_string().len() + compound_operator.to_string().len());
-
-    let rhs = format_expression(ctx, compound_assignment.rhs(), shape)
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
-
-    CompoundAssignment::new(lhs, compound_operator, rhs)
-}
 
 // If we have a type like
 // A | B | {
@@ -78,6 +47,16 @@ fn should_hug_type(type_info: &TypeInfo) -> bool {
         TypeInfo::Union(union) => union.types().iter().any(should_hug_type),
         TypeInfo::Intersection(intersection) => intersection.types().iter().any(should_hug_type),
         TypeInfo::Table { .. } => true,
+        _ => false,
+    }
+}
+
+fn is_union_of_tables(type_info: &TypeInfo) -> bool {
+    match type_info {
+        TypeInfo::Union(union) => union
+            .types()
+            .iter()
+            .all(|ty| matches!(ty, TypeInfo::Table { .. })),
         _ => false,
     }
 }
@@ -139,7 +118,7 @@ fn format_type_info_generics(
                     || generic_pair.value().has_leading_comments(CommentSearch::All) // Look for leading multiline comments - these suggest expansion
                     || generic_pair
                         .punctuation()
-                        .map_or(false, contains_singleline_comments)
+                        .is_some_and(contains_singleline_comments)
         });
 
     let should_expand = contains_comments
@@ -841,8 +820,15 @@ fn hang_type_info(
                 is_first = false;
             }
 
-            // TODO: handle leading
-            TypeInfo::Union(TypeUnion::new(union.leading().cloned(), types))
+            // TODO: leading should play a role in the shape computation
+            // TODO(#910): we should decide whether we add or remove a leading token (maybe if hang_level = 0?)
+
+            TypeInfo::Union(TypeUnion::new(
+                union
+                    .leading()
+                    .map(|token| fmt_symbol!(ctx, token, "| ", shape)),
+                types,
+            ))
         }
 
         TypeInfo::Intersection(intersection) => {
@@ -884,9 +870,13 @@ fn hang_type_info(
                 is_first = false;
             }
 
-            // TODO: handle leading
+            // TODO: leading should play a role in the shape computation
+            // TODO(#910): we should decide whether we add or remove a leading token (maybe if hang_level = 0?)
+
             TypeInfo::Intersection(TypeIntersection::new(
-                intersection.leading().cloned(),
+                intersection
+                    .leading()
+                    .map(|token| fmt_symbol!(ctx, token, "& ", shape)),
                 types,
             ))
         }
@@ -1107,6 +1097,7 @@ fn attempt_assigned_type_tactics(
     ctx: &Context,
     equal_token: TokenReference,
     type_info: &TypeInfo,
+    context: TypeInfoContext,
     shape: Shape,
 ) -> (TokenReference, TypeInfo) {
     const EQUAL_TOKEN_LENGTH: usize = " = ".len();
@@ -1119,9 +1110,14 @@ fn attempt_assigned_type_tactics(
 
         // Format declaration, hanging if it contains comments (ignoring leading and trailing comments, as they won't affect anything)
         let declaration = if contains_comments(strip_trivia(type_info)) {
-            hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0)
+            hang_type_info(ctx, type_info, context, shape, 0)
         } else {
-            format_type_info(ctx, type_info, shape)
+            let proper_declaration = format_type_info_internal(ctx, type_info, context, shape);
+            if shape.test_over_budget(&proper_declaration) {
+                hang_type_info(ctx, type_info, context, shape, 0)
+            } else {
+                proper_declaration
+            }
         };
 
         // Take the leading comments and format them nicely
@@ -1146,8 +1142,9 @@ fn attempt_assigned_type_tactics(
         let mut equal_token = equal_token;
         let type_definition;
         let singleline_type_definition =
-            format_type_info(ctx, type_info, shape.with_infinite_width());
-        let proper_type_definition = format_type_info(ctx, type_info, shape + EQUAL_TOKEN_LENGTH);
+            format_type_info_internal(ctx, type_info, context, shape.with_infinite_width());
+        let proper_type_definition =
+            format_type_info_internal(ctx, type_info, context, shape + EQUAL_TOKEN_LENGTH);
 
         // Test to see whether the type definition must be hung due to comments
         let must_hang = should_hang_type(type_info, CommentSearch::All);
@@ -1155,11 +1152,13 @@ fn attempt_assigned_type_tactics(
         // If we can hang the type definition, and its over width, then lets try doing so
         if can_hang_type(type_info)
             && (must_hang
-                || (shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))))
+                || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))
+                || spans_multiple_lines(&singleline_type_definition))
         {
             // If we should hug the type, then lets check out the proper definition and see if it fits
             if !must_hang
                 && should_hug_type(type_info)
+                && !is_union_of_tables(type_info)
                 && !shape.test_over_budget(&proper_type_definition)
             {
                 type_definition = proper_type_definition;
@@ -1168,8 +1167,7 @@ fn attempt_assigned_type_tactics(
                 equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
                 let shape = shape.reset().increment_additional_indent();
-                let hanging_type_definition =
-                    hang_type_info(ctx, type_info, TypeInfoContext::new(), shape, 0);
+                let hanging_type_definition = hang_type_info(ctx, type_info, context, shape, 0);
                 type_definition = hanging_type_definition;
             }
         } else {
@@ -1181,7 +1179,7 @@ fn attempt_assigned_type_tactics(
 
                 // Add the expression list into the indent range, as it will be indented by one
                 let shape = shape.reset().increment_additional_indent();
-                type_definition = format_type_info(ctx, type_info, shape);
+                type_definition = format_type_info_internal(ctx, type_info, context, shape);
             } else {
                 // Use the proper formatting
                 type_definition = proper_type_definition;
@@ -1235,15 +1233,20 @@ fn format_type_declaration(
     };
 
     let equal_token = fmt_symbol!(ctx, type_declaration.equal_token(), " = ", shape);
-    let (equal_token, type_definition) =
-        attempt_assigned_type_tactics(ctx, equal_token, type_declaration.type_definition(), shape);
+    let (equal_token, type_definition) = attempt_assigned_type_tactics(
+        ctx,
+        equal_token,
+        type_declaration.type_definition(),
+        TypeInfoContext::new(),
+        shape,
+    );
 
     // Handle comments in between the type name and generics + generics and equal token
     // (or just type name and equal token if generics not present)
 
     // If there are comments in between the type name and the generics, then handle them
     let (type_name, equal_token, generics) = if type_name.has_trailing_comments(CommentSearch::All)
-        || generics.as_ref().map_or(false, |generics| {
+        || generics.as_ref().is_some_and(|generics| {
             generics
                 .arrows()
                 .tokens()
@@ -1340,6 +1343,63 @@ pub fn format_type_declaration_stmt(
     format_type_declaration(ctx, type_declaration, true, shape)
 }
 
+fn format_type_function(
+    ctx: &Context,
+    type_function: &TypeFunction,
+    add_leading_trivia: bool,
+    shape: Shape,
+) -> TypeFunction {
+    const TYPE_TOKEN_LENGTH: usize = "type ".len();
+    const FUNCTION_TOKEN_LENGTH: usize = "function ".len();
+
+    // Calculate trivia
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
+
+    let mut type_token = format_symbol(
+        ctx,
+        type_function.type_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "type".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    );
+
+    if add_leading_trivia {
+        let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+        type_token = type_token.update_leading_trivia(FormatTriviaType::Append(leading_trivia))
+    }
+
+    let function_token = fmt_symbol!(ctx, type_function.function_token(), "function ", shape);
+    let function_name = format_token_reference(ctx, type_function.function_name(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
+
+    let shape = shape
+        + (TYPE_TOKEN_LENGTH
+            + FUNCTION_TOKEN_LENGTH
+            + strip_trivia(&function_name).to_string().len());
+    let function_body = format_function_body(ctx, type_function.function_body(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+
+    TypeFunction::new(function_name, function_body)
+        .with_type_token(type_token)
+        .with_function_token(function_token)
+}
+
+/// Wrapper around `format_type_function` for statements
+/// This is required as `format_type_function` is also used for ExportedTypeFunction, and we don't want leading trivia there
+pub fn format_type_function_stmt(
+    ctx: &Context,
+    type_function: &TypeFunction,
+    shape: Shape,
+) -> TypeFunction {
+    format_type_function(ctx, type_function, true, shape)
+}
+
 fn format_generic_parameter(
     ctx: &Context,
     generic_parameter: &GenericDeclarationParameter,
@@ -1359,11 +1419,16 @@ fn format_generic_parameter(
         other => panic!("unknown node {:?}", other),
     };
 
+    let context = match generic_parameter.parameter() {
+        GenericParameterInfo::Variadic { .. } => TypeInfoContext::new().mark_within_generic(),
+        _ => TypeInfoContext::new(),
+    };
+
     let default_type = match (generic_parameter.equals(), generic_parameter.default_type()) {
         (Some(equals), Some(default_type)) => {
             let equals = fmt_symbol!(ctx, equals, " = ", shape);
             let (equals, default_type) =
-                attempt_assigned_type_tactics(ctx, equals, default_type, shape);
+                attempt_assigned_type_tactics(ctx, equals, default_type, context, shape);
             Some((equals, default_type))
         }
         (None, None) => None,
@@ -1466,4 +1531,50 @@ pub fn format_exported_type_declaration(
         .to_owned()
         .with_export_token(export_token)
         .with_type_declaration(type_declaration)
+}
+
+pub fn format_exported_type_function(
+    ctx: &Context,
+    exported_type_function: &ExportedTypeFunction,
+    shape: Shape,
+) -> ExportedTypeFunction {
+    // Calculate trivia
+    let shape = shape.reset();
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+
+    let export_token = format_symbol(
+        ctx,
+        exported_type_function.export_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "export".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    )
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let type_function = format_type_function(
+        ctx,
+        exported_type_function.type_function(),
+        false,
+        shape + 7, // 7 = "export "
+    );
+
+    exported_type_function
+        .to_owned()
+        .with_export_token(export_token)
+        .with_type_function(type_function)
+}
+
+pub fn format_luau_attribute(
+    ctx: &Context,
+    attribute: &LuauAttribute,
+    shape: Shape,
+) -> LuauAttribute {
+    let at_sign = fmt_symbol!(ctx, attribute.at_sign(), "@", shape);
+    let name = format_token_reference(ctx, attribute.name(), shape);
+
+    attribute.clone().with_at_sign(at_sign).with_name(name)
 }

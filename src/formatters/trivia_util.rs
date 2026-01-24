@@ -6,13 +6,14 @@ use crate::{
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
     GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
+    TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::{
     ast::{
         punctuated::{Pair, Punctuated},
-        BinOp, Block, Call, Expression, Field, FunctionArgs, Index, LastStmt, LocalAssignment,
-        Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
+        AnonymousFunction, BinOp, Block, Call, Expression, Field, FunctionArgs, FunctionBody,
+        Index, LastStmt, LocalAssignment, Parameter, Prefix, Stmt, Suffix, TableConstructor, UnOp,
+        Var, VarExpression,
     },
     node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
@@ -134,8 +135,50 @@ pub fn is_block_empty(block: &Block) -> bool {
     block.stmts().next().is_none() && block.last_stmt().is_none()
 }
 
+fn is_expression_simple(expression: &Expression) -> bool {
+    match expression {
+        Expression::Function(_) => false,
+        Expression::FunctionCall(function_call) => {
+            function_call.suffixes().all(|suffix| match suffix {
+                Suffix::Index(_) => true,
+                Suffix::Call(call) => match call {
+                    Call::AnonymousCall(function_args) => match function_args {
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            arguments.iter().all(is_expression_simple)
+                        }
+                        _ => true,
+                    },
+                    Call::MethodCall(method_call) => match method_call.args() {
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            arguments.iter().all(is_expression_simple)
+                        }
+                        _ => true,
+                    },
+                    other => unreachable!("unknown node: {:?}", other),
+                },
+                other => unreachable!("unknown node: {:?}", other),
+            })
+        }
+        _ => true,
+    }
+}
+
+fn is_last_stmt_simple(last_stmt: &LastStmt) -> bool {
+    match last_stmt {
+        LastStmt::Break(_) => true,
+        #[cfg(feature = "luau")]
+        LastStmt::Continue(_) => true,
+        LastStmt::Return(r#return) => {
+            r#return.returns().is_empty() || r#return.returns().iter().all(is_expression_simple)
+        }
+        other => unreachable!("unknown node {:?}", other),
+    }
+}
+
 pub fn is_block_simple(block: &Block) -> bool {
-    (block.stmts().next().is_none() && block.last_stmt().is_some())
+    (block.stmts().next().is_none()
+        && block.last_stmt().is_some()
+        && is_last_stmt_simple(block.last_stmt().unwrap()))
         || (block.stmts().count() == 1
             && block.last_stmt().is_none()
             && match block.stmts().next().unwrap() {
@@ -150,7 +193,7 @@ pub fn is_block_simple(block: &Block) -> bool {
                     true
                 }
                 Stmt::FunctionCall(_) => true,
-                #[cfg(feature = "lua52")]
+                #[cfg(any(feature = "lua52", feature = "luajit"))]
                 Stmt::Goto(_) => true,
                 _ => false,
             })
@@ -218,6 +261,12 @@ impl GetTrailingTrivia for FunctionArgs {
             }
             other => panic!("unknown node {:?}", other),
         }
+    }
+}
+
+impl GetTrailingTrivia for FunctionBody {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        GetTrailingTrivia::trailing_trivia(self.end_token())
     }
 }
 
@@ -319,6 +368,18 @@ impl GetTrailingTrivia for Var {
     }
 }
 
+impl GetLeadingTrivia for AnonymousFunction {
+    fn leading_trivia(&self) -> Vec<Token> {
+        GetLeadingTrivia::leading_trivia(self.function_token())
+    }
+}
+
+impl GetTrailingTrivia for AnonymousFunction {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.body().trailing_trivia()
+    }
+}
+
 impl GetLeadingTrivia for Expression {
     fn leading_trivia(&self) -> Vec<Token> {
         match self {
@@ -334,9 +395,7 @@ impl GetLeadingTrivia for Expression {
                 other => panic!("unknown node {:?}", other),
             },
             Expression::BinaryOperator { lhs, .. } => lhs.leading_trivia(),
-            Expression::Function(anonymous_function) => {
-                GetLeadingTrivia::leading_trivia(&anonymous_function.0)
-            }
+            Expression::Function(anonymous_function) => anonymous_function.leading_trivia(),
             Expression::FunctionCall(function_call) => function_call.prefix().leading_trivia(),
             #[cfg(feature = "luau")]
             Expression::IfExpression(if_expression) => {
@@ -372,9 +431,7 @@ impl GetTrailingTrivia for Expression {
             }
             Expression::UnaryOperator { expression, .. } => expression.trailing_trivia(),
             Expression::BinaryOperator { rhs, .. } => rhs.trailing_trivia(),
-            Expression::Function(anonymous_function) => {
-                GetTrailingTrivia::trailing_trivia(anonymous_function.1.end_token())
-            }
+            Expression::Function(anonymous_function) => anonymous_function.trailing_trivia(),
             Expression::FunctionCall(function_call) => function_call
                 .suffixes()
                 .last()
@@ -480,7 +537,6 @@ pub fn take_leading_comments<T: GetLeadingTrivia + UpdateLeadingTrivia>(
     )
 }
 
-#[cfg(feature = "luau")]
 pub fn take_trailing_trivia<T: GetTrailingTrivia + UpdateTrailingTrivia>(
     node: &T,
 ) -> (T, Vec<Token>) {
@@ -673,6 +729,13 @@ impl GetTrailingTrivia for TypeDeclaration {
 }
 
 #[cfg(feature = "luau")]
+impl GetTrailingTrivia for TypeFunction {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.function_body().trailing_trivia()
+    }
+}
+
+#[cfg(feature = "luau")]
 impl GetTrailingTrivia for TypeSpecifier {
     fn trailing_trivia(&self) -> Vec<Token> {
         self.type_info().trailing_trivia()
@@ -831,22 +894,14 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             end_stmt_trailing_trivia!(If, stmt)
         }
         Stmt::FunctionDeclaration(stmt) => {
-            let end_token = stmt.body().end_token();
-            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
             (
                 Stmt::FunctionDeclaration(stmt.with_body(body)),
                 trailing_trivia,
             )
         }
         Stmt::LocalFunction(stmt) => {
-            let end_token = stmt.body().end_token();
-            let trailing_trivia = end_token.trailing_trivia().map(|x| x.to_owned()).collect();
-            let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
-
-            let body = stmt.body().to_owned().with_end_token(new_end_token);
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
             (Stmt::LocalFunction(stmt.with_body(body)), trailing_trivia)
         }
         Stmt::NumericFor(stmt) => {
@@ -880,7 +935,20 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
             (Stmt::TypeDeclaration(type_declaration), trailing_trivia)
         }
-        #[cfg(feature = "lua52")]
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeFunction(stmt) => {
+            let (type_function, trailing_trivia) = take_trailing_trivia(stmt.type_function());
+            (
+                Stmt::ExportedTypeFunction(stmt.with_type_function(type_function)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeFunction(stmt) => {
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
+            (Stmt::TypeFunction(type_declaration), trailing_trivia)
+        }
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => {
             let trailing_trivia = stmt
                 .label_name()
@@ -895,7 +963,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 trailing_trivia,
             )
         }
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(stmt) => {
             let trailing_trivia = stmt
                 .right_colons()
@@ -996,11 +1064,15 @@ pub fn table_fields_contains_comments(table_constructor: &TableConstructor) -> b
             Field::NameKey { key, equal, value } => {
                 contains_comments(key) || contains_comments(equal) || contains_comments(value)
             }
+            #[cfg(feature = "cfxlua")]
+            Field::SetConstructor { dot, name } => {
+                contains_comments(dot) || contains_comments(name)
+            }
             Field::NoKey(expression) => contains_comments(expression),
             other => panic!("unknown node {:?}", other),
         };
 
-        comments || field.punctuation().map_or(false, contains_comments)
+        comments || field.punctuation().is_some_and(contains_comments)
     })
 }
 
@@ -1009,6 +1081,8 @@ impl GetTrailingTrivia for Field {
         match self {
             Field::ExpressionKey { value, .. } => value.trailing_trivia(),
             Field::NameKey { value, .. } => value.trailing_trivia(),
+            #[cfg(feature = "cfxlua")]
+            Field::SetConstructor { name, .. } => GetTrailingTrivia::trailing_trivia(name),
             Field::NoKey(expression) => expression.trailing_trivia(),
             other => panic!("unknown node {:?}", other),
         }
@@ -1026,7 +1100,7 @@ pub fn punctuated_inline_comments<T: GetLeadingTrivia + GetTrailingTrivia + HasI
             return true;
         }
 
-        if pair.punctuation().map_or(false, token_contains_comments)
+        if pair.punctuation().is_some_and(token_contains_comments)
             || (include_leading && !pair.value().leading_comments().is_empty())
             || pair.value().has_inline_comments()
         {

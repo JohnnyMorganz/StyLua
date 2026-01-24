@@ -1,11 +1,15 @@
 use crate::opt::Opt;
 use anyhow::{Context, Result};
 use log::*;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use stylua_lib::Config;
 use stylua_lib::SortRequiresConfig;
+
+#[cfg(feature = "editorconfig")]
+use stylua_lib::editorconfig;
 
 static CONFIG_FILE_NAME: [&str; 2] = ["stylua.toml", ".stylua.toml"];
 
@@ -14,6 +18,219 @@ fn read_config_file(path: &Path) -> Result<Config> {
     let config = toml::from_str(&contents).context("Config file not in correct format")?;
 
     Ok(config)
+}
+
+fn read_and_apply_overrides(path: &Path, opt: &Opt) -> Result<Config> {
+    read_config_file(path).map(|config| load_overrides(config, opt))
+}
+
+pub struct ConfigResolver<'a> {
+    config_cache: HashMap<PathBuf, Option<Config>>,
+    forced_configuration: Option<Config>,
+    current_directory: PathBuf,
+    default_configuration: Config,
+    opt: &'a Opt,
+}
+
+impl ConfigResolver<'_> {
+    pub fn new(opt: &Opt) -> Result<ConfigResolver<'_>> {
+        let forced_configuration = opt
+            .config_path
+            .as_ref()
+            .map(|config_path| {
+                debug!(
+                    "config: explicit config path provided at {}",
+                    config_path.display()
+                );
+                read_and_apply_overrides(config_path, opt)
+            })
+            .transpose()?;
+
+        Ok(ConfigResolver {
+            config_cache: HashMap::new(),
+            forced_configuration,
+            current_directory: env::current_dir().context("Could not find current directory")?,
+            default_configuration: load_overrides(Config::default(), opt),
+            opt,
+        })
+    }
+
+    /// Returns the root used when searching for configuration
+    /// If `--search-parent-directories`, then there is no root, and we keep searching
+    /// Else, the root is the current working directory, and we do not search higher than the cwd
+    fn get_configuration_search_root(
+        &self,
+        search_root_override: Option<PathBuf>,
+    ) -> Option<PathBuf> {
+        match self.opt.search_parent_directories {
+            true => None,
+            false => {
+                Some(search_root_override.unwrap_or_else(|| self.current_directory.to_path_buf()))
+            }
+        }
+    }
+
+    pub(crate) fn load_configuration_with_search_root(
+        &mut self,
+        path: &Path,
+        search_root_override: Option<PathBuf>,
+    ) -> Result<Config> {
+        if let Some(configuration) = self.forced_configuration {
+            return Ok(configuration);
+        }
+
+        let root = self.get_configuration_search_root(search_root_override);
+
+        let absolute_path = self.current_directory.join(path);
+        let parent_path = &absolute_path
+            .parent()
+            .with_context(|| format!("no parent directory found for {}", path.display()))?;
+
+        match self.find_config_file(parent_path, root)? {
+            Some(config) => Ok(config),
+            None => {
+                #[cfg(feature = "editorconfig")]
+                if self.opt.no_editorconfig {
+                    Ok(self.default_configuration)
+                } else {
+                    editorconfig::parse(self.default_configuration, path)
+                        .context("could not parse editorconfig")
+                }
+                #[cfg(not(feature = "editorconfig"))]
+                Ok(self.default_configuration)
+            }
+        }
+    }
+
+    pub fn load_configuration(&mut self, path: &Path) -> Result<Config> {
+        self.load_configuration_with_search_root(path, None)
+    }
+
+    pub fn load_configuration_for_stdin(&mut self) -> Result<Config> {
+        if let Some(configuration) = self.forced_configuration {
+            return Ok(configuration);
+        }
+
+        let root = self.get_configuration_search_root(None);
+        let my_current_directory = self.current_directory.to_owned();
+
+        match &self.opt.stdin_filepath {
+            Some(filepath) => self.load_configuration(filepath),
+            None => match self.find_config_file(&my_current_directory, root)? {
+                Some(config) => Ok(config),
+                None => {
+                    #[cfg(feature = "editorconfig")]
+                    if self.opt.no_editorconfig {
+                        Ok(self.default_configuration)
+                    } else {
+                        editorconfig::parse(self.default_configuration, &PathBuf::from("*.lua"))
+                            .context("could not parse editorconfig")
+                    }
+                    #[cfg(not(feature = "editorconfig"))]
+                    Ok(self.default_configuration)
+                }
+            },
+        }
+    }
+
+    fn lookup_config_file_in_directory(&self, directory: &Path) -> Result<Option<Config>> {
+        debug!("config: looking for config in {}", directory.display());
+        let config_file = find_toml_file(directory);
+        match config_file {
+            Some(file_path) => {
+                debug!("config: found config at {}", file_path.display());
+                let config = read_and_apply_overrides(&file_path, self.opt)?;
+                debug!("config: {:#?}", config);
+                Ok(Some(config))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Looks for a configuration file in the directory provided
+    /// Keep searching recursively upwards until we hit the root (if provided), then stop
+    /// When `--search-parent-directories` is enabled, root = None, else root = Some(cwd)
+    fn find_config_file(
+        &mut self,
+        directory: &Path,
+        root: Option<PathBuf>,
+    ) -> Result<Option<Config>> {
+        if let Some(config) = self.config_cache.get(directory) {
+            return Ok(*config);
+        }
+
+        let resolved_configuration = match self.lookup_config_file_in_directory(directory)? {
+            Some(config) => Some(config),
+            None => {
+                let parent_directory = directory.parent();
+                let should_stop = Some(directory) == root.as_deref() || parent_directory.is_none();
+
+                if should_stop {
+                    debug!("config: no configuration file found");
+                    if self.opt.search_parent_directories {
+                        if let Some(config) = self.search_config_locations()? {
+                            return Ok(Some(config));
+                        }
+                    }
+
+                    debug!("config: falling back to default config");
+                    None
+                } else {
+                    self.find_config_file(parent_directory.unwrap(), root)?
+                }
+            }
+        };
+
+        self.config_cache
+            .insert(directory.to_path_buf(), resolved_configuration);
+        Ok(resolved_configuration)
+    }
+
+    /// Looks for a configuration file at either `$XDG_CONFIG_HOME`, `$XDG_CONFIG_HOME/stylua`, `$HOME/.config` or `$HOME/.config/stylua`
+    fn search_config_locations(&self) -> Result<Option<Config>> {
+        // Look in `$XDG_CONFIG_HOME`
+        if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
+            let xdg_config_path = Path::new(&xdg_config);
+            if xdg_config_path.exists() {
+                debug!("config: looking in $XDG_CONFIG_HOME");
+
+                if let Some(config) = self.lookup_config_file_in_directory(xdg_config_path)? {
+                    return Ok(Some(config));
+                }
+
+                debug!("config: looking in $XDG_CONFIG_HOME/stylua");
+                let xdg_config_path = xdg_config_path.join("stylua");
+                if xdg_config_path.exists() {
+                    if let Some(config) = self.lookup_config_file_in_directory(&xdg_config_path)? {
+                        return Ok(Some(config));
+                    }
+                }
+            }
+        }
+
+        // Look in `$HOME/.config`
+        if let Ok(home) = std::env::var("HOME") {
+            let home_config_path = Path::new(&home).join(".config");
+
+            if home_config_path.exists() {
+                debug!("config: looking in $HOME/.config");
+
+                if let Some(config) = self.lookup_config_file_in_directory(&home_config_path)? {
+                    return Ok(Some(config));
+                }
+
+                debug!("config: looking in $HOME/.config/stylua");
+                let home_config_path = home_config_path.join("stylua");
+                if home_config_path.exists() {
+                    if let Some(config) = self.lookup_config_file_in_directory(&home_config_path)? {
+                        return Ok(Some(config));
+                    }
+                }
+            }
+        }
+
+        Ok(None)
+    }
 }
 
 /// Searches the directory for the configuration toml file (i.e. `stylua.toml` or `.stylua.toml`)
@@ -28,31 +245,11 @@ fn find_toml_file(directory: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Looks for a configuration file in the directory provided (and its parent's recursively, if specified)
-fn find_config_file(mut directory: PathBuf, recursive: bool) -> Result<Option<Config>> {
-    debug!("config: looking for config in {}", directory.display());
-    let config_file = find_toml_file(&directory);
-    match config_file {
-        Some(file_path) => {
-            debug!("config: found config at {}", file_path.display());
-            read_config_file(&file_path).map(Some)
-        }
-        None => {
-            // Both don't exist, search up the tree if necessary
-            // directory.pop() mutates the path to get its parent, and returns false if no more parent
-            if recursive && directory.pop() {
-                find_config_file(directory, recursive)
-            } else {
-                Ok(None)
-            }
-        }
-    }
-}
-
 pub fn find_ignore_file_path(mut directory: PathBuf, recursive: bool) -> Option<PathBuf> {
     debug!("config: looking for ignore file in {}", directory.display());
     let file_path = directory.join(".styluaignore");
     if file_path.is_file() {
+        debug!("config: resolved ignore file at {}", file_path.display());
         Some(file_path)
     } else if recursive && directory.pop() {
         find_ignore_file_path(directory, recursive)
@@ -61,99 +258,8 @@ pub fn find_ignore_file_path(mut directory: PathBuf, recursive: bool) -> Option<
     }
 }
 
-/// Looks for a configuration file at either `$XDG_CONFIG_HOME`, `$XDG_CONFIG_HOME/stylua`, `$HOME/.config` or `$HOME/.config/stylua`
-fn search_config_locations() -> Result<Option<Config>> {
-    // Look in `$XDG_CONFIG_HOME`
-    if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
-        let xdg_config_path = Path::new(&xdg_config);
-        if xdg_config_path.exists() {
-            debug!("config: looking in $XDG_CONFIG_HOME");
-
-            if let Some(config) = find_config_file(xdg_config_path.to_path_buf(), false)? {
-                return Ok(Some(config));
-            }
-
-            debug!("config: looking in $XDG_CONFIG_HOME/stylua");
-            let xdg_config_path = xdg_config_path.join("stylua");
-            if xdg_config_path.exists() {
-                if let Some(config) = find_config_file(xdg_config_path, false)? {
-                    return Ok(Some(config));
-                }
-            }
-        }
-    }
-
-    // Look in `$HOME/.config`
-    if let Ok(home) = std::env::var("HOME") {
-        let home_config_path = Path::new(&home).join(".config");
-
-        if home_config_path.exists() {
-            debug!("config: looking in $HOME/.config");
-
-            if let Some(config) = find_config_file(home_config_path.to_owned(), false)? {
-                return Ok(Some(config));
-            }
-
-            debug!("config: looking in $HOME/.config/stylua");
-            let home_config_path = home_config_path.join("stylua");
-            if home_config_path.exists() {
-                if let Some(config) = find_config_file(home_config_path, false)? {
-                    return Ok(Some(config));
-                }
-            }
-        }
-    }
-
-    Ok(None)
-}
-
-pub fn load_config(opt: &Opt) -> Result<Option<Config>> {
-    match &opt.config_path {
-        Some(config_path) => {
-            debug!(
-                "config: explicit config path provided at {}",
-                config_path.display()
-            );
-            read_config_file(config_path).map(Some)
-        }
-        None => {
-            let current_dir = match &opt.stdin_filepath {
-                Some(file_path) => file_path
-                    .parent()
-                    .context("Could not find current directory from provided stdin filepath")?
-                    .to_path_buf(),
-                None => env::current_dir().context("Could not find current directory")?,
-            };
-
-            debug!(
-                "config: starting config search from {} - recursively searching parents: {}",
-                current_dir.display(),
-                opt.search_parent_directories
-            );
-            let config = find_config_file(current_dir, opt.search_parent_directories)?;
-            match config {
-                Some(config) => Ok(Some(config)),
-                None => {
-                    debug!("config: no configuration file found");
-
-                    // Search the configuration directory for a file, if necessary
-                    if opt.search_parent_directories {
-                        if let Some(config) = search_config_locations()? {
-                            return Ok(Some(config));
-                        }
-                    }
-
-                    // Fallback to a default configuration
-                    debug!("config: falling back to default config");
-                    Ok(None)
-                }
-            }
-        }
-    }
-}
-
 /// Handles any overrides provided by command line options
-pub fn load_overrides(config: Config, opt: &Opt) -> Config {
+fn load_overrides(config: Config, opt: &Opt) -> Config {
     let mut new_config = config;
 
     if let Some(syntax) = opt.format_opts.syntax {

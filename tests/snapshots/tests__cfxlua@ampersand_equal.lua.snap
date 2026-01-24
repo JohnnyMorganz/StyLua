@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/ampersand_equal.lua
+snapshot_kind: text
+---
+local num = 6
+num &= 3

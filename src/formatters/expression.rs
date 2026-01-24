@@ -253,29 +253,8 @@ fn format_expression_internal(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !keep_parentheses {
-                // Get the leading and trailing comments from contained span and append them onto the expression
-                let (start_parens, end_parens) = contained.tokens();
-                let leading_comments = start_parens
-                    .leading_trivia()
-                    .filter(|token| trivia_util::trivia_is_comment(token))
-                    .flat_map(|x| {
-                        vec![
-                            create_indent_trivia(ctx, shape),
-                            x.to_owned(),
-                            create_newline_trivia(ctx),
-                        ]
-                    })
-                    // .chain(std::iter::once(create_indent_trivia(ctx, shape)))
-                    .collect();
-
-                let trailing_comments = end_parens
-                    .trailing_trivia()
-                    .filter(|token| trivia_util::trivia_is_comment(token))
-                    .flat_map(|x| {
-                        // Prepend a single space beforehand
-                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                    })
-                    .collect();
+                let (leading_comments, trailing_comments) =
+                    contained_span_comments(ctx, contained, shape);
 
                 format_expression(ctx, expression, shape)
                     .update_leading_trivia(FormatTriviaType::Append(leading_comments))
@@ -358,6 +337,37 @@ fn format_expression_internal(
     }
 }
 
+fn contained_span_comments(
+    ctx: &Context,
+    contained_span: &ContainedSpan,
+    shape: Shape,
+) -> (Vec<Token>, Vec<Token>) {
+    // Get the leading and trailing comments from contained span and append them onto the expression
+    let (start_parens, end_parens) = contained_span.tokens();
+    let leading_comments = start_parens
+        .leading_trivia()
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .flat_map(|x| {
+            vec![
+                create_indent_trivia(ctx, shape),
+                x.to_owned(),
+                create_newline_trivia(ctx),
+            ]
+        })
+        // .chain(std::iter::once(create_indent_trivia(ctx, shape)))
+        .collect();
+
+    let trailing_comments = end_parens
+        .trailing_trivia()
+        .filter(|token| trivia_util::trivia_is_comment(token))
+        .flat_map(|x| {
+            // Prepend a single space beforehand
+            vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+        })
+        .collect();
+    (leading_comments, trailing_comments)
+}
+
 /// Determines whether the provided [`Expression`] is a brackets string, i.e. `[[string]]`
 /// We care about this because `[ [[string] ]` is invalid syntax if we remove the whitespace
 pub fn is_brackets_string(expression: &Expression) -> bool {
@@ -369,6 +379,7 @@ pub fn is_brackets_string(expression: &Expression) -> bool {
                 ..
             }
         ),
+        Expression::Parentheses { expression, .. } => is_brackets_string(expression),
         #[cfg(feature = "luau")]
         Expression::TypeAssertion { expression, .. } => is_brackets_string(expression),
         _ => false,
@@ -666,15 +677,13 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         || trivia_util::contains_comments(if_expression.else_token())
         || if_expression
             .else_if_expressions()
-            .map_or(false, |else_ifs| {
-                else_ifs.iter().any(trivia_util::contains_comments)
-            })
+            .is_some_and(|else_ifs| else_ifs.iter().any(trivia_util::contains_comments))
         || if_expression.else_expression().has_inline_comments()
         || trivia_util::spans_multiple_lines(&singleline_condition)
         || trivia_util::spans_multiple_lines(&singleline_expression)
-        || else_ifs.as_ref().map_or(false, |else_ifs| {
-            else_ifs.iter().any(trivia_util::spans_multiple_lines)
-        })
+        || else_ifs
+            .as_ref()
+            .is_some_and(|else_ifs| else_ifs.iter().any(trivia_util::spans_multiple_lines))
         || trivia_util::spans_multiple_lines(&singleline_else_expression);
 
     if require_multiline_expression {
@@ -1124,6 +1133,7 @@ fn hang_binop_expression(
     top_binop: BinOp,
     shape: Shape,
     lhs_range: Option<LeftmostRangeHang>,
+    expression_context: ExpressionContext,
 ) -> Expression {
     const SPACE_LEN: usize = " ".len();
 
@@ -1182,9 +1192,17 @@ fn hang_binop_expression(
                                 },
                                 lhs_shape,
                                 lhs_range,
+                                expression_context,
                             ),
                             if contains_comments(&*rhs) {
-                                hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                                hang_binop_expression(
+                                    ctx,
+                                    *rhs,
+                                    binop,
+                                    shape,
+                                    lhs_range,
+                                    expression_context,
+                                )
                             } else {
                                 format_expression_internal(
                                     ctx,
@@ -1196,7 +1214,14 @@ fn hang_binop_expression(
                         ),
                         ExpressionSide::Right => (
                             if contains_comments(&*lhs) {
-                                hang_binop_expression(ctx, *lhs, binop.clone(), shape, lhs_range)
+                                hang_binop_expression(
+                                    ctx,
+                                    *lhs,
+                                    binop.clone(),
+                                    shape,
+                                    lhs_range,
+                                    expression_context,
+                                )
                             } else {
                                 let context = if let BinOp::Caret(_) = binop {
                                     ExpressionContext::BinaryLHSExponent
@@ -1211,6 +1236,7 @@ fn hang_binop_expression(
                                 if same_op_level { top_binop } else { binop },
                                 rhs_shape,
                                 lhs_range,
+                                expression_context,
                             ),
                         ),
                     };
@@ -1223,7 +1249,14 @@ fn hang_binop_expression(
                     // Check if the chain still has comments deeper inside of it.
                     // If it does, we need to hang that part of the chain still, otherwise the comments will mess it up
                     let lhs = if contains_comments(&*lhs) {
-                        hang_binop_expression(ctx, *lhs, binop.to_owned(), shape, lhs_range)
+                        hang_binop_expression(
+                            ctx,
+                            *lhs,
+                            binop.to_owned(),
+                            shape,
+                            lhs_range,
+                            expression_context,
+                        )
                     } else {
                         let context = if let BinOp::Caret(_) = binop {
                             ExpressionContext::BinaryLHSExponent
@@ -1234,7 +1267,14 @@ fn hang_binop_expression(
                     };
 
                     let rhs = if contains_comments(&*rhs) {
-                        hang_binop_expression(ctx, *rhs, binop, shape, lhs_range)
+                        hang_binop_expression(
+                            ctx,
+                            *rhs,
+                            binop,
+                            shape,
+                            lhs_range,
+                            expression_context,
+                        )
                     } else {
                         format_expression_internal(
                             ctx,
@@ -1255,13 +1295,7 @@ fn hang_binop_expression(
             }
         }
         // Base case: no more binary operators - just return to normal splitting
-        _ => format_hanging_expression_(
-            ctx,
-            &expression,
-            shape,
-            ExpressionContext::Standard,
-            lhs_range,
-        ),
+        _ => format_hanging_expression_(ctx, &expression, shape, expression_context, lhs_range),
     }
 }
 
@@ -1328,6 +1362,8 @@ fn format_hanging_expression_(
 
             // If the context is for a prefix, we should always keep the parentheses, as they are always required
             if use_internal_expression && !keep_parentheses {
+                let (leading_comments, trailing_comments) =
+                    contained_span_comments(ctx, contained, shape);
                 format_hanging_expression_(
                     ctx,
                     expression,
@@ -1335,6 +1371,8 @@ fn format_hanging_expression_(
                     expression_context,
                     lhs_range,
                 )
+                .update_leading_trivia(FormatTriviaType::Append(leading_comments))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_comments))
             } else {
                 let contained = format_contained_span(ctx, contained, lhs_shape);
 
@@ -1402,8 +1440,14 @@ fn format_hanging_expression_(
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
             // Don't format the lhs and rhs here, because it will be handled later when hang_binop_expression calls back for a Value
-            let lhs =
-                hang_binop_expression(ctx, *lhs.to_owned(), binop.to_owned(), shape, lhs_range);
+            let lhs = hang_binop_expression(
+                ctx,
+                *lhs.to_owned(),
+                binop.to_owned(),
+                shape,
+                lhs_range,
+                ExpressionContext::UnaryOrBinary,
+            );
 
             let current_shape = shape.take_last_line(&lhs) + 1; // 1 = space before binop
             let mut new_binop = format_binop(ctx, binop, current_shape);
@@ -1416,6 +1460,7 @@ fn format_hanging_expression_(
                 binop.to_owned(),
                 singleline_shape,
                 None,
+                ExpressionContext::Standard,
             );
 
             // Examine the last line to see if we need to hang this binop, or if the precedence levels match
@@ -1434,6 +1479,7 @@ fn format_hanging_expression_(
                     binop.to_owned(),
                     hanging_shape,
                     None,
+                    ExpressionContext::Standard,
                 )
                 .update_leading_trivia(FormatTriviaType::Replace(Vec::new()));
             }

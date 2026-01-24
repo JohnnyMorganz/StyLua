@@ -7,21 +7,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added flag `--allow-gitignore` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
+
+## [2.3.1] - 2025-11-01
+
+### Fixed
+
+- Use character-wised diff instead of byte-wise diff in the LSP server so that it can handle multi-byte characters ([#1042](https://github.com/JohnnyMorganz/StyLua/issues/1042), [#1043](https://github.com/JohnnyMorganz/StyLua/issues/1043)).
+
+## [2.3.0] - 2025-09-27
+
+### Added
+
+- The language server has an initialization option called `respect_editor_formatting_options`.
+  If it's true, the formatting handler will override the configurations `indent-width` and `indent-type` with values from [FormattingOptions](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#formattingOptions)
+
+### Changed
+
+- In language server mode, compute the difference between the unformatted and formatted document and only respond with the changes, rather than sending an edit for the whole file
+- Include `serverInfo` in the language server's [`InitializeResponse`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeResult)
+
+### Fixed
+
+- Fixed comments lost from expression after parentheses are removed when we are attempting to "hang" the expression. ([#1033](https://github.com/JohnnyMorganz/StyLua/issues/1033))
+- Fixed `document_range_formatting_provider` capability missing from `ServerCapabilities` in language server mode
+- Fixed current working directory incorrectly used as config search root in language server mode -- now, the root of the opened workspace is used instead ([#1032](https://github.com/JohnnyMorganz/StyLua/issues/1032))
+- Language server mode now correctly respects `.styluaignore` files ([#1035](https://github.com/JohnnyMorganz/StyLua/issues/1035))
+- Luau: Fixed parentheses incorrectly removed on a single type that is the default for a variadic generic parameter ([#1038](https://github.com/JohnnyMorganz/StyLua/issues/1038))
+
+## [2.2.0] - 2025-09-14
+
+### Added
+
+- Added option `block_newline_gaps` to determine whether newline gaps at the start / end of blocks should be preserved. Defaults to `Never`, which is the original behaviour. ([#857](https://github.com/JohnnyMorganz/StyLua/pull/857))
+- StyLua can now run in a language server mode. Start StyLua with `stylua --lsp` and connect with a language client. ([#936](https://github.com/JohnnyMorganz/StyLua/issues/936))
+
+### Changed
+
+- Luau: Improved union of tables formatting to hang the union type rather than attempt to hug all the tables together ([#958](https://github.com/JohnnyMorganz/StyLua/issues/958))
+
+### Fixed
+
+- Fixed formatting of index containing brackets string in parentheses ([#992](https://github.com/JohnnyMorganz/StyLua/pull/992))
+- Fixed goto not being recognised for LuaJIT ([#986](https://github.com/JohnnyMorganz/StyLua/issues/986))
+- Fixed semicolon removed after a statement ending with an if-expression leading to ambiguous syntax when the next line begins with parentheses ([#1010](https://github.com/JohnnyMorganz/StyLua/issues/1010))
+- Luau: Fixed malformed formatting when there is a comment after a type specifier in a local assignment ([#995](https://github.com/JohnnyMorganz/StyLua/issues/995))
+- Luau: Fixed long type union formatted onto a single line if there is a comment in between the equals sign and the type union in a type declaration ([#1007](https://github.com/JohnnyMorganz/StyLua/issues/1007))
+- Fixed StyLua installation via pip / uv for Windows ([#1018](https://github.com/JohnnyMorganz/StyLua/pull/1018))
+
+## [2.1.0] - 2025-04-21
+
+### Added
+
+- Luau: Added support for parsing user-defined type functions ([#938](https://github.com/JohnnyMorganz/StyLua/issues/938))
+- Luau: Added support for parsing attributes (`@native` / `@deprecated`) on functions
+- Added support for CfxLua (FiveM) syntax formatting. This is available with `syntax = "cfxlua"` ([#855](https://github.com/JohnnyMorganz/StyLua/issues/855))
+- Added a pre-built binary release for `stylua-linux-aarch64-musl.zip`
+- Added error hints on parse failurse when a potential Lua syntax conflict is noticed (e.g., Lua 5.2 vs Luau syntax for labels `::` and generics `>>`) ([#960](https://github.com/JohnnyMorganz/StyLua/issues/960) / [#962](https://github.com/JohnnyMorganz/StyLua/issues/962))
+
+### Changed
+
+- Updated StyLua release GitHub action to `ubuntu-22.04` workers due to GitHub's deprecation of `ubuntu-20.04`. This may mean the pre-built release artifacts published to GitHub no longer work on `ubuntu-20.04` and require a manual build.
+
+### Fixed
+
+- Luau: fixed parentheses incorrectly removed in `(expr :: assertion) < foo` when multilining the expression, leading to a syntax error ([#940](https://github.com/JohnnyMorganz/StyLua/issues/940))
+- Fixed panic when attempting to format a file outside of the current working directory when `--respect-ignores` is enabled ([#969](https://github.com/JohnnyMorganz/StyLua/pull/969))
+- Fixed unnecessary semicolons being introduced at the end of statements when incorrectly determined as ambiguous ([#963](https://github.com/JohnnyMorganz/StyLua/issues/963))
+- Fixed malformed formatting of function calls where parentheses are removed but there are comments in between the parentheses and the expression. Now, we will keep the parentheses in these cases, except for trailing comments ([#964](https://github.com/JohnnyMorganz/StyLua/issues/964))
+- Fixed malformed formatting of table field expression when there are comments in between the equals and the value ([#942](https://github.com/JohnnyMorganz/StyLua/issues/942))
+
+## [2.0.2] - 2024-12-07
+
+### Fixed
+
+- Fixed regression where configuration present in current working directory not used when formatting from stdin and no `--stdin-filepath` is provided ([#928](https://github.com/JohnnyMorganz/StyLua/issues/928))
+- Luau: fixed incorrect indentation for leading token in union / intersection when hanging ([#932](https://github.com/JohnnyMorganz/StyLua/issues/932))
+
+## [2.0.1] - 2024-11-18
+
+### Added
+
+- Verbose mode will now show resolved options
+
+### Fixed
+
+- Fixed CLI overrides not applying on top of a resolved `stylua.toml` file ([#925](https://github.com/JohnnyMorganz/StyLua/issues/925))
+
+## [2.0.0] - 2024-11-17
+
 ### Breaking Changes
 
 - For automated downloaders: the legacy release artifacts `stylua-win64.zip`, `stylua-linux.zip` and `stylua-macos.zip` are no longer produced in GitHub releases, in favour of more specific names (e.g., `stylua-windows-x86_64`, `stylua-linux-x86_64` and `stylua-macos-x86_64`).
 - `--stdin-filepath` no longer respects ignore files by default, in line with passing files directly to the command line. Now, `stylua --stdin-filepath foo.lua -` will still format the stdin even if `foo.lua` was in a `.styluaignore` file. Use `--respect-ignores` to preserve the original behaviour.
+- Removed deprecated access patterns on `Config` struct in stylua Rust library
 
 ### Added
 
 - Added runtime syntax configuration option `syntax` to help handle ambiguous syntax. By default, StyLua builds and runs with a parser to handle all Lua versions. However, the syntax of some Lua versions conflict with eachother: most notably, Lua 5.2+ goto label syntax `::label::` and Luau type assertion operator `::`. This option allows choosing what syntax to parse, to handle these conflicts. ([#407](https://github.com/JohnnyMorganz/StyLua/issues/407))
 - Added configuration option `space_after_function_names` to specify whether to include a space between a function name and parentheses ([#839](https://github.com/JohnnyMorganz/StyLua/issues/839))
-- Added flag `--allow-gitignore` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
 
 ### Changed
 
 - Update internal Lua parser version (full-moon) to v1.1.0. This includes parser performance improvements. ([#854](https://github.com/JohnnyMorganz/StyLua/issues/854))
 - LuaJIT is now separated from Lua52, and is available in its own feature and syntax flag
+- `.stylua.toml` config resolution now supports looking up config files next to files being formatted, recursively going
+  upwards until reaching the current working directory, then stopping (unless `--search-parent-directories` was specified).
+  For example, for a file `./src/test.lua`, executing `stylua src/` will look for `./src/stylua.toml` and then `./stylua.toml`.
+- When `collapse_simple_statement` is enabled, if the enclosing block is a return, we will check if the return expression is "simple" (currently, not containing a function definition) ([#898](https://github.com/JohnnyMorganz/StyLua/issues/898))
 
 ### Fixed
 
@@ -778,7 +873,14 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v0.20.0...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.1
+[2.3.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.0
+[2.2.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.2.0
+[2.1.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.1.0
+[2.0.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.2
+[2.0.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.1
+[2.0.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.0.0
 [0.20.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.20.0
 [0.19.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.1
 [0.19.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v0.19.0

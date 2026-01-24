@@ -2,6 +2,7 @@
 source: tests/tests.rs
 expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau-full_moon/z-escape-string.lua
+snapshot_kind: text
 ---
 print("testing \z
 	   twelve")
@@ -9,3 +10,8 @@ print("testing \z
 print("Hello \
 	World")
 
+print(`testing \z
+	   twelve`)
+
+print(`Hello \
+	World`)

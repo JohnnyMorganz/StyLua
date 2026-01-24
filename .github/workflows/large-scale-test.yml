@@ -31,7 +31,7 @@ jobs:
         run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: stylua-latest
           path: target/release/stylua
@@ -48,7 +48,7 @@ jobs:
         run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: stylua-main
           path: target/release/stylua

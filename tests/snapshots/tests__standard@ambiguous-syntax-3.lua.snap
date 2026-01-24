@@ -1,0 +1,23 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/ambiguous-syntax-3.lua
+snapshot_kind: text
+---
+local x = call("");
+(foo or bar and baz)(bar)
+
+local x = call({});
+(foo or bar and baz)(bar)
+
+local x = identifier;
+(foo or bar and baz)(bar)
+
+local x = identifier;
+(foo or bar and baz)(bar)
+
+local x = x.y;
+(foo or bar and baz)(bar)
+
+local x = x["y"];
+(foo or bar and baz)(bar)

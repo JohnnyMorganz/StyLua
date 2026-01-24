@@ -23,6 +23,8 @@ use full_moon::{
     tokenizer::{Token, TokenReference, TokenType},
 };
 
+use super::{assignment::hang_at_equals_due_to_comments, trivia_util::GetLeadingTrivia};
+
 /// Used to provide information about the table
 #[derive(Debug, Clone, Copy)]
 pub enum TableType {
@@ -66,6 +68,25 @@ fn format_field_expression_value(
     } else {
         format_expression(ctx, expression, shape).update_trailing_trivia(trailing_trivia)
     }
+}
+
+fn hang_field_value_at_equals_due_to_comments(
+    ctx: &Context,
+    equal: &TokenReference,
+    expression: &Expression,
+    shape: Shape,
+) -> (TokenReference, Expression) {
+    // Remove singleline comments from the output expression as it will be moved after the comma
+    // Retain multiline comments in place
+    let multiline_comments = expression.trailing_comments_search(CommentSearch::Multiline);
+    let trailing_trivia = FormatTriviaType::Replace(multiline_comments);
+
+    let (equal_token, expression) = hang_at_equals_due_to_comments(ctx, equal, expression, shape);
+
+    (
+        equal_token,
+        expression.update_trailing_trivia(trailing_trivia),
+    )
 }
 
 /// Handles the formatting of the comments around a key and the equals sign in a field of a table.
@@ -177,8 +198,14 @@ fn format_field(
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 .update_leading_trivia(leading_trivia);
 
-            let shape = shape.take_last_line(&key) + (2 + 3 + if space_brackets { 2 } else { 0 }); // 2 = brackets, 3 = " = ", 2 = spaces around brackets if necessary
-            let value = format_field_expression_value(ctx, value, shape);
+            let (equal, value) = if value.has_leading_comments(CommentSearch::Single) {
+                hang_field_value_at_equals_due_to_comments(ctx, &equal, value, shape)
+            } else {
+                let shape =
+                    shape.take_last_line(&key) + (2 + 3 + if space_brackets { 2 } else { 0 }); // 2 = brackets, 3 = " = ", 2 = spaces around brackets if necessary
+                let value = format_field_expression_value(ctx, value, shape);
+                (equal, value)
+            };
 
             Field::ExpressionKey {
                 brackets,
@@ -202,10 +229,23 @@ fn format_field(
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]))
                 .update_leading_trivia(leading_trivia);
 
-            let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
-            let value = format_field_expression_value(ctx, value, shape);
+            let (equal, value) = if value.has_leading_comments(CommentSearch::Single) {
+                hang_field_value_at_equals_due_to_comments(ctx, &equal, value, shape)
+            } else {
+                let shape = shape + (strip_trivia(&key).to_string().len() + 3); // 3 = " = "
+                let value = format_field_expression_value(ctx, value, shape);
+                (equal, value)
+            };
 
             Field::NameKey { key, equal, value }
+        }
+        #[cfg(feature = "cfxlua")]
+        Field::SetConstructor { dot, name } => {
+            trailing_trivia = name.trailing_comments_search(CommentSearch::Single);
+            let dot = fmt_symbol!(ctx, dot, ".", shape);
+            let name = format_token_reference(ctx, name, shape);
+
+            Field::SetConstructor { dot, name }
         }
         Field::NoKey(expression) => {
             trailing_trivia = expression.trailing_comments_search(CommentSearch::Single);
@@ -408,7 +448,7 @@ where
 
 fn expression_is_multiline_function(ctx: &Context, expression: &Expression) -> bool {
     if let Expression::Function(anonymous_function) = expression {
-        return !should_collapse_function_body(ctx, &anonymous_function.1);
+        return !should_collapse_function_body(ctx, anonymous_function.body());
     }
     false
 }
@@ -437,6 +477,8 @@ fn should_expand(ctx: &Context, table_constructor: &TableConstructor) -> bool {
                         || expression_is_multiline_function(ctx, value)
                 }
                 Field::NameKey { value, .. } => expression_is_multiline_function(ctx, value),
+                #[cfg(feature = "cfxlua")]
+                Field::SetConstructor { .. } => false,
                 Field::NoKey(expression) => expression_is_multiline_function(ctx, expression),
                 other => panic!("unknown node {:?}", other),
             };

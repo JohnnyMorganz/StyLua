@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/excess-parentheses-type-pack-default.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/1038
+
+type Object1<T = nil> = {
+	method: (T) -> (),
+}
+
+type Object2<T... = (nil)> = {
+	method: (T...) -> (),
+}

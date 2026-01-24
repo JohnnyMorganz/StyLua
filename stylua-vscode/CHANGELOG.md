@@ -11,6 +11,12 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.7.1] - 2024-11-17
+
+### Fixed
+
+- Skip `--stdin-filepath` when handling non-file based text documents (e.g., untitled documents)
+
 ## [1.7.0] - 2024-11-16
 
 ### Changed

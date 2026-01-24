@@ -1,0 +1,8 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/ambiguous-syntax-1.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/1010
+(child :: BasePart).Size = if true then x else y;
+(child :: BasePart).CFrame = value

@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/excess-parentheses-type-assertion.lua
+snapshot_kind: text
+---
+local x = if (foo :: number) < bar
+	then very + very + very + long + line + right + here + hopefully
+	else lets + ensure + stylua + writes + this + out + using + multiple + lines

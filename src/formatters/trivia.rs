@@ -3,14 +3,14 @@ use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
     ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
-    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, TypeArgument,
-    TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeInfo, TypeIntersection,
-    TypeSpecifier, TypeUnion,
+    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, LuauAttribute,
+    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
+    TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
-    punctuated::Punctuated, span::ContainedSpan, BinOp, Call, Expression, FunctionArgs,
-    FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter, Prefix,
-    Return, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
+    punctuated::Punctuated, span::ContainedSpan, AnonymousFunction, BinOp, Call, Expression,
+    FunctionArgs, FunctionBody, FunctionCall, FunctionName, Index, LastStmt, MethodCall, Parameter,
+    Prefix, Return, Stmt, Suffix, TableConstructor, UnOp, Var, VarExpression,
 };
 use full_moon::ast::{Assignment, If, LocalAssignment};
 use full_moon::tokenizer::{Token, TokenReference};
@@ -224,6 +224,12 @@ define_update_trivia!(Call, |this, leading, trailing| {
     }
 });
 
+define_update_trivia!(AnonymousFunction, |this, leading, trailing| {
+    this.clone()
+        .with_function_token(this.function_token().update_leading_trivia(leading))
+        .with_body(this.body().update_trailing_trivia(trailing))
+});
+
 define_update_leading_trivia!(Expression, |this, leading| {
     match this {
         Expression::Parentheses {
@@ -242,10 +248,9 @@ define_update_leading_trivia!(Expression, |this, leading| {
             binop: binop.to_owned(),
             rhs: rhs.to_owned(),
         },
-        Expression::Function(anonymous_function) => Expression::Function(Box::new((
-            anonymous_function.0.update_leading_trivia(leading),
-            anonymous_function.1.to_owned(),
-        ))),
+        Expression::Function(anonymous_function) => {
+            Expression::Function(Box::new(anonymous_function.update_leading_trivia(leading)))
+        }
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_leading_trivia(leading))
         }
@@ -284,10 +289,9 @@ define_update_leading_trivia!(Expression, |this, leading| {
 
 define_update_trailing_trivia!(Expression, |this, trailing| {
     match this {
-        Expression::Function(anonymous_function) => Expression::Function(Box::new((
-            anonymous_function.0.to_owned(),
-            anonymous_function.1.update_trailing_trivia(trailing),
-        ))),
+        Expression::Function(anonymous_function) => Expression::Function(Box::new(
+            anonymous_function.update_trailing_trivia(trailing),
+        )),
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_trailing_trivia(trailing))
         }
@@ -680,13 +684,25 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(stmt.update_trivia(leading, trailing)),
-        #[cfg(feature = "lua52")]
+        #[cfg(feature = "luau")]
+        Stmt::ExportedTypeFunction(stmt) => {
+            let export_token = stmt.export_token().update_leading_trivia(leading);
+            let type_function = stmt.type_function().update_trailing_trivia(trailing);
+            Stmt::ExportedTypeFunction(
+                stmt.to_owned()
+                    .with_export_token(export_token)
+                    .with_type_function(type_function),
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::TypeFunction(stmt) => Stmt::TypeFunction(stmt.update_trivia(leading, trailing)),
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
                 .with_goto_token(stmt.goto_token().update_leading_trivia(leading))
                 .with_label_name(stmt.label_name().update_trailing_trivia(trailing)),
         ),
-        #[cfg(feature = "lua52")]
+        #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Label(stmt) => Stmt::Label(
             stmt.to_owned()
                 .with_left_colons(stmt.left_colons().update_leading_trivia(leading))
@@ -921,6 +937,13 @@ define_update_trivia!(TypeDeclaration, |this, leading, trailing| {
 });
 
 #[cfg(feature = "luau")]
+define_update_trivia!(TypeFunction, |this, leading, trailing| {
+    this.to_owned()
+        .with_type_token(this.type_token().update_leading_trivia(leading))
+        .with_function_body(this.function_body().update_trailing_trivia(trailing))
+});
+
+#[cfg(feature = "luau")]
 define_update_trailing_trivia!(IndexedTypeInfo, |this, trailing| {
     match this {
         IndexedTypeInfo::Basic(token_reference) => {
@@ -1090,4 +1113,11 @@ define_update_leading_trivia!(InterpolatedStringSegment, |this, leading| {
         literal: this.literal.update_leading_trivia(leading),
         expression: this.expression.to_owned(),
     }
+});
+
+#[cfg(feature = "luau")]
+define_update_trivia!(LuauAttribute, |this, leading, trailing| {
+    this.clone()
+        .with_at_sign(this.at_sign().update_leading_trivia(leading))
+        .with_name(this.name().update_trailing_trivia(trailing))
 });

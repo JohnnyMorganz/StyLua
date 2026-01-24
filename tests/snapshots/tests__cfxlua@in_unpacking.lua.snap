@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::CfxLua)"
+input_file: tests/inputs-cfxlua/in_unpacking.lua
+snapshot_kind: text
+---
+local t = {
+	a = 1,
+	b = 2,
+	c = 3,
+}
+
+local a, b, c in t

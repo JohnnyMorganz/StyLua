@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/type-functions-1.lua
+snapshot_kind: text
+---
+type function Foo(x) end
+
+export type function Foo(x) end

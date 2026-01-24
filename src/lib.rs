@@ -1,5 +1,7 @@
 use context::Context;
 use full_moon::ast::Ast;
+#[cfg(all(feature = "luau", any(feature = "lua52", feature = "lua53")))]
+use full_moon::tokenizer::{Symbol, TokenType};
 use serde::Deserialize;
 use thiserror::Error;
 #[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
@@ -42,11 +44,17 @@ pub enum LuaVersion {
     /// Parse LuaJIT code
     #[cfg(feature = "luajit")]
     LuaJIT,
+    /// Parse Cfx Lua code
+    #[cfg(feature = "cfxlua")]
+    CfxLua,
 }
 
 impl From<LuaVersion> for full_moon::LuaVersion {
     fn from(val: LuaVersion) -> Self {
         match val {
+            #[cfg(feature = "cfxlua")]
+            LuaVersion::All => full_moon::LuaVersion::new().with_cfxlua(),
+            #[cfg(not(feature = "cfxlua"))]
             LuaVersion::All => full_moon::LuaVersion::new(),
             LuaVersion::Lua51 => full_moon::LuaVersion::lua51(),
             #[cfg(feature = "lua52")]
@@ -59,6 +67,8 @@ impl From<LuaVersion> for full_moon::LuaVersion {
             LuaVersion::Luau => full_moon::LuaVersion::luau(),
             #[cfg(feature = "luajit")]
             LuaVersion::LuaJIT => full_moon::LuaVersion::luajit(),
+            #[cfg(feature = "cfxlua")]
+            LuaVersion::CfxLua => full_moon::LuaVersion::cfxlua(),
         }
     }
 }
@@ -141,6 +151,19 @@ pub enum CollapseSimpleStatement {
     ConditionalOnly,
     /// Collapse all simple statements onto a single line
     Always,
+}
+
+/// If blocks should be allowed to have leading and trailing newline gaps.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum BlockNewlineGaps {
+    /// Never allow leading or trailing newline gaps
+    #[default]
+    Never,
+    /// Preserve both leading and trailing newline gaps if present in input
+    Preserve,
 }
 
 /// An optional formatting range.
@@ -244,6 +267,10 @@ pub struct Config {
     /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     pub collapse_simple_statement: CollapseSimpleStatement,
+    /// Whether we should allow blocks to preserve leading and trailing newline gaps.
+    /// if set to [`BlockNewlineGaps::Never`] then newline gaps are never allowed at the start or end of blocks.
+    /// if set to [`BlockNewlineGaps::Preserve`] then newline gaps are preserved at the start and end of blocks.
+    pub block_newline_gaps: BlockNewlineGaps,
     /// Configuration for the sort requires codemod
     pub sort_requires: SortRequiresConfig,
     /// Whether we should include a space between the function name and arguments.
@@ -259,151 +286,6 @@ impl Config {
     /// Creates a new Config with the default values
     pub fn new() -> Self {
         Config::default()
-    }
-
-    /// Returns the current configured column width
-    #[deprecated(since = "0.19.0", note = "access `.column_width` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn column_width(&self) -> usize {
-        self.column_width
-    }
-
-    /// Returns the current configured line endings
-    #[deprecated(since = "0.19.0", note = "access `.line_endings` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn line_endings(&self) -> LineEndings {
-        self.line_endings
-    }
-
-    /// Returns the current configured indent type
-    #[deprecated(since = "0.19.0", note = "access `.indent_type` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn indent_type(&self) -> IndentType {
-        self.indent_type
-    }
-
-    /// Returns the current configured indent width
-    #[deprecated(since = "0.19.0", note = "access `.indent_width` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn indent_width(&self) -> usize {
-        self.indent_width
-    }
-
-    /// Returns the current configured quote style
-    #[deprecated(since = "0.19.0", note = "access `.quote_style` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn quote_style(&self) -> QuoteStyle {
-        self.quote_style
-    }
-
-    /// Returns the current configured call parentheses style
-    #[deprecated(since = "0.19.0", note = "access `.call_parentheses` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn call_parentheses(&self) -> CallParenType {
-        self.call_parentheses
-    }
-
-    #[deprecated(
-        since = "0.19.0",
-        note = "access `.collapse_simple_statement` directly instead"
-    )]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn collapse_simple_statement(&self) -> CollapseSimpleStatement {
-        self.collapse_simple_statement
-    }
-
-    /// Returns the current sort requires codemod configuration
-    #[deprecated(since = "0.19.0", note = "access `.sort_requires` directly instead")]
-    #[cfg(not(all(target_arch = "wasm32", feature = "wasm-bindgen")))]
-    pub fn sort_requires(&self) -> SortRequiresConfig {
-        self.sort_requires
-    }
-
-    /// Returns a new config with the given column width
-    #[deprecated(since = "0.19.0", note = "modify `.column_width` directly instead")]
-    pub fn with_column_width(self, column_width: usize) -> Self {
-        Self {
-            column_width,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given line endings
-    #[deprecated(since = "0.19.0", note = "modify `.line_endings` directly instead")]
-    pub fn with_line_endings(self, line_endings: LineEndings) -> Self {
-        Self {
-            line_endings,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given indent type
-    #[deprecated(since = "0.19.0", note = "modify `.indent_type` directly instead")]
-    pub fn with_indent_type(self, indent_type: IndentType) -> Self {
-        Self {
-            indent_type,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given indent width
-    #[deprecated(since = "0.19.0", note = "modify `.indent_width` directly instead")]
-    pub fn with_indent_width(self, indent_width: usize) -> Self {
-        Self {
-            indent_width,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given quote style
-    #[deprecated(since = "0.19.0", note = "modify `.quote_style` directly instead")]
-    pub fn with_quote_style(self, quote_style: QuoteStyle) -> Self {
-        Self {
-            quote_style,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given value for `no_call_parentheses`
-    #[deprecated(note = "use `call_parentheses")]
-    pub fn with_no_call_parentheses(self, no_call_parentheses: bool) -> Self {
-        #[allow(deprecated)]
-        Self {
-            no_call_parentheses,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given call parentheses type
-    #[deprecated(since = "0.19.0", note = "modify `.call_parentheses` directly instead")]
-    pub fn with_call_parentheses(self, call_parentheses: CallParenType) -> Self {
-        Self {
-            call_parentheses,
-            ..self
-        }
-    }
-
-    #[deprecated(
-        since = "0.19.0",
-        note = "modify `.collapse_simple_statement` directly instead"
-    )]
-    pub fn with_collapse_simple_statement(
-        self,
-        collapse_simple_statement: CollapseSimpleStatement,
-    ) -> Self {
-        Self {
-            collapse_simple_statement,
-            ..self
-        }
-    }
-
-    /// Returns a new config with the given sort requires configuration
-    #[deprecated(since = "0.19.0", note = "modify `.sort_requires` directly instead")]
-    pub fn with_sort_requires(self, sort_requires: SortRequiresConfig) -> Self {
-        Self {
-            sort_requires,
-            ..self
-        }
     }
 }
 
@@ -422,6 +304,7 @@ impl Default for Config {
             collapse_simple_statement: CollapseSimpleStatement::default(),
             sort_requires: SortRequiresConfig::default(),
             space_after_function_names: SpaceAfterFunctionNames::default(),
+            block_newline_gaps: BlockNewlineGaps::default(),
         }
     }
 }
@@ -436,14 +319,82 @@ pub enum OutputVerification {
     None,
 }
 
+#[cfg(all(feature = "luau", feature = "lua53"))]
+fn is_luau_and_lua53_conflict(error: &full_moon::Error) -> bool {
+    match error {
+        full_moon::Error::AstError(ast_error) => match ast_error.token().token_type() {
+            TokenType::Symbol {
+                symbol: Symbol::DoubleGreaterThan,
+            } => ast_error.error_message() == "expected '>' to close generic type parameter list",
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+#[cfg(all(feature = "luau", feature = "lua52"))]
+fn is_luau_and_lua52_conflict(error: &full_moon::Error) -> bool {
+    match error {
+        full_moon::Error::AstError(ast_error) => {
+            ast_error.error_message() == "expected label name after `::`"
+        }
+        _ => false,
+    }
+}
+
+fn print_full_moon_error(error: &full_moon::Error) -> String {
+    match error {
+        full_moon::Error::AstError(ast_error) => format!(
+            "unexpected token `{}` ({}:{} to {}:{}), {}",
+            ast_error.token(),
+            ast_error.range().0.line(),
+            ast_error.range().0.character(),
+            ast_error.range().1.line(),
+            ast_error.range().1.character(),
+            ast_error.error_message()
+        ),
+        full_moon::Error::TokenizerError(tokenizer_error) => tokenizer_error.to_string(),
+    }
+}
+
+fn print_full_moon_errors(errors: &[full_moon::Error]) -> String {
+    #[allow(unused_mut)]
+    let mut error_message = if errors.len() == 1 {
+        print_full_moon_error(errors.first().unwrap())
+    } else {
+        errors
+            .iter()
+            .map(|err| "\n - ".to_string() + &print_full_moon_error(err))
+            .collect::<String>()
+    };
+
+    #[cfg(all(feature = "luau", feature = "lua53"))]
+    {
+        let recommend_luau_syntax = errors.iter().any(is_luau_and_lua53_conflict);
+        if recommend_luau_syntax {
+            error_message += "\nhint: this looks like a conflict with Lua 5.3 and Luau generics syntax, add `syntax = \"Luau\"` to stylua.toml to resolve";
+        }
+    }
+
+    #[cfg(all(feature = "luau", feature = "lua52"))]
+    {
+        let recommend_lua52_syntax = errors.iter().any(is_luau_and_lua52_conflict);
+        if recommend_lua52_syntax {
+            error_message += "\nhint: this looks like a conflict with Luau and Lua 5.2 label syntax, add `syntax = \"Lua52\"` to stylua.toml to resolve";
+        }
+    }
+
+    error_message
+}
+
 /// A formatting error
 #[derive(Clone, Debug, Error)]
 pub enum Error {
     /// The input AST has a parsing error.
-    #[error("error parsing: {0:?}")]
+    #[error("error parsing: {}", print_full_moon_errors(.0))]
     ParseError(Vec<full_moon::Error>),
     /// The output AST after formatting generated a parse error. This is a definite error.
-    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues\n{0:?}")]
+    #[error("INTERNAL ERROR: Output AST generated a syntax error. Please report this at https://github.com/johnnymorganz/stylua/issues: {}", print_full_moon_errors(.0))]
     VerificationAstError(Vec<full_moon::Error>),
     /// The output AST after formatting differs from the input AST.
     #[error("INTERNAL WARNING: Output AST may be different to input AST. Code correctness may have changed. Please examine the formatting diff and report any issues at https://github.com/johnnymorganz/stylua/issues")]
@@ -565,47 +516,5 @@ mod tests {
         )
         .unwrap();
         assert_eq!(output, "local x = 1\n");
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_column_width() {
-        let new_config = Config::new().with_column_width(80);
-        assert_eq!(new_config.column_width(), 80);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_line_endings() {
-        let new_config = Config::new().with_line_endings(LineEndings::Windows);
-        assert_eq!(new_config.line_endings(), LineEndings::Windows);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_indent_type() {
-        let new_config = Config::new().with_indent_type(IndentType::Spaces);
-        assert_eq!(new_config.indent_type(), IndentType::Spaces);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_indent_width() {
-        let new_config = Config::new().with_indent_width(2);
-        assert_eq!(new_config.indent_width(), 2);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_quote_style() {
-        let new_config = Config::new().with_quote_style(QuoteStyle::ForceDouble);
-        assert_eq!(new_config.quote_style(), QuoteStyle::ForceDouble);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_config_call_parentheses() {
-        let new_config = Config::new().with_call_parentheses(CallParenType::None);
-        assert_eq!(new_config.call_parentheses(), CallParenType::None);
     }
 }

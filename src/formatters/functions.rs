@@ -1,14 +1,16 @@
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
-    Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall, FunctionDeclaration,
-    FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter, Prefix, Stmt, Suffix,
-    TableConstructor, Var,
+    AnonymousFunction, Block, Call, Expression, Field, FunctionArgs, FunctionBody, FunctionCall,
+    FunctionDeclaration, FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter,
+    Prefix, Stmt, Suffix, TableConstructor, Var,
 };
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
-use crate::formatters::luau::{format_generic_declaration, format_type_specifier};
+use crate::formatters::luau::{
+    format_generic_declaration, format_luau_attribute, format_type_specifier,
+};
 use crate::{
     context::{
         create_function_call_trivia, create_function_definition_trivia, create_indent_trivia,
@@ -42,17 +44,40 @@ use super::expression::process_dot_name;
 /// This doesn't have its own struct, but it is part of Value::Function
 pub fn format_anonymous_function(
     ctx: &Context,
-    anonymous_function: &(TokenReference, FunctionBody),
+    anonymous_function: &AnonymousFunction,
     shape: Shape,
-) -> Box<(TokenReference, FunctionBody)> {
+) -> Box<AnonymousFunction> {
     const FUNCTION_LEN: usize = "function".len();
-    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
-    let function_token = fmt_symbol!(ctx, &anonymous_function.0, "function", shape)
-        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
-    let function_body =
-        format_function_body(ctx, &anonymous_function.1, shape.add_width(FUNCTION_LEN));
 
-    Box::new((function_token, function_body))
+    // Format attributes on one line, space separated
+    #[cfg(feature = "luau")]
+    let attributes = anonymous_function
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape).update_trailing_trivia(
+                FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+            )
+        })
+        .collect();
+
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
+    let function_token = fmt_symbol!(ctx, anonymous_function.function_token(), "function", shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
+    let function_body = format_function_body(
+        ctx,
+        anonymous_function.body(),
+        shape.add_width(FUNCTION_LEN),
+    );
+
+    let anonymous_function = anonymous_function
+        .clone()
+        .with_function_token(function_token)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let anonymous_function = anonymous_function.with_attributes(attributes);
+
+    Box::new(anonymous_function)
 }
 
 /// An enum providing information regarding the next AST node after a function call.
@@ -130,7 +155,7 @@ fn function_args_contains_comments(
             // Punctuation contains comments
             || argument
                 .punctuation()
-                .map_or(false, |token| token.leading_trivia().chain(token.trailing_trivia()).any(function_trivia_contains_comments))
+                .is_some_and(|token| token.leading_trivia().chain(token.trailing_trivia()).any(function_trivia_contains_comments))
         })
     }
 }
@@ -230,7 +255,7 @@ fn function_args_multiline_heuristic(
         match argument {
             Expression::Function(anonymous_function) => {
                 // Check to see whether it has been expanded
-                let is_expanded = !should_collapse_function_body(ctx, &anonymous_function.1);
+                let is_expanded = !should_collapse_function_body(ctx, anonymous_function.body());
                 if is_expanded {
                     // If we have a mixture of multiline args, and other arguments
                     // Then the function args should be expanded
@@ -372,11 +397,20 @@ pub fn format_function_args(
             parentheses,
             arguments,
         } => {
+            let (start_parens, end_parens) = parentheses.tokens();
+
             // Handle config where parentheses are omitted, and there is only one argument
             if ctx.config().call_parentheses != CallParenType::Input
                 && (ctx.should_omit_string_parens() || ctx.should_omit_table_parens())
                 && arguments.len() == 1
                 && !matches!(call_next_node, FunctionCallNextNode::ObscureWithoutParens)
+                && !start_parens.has_trailing_comments(CommentSearch::Single)
+                && !end_parens.has_leading_comments(CommentSearch::Single)
+                && !arguments
+                    .first()
+                    .unwrap()
+                    .value()
+                    .has_leading_comments(CommentSearch::Single)
             {
                 let argument = arguments.iter().next().unwrap();
 
@@ -448,7 +482,6 @@ pub fn format_function_args(
                 // parentheses as well. Otherwise, we just use 1 = opening parentheses.
                 let shape_increment = if hug_table_constructor { 2 } else { 1 };
 
-                let (start_parens, end_parens) = parentheses.tokens();
                 let start_parens = format_token_reference(ctx, start_parens, shape);
                 let start_parens = if start_parens.has_trailing_comments(CommentSearch::All)
                     && !arguments.is_empty()
@@ -640,6 +673,8 @@ fn table_constructor_contains_nested_function(table_constructor: &TableConstruct
         Field::ExpressionKey { key, value, .. } => {
             contains_nested_function(key) || contains_nested_function(value)
         }
+        #[cfg(feature = "cfxlua")]
+        Field::SetConstructor { .. } => false,
         Field::NameKey { value, .. } => contains_nested_function(value),
         other => unreachable!("unknown node {:?}", other),
     })
@@ -764,15 +799,13 @@ pub fn format_function_body(
         let contains_comments = function_body.parameters().pairs().any(|pair| {
             let contains_comments = pair
                 .punctuation()
-                .map_or(false, trivia_util::token_contains_comments)
+                .is_some_and(trivia_util::token_contains_comments)
                 || trivia_util::contains_comments(pair.value());
             #[cfg(feature = "luau")]
             let type_specifier_comments = type_specifiers
                 .next()
                 .flatten()
-                .map_or(false, |type_specifier| {
-                    trivia_util::contains_comments(type_specifier)
-                });
+                .is_some_and(trivia_util::contains_comments);
             #[cfg(not(feature = "luau"))]
             let type_specifier_comments = false;
             contains_comments || type_specifier_comments
@@ -1173,6 +1206,16 @@ pub fn format_function_declaration(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
+    #[cfg(feature = "luau")]
+    let attributes = function_declaration
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone()))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
+        })
+        .collect();
+
     let function_token = fmt_symbol!(
         ctx,
         function_declaration.function_token(),
@@ -1187,9 +1230,14 @@ pub fn format_function_declaration(
     let function_body = format_function_body(ctx, function_declaration.body(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-    FunctionDeclaration::new(formatted_function_name)
+    let function_declaration = FunctionDeclaration::new(formatted_function_name)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let function_declaration = function_declaration.with_attributes(attributes);
+
+    function_declaration
 }
 
 /// Formats a LocalFunction node
@@ -1203,6 +1251,15 @@ pub fn format_local_function(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
     let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
 
+    #[cfg(feature = "luau")]
+    let attributes = local_function
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone()))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
+        })
+        .collect();
     let local_token = fmt_symbol!(ctx, local_function.local_token(), "local ", shape)
         .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let function_token = fmt_symbol!(ctx, local_function.function_token(), "function ", shape);
@@ -1213,10 +1270,15 @@ pub fn format_local_function(
     let function_body = format_function_body(ctx, local_function.body(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
 
-    LocalFunction::new(formatted_name)
+    let local_function = LocalFunction::new(formatted_name)
         .with_local_token(local_token)
         .with_function_token(function_token)
-        .with_body(function_body)
+        .with_body(function_body);
+
+    #[cfg(feature = "luau")]
+    let local_function = local_function.with_attributes(attributes);
+
+    local_function
 }
 
 /// Formats a MethodCall node
