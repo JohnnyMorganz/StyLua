@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769271250780,
+  "lastUpdate": 1769271617905,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15665,6 +15665,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15296592,
             "range": "± 187888",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8314c096486f5bb6e1ec92c1b40ac41b59dfd5ff",
+          "message": "Check for inline comments that will force hanging in function arguments (#1025)\n\n* Add test case\n\n* Check for inline comments that will force hanging in function arguments\n\n* Update snapshots\n\n* Update changelog\n\n* Fix has_inline_comments to not recurse into nested function bodies\n\nThe previous implementation used contains_comments(lhs) which checked\nall tokens in the entire LHS tree, incorrectly detecting comments\ninside nested function bodies as \"inline\" comments of the outer binary\nexpression.\n\nNow we only check for comments that are actually inline within the\nbinary expression: trailing comments on LHS, leading comments on RHS,\nand recursively check nested compound expressions.\n\n* Only match singleline comments",
+          "timestamp": "2026-01-24T16:18:13Z",
+          "tree_id": "095a03c3f0658a2ce7700db18e47697620befd6f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8314c096486f5bb6e1ec92c1b40ac41b59dfd5ff"
+        },
+        "date": 1769271617155,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28925651,
+            "range": "± 535711",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230647194,
+            "range": "± 1202363",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15466568,
+            "range": "± 429533",
             "unit": "ns/iter"
           }
         ]
