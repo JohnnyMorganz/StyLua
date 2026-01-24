@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769271837851,
+  "lastUpdate": 1769273165459,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15749,6 +15749,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15250515,
             "range": "± 176118",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "648d2af51d1fed0a75526a396dda8b36f6beface",
+          "message": "Luau: Support formatting explicit type instantiations\n\nBump full_moon to 2.1.1 which adds support for explicit type\ninstantiations in Luau (`f<<T>>()`, `obj:method<<T>>()`).",
+          "timestamp": "2026-01-24T16:43:55Z",
+          "tree_id": "955d3c48813b177423b81ab6ba341c6b6e018406",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/648d2af51d1fed0a75526a396dda8b36f6beface"
+        },
+        "date": 1769273164176,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27860493,
+            "range": "± 374662",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233583503,
+            "range": "± 1728643",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15608954,
+            "range": "± 400325",
             "unit": "ns/iter"
           }
         ]
