@@ -1,7 +1,4 @@
-#![expect(
-    unused_assignments,
-    reason = "clippy false positive bug - https://github.com/rust-lang/rust/issues/147648. Remove once fixed"
-)]
+#![allow(unused_assignments)] // clippy false positive bug - https://github.com/rust-lang/rust/issues/147648. Remove once fixed
 use anyhow::{bail, Context, Result};
 use clap::StructOpt;
 use console::style;
