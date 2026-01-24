@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769271024816,
+  "lastUpdate": 1769271250780,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15623,6 +15623,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15669488,
             "range": "± 387913",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "91544758+phanen@users.noreply.github.com",
+            "name": "phanium",
+            "username": "phanen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4c2d066b870d186758f07bf6eb782316bbcc8930",
+          "message": "Fix `call_parentheses = Input` don't work in editorconfig (#1057)\n\n* Fix `call_parentheses = Input` don't work in editorconfig\n\n* fixup! Fix `call_parentheses = Input` don't work in editorconfig\n\nmake it more readable\n\n* changlog & test\n\n* Tweak changelog and test\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-01-24T16:12:10Z",
+          "tree_id": "65678c7b53ada87c7dd24b535c1c5517d2c92b7e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4c2d066b870d186758f07bf6eb782316bbcc8930"
+        },
+        "date": 1769271249551,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27268316,
+            "range": "± 475347",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229595953,
+            "range": "± 433455",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15296592,
+            "range": "± 187888",
             "unit": "ns/iter"
           }
         ]
