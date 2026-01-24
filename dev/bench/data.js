@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764493434393,
+  "lastUpdate": 1769259090609,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15329,6 +15329,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15428410,
             "range": "± 69878",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "4e8aec8cab810ab82d0d863b637a6e95c71b7323",
+          "message": "Temporarily ignore the unused_assignments clippy warning\n\nFalse positive bug: https://github.com/rust-lang/rust/issues/147648",
+          "timestamp": "2026-01-24T12:49:29Z",
+          "tree_id": "f115e9088588bf20514f08b81e05892ca2686f3f",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4e8aec8cab810ab82d0d863b637a6e95c71b7323"
+        },
+        "date": 1769259089931,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26920830,
+            "range": "± 477286",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229902663,
+            "range": "± 910782",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14106915,
+            "range": "± 69832",
             "unit": "ns/iter"
           }
         ]
