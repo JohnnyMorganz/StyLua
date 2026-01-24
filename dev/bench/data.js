@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769260149324,
+  "lastUpdate": 1769260365907,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15455,6 +15455,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15259505,
             "range": "± 373551",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "akari.ccino@gmail.com",
+            "name": "magic-akari",
+            "username": "magic-akari"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "becb27276cf378bc38e3759c58221d254d051671",
+          "message": "Remove WASM build workaround (#1060)\n\n* Remove wasm workaround\n\n* Add smoketests\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-01-24T13:10:50Z",
+          "tree_id": "1ec0749663a7c365c0bf7837a900520ebbed1795",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/becb27276cf378bc38e3759c58221d254d051671"
+        },
+        "date": 1769260365223,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26746829,
+            "range": "± 160037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234252340,
+            "range": "± 1069334",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15530008,
+            "range": "± 89290",
             "unit": "ns/iter"
           }
         ]
