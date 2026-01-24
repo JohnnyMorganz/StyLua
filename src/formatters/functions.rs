@@ -147,11 +147,13 @@ fn function_args_contains_comments(
         true
     } else {
         arguments.pairs().any(|argument| {
-            // Leading / Trailing trivia of expression (ignore inline comments)
+            // Leading / Trailing trivia of expression
             argument.value().leading_trivia()
                 .iter()
                 .chain(argument.value().trailing_trivia().iter())
                 .any(function_trivia_contains_comments)
+            // Inline comments that will force hanging
+            || argument.value().has_inline_comments()
             // Punctuation contains comments
             || argument
                 .punctuation()
