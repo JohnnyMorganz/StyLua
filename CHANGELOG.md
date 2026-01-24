@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added flag `--no-ignore-vcs` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
+
 ### Fixed
 
 - Fixed malformed formatting when a binary expression inside of a function call with comments around the operators is incorrectly collapsed onto one line ([#996](https://github.com/JohnnyMorganz/StyLua/issues/996))
