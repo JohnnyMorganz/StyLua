@@ -7,3 +7,4 @@ indent_size = 2
 [global/tab-single.lua]
 indent_style = tab
 quote_type = single
+call_parentheses = input

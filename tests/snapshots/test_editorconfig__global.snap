@@ -1,5 +1,6 @@
 ---
 source: tests/test_editorconfig.rs
+assertion_line: 45
 expression: "format(&contents, path.to_str().unwrap())"
 input_file: tests/inputs-editorconfig/global/tab-single.lua
 ---
@@ -8,4 +9,6 @@ local foo = {
 }
 
 local bar = ''
+
+unpack {}
 

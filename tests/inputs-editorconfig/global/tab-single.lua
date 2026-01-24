@@ -3,3 +3,5 @@ local foo = {
 }
 
 local bar = ""
+
+unpack {}
