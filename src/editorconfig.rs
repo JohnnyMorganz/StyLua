@@ -62,7 +62,8 @@ property_choice! {
     (Always, "always"),
     (NoSingleString, "nosinglestring"),
     (NoSingleTable, "nosingletable"),
-    (None, "none")
+    (None, "none"),
+    (Input, "input")
 }
 
 property_choice! {
@@ -90,91 +91,71 @@ property_choice! {
 // Override StyLua config with EditorConfig properties
 fn load(mut config: Config, properties: &Properties) -> Config {
     if let Ok(end_of_line) = properties.get::<EndOfLine>() {
-        match end_of_line {
-            EndOfLine::Cr | EndOfLine::Lf => config.line_endings = LineEndings::Unix,
-            EndOfLine::CrLf => config.line_endings = LineEndings::Windows,
-        }
+        config.line_endings = match end_of_line {
+            EndOfLine::Cr | EndOfLine::Lf => LineEndings::Unix,
+            EndOfLine::CrLf => LineEndings::Windows,
+        };
     }
     if let Ok(indent_size) = properties.get::<IndentSize>() {
-        match indent_size {
-            IndentSize::Value(indent_width) => config.indent_width = indent_width,
-            IndentSize::UseTabWidth => {
-                if let Ok(TabWidth::Value(indent_width)) = properties.get::<TabWidth>() {
-                    config.indent_width = indent_width
-                }
-            }
-        }
+        config.indent_width = match indent_size {
+            IndentSize::Value(indent_width) => indent_width,
+            IndentSize::UseTabWidth => match properties.get::<TabWidth>() {
+                Ok(TabWidth::Value(tab_width)) => tab_width,
+                _ => config.indent_width,
+            },
+        };
     }
     if let Ok(indent_style) = properties.get::<IndentStyle>() {
-        match indent_style {
-            IndentStyle::Tabs => config.indent_type = IndentType::Tabs,
-            IndentStyle::Spaces => config.indent_type = IndentType::Spaces,
-        }
+        config.indent_type = match indent_style {
+            IndentStyle::Tabs => IndentType::Tabs,
+            IndentStyle::Spaces => IndentType::Spaces,
+        };
     }
     if let Ok(max_line_length) = properties.get::<MaxLineLen>() {
-        match max_line_length {
-            MaxLineLen::Value(column_width) => config.column_width = column_width,
-            MaxLineLen::Off => config.column_width = usize::MAX,
-        }
+        config.column_width = match max_line_length {
+            MaxLineLen::Value(column_width) => column_width,
+            MaxLineLen::Off => usize::MAX,
+        };
     }
     if let Ok(quote_type) = properties.get::<QuoteTypeChoice>() {
-        match quote_type {
-            QuoteTypeChoice::Double => config.quote_style = QuoteStyle::AutoPreferDouble,
-            QuoteTypeChoice::Single => config.quote_style = QuoteStyle::AutoPreferSingle,
-            QuoteTypeChoice::Auto => (),
-        }
+        config.quote_style = match quote_type {
+            QuoteTypeChoice::Double => QuoteStyle::AutoPreferDouble,
+            QuoteTypeChoice::Single => QuoteStyle::AutoPreferSingle,
+            QuoteTypeChoice::Auto => config.quote_style,
+        };
     }
     if let Ok(call_parentheses) = properties.get::<CallParenthesesChoice>() {
-        match call_parentheses {
-            CallParenthesesChoice::Always => config.call_parentheses = CallParenType::Always,
-            CallParenthesesChoice::NoSingleString => {
-                config.call_parentheses = CallParenType::NoSingleString
-            }
-            CallParenthesesChoice::NoSingleTable => {
-                config.call_parentheses = CallParenType::NoSingleTable
-            }
-            CallParenthesesChoice::None => config.call_parentheses = CallParenType::None,
-        }
+        config.call_parentheses = match call_parentheses {
+            CallParenthesesChoice::Always => CallParenType::Always,
+            CallParenthesesChoice::NoSingleString => CallParenType::NoSingleString,
+            CallParenthesesChoice::NoSingleTable => CallParenType::NoSingleTable,
+            CallParenthesesChoice::None => CallParenType::None,
+            CallParenthesesChoice::Input => CallParenType::Input,
+        };
     }
     if let Ok(space_after_function_names) = properties.get::<SpaceAfterFunctionNamesChoice>() {
-        match space_after_function_names {
-            SpaceAfterFunctionNamesChoice::Always => {
-                config.space_after_function_names = SpaceAfterFunctionNames::Always
-            }
-            SpaceAfterFunctionNamesChoice::Definitions => {
-                config.space_after_function_names = SpaceAfterFunctionNames::Definitions
-            }
-            SpaceAfterFunctionNamesChoice::Calls => {
-                config.space_after_function_names = SpaceAfterFunctionNames::Calls
-            }
-            SpaceAfterFunctionNamesChoice::Never => {
-                config.space_after_function_names = SpaceAfterFunctionNames::Never
-            }
-        }
+        config.space_after_function_names = match space_after_function_names {
+            SpaceAfterFunctionNamesChoice::Always => SpaceAfterFunctionNames::Always,
+            SpaceAfterFunctionNamesChoice::Definitions => SpaceAfterFunctionNames::Definitions,
+            SpaceAfterFunctionNamesChoice::Calls => SpaceAfterFunctionNames::Calls,
+            SpaceAfterFunctionNamesChoice::Never => SpaceAfterFunctionNames::Never,
+        };
     }
     if let Ok(collapse_simple_statement) = properties.get::<CollapseSimpleStatementChoice>() {
-        match collapse_simple_statement {
-            CollapseSimpleStatementChoice::Never => {
-                config.collapse_simple_statement = CollapseSimpleStatement::Never
-            }
-            CollapseSimpleStatementChoice::FunctionOnly => {
-                config.collapse_simple_statement = CollapseSimpleStatement::FunctionOnly
-            }
+        config.collapse_simple_statement = match collapse_simple_statement {
+            CollapseSimpleStatementChoice::Never => CollapseSimpleStatement::Never,
+            CollapseSimpleStatementChoice::FunctionOnly => CollapseSimpleStatement::FunctionOnly,
             CollapseSimpleStatementChoice::ConditionalOnly => {
-                config.collapse_simple_statement = CollapseSimpleStatement::ConditionalOnly
+                CollapseSimpleStatement::ConditionalOnly
             }
-            CollapseSimpleStatementChoice::Always => {
-                config.collapse_simple_statement = CollapseSimpleStatement::Always
-            }
-        }
+            CollapseSimpleStatementChoice::Always => CollapseSimpleStatement::Always,
+        };
     }
     if let Ok(sort_requires) = properties.get::<SortRequiresChoice>() {
-        match sort_requires {
-            SortRequiresChoice::True => config.sort_requires = SortRequiresConfig { enabled: true },
-            SortRequiresChoice::False => {
-                config.sort_requires = SortRequiresConfig { enabled: false }
-            }
-        }
+        config.sort_requires = match sort_requires {
+            SortRequiresChoice::True => SortRequiresConfig { enabled: true },
+            SortRequiresChoice::False => SortRequiresConfig { enabled: false },
+        };
     }
 
     config
@@ -331,6 +312,14 @@ mod tests {
         properties.insert_raw_for_key("call_parentheses", "None");
         let config = Config::from(&properties);
         assert_eq!(config.call_parentheses, CallParenType::None);
+    }
+
+    #[test]
+    fn test_call_parentheses_input() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("call_parentheses", "Input");
+        let config = Config::from(&properties);
+        assert_eq!(config.call_parentheses, CallParenType::Input);
     }
 
     #[test]
