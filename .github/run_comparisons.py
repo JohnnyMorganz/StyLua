@@ -39,6 +39,18 @@ REPOS = {
     "CorePackages": {
         "url": "https://github.com/grilme99/CorePackages",
         "command": "--syntax luau ."
+    },
+    "react-lua": {
+        "url": "https://github.com/jsdotlua/react-lua",
+        "command": "--syntax luau ."
+    },
+    "jest-lua": {
+        "url": "https://github.com/jsdotlua/jest-lua",
+        "command": "--syntax luau ."
+    },
+    "lute": {
+        "url": "https://github.com/luau-lang/lute",
+        "command": "--syntax luau ."
     }
 }
 
