@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769260365907,
+  "lastUpdate": 1769261952299,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15497,6 +15497,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15530008,
             "range": "± 89290",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dc1556723627ff1560d6a89cf0a81471568595ae",
+          "message": "Add option to allow formatting files listed in .gitignore (#917)\n\n* Add option to allow formatting files listed in .gitignore\n\n* Update changelog\n\n* Rename to no-ignore-vcs, only disable VCS-based ignores",
+          "timestamp": "2026-01-24T13:37:17Z",
+          "tree_id": "5ba260544aaa94c84ec37bd8b8c31193bee97e35",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/dc1556723627ff1560d6a89cf0a81471568595ae"
+        },
+        "date": 1769261951555,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26756650,
+            "range": "± 247079",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230640731,
+            "range": "± 1426605",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15300693,
+            "range": "± 47506",
             "unit": "ns/iter"
           }
         ]
