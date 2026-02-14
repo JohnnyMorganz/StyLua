@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769331262835,
+  "lastUpdate": 1771064825228,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15833,6 +15833,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15413548,
             "range": "± 307353",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ee1b346df72618513e722500ec571665be0879ef",
+          "message": "Bump webpack from 5.95.0 to 5.105.1 in /stylua-vscode (#1066)\n\nBumps [webpack](https://github.com/webpack/webpack) from 5.95.0 to 5.105.1.\n- [Release notes](https://github.com/webpack/webpack/releases)\n- [Changelog](https://github.com/webpack/webpack/blob/main/CHANGELOG.md)\n- [Commits](https://github.com/webpack/webpack/compare/v5.95.0...v5.105.1)\n\n---\nupdated-dependencies:\n- dependency-name: webpack\n  dependency-version: 5.105.1\n  dependency-type: direct:development\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-02-14T11:24:58+01:00",
+          "tree_id": "d40d9acecf35916504a0cdd5235534060c66f498",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ee1b346df72618513e722500ec571665be0879ef"
+        },
+        "date": 1771064823937,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28722317,
+            "range": "± 950333",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232954348,
+            "range": "± 966182",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15680275,
+            "range": "± 136111",
             "unit": "ns/iter"
           }
         ]
