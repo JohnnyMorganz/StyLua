@@ -37,6 +37,11 @@ const SUPPORTED_PLATFORMS = [
     arch: "arm64",
     name: "stylua-linux-aarch64",
   },
+  {
+    platform: "linux",
+    arch: "loongarch64",
+    name: "stylua-linux-loongarch64",
+  },
 ];
 
 const error = (msg) => {
