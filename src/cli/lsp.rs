@@ -79,6 +79,43 @@ fn diffop_to_textedit(
     }
 }
 
+trait ToFilePath {
+    fn to_file_path(&self) -> PathBuf;
+}
+
+impl ToFilePath for Uri {
+    fn to_file_path(&self) -> PathBuf {
+        // Based on https://github.com/tower-lsp-community/ls-types/blob/d2cc799f26da91354d2c4a1f7e5ef3f4a90797eb/src/uri.rs#L165-L207
+        //
+        // Made some modification because `lsp-types` currently use 0.1.4 instead of
+        // 0.4.1 from the source.
+        let path = self.path().as_str();
+
+        #[cfg(windows)]
+        {
+            let auth_host = self
+                .authority()
+                .map(|auth| auth.host().as_str())
+                .unwrap_or_default();
+
+            if auth_host.is_empty() {
+                let host = path.to_string();
+                let host = host.get(1..).unwrap();
+                return PathBuf::from(host);
+            }
+
+            PathBuf::from(format!("{auth_host}:"))
+                .components()
+                .chain(PathBuf::from(path).components())
+                .collect()
+        }
+        #[cfg(not(windows))]
+        {
+            PathBuf::from(path)
+        }
+    }
+}
+
 struct LanguageServer<'a> {
     documents: TextDocuments,
     workspace_folders: Vec<WorkspaceFolder>,
@@ -119,7 +156,7 @@ impl LanguageServer<'_> {
         let check_str = uri.as_str();
         for workspace in &self.workspace_folders {
             if *uri == workspace.uri {
-                return workspace.uri.path().as_str().into();
+                return workspace.uri.to_file_path();
             }
 
             let prefix_str = workspace.uri.as_str();
@@ -134,9 +171,9 @@ impl LanguageServer<'_> {
         }
 
         match best_workspace {
-            Some(workspace) => workspace.path().as_str().into(),
+            Some(workspace) => workspace.to_file_path(),
             None => match &self.root_uri {
-                Some(root_uri) => root_uri.path().as_str().into(),
+                Some(root_uri) => root_uri.to_file_path(),
                 None => std::env::current_dir().expect("Could not find current directory"),
             },
         }
@@ -164,7 +201,7 @@ impl LanguageServer<'_> {
         }
 
         let search_root = Some(self.find_config_root(uri));
-        let path = uri.path().as_str().as_ref();
+        let path = &uri.to_file_path();
 
         if stylua_ignore::path_is_stylua_ignored(
             path,
