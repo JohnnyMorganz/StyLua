@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772882710005,
+  "lastUpdate": 1772882852455,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15959,6 +15959,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15390709,
             "range": "± 88135",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "86acad45af6734f136f31c2441a1b371895cfa12",
+          "message": "Bump axios from 1.12.0 to 1.13.5 in /stylua-npm-bin (#1065)\n\nBumps [axios](https://github.com/axios/axios) from 1.12.0 to 1.13.5.\n- [Release notes](https://github.com/axios/axios/releases)\n- [Changelog](https://github.com/axios/axios/blob/v1.x/CHANGELOG.md)\n- [Commits](https://github.com/axios/axios/compare/v1.12.0...v1.13.5)\n\n---\nupdated-dependencies:\n- dependency-name: axios\n  dependency-version: 1.13.5\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-07T12:23:23+01:00",
+          "tree_id": "abcd4b73dce49dcb91f23481fb4e005af17134a7",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/86acad45af6734f136f31c2441a1b371895cfa12"
+        },
+        "date": 1772882851077,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29035529,
+            "range": "± 400698",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233019183,
+            "range": "± 1420501",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15881898,
+            "range": "± 198004",
             "unit": "ns/iter"
           }
         ]
