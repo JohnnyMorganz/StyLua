@@ -96,6 +96,21 @@ enum FormattingError {
 }
 
 impl LanguageServer<'_> {
+    fn uri_to_pathbuf(uri: &Uri) -> PathBuf {
+        let path = uri.path().as_str();
+
+        #[cfg(windows)]
+        {
+            // `file:///C:/foo` URIs expose `/C:/foo` via `path()`, but our config
+            // resolver expects a native path-like `C:/foo` on Windows.
+            if path.starts_with('/') && path.as_bytes().get(2) == Some(&b':') {
+                return PathBuf::from(&path[1..]);
+            }
+        }
+
+        PathBuf::from(path)
+    }
+
     fn new<'a>(
         workspace_folders: Vec<WorkspaceFolder>,
         root_uri: Option<Uri>,
@@ -119,7 +134,7 @@ impl LanguageServer<'_> {
         let check_str = uri.as_str();
         for workspace in &self.workspace_folders {
             if *uri == workspace.uri {
-                return workspace.uri.path().as_str().into();
+                return Self::uri_to_pathbuf(&workspace.uri);
             }
 
             let prefix_str = workspace.uri.as_str();
@@ -134,9 +149,9 @@ impl LanguageServer<'_> {
         }
 
         match best_workspace {
-            Some(workspace) => workspace.path().as_str().into(),
+            Some(workspace) => Self::uri_to_pathbuf(workspace),
             None => match &self.root_uri {
-                Some(root_uri) => root_uri.path().as_str().into(),
+                Some(root_uri) => Self::uri_to_pathbuf(root_uri),
                 None => std::env::current_dir().expect("Could not find current directory"),
             },
         }
@@ -164,10 +179,11 @@ impl LanguageServer<'_> {
         }
 
         let search_root = Some(self.find_config_root(uri));
-        let path = uri.path().as_str().as_ref();
+        let path = Self::uri_to_pathbuf(uri);
+        let path = path.to_string_lossy();
 
         if stylua_ignore::path_is_stylua_ignored(
-            path,
+            path.as_ref(),
             self.search_parent_directories,
             search_root.clone(),
         )
@@ -180,7 +196,7 @@ impl LanguageServer<'_> {
 
         let mut config = self
             .config_resolver
-            .load_configuration_with_search_root(path, search_root)
+            .load_configuration_with_search_root(path.as_ref(), search_root)
             .unwrap_or_default();
 
         if let Some(formatting_options) = formatting_options {
@@ -1273,6 +1289,26 @@ mod tests {
                 },
                 |receiver| expect_server_shutdown(receiver, 4)
             ]
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn test_uri_to_pathbuf_unix_path_unchanged() {
+        let uri = Uri::from_str("file:///home/test/project/file.lua").unwrap();
+        assert_eq!(
+            super::LanguageServer::uri_to_pathbuf(&uri),
+            std::path::PathBuf::from("/home/test/project/file.lua")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_uri_to_pathbuf_strips_leading_slash_before_drive_letter() {
+        let uri = Uri::from_str("file:///C:/Users/test/project/file.lua").unwrap();
+        assert_eq!(
+            super::LanguageServer::uri_to_pathbuf(&uri),
+            std::path::PathBuf::from("C:/Users/test/project/file.lua")
         );
     }
 }
