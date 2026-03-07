@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed malformed formatting when a binary expression inside of a function call with comments around the operators is incorrectly collapsed onto one line ([#996](https://github.com/JohnnyMorganz/StyLua/issues/996))
+- Fixed LSP not respecting `.stylua.toml` on Windows due to incorrect file URI to path conversion ([#1051](https://github.com/JohnnyMorganz/StyLua/issues/1051))
 
 ## [2.3.1] - 2025-11-01
 

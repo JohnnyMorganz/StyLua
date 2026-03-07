@@ -417,7 +417,7 @@ pub fn run(opt: opt::Opt) -> anyhow::Result<()> {
 mod tests {
     use std::cmp::Ordering;
     use std::convert::TryInto;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::str::FromStr;
 
     use clap::Parser;
@@ -1310,6 +1310,56 @@ mod tests {
                 },
                 |receiver| expect_server_shutdown(receiver, 4)
             ]
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_strips_leading_slash_on_windows() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///C:/Users/user/AppData/Local/nvim").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("C:/Users/user/AppData/Local/nvim")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_windows_drive_letter() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///D:/projects/my-project/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("D:/projects/my-project/foo.lua")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_windows_unc_path() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file://server/share/foo.lua").unwrap();
+        let path = uri.to_file_path();
+        assert!(
+            path.starts_with("\\\\server") || path.starts_with("server:"),
+            "Expected UNC-style path, got: {:?}",
+            path
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn test_to_file_path_unix() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///home/user/project/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("/home/user/project/foo.lua")
         );
     }
 }
