@@ -289,6 +289,9 @@ fn load_overrides(config: Config, opt: &Opt) -> Config {
     if let Some(collapse_simple_statement) = opt.format_opts.collapse_simple_statement {
         new_config.collapse_simple_statement = collapse_simple_statement.into();
     }
+    if let Some(preserve_block_newline_gaps) = opt.format_opts.preserve_block_newline_gaps {
+        new_config.block_newline_gaps = preserve_block_newline_gaps.into();
+    };
     if opt.format_opts.sort_requires {
         new_config.sort_requires = SortRequiresConfig { enabled: true }
     }
