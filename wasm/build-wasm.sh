@@ -13,7 +13,7 @@ cargo build --target wasm32-unknown-unknown --release --features lua52,lua53,lua
 WASM_PATH=$PROJECT_ROOT/target/wasm32-unknown-unknown/release/stylua_lib.wasm
 
 # install wasm-bindgen-cli matching the version in Cargo.toml
-WASM_BINDGEN_VERSION=$(grep -oP 'wasm-bindgen = \{ version = "\K[^"]+' $PROJECT_ROOT/Cargo.toml)
+WASM_BINDGEN_VERSION=$(sed -n 's/.*wasm-bindgen = { version = "\([^"]*\)".*/\1/p' $PROJECT_ROOT/Cargo.toml)
 command -v wasm-bindgen && [ "$(wasm-bindgen --version | awk '{print $2}')" = "$WASM_BINDGEN_VERSION" ] || cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
 
 # check wasm-bindgen version
@@ -42,7 +42,7 @@ cp $CURRENT_DIR/stylua.web/stylua_lib.d.ts $CURRENT_DIR/stylua_lib_web.d.ts
 echo "Build complete!"
 
 # Run smoke tests if --test flag is passed
-if [ "$1" = "--test" ]; then
+if [ "${1:-}" = "--test" ]; then
     echo "Running smoke tests..."
     cd $CURRENT_DIR && npm test
 fi
