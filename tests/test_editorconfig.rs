@@ -64,7 +64,7 @@ fn test_stylua_toml() {
         // Save file contents
         let original = std::fs::read_to_string(path).unwrap();
         let result = std::panic::catch_unwind(|| {
-            let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+            let mut cmd = assert_cmd::Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")));
             cmd.arg("--config-path")
                 .arg("tests/inputs-editorconfig/stylua-toml/stylua.toml")
                 .arg(path)
