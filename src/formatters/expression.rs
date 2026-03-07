@@ -271,44 +271,13 @@ fn format_expression_internal(
         Expression::UnaryOperator { unop, expression } => {
             let unop = format_unop(ctx, unop, shape);
             let shape = shape + strip_leading_trivia(&unop).to_string().len();
-            let mut expression = format_expression_internal(
+            let expression = format_expression_internal(
                 ctx,
                 expression,
                 ExpressionContext::UnaryOrBinary,
                 shape,
             );
-
-            // Special case: if we have `- -foo`, or `-(-foo)` where we have already removed the parentheses, then
-            // it will lead to `--foo`, which is invalid syntax. We must explicitly add/keep the parentheses `-(-foo)`.
-            if let UnOp::Minus(_) = unop {
-                let require_parentheses = match expression {
-                    Expression::UnaryOperator {
-                        unop: UnOp::Minus(_),
-                        ..
-                    } => true,
-                    Expression::Parentheses { ref expression, .. } => matches!(
-                        &**expression,
-                        Expression::UnaryOperator {
-                            unop: UnOp::Minus(_),
-                            ..
-                        }
-                    ),
-                    _ => false,
-                };
-
-                if require_parentheses {
-                    let (new_expression, trailing_comments) =
-                        trivia_util::take_trailing_comments(&expression);
-                    expression = Expression::Parentheses {
-                        contained: ContainedSpan::new(
-                            TokenReference::symbol("(").unwrap(),
-                            TokenReference::symbol(")").unwrap(),
-                        )
-                        .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
-                        expression: Box::new(new_expression),
-                    }
-                }
-            }
+            let expression = parenthesise_double_minus(&unop, expression);
 
             Expression::UnaryOperator {
                 unop,
@@ -916,6 +885,43 @@ pub fn format_unop(ctx: &Context, unop: &UnOp, shape: Shape) -> UnOp {
     }, |other| panic!("unknown node {:?}", other))
 }
 
+/// If we have a unary minus whose operand is also a unary minus (e.g. `- -foo`),
+/// the two minus signs would collapse into `--foo`, which is a comment in Lua.
+/// This function wraps the operand in parentheses when necessary: `- -foo` → `-(-foo)`.
+fn parenthesise_double_minus(unop: &UnOp, expression: Expression) -> Expression {
+    if let UnOp::Minus(_) = unop {
+        let require_parentheses = match expression {
+            Expression::UnaryOperator {
+                unop: UnOp::Minus(_),
+                ..
+            } => true,
+            Expression::Parentheses { ref expression, .. } => matches!(
+                &**expression,
+                Expression::UnaryOperator {
+                    unop: UnOp::Minus(_),
+                    ..
+                }
+            ),
+            _ => false,
+        };
+
+        if require_parentheses {
+            let (new_expression, trailing_comments) =
+                trivia_util::take_trailing_comments(&expression);
+            return Expression::Parentheses {
+                contained: ContainedSpan::new(
+                    TokenReference::symbol("(").unwrap(),
+                    TokenReference::symbol(")").unwrap(),
+                )
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_comments)),
+                expression: Box::new(new_expression),
+            };
+        }
+    }
+
+    expression
+}
+
 /// Pushes a [`BinOp`] onto a newline, and indent its depending on indent_level.
 /// Preserves any leading comments, and moves trailing comments to before the BinOp.
 /// Also takes in the [`Expression`] present on the RHS of the BinOp - this is needed so that we can take any
@@ -1438,6 +1444,7 @@ fn format_hanging_expression_(
                 ExpressionContext::UnaryOrBinary,
                 lhs_range,
             );
+            let expression = parenthesise_double_minus(&unop, expression);
 
             Expression::UnaryOperator {
                 unop,
