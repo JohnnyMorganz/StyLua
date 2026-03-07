@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771064825228,
+  "lastUpdate": 1772882489481,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15875,6 +15875,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15680275,
             "range": "± 136111",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "a700368cd3c2899d3062d01b6fb22ee860b99ca8",
+          "message": "Ensure wasm-bindgen-cli matches Cargo.toml version",
+          "timestamp": "2026-03-07T12:19:28+01:00",
+          "tree_id": "70952604f818ee7fae29da5f4bb0fd7e1aa1c7f4",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a700368cd3c2899d3062d01b6fb22ee860b99ca8"
+        },
+        "date": 1772882488555,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27270483,
+            "range": "± 351465",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230619614,
+            "range": "± 1735073",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15561859,
+            "range": "± 367813",
             "unit": "ns/iter"
           }
         ]
