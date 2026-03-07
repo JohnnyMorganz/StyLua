@@ -79,6 +79,43 @@ fn diffop_to_textedit(
     }
 }
 
+trait ToFilePath {
+    fn to_file_path(&self) -> PathBuf;
+}
+
+impl ToFilePath for Uri {
+    fn to_file_path(&self) -> PathBuf {
+        // Based on https://github.com/tower-lsp-community/ls-types/blob/d2cc799f26da91354d2c4a1f7e5ef3f4a90797eb/src/uri.rs#L165-L207
+        //
+        // Made some modification because `lsp-types` currently use 0.1.4 instead of
+        // 0.4.1 from the source.
+        let path = self.path().as_str();
+
+        #[cfg(windows)]
+        {
+            let auth_host = self
+                .authority()
+                .map(|auth| auth.host().as_str())
+                .unwrap_or_default();
+
+            if auth_host.is_empty() {
+                let host = path.to_string();
+                let host = host.get(1..).unwrap();
+                return PathBuf::from(host);
+            }
+
+            PathBuf::from(format!("{auth_host}:"))
+                .components()
+                .chain(PathBuf::from(path).components())
+                .collect()
+        }
+        #[cfg(not(windows))]
+        {
+            PathBuf::from(path)
+        }
+    }
+}
+
 struct LanguageServer<'a> {
     documents: TextDocuments,
     workspace_folders: Vec<WorkspaceFolder>,
@@ -119,7 +156,7 @@ impl LanguageServer<'_> {
         let check_str = uri.as_str();
         for workspace in &self.workspace_folders {
             if *uri == workspace.uri {
-                return workspace.uri.path().as_str().into();
+                return workspace.uri.to_file_path();
             }
 
             let prefix_str = workspace.uri.as_str();
@@ -134,9 +171,9 @@ impl LanguageServer<'_> {
         }
 
         match best_workspace {
-            Some(workspace) => workspace.path().as_str().into(),
+            Some(workspace) => workspace.to_file_path(),
             None => match &self.root_uri {
-                Some(root_uri) => root_uri.path().as_str().into(),
+                Some(root_uri) => root_uri.to_file_path(),
                 None => std::env::current_dir().expect("Could not find current directory"),
             },
         }
@@ -164,7 +201,7 @@ impl LanguageServer<'_> {
         }
 
         let search_root = Some(self.find_config_root(uri));
-        let path = uri.path().as_str().as_ref();
+        let path = &uri.to_file_path();
 
         if stylua_ignore::path_is_stylua_ignored(
             path,
@@ -380,7 +417,7 @@ pub fn run(opt: opt::Opt) -> anyhow::Result<()> {
 mod tests {
     use std::cmp::Ordering;
     use std::convert::TryInto;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::str::FromStr;
 
     use clap::Parser;
@@ -1273,6 +1310,56 @@ mod tests {
                 },
                 |receiver| expect_server_shutdown(receiver, 4)
             ]
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_strips_leading_slash_on_windows() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///C:/Users/user/AppData/Local/nvim").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("C:/Users/user/AppData/Local/nvim")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_windows_drive_letter() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///D:/projects/my-project/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("D:/projects/my-project/foo.lua")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_windows_unc_path() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file://server/share/foo.lua").unwrap();
+        let path = uri.to_file_path();
+        assert!(
+            path.starts_with("\\\\server") || path.starts_with("server:"),
+            "Expected UNC-style path, got: {:?}",
+            path
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn test_to_file_path_unix() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///home/user/project/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("/home/user/project/foo.lua")
         );
     }
 }
