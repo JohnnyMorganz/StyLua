@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772890309642,
+  "lastUpdate": 1772891270177,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16379,6 +16379,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15428010,
             "range": "± 155571",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "cbf4e40571f1a587858278c9b277e15fc3c0b5db",
+          "message": "Fix build-wasm.sh portability issues\n\n- Use `sed` instead of `grep -oP` (Perl regex) for macOS compatibility\n- Use `${1:-}` to prevent unbound variable error with `set -u`",
+          "timestamp": "2026-03-07T14:45:24+01:00",
+          "tree_id": "4fbeb9b7695fffafccf6c7d2c19e5c1f831a61a9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/cbf4e40571f1a587858278c9b277e15fc3c0b5db"
+        },
+        "date": 1772891268943,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26842921,
+            "range": "± 402769",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232972450,
+            "range": "± 1731075",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15451853,
+            "range": "± 84960",
             "unit": "ns/iter"
           }
         ]
