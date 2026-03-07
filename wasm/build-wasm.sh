@@ -12,8 +12,9 @@ cargo build --target wasm32-unknown-unknown --release --features lua52,lua53,lua
 
 WASM_PATH=$PROJECT_ROOT/target/wasm32-unknown-unknown/release/stylua_lib.wasm
 
-# install wasm-bindgen if needed
-command -v wasm-bindgen || cargo install wasm-bindgen-cli
+# install wasm-bindgen-cli matching the version in Cargo.toml
+WASM_BINDGEN_VERSION=$(grep -oP 'wasm-bindgen = \{ version = "\K[^"]+' $PROJECT_ROOT/Cargo.toml)
+command -v wasm-bindgen && [ "$(wasm-bindgen --version | awk '{print $2}')" = "$WASM_BINDGEN_VERSION" ] || cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
 
 # check wasm-bindgen version
 wasm-bindgen --version
