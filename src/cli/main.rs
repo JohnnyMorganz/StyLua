@@ -1074,4 +1074,93 @@ mod tests {
 
         cwd.close().unwrap();
     }
+
+    #[test]
+    #[cfg(feature = "editorconfig")]
+    fn test_editorconfig_child_without_root_merges_with_parent() {
+        let cwd = construct_tree!({
+            ".editorconfig": "root = true\n\n[*.lua]\nindent_style = space\nindent_size = 2\n",
+            "child/.editorconfig": "[*.lua]\nquote_type = single\n",
+            "child/foo.lua": "local foo = {\n\ta = 1,\n}\n\nlocal bar = \"\"\n",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("child/foo.lua")
+            .assert()
+            .success();
+
+        // indent from parent, quotes from child
+        cwd.child("child/foo.lua")
+            .assert("local foo = {\n  a = 1,\n}\n\nlocal bar = ''\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "editorconfig")]
+    fn test_editorconfig_root_true_stops_upward_search() {
+        let cwd = construct_tree!({
+            ".editorconfig": "root = true\n\n[*.lua]\nindent_style = space\nindent_size = 2\nquote_type = single\n",
+            "child/.editorconfig": "root = true\n\n[*.lua]\nindent_style = space\nindent_size = 4\n",
+            "child/foo.lua": "local foo = {\n\ta = 1,\n}\n\nlocal bar = \"\"\n",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("child/foo.lua")
+            .assert()
+            .success();
+
+        // indent_size=4 from child; parent's quote_type=single must NOT be inherited
+        cwd.child("child/foo.lua")
+            .assert("local foo = {\n    a = 1,\n}\n\nlocal bar = \"\"\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "editorconfig")]
+    fn test_editorconfig_closer_config_takes_precedence() {
+        let cwd = construct_tree!({
+            ".editorconfig": "root = true\n\n[*.lua]\nindent_style = space\nindent_size = 2\nquote_type = single\n",
+            "child/.editorconfig": "[*.lua]\nindent_size = 4\n",
+            "child/foo.lua": "local foo = {\n\ta = 1,\n}\n\nlocal bar = \"\"\n",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("child/foo.lua")
+            .assert()
+            .success();
+
+        // indent_size=4 from child overrides parent's 2; quote_type=single inherited from parent
+        cwd.child("child/foo.lua")
+            .assert("local foo = {\n    a = 1,\n}\n\nlocal bar = ''\n");
+
+        cwd.close().unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "editorconfig")]
+    fn test_editorconfig_merges_across_three_directory_levels() {
+        let cwd = construct_tree!({
+            ".editorconfig": "root = true\n\n[*.lua]\nindent_style = space\nindent_size = 2\n",
+            "middle/.editorconfig": "[*.lua]\nquote_type = single\n",
+            "middle/inner/.editorconfig": "[*.lua]\nmax_line_length = 80\n",
+            "middle/inner/foo.lua": "local foo = {\n\ta = 1,\n}\n\nlocal bar = \"\"\n",
+        });
+
+        let mut cmd = create_stylua();
+        cmd.current_dir(cwd.path())
+            .arg("middle/inner/foo.lua")
+            .assert()
+            .success();
+
+        // indent from root, quotes from middle, max_line_length from inner
+        cwd.child("middle/inner/foo.lua")
+            .assert("local foo = {\n  a = 1,\n}\n\nlocal bar = ''\n");
+
+        cwd.close().unwrap();
+    }
 }
