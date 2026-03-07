@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772882489481,
+  "lastUpdate": 1772882710005,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -15917,6 +15917,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15561859,
             "range": "± 367813",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "09bff31a27660bd6cf3da074fa0ccf54393ece0b",
+          "message": "Bump basic-ftp from 5.0.5 to 5.2.0 in /stylua-npm-bin (#1070)\n\nBumps [basic-ftp](https://github.com/patrickjuchli/basic-ftp) from 5.0.5 to 5.2.0.\n- [Release notes](https://github.com/patrickjuchli/basic-ftp/releases)\n- [Changelog](https://github.com/patrickjuchli/basic-ftp/blob/master/CHANGELOG.md)\n- [Commits](https://github.com/patrickjuchli/basic-ftp/compare/v5.0.5...v5.2.0)\n\n---\nupdated-dependencies:\n- dependency-name: basic-ftp\n  dependency-version: 5.2.0\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-07T12:22:42+01:00",
+          "tree_id": "5ce105fd67f80d47056d2b5e3925f1266d7d9d49",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/09bff31a27660bd6cf3da074fa0ccf54393ece0b"
+        },
+        "date": 1772882708804,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27658075,
+            "range": "± 589909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231022052,
+            "range": "± 4494232",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15390709,
+            "range": "± 88135",
             "unit": "ns/iter"
           }
         ]
