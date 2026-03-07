@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772882852455,
+  "lastUpdate": 1772882854296,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16001,6 +16001,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15881898,
             "range": "± 198004",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "13defcdac376c8f060d845e765a9a6a262de6422",
+          "message": "Fix repeated unary minus on long lines collapsing into a comment (#1076)\n\nWhen a chain of unary minus operators exceeded the column width, the\nhanging expression formatter would strip parentheses and produce output\nlike `-----5`, which Lua interprets as a comment. The normal expression\nformatter already had protection against this, but the hanging path did\nnot.\n\nExtract the double-minus parenthesisation logic into a shared helper\n`parenthesise_double_minus` and call it from both code paths.\n\nFixes #1075",
+          "timestamp": "2026-03-07T11:23:27Z",
+          "tree_id": "0bfd6714e2d118b9d919440d38f5f73235589081",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/13defcdac376c8f060d845e765a9a6a262de6422"
+        },
+        "date": 1772882852941,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26854072,
+            "range": "± 166676",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231493737,
+            "range": "± 996638",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15362805,
+            "range": "± 102797",
             "unit": "ns/iter"
           }
         ]
