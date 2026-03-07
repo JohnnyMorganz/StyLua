@@ -110,6 +110,9 @@ jobs:
   release_npm_wasm:
     name: Publish wasm to npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -132,12 +135,13 @@ jobs:
       - name: Publish to npm
         working-directory: wasm
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   release_npm_bin:
     name: Publish binary to npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -155,8 +159,6 @@ jobs:
       - name: Publish to npm
         working-directory: stylua-npm-bin
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   release_docker:
     name: Publish image to container registry
