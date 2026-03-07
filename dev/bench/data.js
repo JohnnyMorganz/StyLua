@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772882923552,
+  "lastUpdate": 1772883404811,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16085,6 +16085,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15491178,
             "range": "± 128991",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ed425fb269cb0153715f3af3bfac79a1b887c4ac",
+          "message": "Bump minimatch from 3.1.2 to 3.1.5 in /stylua-vscode (#1077)\n\nBumps [minimatch](https://github.com/isaacs/minimatch) from 3.1.2 to 3.1.5.\n- [Changelog](https://github.com/isaacs/minimatch/blob/main/changelog.md)\n- [Commits](https://github.com/isaacs/minimatch/compare/v3.1.2...v3.1.5)\n\n---\nupdated-dependencies:\n- dependency-name: minimatch\n  dependency-version: 3.1.5\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-07T12:34:41+01:00",
+          "tree_id": "5cb5df31a2fb3e77c4cc6b98aee8d99239cb5927",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ed425fb269cb0153715f3af3bfac79a1b887c4ac"
+        },
+        "date": 1772883403523,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29327779,
+            "range": "± 466783",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234407359,
+            "range": "± 724080",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15579097,
+            "range": "± 203985",
             "unit": "ns/iter"
           }
         ]
