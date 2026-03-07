@@ -17,9 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed syntax error in output when a single-line comment appears between an index suffix and a table call argument, e.g. `foo.bar -- comment { }` ([#873](https://github.com/JohnnyMorganz/StyLua/issues/873))
-
-### Fixed
-
 - Fixed malformed formatting when a binary expression inside of a function call with comments around the operators is incorrectly collapsed onto one line ([#996](https://github.com/JohnnyMorganz/StyLua/issues/996))
 - Fixed repeated unary minus on long lines being collapsed into a comment, e.g. `- - - - -5` becoming `-----5` ([#1075](https://github.com/JohnnyMorganz/StyLua/issues/1075))
 - Fixed `--preserve-block-newline-gaps` CLI flag not being applied as a config override
