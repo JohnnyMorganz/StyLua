@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772882854296,
+  "lastUpdate": 1772882923552,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16043,6 +16043,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15362805,
             "range": "± 102797",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "352dc2f85cff7497d60b5c6fb1e5e6c5af29c323",
+          "message": "Bump @tootallnate/once and @vscode/test-electron in /stylua-vscode (#1074)\n\nRemoves [@tootallnate/once](https://github.com/TooTallNate/once). It's no longer used after updating ancestor dependency [@vscode/test-electron](https://github.com/Microsoft/vscode-test). These dependencies need to be updated together.\n\n\nRemoves `@tootallnate/once`\n\nUpdates `@vscode/test-electron` from 2.3.8 to 2.5.2\n- [Changelog](https://github.com/microsoft/vscode-test/blob/main/CHANGELOG.md)\n- [Commits](https://github.com/Microsoft/vscode-test/commits/v2.5.2)\n\n---\nupdated-dependencies:\n- dependency-name: \"@tootallnate/once\"\n  dependency-version: \n  dependency-type: indirect\n- dependency-name: \"@vscode/test-electron\"\n  dependency-version: 2.5.2\n  dependency-type: direct:development\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-07T12:26:15+01:00",
+          "tree_id": "b56a8e5c76102c4bf04fc4983764ad623e0f1d14",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/352dc2f85cff7497d60b5c6fb1e5e6c5af29c323"
+        },
+        "date": 1772882922206,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28735155,
+            "range": "± 286973",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232697015,
+            "range": "± 712091",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15491178,
+            "range": "± 128991",
             "unit": "ns/iter"
           }
         ]
