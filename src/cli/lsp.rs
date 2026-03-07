@@ -95,6 +95,19 @@ enum FormattingError {
     FileIsIgnored,
 }
 
+fn uri_to_pathbuf(uri: &Uri) -> PathBuf {
+    let raw = uri.path().as_str();
+
+    if raw.len() >= 4 {
+        let bytes = raw.as_bytes();
+        if bytes[0] == b'/' && bytes[2] == b':' && bytes[1].is_ascii_alphabetic() {
+            return raw[1..].into();
+        }
+    }
+
+    raw.into()
+}
+
 impl LanguageServer<'_> {
     fn new<'a>(
         workspace_folders: Vec<WorkspaceFolder>,
@@ -119,7 +132,7 @@ impl LanguageServer<'_> {
         let check_str = uri.as_str();
         for workspace in &self.workspace_folders {
             if *uri == workspace.uri {
-                return workspace.uri.path().as_str().into();
+                return uri_to_pathbuf(&workspace.uri);
             }
 
             let prefix_str = workspace.uri.as_str();
@@ -134,9 +147,9 @@ impl LanguageServer<'_> {
         }
 
         match best_workspace {
-            Some(workspace) => workspace.path().as_str().into(),
+            Some(workspace) => uri_to_pathbuf(workspace),
             None => match &self.root_uri {
-                Some(root_uri) => root_uri.path().as_str().into(),
+                Some(root_uri) => uri_to_pathbuf(root_uri),
                 None => std::env::current_dir().expect("Could not find current directory"),
             },
         }
@@ -164,10 +177,10 @@ impl LanguageServer<'_> {
         }
 
         let search_root = Some(self.find_config_root(uri));
-        let path = uri.path().as_str().as_ref();
+        let path = uri_to_pathbuf(uri);
 
         if stylua_ignore::path_is_stylua_ignored(
-            path,
+            &path,
             self.search_parent_directories,
             search_root.clone(),
         )
@@ -180,7 +193,7 @@ impl LanguageServer<'_> {
 
         let mut config = self
             .config_resolver
-            .load_configuration_with_search_root(path, search_root)
+            .load_configuration_with_search_root(&path, search_root)
             .unwrap_or_default();
 
         if let Some(formatting_options) = formatting_options {
@@ -403,6 +416,7 @@ mod tests {
         lsp::{main_loop, InitializationOptions},
         opt::Opt,
     };
+    use super::uri_to_pathbuf;
 
     use assert_fs::prelude::*;
 
@@ -568,6 +582,18 @@ mod tests {
             }) if id == RequestId::from(response_id) && result == serde_json::Value::Null => {}
             _ => panic!("assertion failed"),
         }
+    }
+
+    #[test]
+    fn test_uri_to_pathbuf_unix_path() {
+        let uri = Uri::from_str("file:///home/user/test.lua").unwrap();
+        assert_eq!(uri_to_pathbuf(&uri), Path::new("/home/user/test.lua"));
+    }
+
+    #[test]
+    fn test_uri_to_pathbuf_windows_drive_path() {
+        let uri = Uri::from_str("file:///C:/Users/test/init.lua").unwrap();
+        assert_eq!(uri_to_pathbuf(&uri), Path::new("C:/Users/test/init.lua"));
     }
 
     #[test]
