@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772884935485,
+  "lastUpdate": 1772885790499,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16211,6 +16211,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15116115,
             "range": "± 141765",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e33575e9a02a4ef06393cd98e98f0c1402b4d173",
+          "message": "Support stylua_syntax and stylua_block_newline_gaps in editorconfig  (#1081)\n\n* Add CLI tests for editorconfig search rules\n\nAdd tests verifying editorconfig directory search behaviour:\n- child without root=true merges with parent config\n- root=true stops upward search\n- closer config takes precedence on conflicts\n- configs merge across three directory levels\n\nRelated to #1067\n\n* Support stylua_syntax and stylua_block_newline_gaps in editorconfig\n\nAdd the two missing config properties to editorconfig support using the\nstylua_ prefix as recommended for new properties (#1054).\n\nAlso fix --preserve-block-newline-gaps CLI flag not being applied as a\nconfig override.",
+          "timestamp": "2026-03-07T13:14:27+01:00",
+          "tree_id": "8c4c3f216ce358dad9225dfbaac976518af205c1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e33575e9a02a4ef06393cd98e98f0c1402b4d173"
+        },
+        "date": 1772885789249,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27221781,
+            "range": "± 462271",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 229799380,
+            "range": "± 2161286",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15367449,
+            "range": "± 140859",
             "unit": "ns/iter"
           }
         ]
