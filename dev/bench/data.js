@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772883446569,
+  "lastUpdate": 1772884935485,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16169,6 +16169,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15128030,
             "range": "± 146476",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a9a36d6870f2acaefc64d58153339646dd1573ef",
+          "message": "Add CLI tests for editorconfig search rules (#1080)\n\nAdd tests verifying editorconfig directory search behaviour:\n- child without root=true merges with parent config\n- root=true stops upward search\n- closer config takes precedence on conflicts\n- configs merge across three directory levels\n\nRelated to #1067",
+          "timestamp": "2026-03-07T13:00:14+01:00",
+          "tree_id": "ba48d0f05d6f778e37dfc2bdac3d90c5d09cc5d1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a9a36d6870f2acaefc64d58153339646dd1573ef"
+        },
+        "date": 1772884934568,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26780856,
+            "range": "± 233771",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232621425,
+            "range": "± 915429",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15116115,
+            "range": "± 141765",
             "unit": "ns/iter"
           }
         ]
