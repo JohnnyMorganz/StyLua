@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added flag `--no-ignore-vcs` to continue formatting files listed in a `.gitignore` file, instead of skipping over them ([#895](https://github.com/JohnnyMorganz/StyLua/issues/895))
 - Support `call_parentheses = Input` in editorconfig ([#1057](https://github.com/JohnnyMorganz/StyLua/pull/1057))
 - Luau: Support formatting explicit type instantiations (`f<<T>>()`, `obj:method<<T>>()`)
+- Support `stylua_syntax` and `stylua_block_newline_gaps` properties in editorconfig ([#1054](https://github.com/JohnnyMorganz/StyLua/issues/1054))
 
 ### Fixed
 
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed malformed formatting when a binary expression inside of a function call with comments around the operators is incorrectly collapsed onto one line ([#996](https://github.com/JohnnyMorganz/StyLua/issues/996))
 - Fixed repeated unary minus on long lines being collapsed into a comment, e.g. `- - - - -5` becoming `-----5` ([#1075](https://github.com/JohnnyMorganz/StyLua/issues/1075))
+- Fixed `--preserve-block-newline-gaps` CLI flag not being applied as a config override
 
 ## [2.3.1] - 2025-11-01
 
