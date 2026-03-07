@@ -155,7 +155,7 @@
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",
     "@vscode/test-cli": "^0.0.4",
-    "@vscode/test-electron": "^2.3.8",
+    "@vscode/test-electron": "^2.5.2",
     "eslint": "^8.56.0",
     "glob": "^7.1.6",
     "mocha": "^10.8.2",
