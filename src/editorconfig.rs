@@ -1,6 +1,6 @@
 use crate::{
-    CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings, QuoteStyle,
-    SortRequiresConfig, SpaceAfterFunctionNames,
+    BlockNewlineGaps, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
+    LuaVersion, QuoteStyle, SortRequiresConfig, SpaceAfterFunctionNames,
 };
 use ec4rs::{
     properties_of,
@@ -88,6 +88,24 @@ property_choice! {
     (False, "false")
 }
 
+property_choice! {
+    StyluaSyntaxChoice, "stylua_syntax";
+    (All, "all"),
+    (Lua51, "lua51"),
+    (Lua52, "lua52"),
+    (Lua53, "lua53"),
+    (Lua54, "lua54"),
+    (Luau, "luau"),
+    (LuaJIT, "luajit"),
+    (CfxLua, "cfxlua")
+}
+
+property_choice! {
+    StyluaBlockNewlineGapsChoice, "stylua_block_newline_gaps";
+    (Never, "never"),
+    (Preserve, "preserve")
+}
+
 // Override StyLua config with EditorConfig properties
 fn load(mut config: Config, properties: &Properties) -> Config {
     if let Ok(end_of_line) = properties.get::<EndOfLine>() {
@@ -155,6 +173,33 @@ fn load(mut config: Config, properties: &Properties) -> Config {
         config.sort_requires = match sort_requires {
             SortRequiresChoice::True => SortRequiresConfig { enabled: true },
             SortRequiresChoice::False => SortRequiresConfig { enabled: false },
+        };
+    }
+    if let Ok(syntax) = properties.get::<StyluaSyntaxChoice>() {
+        config.syntax = match syntax {
+            StyluaSyntaxChoice::All => LuaVersion::All,
+            StyluaSyntaxChoice::Lua51 => LuaVersion::Lua51,
+            #[cfg(feature = "lua52")]
+            StyluaSyntaxChoice::Lua52 => LuaVersion::Lua52,
+            #[cfg(feature = "lua53")]
+            StyluaSyntaxChoice::Lua53 => LuaVersion::Lua53,
+            #[cfg(feature = "lua54")]
+            StyluaSyntaxChoice::Lua54 => LuaVersion::Lua54,
+            #[cfg(feature = "luau")]
+            StyluaSyntaxChoice::Luau => LuaVersion::Luau,
+            #[cfg(feature = "luajit")]
+            StyluaSyntaxChoice::LuaJIT => LuaVersion::LuaJIT,
+            #[cfg(feature = "cfxlua")]
+            StyluaSyntaxChoice::CfxLua => LuaVersion::CfxLua,
+            // If the feature is not enabled, ignore the value
+            #[allow(unreachable_patterns)]
+            _ => config.syntax,
+        };
+    }
+    if let Ok(block_newline_gaps) = properties.get::<StyluaBlockNewlineGapsChoice>() {
+        config.block_newline_gaps = match block_newline_gaps {
+            StyluaBlockNewlineGapsChoice::Never => BlockNewlineGaps::Never,
+            StyluaBlockNewlineGapsChoice::Preserve => BlockNewlineGaps::Preserve,
         };
     }
 
@@ -427,6 +472,38 @@ mod tests {
     }
 
     #[test]
+    fn test_stylua_syntax_all() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("stylua_syntax", "all");
+        let config = Config::from(&properties);
+        assert_eq!(config.syntax, LuaVersion::All);
+    }
+
+    #[test]
+    fn test_stylua_syntax_lua51() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("stylua_syntax", "Lua51");
+        let config = Config::from(&properties);
+        assert_eq!(config.syntax, LuaVersion::Lua51);
+    }
+
+    #[test]
+    fn test_stylua_block_newline_gaps_never() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("stylua_block_newline_gaps", "Never");
+        let config = Config::from(&properties);
+        assert_eq!(config.block_newline_gaps, BlockNewlineGaps::Never);
+    }
+
+    #[test]
+    fn test_stylua_block_newline_gaps_preserve() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("stylua_block_newline_gaps", "Preserve");
+        let config = Config::from(&properties);
+        assert_eq!(config.block_newline_gaps, BlockNewlineGaps::Preserve);
+    }
+
+    #[test]
     fn test_invalid_properties() {
         let mut properties = Properties::new();
         let default_config = Config::new();
@@ -439,6 +516,8 @@ mod tests {
             "call_parentheses",
             "collapse_simple_statement",
             "sort_requires",
+            "stylua_syntax",
+            "stylua_block_newline_gaps",
         ] {
             properties.insert_raw_for_key(key, invalid_value);
         }
@@ -457,5 +536,7 @@ mod tests {
             config.sort_requires.enabled,
             default_config.sort_requires.enabled
         );
+        assert_eq!(config.syntax, default_config.syntax);
+        assert_eq!(config.block_newline_gaps, default_config.block_newline_gaps);
     }
 }
