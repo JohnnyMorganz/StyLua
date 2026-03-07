@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772885790499,
+  "lastUpdate": 1772886042230,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16253,6 +16253,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15367449,
             "range": "± 140859",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "105704427+8LWXpg@users.noreply.github.com",
+            "name": "8LWXpg",
+            "username": "8LWXpg"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f54fc55319968d5e162c40e3fceeae811d5fac6d",
+          "message": "Fix path conversion on Windows (#1068)\n\n* Fix path conversion on Windows\n\n.\n\n* Add tests and changelog\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-03-07T12:18:43Z",
+          "tree_id": "85583d0b3942eb14b3ccaffc1567901fff2c6676",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f54fc55319968d5e162c40e3fceeae811d5fac6d"
+        },
+        "date": 1772886041683,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27852534,
+            "range": "± 564632",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231586147,
+            "range": "± 1240819",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15400055,
+            "range": "± 242966",
             "unit": "ns/iter"
           }
         ]
