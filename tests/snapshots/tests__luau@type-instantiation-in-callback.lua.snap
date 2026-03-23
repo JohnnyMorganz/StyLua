@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+assertion_line: 36
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/type-instantiation-in-callback.lua
+---
+-- Test for issue #1088: turbofish/TypeInstantiation inside nested function call
+Charm.computed(function()
+	return createPluginSettingsStore<<AuthStore>>("PresenceAuthStore", defaultValue, validate)
+end)
+
