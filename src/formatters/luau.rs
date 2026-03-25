@@ -1505,8 +1505,6 @@ pub fn format_type_instantiation(
 ) -> TypeInstantiation {
     let outer_arrows = format_contained_span(ctx, type_instantiation.outer_arrows(), shape);
     let inner_arrows = format_contained_span(ctx, type_instantiation.inner_arrows(), shape);
-    // Use within_generic context so single-element type packs like `(number)` preserve
-    // their parentheses (e.g. `f<<(number)>>(10)` must not become `f<<number>>(10)`)
     let context = TypeInfoContext::new().mark_within_generic();
     let types = format_punctuated(
         ctx,
