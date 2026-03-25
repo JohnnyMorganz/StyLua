@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Luau: Fixed panic when formatting explicit type instantiation (`f<<T>>()`) inside a nested function call argument (e.g. as a callback) ([#1088](https://github.com/JohnnyMorganz/StyLua/issues/1088))
+
 ## [2.4.0] - 2026-03-07
 
 ### Added
