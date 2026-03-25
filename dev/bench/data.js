@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774468816289,
+  "lastUpdate": 1774469243314,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16463,6 +16463,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15194876,
             "range": "± 556359",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ea247b0ab74a3b171bfb9b534abe8763393201f8",
+          "message": "Bump flatted from 3.1.1 to 3.4.2 in /stylua-vscode (#1087)",
+          "timestamp": "2026-03-25T21:05:23+01:00",
+          "tree_id": "346277f95acb05bcf2947c8ac0b49d5d40adbcc1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ea247b0ab74a3b171bfb9b534abe8763393201f8"
+        },
+        "date": 1774469242314,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27061313,
+            "range": "± 249933",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233945888,
+            "range": "± 443808",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15320030,
+            "range": "± 52311",
             "unit": "ns/iter"
           }
         ]
