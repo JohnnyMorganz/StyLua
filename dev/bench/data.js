@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774469243314,
+  "lastUpdate": 1774469300315,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16505,6 +16505,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15320030,
             "range": "± 52311",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1328e15e49439cf9c6daf957f48b2d17f7bff8d6",
+          "message": "Preserve parentheses for single-element type packs in explicit type instantiation (#1090)",
+          "timestamp": "2026-03-25T21:06:05+01:00",
+          "tree_id": "43fd5856b2884bcc968eaf8d5471f6b2dce71406",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1328e15e49439cf9c6daf957f48b2d17f7bff8d6"
+        },
+        "date": 1774469298447,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27715590,
+            "range": "± 389816",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231705285,
+            "range": "± 772138",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15378314,
+            "range": "± 181516",
             "unit": "ns/iter"
           }
         ]
