@@ -156,6 +156,8 @@ fn is_expression_simple(expression: &Expression) -> bool {
                     },
                     other => unreachable!("unknown node: {:?}", other),
                 },
+                #[cfg(feature = "luau")]
+                Suffix::TypeInstantiation(_) => true,
                 other => unreachable!("unknown node: {:?}", other),
             })
         }
