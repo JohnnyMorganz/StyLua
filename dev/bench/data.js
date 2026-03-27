@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774469300315,
+  "lastUpdate": 1774635576245,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16547,6 +16547,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15378314,
             "range": "± 181516",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "237809c32c7c67608362942c756fb2e2c96ecd24",
+          "message": "Bump picomatch from 2.3.1 to 2.3.2 in /stylua-vscode (#1092)",
+          "timestamp": "2026-03-27T19:17:34+01:00",
+          "tree_id": "9e2ca19b3aad92e4e6c1c1d5f51e3280dcb291fb",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/237809c32c7c67608362942c756fb2e2c96ecd24"
+        },
+        "date": 1774635574952,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28360384,
+            "range": "± 1279872",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233683713,
+            "range": "± 3940653",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15206351,
+            "range": "± 48310",
             "unit": "ns/iter"
           }
         ]
