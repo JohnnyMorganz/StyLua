@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775485491603,
+  "lastUpdate": 1775487225275,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16673,6 +16673,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15594968,
             "range": "± 228323",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "8ef3c7b9a82d07b5fa8d31c6369e77456d526b64",
+          "message": "Bump Node.js from 16 to 22 in CI workflows to fix npm trusted publishing\n\nNode 16 ships with npm 8.x, but npm trusted publishing requires\nnpm 11.5.1+ / Node 22.14.0+. This caused npm publish to fail with\n404 errors for v2.4.0 and v2.4.1.",
+          "timestamp": "2026-04-06T16:50:20+02:00",
+          "tree_id": "43cca527dae4fe042a2c40ff46d52b17c1b26b40",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8ef3c7b9a82d07b5fa8d31c6369e77456d526b64"
+        },
+        "date": 1775487224679,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29551189,
+            "range": "± 522817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233626677,
+            "range": "± 1020383",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15491500,
+            "range": "± 87487",
             "unit": "ns/iter"
           }
         ]
