@@ -18,7 +18,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 22.x
       - name: Attempt install
         run: npm install --package-locked
         working-directory: stylua-npm-bin
