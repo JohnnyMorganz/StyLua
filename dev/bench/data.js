@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775487225275,
+  "lastUpdate": 1775892815421,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16715,6 +16715,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15491500,
             "range": "± 87487",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f6c04aeb815a8d39592b961a85f1583797b05fba",
+          "message": "Bump basic-ftp from 5.2.0 to 5.2.2 in /stylua-npm-bin (#1096)",
+          "timestamp": "2026-04-11T09:31:41+02:00",
+          "tree_id": "be841993448edb90b3599f2ae675ec5d667ca2a1",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f6c04aeb815a8d39592b961a85f1583797b05fba"
+        },
+        "date": 1775892814717,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26902371,
+            "range": "± 99786",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 230521534,
+            "range": "± 726752",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15162856,
+            "range": "± 46563",
             "unit": "ns/iter"
           }
         ]
