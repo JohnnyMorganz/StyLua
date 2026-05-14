@@ -5,9 +5,8 @@ use crate::{
 };
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
-    ConstAssignment, GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo,
-    TypeArgument, TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier,
-    TypeUnion,
+    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
+    TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::{
     ast::{
@@ -947,17 +946,10 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 });
                 formatted_expression_list.push(pair);
             }
-            let new_assignment = ConstAssignment::new(const_assignment.names().to_owned())
-                .with_type_specifiers(
-                    const_assignment
-                        .type_specifiers()
-                        .map(|x| x.cloned())
-                        .collect(),
-                )
-                .with_const_token(const_assignment.const_token().to_owned())
-                .with_equal_token(const_assignment.equal_token().cloned())
-                .with_expressions(formatted_expression_list);
-            (Stmt::ConstAssignment(new_assignment), trailing_trivia)
+            (
+                Stmt::ConstAssignment(const_assignment.with_expressions(formatted_expression_list)),
+                trailing_trivia,
+            )
         }
         #[cfg(feature = "luau")]
         Stmt::ConstFunction(stmt) => {

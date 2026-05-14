@@ -11,8 +11,8 @@ use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_generic_declaration, format_luau_attribute, format_type_instantiation,
-    format_type_specifier,
+    const_keyword_token_ref, format_generic_declaration, format_luau_attribute,
+    format_type_instantiation, format_type_specifier,
 };
 use crate::{
     context::{
@@ -1310,19 +1310,9 @@ pub fn format_const_function(
                 .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
         })
         .collect();
-    let const_token = format_symbol(
-        ctx,
-        const_function.const_token(),
-        &TokenReference::new(
-            vec![],
-            Token::new(TokenType::Identifier {
-                identifier: "const".into(),
-            }),
-            vec![Token::new(TokenType::spaces(1))],
-        ),
-        shape,
-    )
-    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let const_token =
+        format_symbol(ctx, const_function.const_token(), &const_keyword_token_ref(), shape)
+            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let function_token = fmt_symbol!(ctx, const_function.function_token(), "function ", shape);
     let formatted_name = format_token_reference(ctx, const_function.name(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));

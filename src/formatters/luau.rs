@@ -1590,6 +1590,16 @@ pub fn format_exported_type_function(
         .with_type_function(type_function)
 }
 
+pub fn const_keyword_token_ref() -> TokenReference {
+    TokenReference::new(
+        vec![],
+        Token::new(TokenType::Identifier {
+            identifier: "const".into(),
+        }),
+        vec![Token::new(TokenType::spaces(1))],
+    )
+}
+
 pub fn format_luau_attribute(
     ctx: &Context,
     attribute: &LuauAttribute,

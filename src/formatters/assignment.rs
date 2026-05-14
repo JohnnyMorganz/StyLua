@@ -14,7 +14,7 @@ use full_moon::{
 #[cfg(feature = "lua54")]
 use crate::formatters::lua54::format_attribute;
 #[cfg(feature = "luau")]
-use crate::formatters::luau::format_type_specifier;
+use crate::formatters::luau::{const_keyword_token_ref, format_type_specifier};
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
@@ -596,18 +596,7 @@ pub fn format_const_assignment_no_trivia(
         .is_some_and(trivia_util::token_contains_comments)
         || trivia_util::punctuated_inline_comments(assignment.expressions(), true);
 
-    let const_token = format_symbol(
-        ctx,
-        assignment.const_token(),
-        &TokenReference::new(
-            vec![],
-            Token::new(TokenType::Identifier {
-                identifier: "const".into(),
-            }),
-            vec![Token::new(TokenType::spaces(1))],
-        ),
-        shape,
-    );
+    let const_token = format_symbol(ctx, assignment.const_token(), &const_keyword_token_ref(), shape);
 
     let mut name_list = try_format_punctuated(
         ctx,
