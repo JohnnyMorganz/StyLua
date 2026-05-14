@@ -5,8 +5,9 @@ use crate::{
 };
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
-    GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, TypeArgument,
-    TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier, TypeUnion,
+    ConstAssignment, GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo,
+    TypeArgument, TypeDeclaration, TypeFunction, TypeInfo, TypeIntersection, TypeSpecifier,
+    TypeUnion,
 };
 use full_moon::{
     ast::{
@@ -934,6 +935,68 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 Stmt::CompoundAssignment(stmt.with_rhs(expr)),
                 trailing_trivia,
             )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(const_assignment) => {
+            let mut trailing_trivia = Vec::new();
+            let new_assignment = if const_assignment.expressions().is_empty() {
+                let mut type_specifiers = const_assignment
+                    .type_specifiers()
+                    .map(|x| x.cloned())
+                    .collect::<Vec<_>>();
+
+                if let Some(Some(type_specifier)) = type_specifiers.pop() {
+                    trailing_trivia = type_specifier.trailing_trivia();
+                    type_specifiers.push(Some(
+                        type_specifier.update_trailing_trivia(FormatTriviaType::Replace(vec![])),
+                    ));
+                    ConstAssignment::new(const_assignment.names().to_owned())
+                        .with_type_specifiers(type_specifiers)
+                        .with_const_token(const_assignment.const_token().to_owned())
+                        .with_equal_token(None)
+                        .with_expressions(Punctuated::new())
+                } else {
+                    let mut formatted_name_list = const_assignment.names().to_owned();
+                    if let Some(last_pair) = formatted_name_list.pop() {
+                        let pair = last_pair.map(|value| {
+                            trailing_trivia =
+                                value.trailing_trivia().map(|x| x.to_owned()).collect();
+                            value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+                        });
+                        formatted_name_list.push(pair);
+                    }
+                    ConstAssignment::new(formatted_name_list)
+                        .with_type_specifiers(type_specifiers)
+                        .with_const_token(const_assignment.const_token().to_owned())
+                        .with_equal_token(None)
+                        .with_expressions(Punctuated::new())
+                }
+            } else {
+                let mut formatted_expression_list = const_assignment.expressions().to_owned();
+                if let Some(last_pair) = formatted_expression_list.pop() {
+                    let pair = last_pair.map(|value| {
+                        trailing_trivia = value.trailing_trivia();
+                        value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+                    });
+                    formatted_expression_list.push(pair);
+                }
+                ConstAssignment::new(const_assignment.names().to_owned())
+                    .with_type_specifiers(
+                        const_assignment
+                            .type_specifiers()
+                            .map(|x| x.cloned())
+                            .collect(),
+                    )
+                    .with_const_token(const_assignment.const_token().to_owned())
+                    .with_equal_token(const_assignment.equal_token().cloned())
+                    .with_expressions(formatted_expression_list)
+            };
+            (Stmt::ConstAssignment(new_assignment), trailing_trivia)
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstFunction(stmt) => {
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
+            (Stmt::ConstFunction(stmt.with_body(body)), trailing_trivia)
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {

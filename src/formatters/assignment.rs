@@ -1,5 +1,5 @@
 #[cfg(feature = "luau")]
-use full_moon::ast::luau::TypeSpecifier;
+use full_moon::ast::luau::{ConstAssignment, TypeSpecifier};
 #[cfg(feature = "cfxlua")]
 use full_moon::tokenizer::Symbol;
 use full_moon::tokenizer::{Token, TokenReference};
@@ -21,7 +21,7 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var, hang_expression},
         general::{
-            format_punctuated, format_punctuated_multiline, format_token_reference,
+            format_punctuated, format_punctuated_multiline, format_symbol, format_token_reference,
             try_format_punctuated,
         },
         trivia::{
@@ -576,6 +576,158 @@ pub fn format_local_assignment(
     let trailing_trivia = vec![create_newline_trivia(ctx)];
 
     format_local_assignment_no_trivia(ctx, assignment, shape).update_trivia(
+        FormatTriviaType::Append(leading_trivia),
+        FormatTriviaType::Append(trailing_trivia),
+    )
+}
+
+#[cfg(feature = "luau")]
+fn format_const_no_assignment(
+    ctx: &Context,
+    assignment: &ConstAssignment,
+    shape: Shape,
+) -> ConstAssignment {
+    let const_token = format_symbol(
+        ctx,
+        assignment.const_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "const".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    );
+    let shape = shape + 6; // 6 = "const "
+    let name_list = try_format_punctuated(
+        ctx,
+        assignment.names(),
+        shape,
+        format_token_reference,
+        Some(1),
+    );
+
+    let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
+        .type_specifiers()
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
+        .collect();
+
+    ConstAssignment::new(name_list)
+        .with_type_specifiers(type_specifiers)
+        .with_const_token(const_token)
+        .with_equal_token(None)
+        .with_expressions(Punctuated::new())
+}
+
+#[cfg(feature = "luau")]
+pub fn format_const_assignment_no_trivia(
+    ctx: &Context,
+    assignment: &ConstAssignment,
+    mut shape: Shape,
+) -> ConstAssignment {
+    if assignment.expressions().is_empty() {
+        return format_const_no_assignment(ctx, assignment, shape);
+    }
+
+    let contains_comments = assignment
+        .equal_token()
+        .is_some_and(trivia_util::token_contains_comments)
+        || trivia_util::punctuated_inline_comments(assignment.expressions(), true);
+
+    let const_token = format_symbol(
+        ctx,
+        assignment.const_token(),
+        &TokenReference::new(
+            vec![],
+            Token::new(TokenType::Identifier {
+                identifier: "const".into(),
+            }),
+            vec![Token::new(TokenType::spaces(1))],
+        ),
+        shape,
+    );
+
+    let mut name_list = try_format_punctuated(
+        ctx,
+        assignment.names(),
+        shape.with_infinite_width(),
+        format_token_reference,
+        Some(1),
+    );
+    let mut equal_token = fmt_symbol!(ctx, assignment.equal_token().unwrap(), " = ", shape);
+
+    let mut expr_list = format_punctuated(
+        ctx,
+        assignment.expressions(),
+        shape.with_infinite_width(),
+        format_expression,
+    );
+
+    let type_specifiers: Vec<Option<TypeSpecifier>> = assignment
+        .type_specifiers()
+        .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
+        .collect();
+
+    let type_specifier_len = type_specifiers.iter().fold(0, |acc, x| {
+        acc + x.as_ref().map_or(0, |y| y.to_string().len())
+    });
+
+    let var_list_ends_with_comments = match type_specifiers.last() {
+        Some(Some(specifier)) => specifier.has_trailing_comments(trivia_util::CommentSearch::Single),
+        _ => name_list.has_trailing_comments(trivia_util::CommentSearch::Single),
+    };
+
+    if var_list_ends_with_comments {
+        const EQUAL_TOKEN_LEN: usize = "= ".len();
+        shape = shape
+            .reset()
+            .increment_additional_indent()
+            .add_width(EQUAL_TOKEN_LEN);
+        equal_token = prepend_newline_indent(ctx, &equal_token, shape);
+    }
+
+    let singleline_shape = shape
+        + (strip_leading_trivia(&name_list).to_string().len()
+            + 6 // 6 = "const "
+            + 3 // 3 = " = "
+            + type_specifier_len
+            + strip_trailing_trivia(&expr_list).to_string().len());
+
+    if contains_comments || singleline_shape.over_budget() {
+        name_list = try_format_punctuated(
+            ctx,
+            assignment.names(),
+            shape,
+            format_token_reference,
+            Some(1),
+        );
+        let shape = shape
+            + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
+
+        let (new_expr_list, new_equal_token) =
+            attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
+        expr_list = new_expr_list;
+        equal_token = new_equal_token;
+    }
+
+    ConstAssignment::new(name_list)
+        .with_type_specifiers(type_specifiers)
+        .with_const_token(const_token)
+        .with_equal_token(Some(equal_token))
+        .with_expressions(expr_list)
+}
+
+#[cfg(feature = "luau")]
+pub fn format_const_assignment(
+    ctx: &Context,
+    assignment: &ConstAssignment,
+    shape: Shape,
+) -> ConstAssignment {
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+
+    format_const_assignment_no_trivia(ctx, assignment, shape).update_trivia(
         FormatTriviaType::Append(leading_trivia),
         FormatTriviaType::Append(trailing_trivia),
     )

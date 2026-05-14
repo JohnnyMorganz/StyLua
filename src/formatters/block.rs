@@ -396,6 +396,20 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             let lhs = var_remove_leading_newline(compound_assignment.lhs().to_owned());
             Stmt::CompoundAssignment(compound_assignment.with_lhs(lhs))
         }
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(const_assignment) => update_first_token!(
+            ConstAssignment,
+            const_assignment,
+            const_assignment.const_token(),
+            with_const_token
+        ),
+        #[cfg(feature = "luau")]
+        Stmt::ConstFunction(const_function) => update_first_token!(
+            ConstFunction,
+            const_function,
+            const_function.const_token(),
+            with_const_token
+        ),
 
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(exported_type_declaration) => update_first_token!(
