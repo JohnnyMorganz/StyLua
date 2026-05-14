@@ -15,23 +15,29 @@ on:
           - diffAfterMainFormat # format using main branch first, then apply PR changes ontop of that
           - diffMainVsChangeFormat # format using main branch, store. Reset to original then format using PR branch. Compute differences
 
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
 jobs:
   build-latest:
     name: Build Pull Request (#${{ github.event.inputs.prId }})
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Checkout Pull Request
-        run: gh pr checkout ${{ github.event.inputs.prId }}
+        run: gh pr checkout "$PR_ID"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_ID: ${{ github.event.inputs.prId }}
 
       - name: Build (All features)
         run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stylua-latest
           path: target/release/stylua
@@ -40,7 +46,7 @@ jobs:
     name: Build Main
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: "main"
 
@@ -48,7 +54,7 @@ jobs:
         run: cargo build --verbose --locked --release --all-features
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stylua-main
           path: target/release/stylua
@@ -57,10 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: ["build-main", "build-latest"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
 
@@ -72,14 +78,16 @@ jobs:
       - name: Run comparison tool
         id: run_comparison
         run: |
-          body="$(python ./.github/run_comparisons.py ${{ github.event.inputs.type }})"
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}"
-          echo "::set-output name=body::$body"
+          {
+            echo 'body<<EOF'
+            python ./.github/run_comparisons.py "$DIFF_TYPE"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+        env:
+          DIFF_TYPE: ${{ github.event.inputs.type }}
 
       - name: Create comment
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@23ff15729ef2fc348714a3bb66d2f655ca9066f2 # v3
         with:
           issue-number: ${{ github.event.inputs.prId }}
           body: ${{ steps.run_comparison.outputs.body }}

@@ -5,25 +5,12 @@ on:
     tags: ["*"]
   workflow_dispatch:
 
-jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: true
+permissions:
+  contents: read
 
+jobs:
   release:
-    needs: ["create-release"]
+    needs: []
     strategy:
       matrix:
         include:
@@ -51,12 +38,15 @@ jobs:
 
     name: Build (${{ matrix.artifact-name }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
+          toolchain: stable
           target: ${{ matrix.cargo-target }}
 
       - name: Build Binary (All features)
@@ -79,30 +69,30 @@ jobs:
             zip ../release.zip *
           fi
 
+          mv release.zip "${{ matrix.artifact-name }}.zip"
+
       - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: release.zip
+          path: ${{ matrix.artifact-name }}.zip
 
       - name: Upload Binary to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: release.zip
-          asset_name: ${{ matrix.artifact-name }}.zip
-          asset_content_type: application/zip
+          draft: true
+          files: ${{ matrix.artifact-name }}.zip
 
   release_cargo:
     name: Publish to cargo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          toolchain: stable
 
       - name: Publish to cargo
         run: cargo publish --verbose --locked --token ${{ secrets.CARGO_TOKEN }}
@@ -114,15 +104,16 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
+          toolchain: stable
           target: wasm32-unknown-unknown
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
@@ -143,10 +134,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
@@ -164,14 +155,14 @@ jobs:
     name: Publish image to container registry
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         id: buildx
         with:
           install: true
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         id: meta
         env:
           DOCKER_METADATA_PR_HEAD_SHA: "true"
@@ -181,12 +172,12 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           platforms: linux/amd64,linux/arm64
           push: true

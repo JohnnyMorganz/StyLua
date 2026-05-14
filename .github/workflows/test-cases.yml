@@ -4,11 +4,17 @@ on:
   schedule:
     - cron: "10 0 * * *" # Runs at 00:10 UTC every day
 
+permissions:
+  contents: read
+
 jobs:
   retrieve_cases:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Pull latest tests
         run: python ./.github/retrieve_test_cases.py
@@ -24,7 +30,7 @@ jobs:
           CI=false cargo insta test --features cfxlua --accept
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5 # v5
         with:
           title: Update external test cases
           body: |
