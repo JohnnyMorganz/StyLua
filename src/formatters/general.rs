@@ -300,13 +300,11 @@ fn load_token_trivia(
                 // If we are formatting leading trivia, we will allow a single newline to be kept in succession, if we
                 // find one.
                 match format_token_type {
-                    FormatTokenType::LeadingTrivia => {
-                        if characters.contains('\n') {
-                            newline_count_in_succession += 1;
-                            if newline_count_in_succession == 1 {
-                                // We have a case where we will allow a single newline to be kept
-                                token_trivia.push(create_newline_trivia(ctx));
-                            }
+                    FormatTokenType::LeadingTrivia if characters.contains('\n') => {
+                        newline_count_in_succession += 1;
+                        if newline_count_in_succession == 1 {
+                            // We have a case where we will allow a single newline to be kept
+                            token_trivia.push(create_newline_trivia(ctx));
                         }
                     }
                     FormatTokenType::TrailingTrivia => {
