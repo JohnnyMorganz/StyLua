@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778319037847,
+  "lastUpdate": 1778788906015,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16799,6 +16799,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15370593,
             "range": "± 69125",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "500f77fd4f7c6b4bce6e30158abde67bab73d3bc",
+          "message": "Fix collapsible_match clippy lints (#1111)\n\nCollapse nested if-in-match-arm patterns into match guards, fixing\nclippy::collapsible_match errors that fail CI with -D warnings.",
+          "timestamp": "2026-05-14T19:59:50Z",
+          "tree_id": "a076c9ff3721e03a60d13017e2a31a855f0e07e8",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/500f77fd4f7c6b4bce6e30158abde67bab73d3bc"
+        },
+        "date": 1778788905203,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29808855,
+            "range": "± 413771",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234134948,
+            "range": "± 1429244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16288174,
+            "range": "± 214504",
             "unit": "ns/iter"
           }
         ]
