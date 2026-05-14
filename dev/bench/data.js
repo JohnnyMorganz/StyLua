@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778788906015,
+  "lastUpdate": 1778790025935,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16841,6 +16841,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16288174,
             "range": "± 214504",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b2b5b77a17a94f300818fe6c9fa3caef5a9a8e1",
+          "message": "Add Luau const support and bump full_moon to 2.2.0 (#1110)",
+          "timestamp": "2026-05-14T22:18:31+02:00",
+          "tree_id": "3ad9661a96ce7634125f3eaf60901cc12b00711b",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7b2b5b77a17a94f300818fe6c9fa3caef5a9a8e1"
+        },
+        "date": 1778790024756,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28761748,
+            "range": "± 659815",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233954397,
+            "range": "± 525977",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16200047,
+            "range": "± 359423",
             "unit": "ns/iter"
           }
         ]
