@@ -587,6 +587,10 @@ pub fn format_const_assignment_no_trivia(
     assignment: &ConstAssignment,
     mut shape: Shape,
 ) -> ConstAssignment {
+    debug_assert!(
+        !assignment.expressions().is_empty(),
+        "const assignment must always have an expression list"
+    );
     let contains_comments = assignment
         .equal_token()
         .is_some_and(trivia_util::token_contains_comments)
