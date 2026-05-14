@@ -421,9 +421,7 @@ pub fn format_function_args(
                 let trailing_comments = parentheses.tokens().1.trailing_trivia().cloned().collect();
 
                 match argument {
-                    Expression::String(token_reference)
-                        if ctx.should_omit_string_parens() =>
-                    {
+                    Expression::String(token_reference) if ctx.should_omit_string_parens() => {
                         return format_function_args(
                             ctx,
                             &FunctionArgs::String(token_reference.update_trailing_trivia(
@@ -439,9 +437,9 @@ pub fn format_function_args(
                         return format_function_args(
                             ctx,
                             &FunctionArgs::TableConstructor(
-                                table_constructor.update_trailing_trivia(
-                                    FormatTriviaType::Append(trailing_comments),
-                                ),
+                                table_constructor.update_trailing_trivia(FormatTriviaType::Append(
+                                    trailing_comments,
+                                )),
                             ),
                             shape,
                             call_next_node,
