@@ -1310,9 +1310,13 @@ pub fn format_const_function(
                 .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
         })
         .collect();
-    let const_token =
-        format_symbol(ctx, const_function.const_token(), &const_keyword_token_ref(), shape)
-            .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let const_token = format_symbol(
+        ctx,
+        const_function.const_token(),
+        &const_keyword_token_ref(),
+        shape,
+    )
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
     let function_token = fmt_symbol!(ctx, const_function.function_token(), "function ", shape);
     let formatted_name = format_token_reference(ctx, const_function.name(), shape)
         .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));

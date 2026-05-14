@@ -550,12 +550,16 @@ define_update_trivia!(Attribute, |this, leading, trailing| {
 #[cfg(feature = "luau")]
 define_update_trivia!(ConstAssignment, |this, leading, trailing| {
     if this.expressions().is_empty() {
-        let mut type_specifiers = this.type_specifiers().map(|x| x.cloned()).collect::<Vec<_>>();
+        let mut type_specifiers = this
+            .type_specifiers()
+            .map(|x| x.cloned())
+            .collect::<Vec<_>>();
 
         if let Some(Some(type_specifier)) = type_specifiers.pop() {
             type_specifiers.push(Some(type_specifier.update_trailing_trivia(trailing)));
 
-            return this.clone()
+            return this
+                .clone()
                 .with_const_token(this.const_token().update_leading_trivia(leading))
                 .with_type_specifiers(type_specifiers);
         }

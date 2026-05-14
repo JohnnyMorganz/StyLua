@@ -596,7 +596,12 @@ pub fn format_const_assignment_no_trivia(
         .is_some_and(trivia_util::token_contains_comments)
         || trivia_util::punctuated_inline_comments(assignment.expressions(), true);
 
-    let const_token = format_symbol(ctx, assignment.const_token(), &const_keyword_token_ref(), shape);
+    let const_token = format_symbol(
+        ctx,
+        assignment.const_token(),
+        &const_keyword_token_ref(),
+        shape,
+    );
 
     let mut name_list = try_format_punctuated(
         ctx,
@@ -624,7 +629,9 @@ pub fn format_const_assignment_no_trivia(
     });
 
     let var_list_ends_with_comments = match type_specifiers.last() {
-        Some(Some(specifier)) => specifier.has_trailing_comments(trivia_util::CommentSearch::Single),
+        Some(Some(specifier)) => {
+            specifier.has_trailing_comments(trivia_util::CommentSearch::Single)
+        }
         _ => name_list.has_trailing_comments(trivia_util::CommentSearch::Single),
     };
 

@@ -1,11 +1,11 @@
-#[cfg(any(feature = "luau", feature = "cfxlua"))]
-use crate::formatters::compound_assignment::format_compound_assignment;
-#[cfg(any(feature = "lua52", feature = "luajit"))]
-use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::assignment::format_const_assignment;
+#[cfg(any(feature = "luau", feature = "cfxlua"))]
+use crate::formatters::compound_assignment::format_compound_assignment;
 #[cfg(feature = "luau")]
 use crate::formatters::functions::format_const_function;
+#[cfg(any(feature = "lua52", feature = "luajit"))]
+use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
     format_exported_type_declaration, format_exported_type_function, format_type_declaration_stmt,
