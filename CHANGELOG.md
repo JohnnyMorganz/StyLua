@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Luau: Added support for `const` variable assignments (`const x = 1`) and `const function` declarations ([#1102](https://github.com/JohnnyMorganz/StyLua/issues/1102))
+
 ### Fixed
 
 - Fixed npm publishing by bumping Node.js from 16 to 22 in CI workflows to support npm trusted publishing
