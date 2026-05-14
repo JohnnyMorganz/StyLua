@@ -996,16 +996,14 @@ fn binop_expression_length(expression: &Expression, top_binop: &BinOp) -> usize 
 
 fn binop_expression_contains_comments(expression: &Expression, top_binop: &BinOp) -> bool {
     match expression {
-        Expression::BinaryOperator { lhs, binop, rhs } => {
-            if binop.precedence() == top_binop.precedence() {
-                contains_comments(binop)
-                    || rhs.has_leading_comments(CommentSearch::All)
-                    || lhs.has_trailing_comments(CommentSearch::All)
-                    || binop_expression_contains_comments(lhs, top_binop)
-                    || binop_expression_contains_comments(rhs, top_binop)
-            } else {
-                false
-            }
+        Expression::BinaryOperator { lhs, binop, rhs }
+            if binop.precedence() == top_binop.precedence() =>
+        {
+            contains_comments(binop)
+                || rhs.has_leading_comments(CommentSearch::All)
+                || lhs.has_trailing_comments(CommentSearch::All)
+                || binop_expression_contains_comments(lhs, top_binop)
+                || binop_expression_contains_comments(rhs, top_binop)
         }
         _ => false,
     }
