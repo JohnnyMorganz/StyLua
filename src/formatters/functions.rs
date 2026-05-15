@@ -367,6 +367,44 @@ fn function_args_multiline_heuristic(
     singleline_shape.add_width(PAREN_LEN).over_budget()
 }
 
+fn should_preserve_function_arguments_hug(
+    ctx: &Context,
+    parentheses: &ContainedSpan,
+    arguments: &Punctuated<Expression>,
+) -> bool {
+    if !ctx.should_preserve_input_simple_statements()
+        || arguments.is_empty()
+        || !arguments
+            .iter()
+            .any(|argument| matches!(argument, Expression::Function(_)))
+    {
+        return false;
+    }
+
+    let (start_parens, end_parens) = parentheses.tokens();
+    match (
+        start_parens.end_position(),
+        arguments
+            .first()
+            .and_then(|argument| argument.value().start_position()),
+        arguments
+            .last()
+            .and_then(|argument| argument.value().end_position()),
+        end_parens.start_position(),
+    ) {
+        (
+            Some(start_parens_end),
+            Some(first_arg_start),
+            Some(last_arg_end),
+            Some(end_parens_start),
+        ) => {
+            start_parens_end.line() == first_arg_start.line()
+                && last_arg_end.line() == end_parens_start.line()
+        }
+        _ => false,
+    }
+}
+
 /// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion
 fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape) -> Expression {
     // First format the argument assuming infinite width
@@ -456,9 +494,12 @@ pub fn format_function_args(
 
             // If there is a comment present anywhere in between the start parentheses and end parentheses, we should keep it multiline
             let force_mutliline = function_args_contains_comments(parentheses, arguments);
+            let preserve_function_arguments_hug =
+                should_preserve_function_arguments_hug(ctx, parentheses, arguments);
 
-            let is_multiline =
-                force_mutliline || function_args_multiline_heuristic(ctx, arguments, shape);
+            let is_multiline = force_mutliline
+                || (!preserve_function_arguments_hug
+                    && function_args_multiline_heuristic(ctx, arguments, shape));
 
             // Handle special case: we want to go multiline, but we have a single argument which is a table constructor
             // In this case, we want to hug the table braces with the parentheses.

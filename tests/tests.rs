@@ -224,6 +224,58 @@ if foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 }
 
 #[test]
+fn test_collapse_simple_statement_input_preserves_function_argument_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 20,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"task.spawn(function()
+
+end)
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    task.spawn(function()
+    end)
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_multi_argument_function_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 20,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"x.SomeMethod("something", function()
+
+end)
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    x.SomeMethod("something", function()
+    end)
+    "###
+    );
+}
+
+#[test]
 fn test_preserve_block_newline_gaps() {
     insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
