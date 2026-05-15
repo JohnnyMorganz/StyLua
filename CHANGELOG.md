@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Luau: Added support for `const` variable assignments (`const x = 1`) and `const function` declarations ([#1102](https://github.com/JohnnyMorganz/StyLua/issues/1102))
+- Added `Input` mode for `collapse_simple_statement`, preserving whether simple statements are single-line or multi-line in the input while still formatting their contents
 
 ### Fixed
 
