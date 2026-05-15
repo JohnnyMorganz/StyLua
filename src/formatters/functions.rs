@@ -806,6 +806,8 @@ pub fn format_function_body(
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     let should_collapse = should_collapse_function_body(ctx, function_body);
+    let preserve_input_singleline_function =
+        ctx.should_preserve_input_simple_statements() && node_spans_single_line(function_body);
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
@@ -829,7 +831,8 @@ pub fn format_function_body(
         });
 
         contains_comments
-            || should_parameters_format_multiline(ctx, function_body, shape, should_collapse)
+            || (!preserve_input_singleline_function
+                && should_parameters_format_multiline(ctx, function_body, shape, should_collapse))
     };
 
     // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
@@ -911,7 +914,8 @@ pub fn format_function_body(
             };
 
             // If the block forces multiline or goes over width, then bail out of singleline formatting and format multiline
-            if block_shape.take_first_line(&block).over_budget()
+            if (!preserve_input_singleline_function
+                && block_shape.take_first_line(&block).over_budget())
                 || trivia_util::spans_multiple_lines(&block)
             {
                 singleline_function = false;

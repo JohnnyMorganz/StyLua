@@ -452,19 +452,22 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
     let singleline_condition = format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
+    let preserve_input_singleline_conditional =
+        ctx.should_preserve_input_simple_statements() && node_spans_single_line(if_node);
 
     // Determine if we need to hang the condition
     let singleline_shape =
         shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
-    let require_multiline_expression = singleline_shape.over_budget()
+    let require_multiline_expression = (!preserve_input_singleline_conditional
+        && singleline_shape.over_budget())
         || if_node.if_token().has_trailing_comments(CommentSearch::All)
         || if_node
             .then_token()
             .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
-    let should_collapse_simple_conditional = ctx.should_collapse_simple_conditionals()
-        || (ctx.should_preserve_input_simple_statements() && node_spans_single_line(if_node));
+    let should_collapse_simple_conditional =
+        ctx.should_collapse_simple_conditionals() || preserve_input_singleline_conditional;
 
     if !require_multiline_expression && should_collapse_simple_conditional && is_if_guard(if_node) {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
@@ -511,9 +514,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
             .with_end_token(end_token);
 
         // See if it fits under the column width. If it does, bail early and return this singleline if
-        if !shape
-            .add_width(strip_trivia(&singleline_if).to_string().len())
-            .over_budget()
+        if preserve_input_singleline_conditional
+            || !shape
+                .add_width(strip_trivia(&singleline_if).to_string().len())
+                .over_budget()
         {
             return singleline_if;
         }

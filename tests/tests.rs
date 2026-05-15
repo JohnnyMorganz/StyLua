@@ -199,6 +199,31 @@ end
 }
 
 #[test]
+fn test_collapse_simple_statement_input_preserves_singleline_over_width() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 40,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return  bar end
+if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return  bar end
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return bar end
+    if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return bar end
+    "###
+    );
+}
+
+#[test]
 fn test_preserve_block_newline_gaps() {
     insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
