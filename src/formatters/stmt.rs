@@ -40,6 +40,7 @@ use full_moon::{
         punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
         GenericFor, If, NumericFor, Repeat, Stmt, Suffix, While,
     },
+    node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
@@ -429,6 +430,13 @@ fn is_if_guard(if_node: &If) -> bool {
         && !trivia_util::contains_comments(if_node.then_token())
 }
 
+fn node_spans_single_line(node: &impl Node) -> bool {
+    match (node.start_position(), node.end_position()) {
+        (Some(start), Some(end)) => start.line() == end.line(),
+        _ => false,
+    }
+}
+
 /// Format an If node
 pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     const IF_LEN: usize = "if ".len();
@@ -455,10 +463,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
             .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
-    if !require_multiline_expression
-        && ctx.should_collapse_simple_conditionals()
-        && is_if_guard(if_node)
-    {
+    let should_collapse_simple_conditional = ctx.should_collapse_simple_conditionals()
+        || (ctx.should_preserve_input_simple_statements() && node_spans_single_line(if_node));
+
+    if !require_multiline_expression && should_collapse_simple_conditional && is_if_guard(if_node) {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this

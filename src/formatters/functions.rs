@@ -7,6 +7,7 @@ use full_moon::ast::{
     FunctionDeclaration, FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter,
     Prefix, Stmt, Suffix, TableConstructor, Var,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
@@ -761,6 +762,13 @@ fn block_contains_nested_function(block: &Block) -> bool {
     }
 }
 
+fn node_spans_single_line(node: &impl Node) -> bool {
+    match (node.start_position(), node.end_position()) {
+        (Some(start), Some(end)) => start.line() == end.line(),
+        _ => false,
+    }
+}
+
 pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody) -> bool {
     // Test for presence of any comments
     let require_multiline_function = function_body
@@ -775,10 +783,16 @@ pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody
             .any(trivia_util::trivia_is_comment)
         || trivia_util::contains_comments(function_body.block());
 
+    let input_single_line = node_spans_single_line(function_body);
+    let preserve_input_simple_statements = ctx.should_preserve_input_simple_statements();
+    let should_collapse_empty_function = !preserve_input_simple_statements || input_single_line;
+    let should_collapse_simple_function = ctx.should_collapse_simple_functions()
+        || (preserve_input_simple_statements && input_single_line);
+
     !require_multiline_function
-        && (trivia_util::is_block_empty(function_body.block())
+        && ((trivia_util::is_block_empty(function_body.block()) && should_collapse_empty_function)
             || (trivia_util::is_block_simple(function_body.block())
-                && ctx.should_collapse_simple_functions()
+                && should_collapse_simple_function
                 && !block_contains_nested_function(function_body.block())))
 }
 

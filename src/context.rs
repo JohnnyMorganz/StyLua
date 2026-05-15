@@ -155,6 +155,13 @@ impl Context {
         )
     }
 
+    pub fn should_preserve_input_simple_statements(&self) -> bool {
+        matches!(
+            self.config().collapse_simple_statement,
+            CollapseSimpleStatement::Input
+        )
+    }
+
     pub fn should_preserve_leading_block_newline_gaps(&self) -> bool {
         matches!(self.config().block_newline_gaps, BlockNewlineGaps::Preserve)
     }

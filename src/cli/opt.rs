@@ -278,6 +278,7 @@ convert_enum!(CallParenType, ArgCallParenType, {
 
 convert_enum!(CollapseSimpleStatement, ArgCollapseSimpleStatement, {
     Never,
+    Input,
     FunctionOnly,
     ConditionalOnly,
     Always,
