@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778924714122,
+  "lastUpdate": 1778930165143,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17093,6 +17093,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15298858,
             "range": "± 157865",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8b22575e14724e951f3c052815a5d549071e2518",
+          "message": "Target first attribute at_sign in stmt_remove_leading_newlines for LocalFunction/ConstFunction (#1115)\n\n* fix: target first attribute at_sign in stmt_remove_leading_newlines for LocalFunction/ConstFunction\n\nWhen a LocalFunction or ConstFunction has a leading Luau attribute (e.g. @native),\nthe actual first token of the statement is the attribute's at_sign, not the local/const\nkeyword. stmt_remove_leading_newlines was targeting the wrong token, leaving stray\nnewlines before the attribute at the start of a block.\n\nFixes #1109\n\n* simplify: extract strip_attribute_leading_newlines helper, avoid allocation on no-attribute path\n\n- Deduplicate the identical 6-line attribute-stripping logic from LocalFunction\n  and ConstFunction arms into a single helper function\n- Use peekable iterator so no Vec is allocated when the function has no attributes\n  (the common case)\n- Make both arms use a consistent if-let pattern instead of early-return vs if/else\n- Remove redundant comment from test input file\n\n* refactor: use next() to own first attribute, eliminating index and clone\n\nReplace peek()+collect()+[0]+clone() with cloned().next()? which takes the\nfirst element as an owned value so with_at_sign can consume it directly.\n\n* style: rustfmt\n\n* docs: add changelog entry for #1109",
+          "timestamp": "2026-05-16T13:14:06+02:00",
+          "tree_id": "af3c80ddb0f375dce3e7bbc543bf3b5f866e3855",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8b22575e14724e951f3c052815a5d549071e2518"
+        },
+        "date": 1778930163799,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28890055,
+            "range": "± 635369",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233961379,
+            "range": "± 1281022",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15349625,
+            "range": "± 296321",
             "unit": "ns/iter"
           }
         ]
