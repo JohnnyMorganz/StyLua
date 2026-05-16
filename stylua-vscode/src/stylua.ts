@@ -59,7 +59,7 @@ export function formatCode(
       resolve(output);
     });
     child.stderr.on("data", (data) => reject(data.toString()));
-    child.on("err", (err) => reject("Failed to start StyLua"));
+    child.on("error", (err) => reject(`Failed to start StyLua: ${err.message}`));
 
     // Write our code to stdin
     child.stdin.write(code);
