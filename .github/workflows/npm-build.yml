@@ -55,17 +55,29 @@ jobs:
           Expand-Archive release.zip -DestinationPath "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
           Remove-Item release.zip
 
-      - name: Pack platform package
-        working-directory: stylua-npm-bin/platforms/${{ matrix.platform-dir }}
-        run: npm pack
-
-      - name: Install platform package locally
+      - name: Pack platform and main packages
         shell: bash
-        working-directory: stylua-npm-bin
         run: |
-          TARBALL=$(ls platforms/${{ matrix.platform-dir }}/*.tgz)
-          npm install --no-save "file:$TARBALL"
+          cd "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/${{ matrix.platform-dir }}"
+          npm pack
+          echo "PLATFORM_TGZ=$(pwd)/$(ls *.tgz)" >> $GITHUB_ENV
 
-      - name: Test run
-        working-directory: stylua-npm-bin
-        run: node run.js --version
+          cd "$GITHUB_WORKSPACE/stylua-npm-bin"
+          npm pack
+          echo "MAIN_TGZ=$(pwd)/$(ls *.tgz)" >> $GITHUB_ENV
+
+      - name: Install in fresh test project
+        # Mirrors a real user install: both packages land as siblings in node_modules/,
+        # with run.js at node_modules/@johnnymorganz/stylua-bin/run.js resolving the
+        # platform binary from the adjacent node_modules/@johnnymorganz/stylua-bin-*/
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-install"
+          cd "$GITHUB_WORKSPACE/test-install"
+          npm install --no-save "$PLATFORM_TGZ"
+          npm install --no-save --no-optional "$MAIN_TGZ"
+
+      - name: Test via bin
+        shell: bash
+        working-directory: ${{ github.workspace }}/test-install
+        run: ./node_modules/.bin/stylua --version

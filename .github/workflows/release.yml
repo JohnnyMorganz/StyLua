@@ -198,12 +198,12 @@ jobs:
         run: |
           for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
             cd "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/$PLATFORM"
-            npm publish --access public
+            npm publish
           done
 
       - name: Publish main package to npm
         working-directory: stylua-npm-bin
-        run: npm publish --access public
+        run: npm publish
 
   release_docker:
     name: Publish image to container registry

@@ -8,6 +8,13 @@
   "engines": {
     "node": ">=10"
   },
+  "files": [
+    "run.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/johnnymorganz/stylua"

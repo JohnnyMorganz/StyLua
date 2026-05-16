@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `@johnnymorganz/stylua-bin` now ships pre-built binaries via platform-specific optional npm packages (`@johnnymorganz/stylua-bin-linux-x64`, `-linux-arm64`, `-darwin-x64`, `-darwin-arm64`, `-win32-x64`) instead of downloading the binary at install time. This eliminates all npm dependencies (previously 92 transitive packages) and makes installs faster and fully offline-capable.
+
 ### Fixed
 
 - Fixed npm publishing by bumping Node.js from 16 to 22 in CI workflows to support npm trusted publishing

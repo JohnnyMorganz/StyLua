@@ -36,7 +36,6 @@ const result = spawnSync(binPath, process.argv.slice(2), { stdio: "inherit" });
 
 if (result.error) {
   console.error(result.error);
-  process.exit(1);
 }
 
-process.exit(result.status ?? 1);
+process.exitCode = result.error ? 1 : (result.status ?? 1);
