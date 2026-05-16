@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778922104243,
+  "lastUpdate": 1778924714122,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17051,6 +17051,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15295043,
             "range": "± 35798",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dfc5d9e49edf0246d5fd8163a7b7645e19f64ab0",
+          "message": "Fix union/intersection types not hanging when \" = \" pushes line over column width (#1118)\n\n* Add snapshot test reproducing issue #1104\n\nBoth export type lines exceed the 120-column limit by 1-2 chars, but\nStyLua leaves them on a single line instead of hanging. The snapshot\ncaptures the current (buggy) output to be updated once the fix lands.\n\n* Fix type hanging not respecting column limit near the equal token (#1104)\n\nattempt_assigned_type_tactics was calling test_over_budget with `shape`\n(the column position before \" = \") instead of `shape + EQUAL_TOKEN_LENGTH`\n(after \" = \"). This made the budget check 3 chars too generous, so a\nunion/intersection type that fit without the equal sign but overflowed with\nit was left on one line.\n\nFixed all three test_over_budget call sites in the function to use\nshape + EQUAL_TOKEN_LENGTH so the equal sign is included in the check.\n\n* Update changelog for issue #1104 fix",
+          "timestamp": "2026-05-16T11:43:17+02:00",
+          "tree_id": "1c238d32123085071d494c66bb40710161df1da9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/dfc5d9e49edf0246d5fd8163a7b7645e19f64ab0"
+        },
+        "date": 1778924713418,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26985988,
+            "range": "± 439466",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233434508,
+            "range": "± 1890172",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15298858,
+            "range": "± 157865",
             "unit": "ns/iter"
           }
         ]
