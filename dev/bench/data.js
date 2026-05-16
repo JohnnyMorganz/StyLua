@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778941760457,
+  "lastUpdate": 1778942493283,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17177,6 +17177,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14175431,
             "range": "± 185113",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "031e454edc624c9b0f2283e2b82f426853e86d54",
+          "message": "Bump brace-expansion from 2.0.2 to 2.1.0 in /stylua-vscode (#1120)\n\nBumps [brace-expansion](https://github.com/juliangruber/brace-expansion) from 2.0.2 to 2.1.0.\n- [Release notes](https://github.com/juliangruber/brace-expansion/releases)\n- [Commits](https://github.com/juliangruber/brace-expansion/compare/v2.0.2...v2.1.0)\n\n---\nupdated-dependencies:\n- dependency-name: brace-expansion\n  dependency-version: 2.1.0\n  dependency-type: indirect\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-05-16T16:39:25+02:00",
+          "tree_id": "4c24e0f3fc377366930f1cd836b1fee05c33d655",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/031e454edc624c9b0f2283e2b82f426853e86d54"
+        },
+        "date": 1778942492606,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27233354,
+            "range": "± 449414",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233289137,
+            "range": "± 874537",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16341498,
+            "range": "± 273460",
             "unit": "ns/iter"
           }
         ]
