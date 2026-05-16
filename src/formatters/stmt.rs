@@ -1,5 +1,9 @@
+#[cfg(feature = "luau")]
+use crate::formatters::assignment::format_const_assignment;
 #[cfg(any(feature = "luau", feature = "cfxlua"))]
 use crate::formatters::compound_assignment::format_compound_assignment;
+#[cfg(feature = "luau")]
+use crate::formatters::functions::format_const_function;
 #[cfg(any(feature = "lua52", feature = "luajit"))]
 use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
@@ -1073,6 +1077,25 @@ pub(crate) mod stmt_block {
                 Stmt::CompoundAssignment(compound_assignment.to_owned().with_rhs(rhs))
             }
             #[cfg(feature = "luau")]
+            Stmt::ConstAssignment(const_assignment) => {
+                let expressions = const_assignment
+                    .expressions()
+                    .pairs()
+                    .map(|pair| {
+                        pair.to_owned().map(|expression| {
+                            format_expression_block(ctx, &expression, block_shape)
+                        })
+                    })
+                    .collect();
+                Stmt::ConstAssignment(const_assignment.to_owned().with_expressions(expressions))
+            }
+            #[cfg(feature = "luau")]
+            Stmt::ConstFunction(const_function) => {
+                let block = format_block(ctx, const_function.body().block(), block_shape);
+                let body = const_function.body().to_owned().with_block(block);
+                Stmt::ConstFunction(const_function.to_owned().with_body(body))
+            }
+            #[cfg(feature = "luau")]
             Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
             #[cfg(feature = "luau")]
             Stmt::TypeDeclaration(node) => Stmt::TypeDeclaration(node.to_owned()),
@@ -1124,6 +1147,8 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
         Repeat = format_repeat_block,
         While = format_while_block,
         #[cfg(any(feature = "luau", feature = "cfxlua"))] CompoundAssignment = format_compound_assignment,
+        #[cfg(feature = "luau")] ConstAssignment = format_const_assignment,
+        #[cfg(feature = "luau")] ConstFunction = format_const_function,
         #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
         #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
         #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function,

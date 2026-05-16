@@ -1,0 +1,15 @@
+---
+source: tests/tests.rs
+assertion_line: 36
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/attributes-4.lua
+---
+do
+	@native
+	local function foo() end
+end
+
+do
+	@native
+	const function bar() end
+end

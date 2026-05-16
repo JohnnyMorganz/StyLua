@@ -1,3 +1,5 @@
+#[cfg(feature = "luau")]
+use full_moon::ast::luau::ConstFunction;
 use full_moon::ast::{
     punctuated::{Pair, Punctuated},
     span::ContainedSpan,
@@ -9,8 +11,8 @@ use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_generic_declaration, format_luau_attribute, format_type_instantiation,
-    format_type_specifier,
+    const_keyword_token_ref, format_generic_declaration, format_luau_attribute,
+    format_type_instantiation, format_type_specifier,
 };
 use crate::{
     context::{
@@ -23,7 +25,7 @@ use crate::{
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
-            format_punctuated, format_token_reference, EndTokenType,
+            format_punctuated, format_symbol, format_token_reference, EndTokenType,
         },
         stmt::format_stmt_no_trivia,
         table::format_table_constructor,
@@ -1288,6 +1290,46 @@ pub fn format_local_function(
     let local_function = local_function.with_attributes(attributes);
 
     local_function
+}
+
+#[cfg(feature = "luau")]
+pub fn format_const_function(
+    ctx: &Context,
+    const_function: &ConstFunction,
+    shape: Shape,
+) -> ConstFunction {
+    let leading_trivia = vec![create_indent_trivia(ctx, shape)];
+    let trailing_trivia = vec![create_newline_trivia(ctx)];
+    let function_definition_trivia = vec![create_function_definition_trivia(ctx)];
+
+    let attributes = const_function
+        .attributes()
+        .map(|attribute| {
+            format_luau_attribute(ctx, attribute, shape)
+                .update_leading_trivia(FormatTriviaType::Append(leading_trivia.clone()))
+                .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.clone()))
+        })
+        .collect();
+    let const_token = format_symbol(
+        ctx,
+        const_function.const_token(),
+        &const_keyword_token_ref(),
+        shape,
+    )
+    .update_leading_trivia(FormatTriviaType::Append(leading_trivia));
+    let function_token = fmt_symbol!(ctx, const_function.function_token(), "function ", shape);
+    let formatted_name = format_token_reference(ctx, const_function.name(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(function_definition_trivia));
+
+    let shape = shape + (6 + 9 + strip_trivia(&formatted_name).to_string().len()); // 6 = "const ", 9 = "function "
+    let function_body = format_function_body(ctx, const_function.body(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia));
+
+    ConstFunction::new(formatted_name)
+        .with_attributes(attributes)
+        .with_const_token(const_token)
+        .with_function_token(function_token)
+        .with_body(function_body)
 }
 
 /// Formats a MethodCall node

@@ -2,10 +2,11 @@
 use full_moon::ast::lua54::Attribute;
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{
-    ElseIfExpression, GenericDeclaration, GenericDeclarationParameter, GenericParameterInfo,
-    IfExpression, IndexedTypeInfo, InterpolatedString, InterpolatedStringSegment, LuauAttribute,
-    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
-    TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
+    ConstAssignment, ElseIfExpression, GenericDeclaration, GenericDeclarationParameter,
+    GenericParameterInfo, IfExpression, IndexedTypeInfo, InterpolatedString,
+    InterpolatedStringSegment, LuauAttribute, TypeArgument, TypeAssertion, TypeDeclaration,
+    TypeField, TypeFieldKey, TypeFunction, TypeInfo, TypeInstantiation, TypeIntersection,
+    TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, AnonymousFunction, BinOp, Call, Expression,
@@ -546,6 +547,33 @@ define_update_trivia!(Attribute, |this, leading, trailing| {
         .with_brackets(this.brackets().update_trivia(leading, trailing))
 });
 
+#[cfg(feature = "luau")]
+define_update_trivia!(ConstAssignment, |this, leading, trailing| {
+    if this.expressions().is_empty() {
+        let mut type_specifiers = this
+            .type_specifiers()
+            .map(|x| x.cloned())
+            .collect::<Vec<_>>();
+
+        if let Some(Some(type_specifier)) = type_specifiers.pop() {
+            type_specifiers.push(Some(type_specifier.update_trailing_trivia(trailing)));
+
+            return this
+                .clone()
+                .with_const_token(this.const_token().update_leading_trivia(leading))
+                .with_type_specifiers(type_specifiers);
+        }
+
+        this.clone()
+            .with_const_token(this.const_token().update_leading_trivia(leading))
+            .with_names(this.names().update_trailing_trivia(trailing))
+    } else {
+        this.clone()
+            .with_const_token(this.const_token().update_leading_trivia(leading))
+            .with_expressions(this.expressions().update_trailing_trivia(trailing))
+    }
+});
+
 define_update_trivia!(LocalAssignment, |this, leading, trailing| {
     if this.expressions().is_empty() {
         // Handle if the last item had a type specifier set
@@ -671,6 +699,19 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
             let lhs = stmt.lhs().update_leading_trivia(leading);
             let rhs = stmt.rhs().update_trailing_trivia(trailing);
             Stmt::CompoundAssignment(stmt.to_owned().with_lhs(lhs).with_rhs(rhs))
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(stmt) => Stmt::ConstAssignment(stmt.update_trivia(leading, trailing)),
+        #[cfg(feature = "luau")]
+        Stmt::ConstFunction(stmt) => {
+            let const_token = stmt.const_token().update_leading_trivia(leading);
+            let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
+            let body = stmt.body().to_owned().with_end_token(end_token);
+            Stmt::ConstFunction(
+                stmt.to_owned()
+                    .with_const_token(const_token)
+                    .with_body(body),
+            )
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {

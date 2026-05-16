@@ -936,6 +936,27 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
             )
         }
         #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(const_assignment) => {
+            let mut trailing_trivia = Vec::new();
+            let mut formatted_expression_list = const_assignment.expressions().to_owned();
+            if let Some(last_pair) = formatted_expression_list.pop() {
+                let pair = last_pair.map(|value| {
+                    trailing_trivia = value.trailing_trivia();
+                    value.update_trailing_trivia(FormatTriviaType::Replace(vec![]))
+                });
+                formatted_expression_list.push(pair);
+            }
+            (
+                Stmt::ConstAssignment(const_assignment.with_expressions(formatted_expression_list)),
+                trailing_trivia,
+            )
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstFunction(stmt) => {
+            let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
+            (Stmt::ConstFunction(stmt.with_body(body)), trailing_trivia)
+        }
+        #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
             let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.type_declaration());
             (

@@ -1,0 +1,9 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/const_function.lua
+---
+const function f() end
+const function greet(name: string): string
+	return "Hello, " .. name
+end
