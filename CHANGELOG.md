@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed npm publishing by bumping Node.js from 16 to 22 in CI workflows to support npm trusted publishing
+- Luau: Fixed stray leading newlines not being removed from `local function` and `const function` declarations that have attributes (e.g. `@native`) at the start of a block ([#1109](https://github.com/JohnnyMorganz/StyLua/issues/1109))
 
 ## [2.4.1] - 2026-04-06
 
