@@ -1,7 +1,5 @@
 #[cfg(feature = "luau")]
 use crate::formatters::general::format_symbol;
-#[cfg(feature = "luau")]
-use full_moon::ast::luau::LuauAttribute;
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
@@ -20,6 +18,8 @@ use crate::{
     },
     shape::Shape,
 };
+#[cfg(feature = "luau")]
+use full_moon::ast::luau::LuauAttribute;
 use full_moon::ast::{
     punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
 };
@@ -381,8 +381,7 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         ),
         Stmt::LocalFunction(local_function) => {
             #[cfg(feature = "luau")]
-            if let Some(attributes) =
-                strip_attribute_leading_newlines(local_function.attributes())
+            if let Some(attributes) = strip_attribute_leading_newlines(local_function.attributes())
             {
                 return Stmt::LocalFunction(local_function.with_attributes(attributes));
             }
@@ -429,8 +428,7 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         ),
         #[cfg(feature = "luau")]
         Stmt::ConstFunction(const_function) => {
-            if let Some(attributes) =
-                strip_attribute_leading_newlines(const_function.attributes())
+            if let Some(attributes) = strip_attribute_leading_newlines(const_function.attributes())
             {
                 Stmt::ConstFunction(const_function.with_attributes(attributes))
             } else {
