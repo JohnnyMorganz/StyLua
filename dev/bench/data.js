@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778930165143,
+  "lastUpdate": 1778941760457,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17135,6 +17135,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15349625,
             "range": "± 296321",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f8ad1f421dba42aebd317c8a8c416a10db3270c7",
+          "message": "npm: replace postinstall download with platform-specific optional packages (#1119)\n\n* refactor(npm): replace postinstall download with platform-specific optional packages\n\nEliminates all 5 npm dependencies (92 transitive packages) and the\nrecurring dependabot noise they generate. npm now installs only the\npre-built binary for the current platform via optionalDependencies,\nmatching the pattern used by esbuild, Biome, and Prettier.\n\n- Add five platform packages under stylua-npm-bin/platforms/\n- Simplify run.js to resolve the binary from the installed platform package\n- Remove binary.js / install.js / uninstall.js and their postinstall hooks\n- Update release workflow to wait for all binaries, then publish each\n  platform package before publishing the main package\n- Update CI smoke test to download the released binary, pack the platform\n  package locally, and install it via file: reference for testing\n\n* chore(npm): add minimal package-lock.json\n\nReplaces the 1,691-line lockfile for 92 packages with a 26-line lockfile\nreflecting the zero-dependency main package.\n\n* fix(npm-bin): drop redundant cwd, guard against null exit status\n\nspawnSync defaults cwd to process.cwd() so the explicit arg was noise.\nresult.status is null when the child is signal-killed; process.exit(null)\ncoerces to 0, hiding the failure — use ?? 1 as fallback.\n\n* fix(npm-bin): align with upstream esbuild/biome patterns\n\n- Add publishConfig (access:public, provenance:true) to all packages,\n  replacing --access public CLI flags and enabling SLSA provenance\n- Add files:[\"run.js\"] to main package to prevent platforms/ directories\n  (with extracted binaries) from landing in the published tarball\n- Add preferUnplugged:true to platform packages for Yarn PnP compatibility\n- Use process.exitCode instead of process.exit() for the final exit,\n  allowing cleanup handlers to run (matches Biome pattern)\n- Remove package-lock.json from git (no deps to lock; esbuild/biome don't\n  commit one either); add stylua-npm-bin/.gitignore\n- Update release.py: drop npm install step and lock file from git add,\n  add platform package.json files to version bump and git add\n- Update CHANGELOG.md\n- Rewrite smoketest to install both packages into a fresh test-install/\n  directory, mirroring how a real user install looks (sibling packages in\n  node_modules/), and test via the npm bin symlink\n\n* chore: polish based on review feedback\n\n- Consolidate five per-platform .gitignore files into one stylua-npm-bin/.gitignore\n- Simplify smoketest download to a single bash step (Windows runners support bash)\n- Use npx to invoke stylua in smoketest instead of reaching into node_modules/.bin\n- Tighten CHANGELOG wording\n\n* fix(ci): install platform and main packages in single npm install\n\nRunning two separate npm install commands caused npm 7+ to prune the\nplatform package during the second install: when building the ideal tree\nfor the main package with --no-optional, the already-installed platform\npackage appeared extraneous and was removed.\n\nInstalling both packages together in one command keeps both in the ideal\ntree so npm doesn't prune the platform binary.\n\n* fix(ci): drop --no-optional from smoketest npm install\n\nThe os/cpu fields on the platform packages already prevent npm from\ninstalling mismatched platform packages; on a macOS arm64 runner, only\n@johnnymorganz/stylua-bin-darwin-arm64 matches. The explicitly provided\n$PLATFORM_TGZ satisfies that optional dependency locally, so no registry\nlookup is needed. optionalDependencies failures are non-fatal anyway.\n\nRemoving --no-optional also clears the deprecation warning (replaced by\n--omit=optional in npm 7+).",
+          "timestamp": "2026-05-16T16:27:22+02:00",
+          "tree_id": "de06f107debf8d9792a2c318f9c193dde5c99c80",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/f8ad1f421dba42aebd317c8a8c416a10db3270c7"
+        },
+        "date": 1778941759068,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27553866,
+            "range": "± 228997",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232629457,
+            "range": "± 995540",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14175431,
+            "range": "± 185113",
             "unit": "ns/iter"
           }
         ]
