@@ -11,17 +11,61 @@ jobs:
   smoketest:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform-dir: linux-x64
+            gh-artifact: stylua-linux-x86_64
+          - os: macos-latest
+            platform-dir: darwin-arm64
+            gh-artifact: stylua-macos-aarch64
+          - os: windows-latest
+            platform-dir: win32-x64
+            gh-artifact: stylua-windows-x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-      - name: Attempt install
-        run: npm install --package-locked
+
+      - name: Get release version
+        id: version
+        shell: bash
+        run: echo "tag=v$(node -p "require('./stylua-npm-bin/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Download and extract release binary (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL \
+            "https://github.com/johnnymorganz/stylua/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.gh-artifact }}.zip" \
+            -o release.zip
+          unzip release.zip -d "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
+          rm release.zip
+
+      - name: Download and extract release binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            "https://github.com/johnnymorganz/stylua/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.gh-artifact }}.zip" `
+            -OutFile release.zip
+          Expand-Archive release.zip -DestinationPath "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
+          Remove-Item release.zip
+
+      - name: Pack platform package
+        working-directory: stylua-npm-bin/platforms/${{ matrix.platform-dir }}
+        run: npm pack
+
+      - name: Install platform package locally
+        shell: bash
         working-directory: stylua-npm-bin
-      - name: Attempt run
-        run: npx . --version
+        run: |
+          TARBALL=$(ls platforms/${{ matrix.platform-dir }}/*.tgz)
+          npm install --no-save "file:$TARBALL"
+
+      - name: Test run
         working-directory: stylua-npm-bin
+        run: node run.js --version

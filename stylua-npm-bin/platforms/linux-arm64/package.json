@@ -1,0 +1,13 @@
+{
+  "name": "@johnnymorganz/stylua-bin-linux-arm64",
+  "version": "2.4.1",
+  "description": "StyLua binary for Linux arm64",
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "files": ["stylua"],
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnnymorganz/stylua"
+  }
+}
