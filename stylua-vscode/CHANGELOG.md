@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed file being emptied when StyLua binary is missing (ENOENT). The child process error event was registered under the wrong name, causing spawn failures to be silently swallowed and the document to be replaced with empty content (#1001)
+
 ## [1.7.1] - 2024-11-17
 
 ### Fixed
