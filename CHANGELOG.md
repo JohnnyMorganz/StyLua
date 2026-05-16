@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed npm publishing by bumping Node.js from 16 to 22 in CI workflows to support npm trusted publishing
+- Luau: Fixed union/intersection type definitions not being hung when the type alone fits within the column width but the full line (including ` = `) exceeds it ([#1104](https://github.com/JohnnyMorganz/StyLua/issues/1104))
 
 ## [2.4.1] - 2026-04-06
 
