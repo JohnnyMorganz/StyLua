@@ -59,9 +59,13 @@ export function formatCode(
       resolve(output);
     });
     child.stderr.on("data", (data) => reject(data.toString()));
-    child.on("err", (err) => reject("Failed to start StyLua"));
+    child.on("error", (err) =>
+      reject(`Failed to start StyLua: ${err.message}`)
+    );
+    child.stdin.on("error", () => {
+      // Suppress EPIPE when the process failed to spawn and stdin is already closed
+    });
 
-    // Write our code to stdin
     child.stdin.write(code);
     child.stdin.end();
   });
@@ -81,6 +85,7 @@ export function executeStylua(
       (err, stdout) => {
         if (err) {
           reject(err);
+          return;
         }
         resolve(stdout);
       }
