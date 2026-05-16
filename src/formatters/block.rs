@@ -323,14 +323,14 @@ fn var_remove_leading_newline(var: Var) -> Var {
 fn strip_attribute_leading_newlines<'a>(
     attributes: impl Iterator<Item = &'a LuauAttribute>,
 ) -> Option<Vec<LuauAttribute>> {
-    let mut peekable = attributes.peekable();
-    peekable.peek()?;
-    let mut attributes: Vec<LuauAttribute> = peekable.cloned().collect();
-    let at_sign = attributes[0].at_sign();
+    let mut cloned = attributes.cloned();
+    let first = cloned.next()?;
+    let at_sign = first.at_sign();
     let leading_trivia = trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
     let new_at_sign = at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-    attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
-    Some(attributes)
+    let mut result = vec![first.with_at_sign(new_at_sign)];
+    result.extend(cloned);
+    Some(result)
 }
 
 fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
