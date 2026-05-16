@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed spurious "No release version matches v." error when GitHub API returns a non-OK response (e.g. rate limiting). The extension no longer shows a bogus update prompt in this case
+
 ## [1.7.1] - 2024-11-17
 
 ### Fixed
