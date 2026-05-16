@@ -4,7 +4,6 @@ assertion_line: 36
 expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau/attributes-4.lua
 ---
--- leading newlines at start of block should be removed even when local/const function has attributes
 do
 	@native
 	local function foo() end

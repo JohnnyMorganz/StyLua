@@ -1,5 +1,7 @@
 #[cfg(feature = "luau")]
 use crate::formatters::general::format_symbol;
+#[cfg(feature = "luau")]
+use full_moon::ast::luau::LuauAttribute;
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
     fmt_symbol,
@@ -317,6 +319,20 @@ fn var_remove_leading_newline(var: Var) -> Var {
     }
 }
 
+#[cfg(feature = "luau")]
+fn strip_attribute_leading_newlines<'a>(
+    attributes: impl Iterator<Item = &'a LuauAttribute>,
+) -> Option<Vec<LuauAttribute>> {
+    let mut peekable = attributes.peekable();
+    peekable.peek()?;
+    let mut attributes: Vec<LuauAttribute> = peekable.cloned().collect();
+    let at_sign = attributes[0].at_sign();
+    let leading_trivia = trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
+    let new_at_sign = at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+    attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
+    Some(attributes)
+}
+
 fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
     match stmt {
         Stmt::Assignment(assignment) => {
@@ -365,19 +381,17 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         ),
         Stmt::LocalFunction(local_function) => {
             #[cfg(feature = "luau")]
+            if let Some(attributes) =
+                strip_attribute_leading_newlines(local_function.attributes())
             {
-                let mut attributes: Vec<_> = local_function.attributes().cloned().collect();
-                if !attributes.is_empty() {
-                    let at_sign = attributes[0].at_sign();
-                    let leading_trivia =
-                        trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
-                    let new_at_sign =
-                        at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-                    attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
-                    return Stmt::LocalFunction(local_function.with_attributes(attributes));
-                }
+                return Stmt::LocalFunction(local_function.with_attributes(attributes));
             }
-            update_first_token!(LocalFunction, local_function, local_function.local_token(), with_local_token)
+            update_first_token!(
+                LocalFunction,
+                local_function,
+                local_function.local_token(),
+                with_local_token
+            )
         }
         Stmt::NumericFor(numeric_for) => update_first_token!(
             NumericFor,
@@ -415,17 +429,17 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         ),
         #[cfg(feature = "luau")]
         Stmt::ConstFunction(const_function) => {
-            let mut attributes: Vec<_> = const_function.attributes().cloned().collect();
-            if !attributes.is_empty() {
-                let at_sign = attributes[0].at_sign();
-                let leading_trivia =
-                    trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
-                let new_at_sign =
-                    at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-                attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
+            if let Some(attributes) =
+                strip_attribute_leading_newlines(const_function.attributes())
+            {
                 Stmt::ConstFunction(const_function.with_attributes(attributes))
             } else {
-                update_first_token!(ConstFunction, const_function, const_function.const_token(), with_const_token)
+                update_first_token!(
+                    ConstFunction,
+                    const_function,
+                    const_function.const_token(),
+                    with_const_token
+                )
             }
         }
 
