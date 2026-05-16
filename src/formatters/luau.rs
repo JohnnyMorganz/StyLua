@@ -1152,14 +1152,15 @@ fn attempt_assigned_type_tactics(
         // If we can hang the type definition, and its over width, then lets try doing so
         if can_hang_type(type_info)
             && (must_hang
-                || shape.test_over_budget(&strip_trailing_trivia(&singleline_type_definition))
+                || (shape + EQUAL_TOKEN_LENGTH)
+                    .test_over_budget(&strip_trailing_trivia(&singleline_type_definition))
                 || spans_multiple_lines(&singleline_type_definition))
         {
             // If we should hug the type, then lets check out the proper definition and see if it fits
             if !must_hang
                 && should_hug_type(type_info)
                 && !is_union_of_tables(type_info)
-                && !shape.test_over_budget(&proper_type_definition)
+                && !(shape + EQUAL_TOKEN_LENGTH).test_over_budget(&proper_type_definition)
             {
                 type_definition = proper_type_definition;
             } else {
@@ -1173,7 +1174,7 @@ fn attempt_assigned_type_tactics(
         } else {
             // Test whether the proper formatting goes over the column width
             // If so, hang at the equals token and reformat
-            if shape.test_over_budget(&proper_type_definition) {
+            if (shape + EQUAL_TOKEN_LENGTH).test_over_budget(&proper_type_definition) {
                 // Hang at the equal token
                 equal_token = hang_equal_token(ctx, &equal_token, shape, true);
 
