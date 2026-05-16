@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `@johnnymorganz/stylua-bin` now ships pre-built binaries via platform-specific optional npm packages (`@johnnymorganz/stylua-bin-linux-x64`, `-linux-arm64`, `-darwin-x64`, `-darwin-arm64`, `-win32-x64`) instead of downloading the binary at install time. This eliminates all npm dependencies (previously 92 transitive packages) and makes installs faster and fully offline-capable.
+- The npm package `@johnnymorganz/stylua-bin` now ships pre-built binaries via platform-specific optional packages (`@johnnymorganz/stylua-bin-linux-x64`, `-linux-arm64`, `-darwin-x64`, `-darwin-arm64`, `-win32-x64`) instead of downloading the binary at install time. This makes the packages self-contained with no extra dependencies.
 
 ### Fixed
 

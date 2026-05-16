@@ -35,8 +35,7 @@ jobs:
         shell: bash
         run: echo "tag=v$(node -p "require('./stylua-npm-bin/package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Download and extract release binary (Unix)
-        if: runner.os != 'Windows'
+      - name: Download and extract release binary
         shell: bash
         run: |
           curl -fsSL \
@@ -44,16 +43,6 @@ jobs:
             -o release.zip
           unzip release.zip -d "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
           rm release.zip
-
-      - name: Download and extract release binary (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Invoke-WebRequest `
-            "https://github.com/johnnymorganz/stylua/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.gh-artifact }}.zip" `
-            -OutFile release.zip
-          Expand-Archive release.zip -DestinationPath "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
-          Remove-Item release.zip
 
       - name: Pack platform and main packages
         shell: bash
@@ -77,7 +66,6 @@ jobs:
           npm install --no-save "$PLATFORM_TGZ"
           npm install --no-save --no-optional "$MAIN_TGZ"
 
-      - name: Test via bin
-        shell: bash
+      - name: Test via npx
         working-directory: ${{ github.workspace }}/test-install
-        run: ./node_modules/.bin/stylua --version
+        run: npx stylua --version
