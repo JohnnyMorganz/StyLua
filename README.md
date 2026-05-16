@@ -1,10 +1,5 @@
 <div align="center">
-	<h1>
-		StyLua<br>
-		<a href="https://crates.io/crates/stylua"><img src="https://img.shields.io/crates/v/stylua.svg"></a>
-    <a href="https://github.com/JohnnyMorganz/StyLua/actions/workflows/ci.yml"><img src="https://github.com/JohnnyMorganz/StyLua/actions/workflows/ci.yml/badge.svg"></a>
-    <a href="https://codecov.io/gh/JohnnyMorganz/StyLua"><img src="https://codecov.io/gh/JohnnyMorganz/StyLua/branch/main/graph/badge.svg"/></a>
-	</h1>
+	<h1>StyLua</h1>
 </div>
 
 A deterministic code formatter for Lua 5.1, 5.2, 5.3, 5.4, LuaJIT, [Luau](https://luau.org/) and [CfxLua/FiveM Lua](https://docs.fivem.net/docs/scripting-manual/runtimes/lua/), built using [full-moon](https://github.com/Kampfkarren/full-moon).
