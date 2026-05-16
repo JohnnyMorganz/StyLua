@@ -56,15 +56,11 @@ jobs:
           echo "MAIN_TGZ=$(pwd)/$(ls *.tgz)" >> $GITHUB_ENV
 
       - name: Install in fresh test project
-        # Mirrors a real user install: both packages land as siblings in node_modules/,
-        # with run.js at node_modules/@johnnymorganz/stylua-bin/run.js resolving the
-        # platform binary from the adjacent node_modules/@johnnymorganz/stylua-bin-*/
         shell: bash
         run: |
           mkdir -p "$GITHUB_WORKSPACE/test-install"
           cd "$GITHUB_WORKSPACE/test-install"
-          npm install --no-save "$PLATFORM_TGZ"
-          npm install --no-save --no-optional "$MAIN_TGZ"
+          npm install --no-save --no-optional "$PLATFORM_TGZ" "$MAIN_TGZ"
 
       - name: Test via npx
         working-directory: ${{ github.workspace }}/test-install
