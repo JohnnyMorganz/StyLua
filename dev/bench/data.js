@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778943915833,
+  "lastUpdate": 1778944787212,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17303,6 +17303,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16289337,
             "range": "± 317754",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "28c00a4662364229cd431cca31e479d0a11e19a7",
+          "message": "Bump Node.js from 22 to 24 in release workflows to fix npm publishing\n\nNode 22 ships with npm 10.x, but npm trusted publishing requires\nnpm 11.5.1+. This caused npm publish to fail with 404 errors for\nv2.5.0 (and previously v2.4.0 / v2.4.1 before the earlier Node 16->22\nbump). Node 24 ships with npm 11.x, satisfying the requirement.",
+          "timestamp": "2026-05-16T17:17:03+02:00",
+          "tree_id": "0dde104f56e146c3ec16b18e80cb4c6326438b57",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/28c00a4662364229cd431cca31e479d0a11e19a7"
+        },
+        "date": 1778944786508,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28050955,
+            "range": "± 106499",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233713212,
+            "range": "± 2401219",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16158815,
+            "range": "± 55271",
             "unit": "ns/iter"
           }
         ]
