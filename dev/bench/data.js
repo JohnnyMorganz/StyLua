@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778921176732,
+  "lastUpdate": 1778921921185,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16967,6 +16967,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 12972692,
             "range": "± 146908",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ee31dd3d13b1764bf34f4046c4539358ae93dd41",
+          "message": "Remove badges from README header (#1117)\n\nThe badges were retired",
+          "timestamp": "2026-05-16T08:56:42Z",
+          "tree_id": "695b68fd6883fb6fd025a68eaea8b1444968ca68",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/ee31dd3d13b1764bf34f4046c4539358ae93dd41"
+        },
+        "date": 1778921920509,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27789713,
+            "range": "± 728500",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 235668524,
+            "range": "± 1445776",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15341153,
+            "range": "± 173691",
             "unit": "ns/iter"
           }
         ]
