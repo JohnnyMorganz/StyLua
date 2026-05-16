@@ -32,14 +32,11 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync(binPath, process.argv.slice(2), {
-  cwd: process.cwd(),
-  stdio: "inherit",
-});
+const result = spawnSync(binPath, process.argv.slice(2), { stdio: "inherit" });
 
 if (result.error) {
   console.error(result.error);
   process.exit(1);
 }
 
-process.exit(result.status);
+process.exit(result.status ?? 1);
