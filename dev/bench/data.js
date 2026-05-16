@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778867940330,
+  "lastUpdate": 1778921176732,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -16925,6 +16925,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15411502,
             "range": "± 703861",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4df5c84cc6c97fb3bc8f5b67e364df15659bf277",
+          "message": "VSCode: prevent bogus update prompt when GitHub API returns non-OK response (#1114)\n\n* fix(vscode): prevent bogus update prompt when GitHub API returns non-OK response\n\nWhen the GitHub API rate-limits or otherwise returns a non-2xx response,\nfetchJson was silently parsing the error body JSON. releaseFromJson would\nthen produce a release with an empty tagName, causing ensureStyluaExists\nto always show the \"update available\" status bar item (since any installed\nversion != \"\"). When the user clicked Update, downloadStyLuaVisual(\"\") was\ncalled, which produced the confusing error \"No release version matches v.\"\n\nFix by throwing in fetchJson on non-OK HTTP responses so the existing\ntry/catch in ensureStyluaExists handles it gracefully. Also add a tagName\nguard in getRelease for defense in depth against other malformed payloads.",
+          "timestamp": "2026-05-16T10:44:22+02:00",
+          "tree_id": "5e1631c1bcefa6a36e4263e5026334508ca39bdd",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4df5c84cc6c97fb3bc8f5b67e364df15659bf277"
+        },
+        "date": 1778921175852,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 21815879,
+            "range": "± 400822",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 184977986,
+            "range": "± 479258",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 12972692,
+            "range": "± 146908",
             "unit": "ns/iter"
           }
         ]
