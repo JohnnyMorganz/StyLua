@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778945063235,
+  "lastUpdate": 1778945791480,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17387,6 +17387,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 14534747,
             "range": "± 327951",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "distinct": true,
+          "id": "51a4507fef241427f5a01ff5c45dcc8dfbb6f97f",
+          "message": "Fix repository.url casing in npm packages for provenance validation\n\nOIDC trusted publishing failed with E422 because npm's provenance\nverifier compares the package.json repository.url against the actual\nGitHub repo URL from the workflow context. The lowercase\n\"johnnymorganz/stylua\" did not match \"JohnnyMorganz/StyLua\".\n\nUse the canonical \"git+...git\" URL form so npm does not emit a\nnormalization warning during publish.\n\nAlso normalize the bin.stylua path in stylua-npm-bin (./run.js -> run.js)\nas suggested by `npm pkg fix`.",
+          "timestamp": "2026-05-16T17:34:13+02:00",
+          "tree_id": "dcbbcf478e4d4242f1ec14229e5fa456faef01a8",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/51a4507fef241427f5a01ff5c45dcc8dfbb6f97f"
+        },
+        "date": 1778945790001,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27244273,
+            "range": "± 289122",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231363655,
+            "range": "± 577566",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 14146513,
+            "range": "± 71909",
             "unit": "ns/iter"
           }
         ]
