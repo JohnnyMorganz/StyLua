@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778921921185,
+  "lastUpdate": 1778922104243,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17009,6 +17009,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15341153,
             "range": "± 173691",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "194cc99b054303ae0538b545757035c8705229b4",
+          "message": "VSCode: Fix ENOENT causing file to be emptied when StyLua binary is missing (#1116)\n\n* Fix ENOENT causing file to be emptied when StyLua binary is missing\n\nThe child process error event was registered as \"err\" instead of the\ncorrect \"error\", so spawn failures (e.g. ENOENT when the binary does\nnot exist) were never caught. The stdout close handler would then\nresolve the Promise with an empty string, causing the extension to\nreplace the entire document with empty content.\n\n\n* Add regression test for ENOENT causing file to be emptied\n\nVerifies that formatCode rejects (rather than resolves with an empty\nstring) when the StyLua binary path does not exist.\n\n* Update VS Code extension changelog for ENOENT file-deletion fix\n\n* Move ENOENT changelog entry below existing unreleased entry",
+          "timestamp": "2026-05-16T08:59:47Z",
+          "tree_id": "18915fe0837bd00fe40ce886c29a681922b82e0e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/194cc99b054303ae0538b545757035c8705229b4"
+        },
+        "date": 1778922102822,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26811298,
+            "range": "± 150494",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 236260159,
+            "range": "± 499721",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15295043,
+            "range": "± 35798",
             "unit": "ns/iter"
           }
         ]
