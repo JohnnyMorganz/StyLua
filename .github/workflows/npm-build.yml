@@ -60,7 +60,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/test-install"
           cd "$GITHUB_WORKSPACE/test-install"
-          npm install --no-save --no-optional "$PLATFORM_TGZ" "$MAIN_TGZ"
+          npm install --no-save "$PLATFORM_TGZ" "$MAIN_TGZ"
 
       - name: Test via npx
         working-directory: ${{ github.workspace }}/test-install
