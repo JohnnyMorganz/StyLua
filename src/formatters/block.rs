@@ -363,12 +363,22 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             local_assignment.local_token(),
             with_local_token
         ),
-        Stmt::LocalFunction(local_function) => update_first_token!(
-            LocalFunction,
-            local_function,
-            local_function.local_token(),
-            with_local_token
-        ),
+        Stmt::LocalFunction(local_function) => {
+            #[cfg(feature = "luau")]
+            {
+                let mut attributes: Vec<_> = local_function.attributes().cloned().collect();
+                if !attributes.is_empty() {
+                    let at_sign = attributes[0].at_sign();
+                    let leading_trivia =
+                        trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
+                    let new_at_sign =
+                        at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+                    attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
+                    return Stmt::LocalFunction(local_function.with_attributes(attributes));
+                }
+            }
+            update_first_token!(LocalFunction, local_function, local_function.local_token(), with_local_token)
+        }
         Stmt::NumericFor(numeric_for) => update_first_token!(
             NumericFor,
             numeric_for,
@@ -404,12 +414,20 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             with_const_token
         ),
         #[cfg(feature = "luau")]
-        Stmt::ConstFunction(const_function) => update_first_token!(
-            ConstFunction,
-            const_function,
-            const_function.const_token(),
-            with_const_token
-        ),
+        Stmt::ConstFunction(const_function) => {
+            let mut attributes: Vec<_> = const_function.attributes().cloned().collect();
+            if !attributes.is_empty() {
+                let at_sign = attributes[0].at_sign();
+                let leading_trivia =
+                    trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
+                let new_at_sign =
+                    at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+                attributes[0] = attributes[0].clone().with_at_sign(new_at_sign);
+                Stmt::ConstFunction(const_function.with_attributes(attributes))
+            } else {
+                update_first_token!(ConstFunction, const_function, const_function.const_token(), with_const_token)
+            }
+        }
 
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(exported_type_declaration) => update_first_token!(
