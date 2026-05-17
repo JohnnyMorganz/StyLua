@@ -303,7 +303,9 @@ fn load_overrides(config: Config, opt: &Opt) -> Config {
 mod tests {
     use super::*;
     use clap::StructOpt;
-    use stylua_lib::{CallParenType, IndentType, LineEndings, LuaVersion, QuoteStyle};
+    use stylua_lib::{
+        CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion, QuoteStyle,
+    };
 
     #[test]
     fn test_override_syntax() {
@@ -359,5 +361,17 @@ mod tests {
         let default_config = Config::new();
         let config = load_overrides(default_config, &override_opt);
         assert_eq!(config.call_parentheses, CallParenType::None);
+    }
+
+    #[test]
+    fn test_override_collapse_simple_statement() {
+        let override_opt =
+            Opt::parse_from(vec!["BINARY_NAME", "--collapse-simple-statement", "Input"]);
+        let default_config = Config::new();
+        let config = load_overrides(default_config, &override_opt);
+        assert_eq!(
+            config.collapse_simple_statement,
+            CollapseSimpleStatement::Input
+        );
     }
 }

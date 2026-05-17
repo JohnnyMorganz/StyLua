@@ -7,6 +7,7 @@ use full_moon::ast::{
     FunctionDeclaration, FunctionName, Index, LastStmt, LocalFunction, MethodCall, Parameter,
     Prefix, Stmt, Suffix, TableConstructor, Var,
 };
+use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
@@ -368,6 +369,44 @@ fn function_args_multiline_heuristic(
     singleline_shape.add_width(PAREN_LEN).over_budget()
 }
 
+fn should_preserve_function_arguments_hug(
+    ctx: &Context,
+    parentheses: &ContainedSpan,
+    arguments: &Punctuated<Expression>,
+) -> bool {
+    if !ctx.should_preserve_input_simple_statements()
+        || arguments.is_empty()
+        || !arguments
+            .iter()
+            .any(|argument| matches!(argument, Expression::Function(_)))
+    {
+        return false;
+    }
+
+    let (start_parens, end_parens) = parentheses.tokens();
+    match (
+        start_parens.end_position(),
+        arguments
+            .first()
+            .and_then(|argument| argument.value().start_position()),
+        arguments
+            .last()
+            .and_then(|argument| argument.value().end_position()),
+        end_parens.start_position(),
+    ) {
+        (
+            Some(start_parens_end),
+            Some(first_arg_start),
+            Some(last_arg_end),
+            Some(end_parens_start),
+        ) => {
+            start_parens_end.line() == first_arg_start.line()
+                && last_arg_end.line() == end_parens_start.line()
+        }
+        _ => false,
+    }
+}
+
 /// Formats a singular argument in a [`FunctionArgs`] node, in a multiline fashion
 fn format_argument_multiline(ctx: &Context, argument: &Expression, shape: Shape) -> Expression {
     // First format the argument assuming infinite width
@@ -457,9 +496,12 @@ pub fn format_function_args(
 
             // If there is a comment present anywhere in between the start parentheses and end parentheses, we should keep it multiline
             let force_mutliline = function_args_contains_comments(parentheses, arguments);
+            let preserve_function_arguments_hug =
+                should_preserve_function_arguments_hug(ctx, parentheses, arguments);
 
-            let is_multiline =
-                force_mutliline || function_args_multiline_heuristic(ctx, arguments, shape);
+            let is_multiline = force_mutliline
+                || (!preserve_function_arguments_hug
+                    && function_args_multiline_heuristic(ctx, arguments, shape));
 
             // Handle special case: we want to go multiline, but we have a single argument which is a table constructor
             // In this case, we want to hug the table braces with the parentheses.
@@ -763,6 +805,13 @@ fn block_contains_nested_function(block: &Block) -> bool {
     }
 }
 
+fn node_spans_single_line(node: &impl Node) -> bool {
+    match (node.start_position(), node.end_position()) {
+        (Some(start), Some(end)) => start.line() == end.line(),
+        _ => false,
+    }
+}
+
 pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody) -> bool {
     // Test for presence of any comments
     let require_multiline_function = function_body
@@ -777,10 +826,16 @@ pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody
             .any(trivia_util::trivia_is_comment)
         || trivia_util::contains_comments(function_body.block());
 
+    let input_single_line = node_spans_single_line(function_body);
+    let preserve_input_simple_statements = ctx.should_preserve_input_simple_statements();
+    let should_collapse_empty_function = !preserve_input_simple_statements || input_single_line;
+    let should_collapse_simple_function = ctx.should_collapse_simple_functions()
+        || (preserve_input_simple_statements && input_single_line);
+
     !require_multiline_function
-        && (trivia_util::is_block_empty(function_body.block())
+        && ((trivia_util::is_block_empty(function_body.block()) && should_collapse_empty_function)
             || (trivia_util::is_block_simple(function_body.block())
-                && ctx.should_collapse_simple_functions()
+                && should_collapse_simple_function
                 && !block_contains_nested_function(function_body.block())))
 }
 
@@ -794,6 +849,8 @@ pub fn format_function_body(
     let leading_trivia = vec![create_indent_trivia(ctx, shape)];
 
     let should_collapse = should_collapse_function_body(ctx, function_body);
+    let preserve_input_singleline_function =
+        ctx.should_preserve_input_simple_statements() && node_spans_single_line(function_body);
 
     // Check if the parameters should be placed across multiple lines
     let multiline_params = {
@@ -817,7 +874,8 @@ pub fn format_function_body(
         });
 
         contains_comments
-            || should_parameters_format_multiline(ctx, function_body, shape, should_collapse)
+            || (!preserve_input_singleline_function
+                && should_parameters_format_multiline(ctx, function_body, shape, should_collapse))
     };
 
     // Format the function body block on a single line if its empty, or it is "simple" (and the option has been enabled)
@@ -899,7 +957,8 @@ pub fn format_function_body(
             };
 
             // If the block forces multiline or goes over width, then bail out of singleline formatting and format multiline
-            if block_shape.take_first_line(&block).over_budget()
+            if (!preserve_input_singleline_function
+                && block_shape.take_first_line(&block).over_budget())
                 || trivia_util::spans_multiple_lines(&block)
             {
                 singleline_function = false;

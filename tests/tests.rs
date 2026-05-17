@@ -117,6 +117,165 @@ fn test_collapse_single_statement() {
 }
 
 #[test]
+fn test_collapse_simple_statement_input_preserves_singleline() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"function foo() return  bar end
+if x then return  y end
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    function foo() return bar end
+    if x then return y end
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_multiline() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"function foo()
+    return  bar
+end
+if x then
+    return  y
+end
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    function foo()
+    	return bar
+    end
+    if x then
+    	return y
+    end
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_empty_function_shape() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"function singleline() end
+function multiline()
+end
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    function singleline() end
+    function multiline()
+    end
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_singleline_over_width() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 40,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return  bar end
+if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return  bar end
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return bar end
+    if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return bar end
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_function_argument_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 20,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"task.spawn(function()
+
+end)
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    task.spawn(function()
+    end)
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_input_preserves_multi_argument_function_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        column_width: 20,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(
+            r#"x.SomeMethod("something", function()
+
+end)
+"#,
+            config,
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    x.SomeMethod("something", function()
+    end)
+    "###
+    );
+}
+
+#[test]
 fn test_preserve_block_newline_gaps() {
     insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
