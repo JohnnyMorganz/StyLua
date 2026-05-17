@@ -12,8 +12,11 @@ CHANGELOG_FILE = "CHANGELOG.md"
 CARGO_FILE = "Cargo.toml"
 CARGO_LOCK_FILE = "Cargo.lock"
 PACKAGE_JSON_FILE = "stylua-npm-bin/package.json"
-PACKAGE_LOCK_JSON_FILE = "stylua-npm-bin/package-lock.json"
 WASM_PACKAGE_JSON_FILE = "wasm/package.json"
+PLATFORM_PACKAGE_JSON_FILES = [
+    f"stylua-npm-bin/platforms/{p}/package.json"
+    for p in ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "win32-x64"]
+]
 
 assert len(sys.argv) == 2, "Usage: .github/release.py <version number>"
 VERSION = sys.argv[1]
@@ -83,14 +86,22 @@ assert new_readme_text != None
 with open(README_FILE, "w") as file:
     file.write(new_readme_text)
 
-# Update version in package.json
-package_json_data = None
+# Update version in package.json and its optionalDependencies
 with open(PACKAGE_JSON_FILE, "r") as t:
     package_json_data = json.load(t)
-    package_json_data["version"] = VERSION
-
+package_json_data["version"] = VERSION
+for dep in package_json_data.get("optionalDependencies", {}):
+    package_json_data["optionalDependencies"][dep] = VERSION
 with open(PACKAGE_JSON_FILE, "w") as t:
     json.dump(package_json_data, t)
+
+# Update version in platform package.json files
+for platform_pkg in PLATFORM_PACKAGE_JSON_FILES:
+    with open(platform_pkg, "r") as t:
+        data = json.load(t)
+    data["version"] = VERSION
+    with open(platform_pkg, "w") as t:
+        json.dump(data, t)
 
 # Update version in wasm package.json
 package_json_data = None
@@ -101,10 +112,8 @@ with open(WASM_PACKAGE_JSON_FILE, "r") as t:
 with open(WASM_PACKAGE_JSON_FILE, "w") as t:
     json.dump(package_json_data, t)
 
-# Update lockfiles
+# Update Cargo lockfile
 subprocess.run(["cargo", "check"], check=True)
-# we expect this command to fail:
-subprocess.run(["npm", "install"], cwd="stylua-npm-bin", check=False)
 
 # Run prettier
 subprocess.run(
@@ -116,6 +125,7 @@ subprocess.run(
         CHANGELOG_FILE,
         PACKAGE_JSON_FILE,
         WASM_PACKAGE_JSON_FILE,
+        *PLATFORM_PACKAGE_JSON_FILES,
     ],
     check=True,
 )
@@ -128,10 +138,10 @@ subprocess.run(
         CHANGELOG_FILE,
         README_FILE,
         PACKAGE_JSON_FILE,
-        PACKAGE_LOCK_JSON_FILE,
         WASM_PACKAGE_JSON_FILE,
         CARGO_FILE,
         CARGO_LOCK_FILE,
+        *PLATFORM_PACKAGE_JSON_FILES,
     ],
     check=True,
 )

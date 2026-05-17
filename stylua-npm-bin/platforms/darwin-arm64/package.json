@@ -1,0 +1,24 @@
+{
+  "name": "@johnnymorganz/stylua-bin-darwin-arm64",
+  "version": "2.5.2",
+  "description": "StyLua binary for macOS arm64",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "stylua"
+  ],
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JohnnyMorganz/StyLua.git"
+  },
+  "preferUnplugged": true,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -11,6 +11,8 @@ use full_moon::node::Node;
 use full_moon::tokenizer::{Token, TokenKind, TokenReference, TokenType};
 
 #[cfg(feature = "luau")]
+use crate::formatters::general::format_symbol;
+#[cfg(feature = "luau")]
 use crate::formatters::luau::{
     const_keyword_token_ref, format_generic_declaration, format_luau_attribute,
     format_type_instantiation, format_type_specifier,
@@ -26,7 +28,7 @@ use crate::{
         expression::{format_expression, format_prefix, format_suffix, hang_expression},
         general::{
             format_contained_punctuated_multiline, format_contained_span, format_end_token,
-            format_punctuated, format_symbol, format_token_reference, EndTokenType,
+            format_punctuated, format_token_reference, EndTokenType,
         },
         stmt::format_stmt_no_trivia,
         table::format_table_constructor,

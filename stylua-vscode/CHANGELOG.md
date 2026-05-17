@@ -11,6 +11,13 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-05-16
+
+### Fixed
+
+- Fixed spurious "No release version matches v." error when GitHub API returns a non-OK response (e.g. rate limiting). The extension no longer shows a bogus update prompt in this case
+- Fixed file being emptied when StyLua binary is missing (ENOENT). The child process error event was registered under the wrong name, causing spawn failures to be silently swallowed and the document to be replaced with empty content (#1001)
+
 ## [1.7.1] - 2024-11-17
 
 ### Fixed

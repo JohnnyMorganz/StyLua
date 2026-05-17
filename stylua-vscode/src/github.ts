@@ -30,6 +30,11 @@ async function fetchJson(
     headers.set("Authorization", `token ${token}`);
   }
   const response = await fetch(url, { headers: headers });
+  if (!response.ok) {
+    throw new Error(
+      `GitHub API request failed: ${response.status} ${response.statusText}`
+    );
+  }
   return response.json();
 }
 
@@ -140,7 +145,17 @@ export class GitHub implements Disposable {
   public async getRelease(version: string): Promise<GitHubRelease> {
     if (version === "latest") {
       const json = await fetchJson(RELEASES_URL_LATEST, this.credential.token);
-      return releaseFromJson(json);
+      const release = releaseFromJson(json);
+      if (!release.tagName) {
+        throw new Error(
+          "Failed to retrieve latest release information from GitHub"
+        );
+      }
+      return release;
+    }
+
+    if (!version) {
+      throw new Error("No release version specified");
     }
 
     version = version.startsWith("v") ? version : "v" + version;

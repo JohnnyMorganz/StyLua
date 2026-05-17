@@ -124,7 +124,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
       - name: Build WASM
@@ -138,6 +138,7 @@ jobs:
 
   release_npm_bin:
     name: Publish binary to npm
+    needs: [release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,7 +149,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22.x"
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
       - name: Setup README and LICENSE
@@ -156,7 +157,51 @@ jobs:
           cp README.md stylua-npm-bin/
           cp LICENSE.md stylua-npm-bin/
 
-      - name: Publish to npm
+      - name: Download Linux x64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: stylua-linux-x86_64
+          path: /tmp/artifacts/linux-x64
+
+      - name: Download Linux arm64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: stylua-linux-aarch64
+          path: /tmp/artifacts/linux-arm64
+
+      - name: Download macOS x64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: stylua-macos-x86_64
+          path: /tmp/artifacts/darwin-x64
+
+      - name: Download macOS arm64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: stylua-macos-aarch64
+          path: /tmp/artifacts/darwin-arm64
+
+      - name: Download Windows x64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: stylua-windows-x86_64
+          path: /tmp/artifacts/win32-x64
+
+      - name: Extract binaries into platform packages
+        run: |
+          for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
+            unzip -o /tmp/artifacts/$PLATFORM/release.zip \
+              -d "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/$PLATFORM/"
+          done
+
+      - name: Publish platform packages to npm
+        run: |
+          for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
+            cd "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/$PLATFORM"
+            npm publish
+          done
+
+      - name: Publish main package to npm
         working-directory: stylua-npm-bin
         run: npm publish
 

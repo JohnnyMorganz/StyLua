@@ -1,0 +1,24 @@
+{
+  "name": "@johnnymorganz/stylua-bin-win32-x64",
+  "version": "2.5.2",
+  "description": "StyLua binary for Windows x64",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "stylua.exe"
+  ],
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JohnnyMorganz/StyLua.git"
+  },
+  "preferUnplugged": true,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

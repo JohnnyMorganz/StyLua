@@ -18,6 +18,8 @@ use crate::{
     },
     shape::Shape,
 };
+#[cfg(feature = "luau")]
+use full_moon::ast::luau::LuauAttribute;
 use full_moon::ast::{
     punctuated::Punctuated, Block, Expression, LastStmt, Prefix, Return, Stmt, Var,
 };
@@ -317,6 +319,20 @@ fn var_remove_leading_newline(var: Var) -> Var {
     }
 }
 
+#[cfg(feature = "luau")]
+fn strip_attribute_leading_newlines<'a>(
+    attributes: impl Iterator<Item = &'a LuauAttribute>,
+) -> Option<Vec<LuauAttribute>> {
+    let mut cloned = attributes.cloned();
+    let first = cloned.next()?;
+    let at_sign = first.at_sign();
+    let leading_trivia = trivia_remove_leading_newlines(at_sign.leading_trivia().collect());
+    let new_at_sign = at_sign.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+    let mut result = vec![first.with_at_sign(new_at_sign)];
+    result.extend(cloned);
+    Some(result)
+}
+
 fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
     match stmt {
         Stmt::Assignment(assignment) => {
@@ -363,12 +379,19 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             local_assignment.local_token(),
             with_local_token
         ),
-        Stmt::LocalFunction(local_function) => update_first_token!(
-            LocalFunction,
-            local_function,
-            local_function.local_token(),
-            with_local_token
-        ),
+        Stmt::LocalFunction(local_function) => {
+            #[cfg(feature = "luau")]
+            if let Some(attributes) = strip_attribute_leading_newlines(local_function.attributes())
+            {
+                return Stmt::LocalFunction(local_function.with_attributes(attributes));
+            }
+            update_first_token!(
+                LocalFunction,
+                local_function,
+                local_function.local_token(),
+                with_local_token
+            )
+        }
         Stmt::NumericFor(numeric_for) => update_first_token!(
             NumericFor,
             numeric_for,
@@ -404,12 +427,19 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             with_const_token
         ),
         #[cfg(feature = "luau")]
-        Stmt::ConstFunction(const_function) => update_first_token!(
-            ConstFunction,
-            const_function,
-            const_function.const_token(),
-            with_const_token
-        ),
+        Stmt::ConstFunction(const_function) => {
+            if let Some(attributes) = strip_attribute_leading_newlines(const_function.attributes())
+            {
+                Stmt::ConstFunction(const_function.with_attributes(attributes))
+            } else {
+                update_first_token!(
+                    ConstFunction,
+                    const_function,
+                    const_function.const_token(),
+                    with_const_token
+                )
+            }
+        }
 
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(exported_type_declaration) => update_first_token!(

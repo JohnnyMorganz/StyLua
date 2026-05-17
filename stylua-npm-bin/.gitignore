@@ -1,2 +1,5 @@
 node_modules/
-bin/
+package-lock.json
+*.tgz
+platforms/*/stylua
+platforms/*/stylua.exe

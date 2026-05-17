@@ -11,6 +11,8 @@ use full_moon::{
     tokenizer::TokenType,
 };
 
+#[cfg(feature = "luau")]
+use crate::formatters::general::format_symbol;
 #[cfg(feature = "lua54")]
 use crate::formatters::lua54::format_attribute;
 #[cfg(feature = "luau")]
@@ -21,7 +23,7 @@ use crate::{
     formatters::{
         expression::{format_expression, format_var, hang_expression},
         general::{
-            format_punctuated, format_punctuated_multiline, format_symbol, format_token_reference,
+            format_punctuated, format_punctuated_multiline, format_token_reference,
             try_format_punctuated,
         },
         trivia::{

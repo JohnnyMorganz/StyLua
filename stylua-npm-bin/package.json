@@ -1,20 +1,23 @@
 {
   "name": "@johnnymorganz/stylua-bin",
-  "version": "2.4.1",
+  "version": "2.5.2",
   "description": "A code formatter for Lua",
   "bin": {
-    "stylua": "./run.js"
+    "stylua": "run.js"
   },
   "engines": {
     "node": ">=10"
   },
-  "scripts": {
-    "postinstall": "node ./install.js",
-    "preuninstall": "node ./uninstall.js"
+  "files": [
+    "run.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/johnnymorganz/stylua"
+    "url": "git+https://github.com/JohnnyMorganz/StyLua.git"
   },
   "keywords": [
     "cli",
@@ -29,11 +32,11 @@
     "url": "https://github.com/johnnymorganz/stylua/issues"
   },
   "homepage": "https://github.com/johnnymorganz/stylua#readme",
-  "dependencies": {
-    "axios": "^1.6.0",
-    "node-fetch": "^3.2.10",
-    "proxy-agent": "^6.4.0",
-    "rimraf": "^3.0.2",
-    "unzipper": "^0.10.11"
+  "optionalDependencies": {
+    "@johnnymorganz/stylua-bin-linux-x64": "2.5.2",
+    "@johnnymorganz/stylua-bin-linux-arm64": "2.5.2",
+    "@johnnymorganz/stylua-bin-darwin-x64": "2.5.2",
+    "@johnnymorganz/stylua-bin-darwin-arm64": "2.5.2",
+    "@johnnymorganz/stylua-bin-win32-x64": "2.5.2"
   }
 }

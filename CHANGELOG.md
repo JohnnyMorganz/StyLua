@@ -7,14 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-05-16
+
+### Fixed
+
+- Fixed npm publishing failing provenance validation due to normalization of repository URL
+
+## [2.5.1] - 2026-05-16
+
+### Fixed
+
+- Fixed npm publishing by bumping Node.js from 22 to 24 in CI workflows to support npm trusted publishing
+
+## [2.5.0] - 2026-05-16
+
 ### Added
 
 - Luau: Added support for `const` variable assignments (`const x = 1`) and `const function` declarations ([#1102](https://github.com/JohnnyMorganz/StyLua/issues/1102))
 - Added `Input` mode for `collapse_simple_statement`, preserving whether simple statements are single-line or multi-line in the input while still formatting their contents
 
+### Changed
+
+- The npm package `@johnnymorganz/stylua-bin` now ships pre-built binaries via platform-specific optional packages (`@johnnymorganz/stylua-bin-linux-x64`, `-linux-arm64`, `-darwin-x64`, `-darwin-arm64`, `-win32-x64`) instead of downloading the binary at install time. This makes the packages self-contained with no extra dependencies.
+
 ### Fixed
 
 - Fixed npm publishing by bumping Node.js from 16 to 22 in CI workflows to support npm trusted publishing
+- Luau: Fixed union/intersection type definitions not being hung when the type alone fits within the column width but the full line (including `=`) exceeds it ([#1104](https://github.com/JohnnyMorganz/StyLua/issues/1104))
+- Luau: Fixed stray leading newlines not being removed from `local function` and `const function` declarations that have attributes (e.g. `@native`) at the start of a block ([#1109](https://github.com/JohnnyMorganz/StyLua/issues/1109))
 
 ## [2.4.1] - 2026-04-06
 
@@ -900,7 +920,10 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.4.1...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.2
+[2.5.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.1
+[2.5.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.0
 [2.4.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.4.1
 [2.4.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.4.0
 [2.3.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.3.1

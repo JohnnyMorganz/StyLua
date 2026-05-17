@@ -11,17 +11,57 @@ jobs:
   smoketest:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform-dir: linux-x64
+            gh-artifact: stylua-linux-x86_64
+          - os: macos-latest
+            platform-dir: darwin-arm64
+            gh-artifact: stylua-macos-aarch64
+          - os: windows-latest
+            platform-dir: win32-x64
+            gh-artifact: stylua-windows-x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-      - name: Attempt install
-        run: npm install --package-locked
-        working-directory: stylua-npm-bin
-      - name: Attempt run
-        run: npx . --version
-        working-directory: stylua-npm-bin
+
+      - name: Get release version
+        id: version
+        shell: bash
+        run: echo "tag=v$(node -p "require('./stylua-npm-bin/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Download and extract release binary
+        shell: bash
+        run: |
+          curl -fsSL \
+            "https://github.com/johnnymorganz/stylua/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.gh-artifact }}.zip" \
+            -o release.zip
+          unzip release.zip -d "stylua-npm-bin/platforms/${{ matrix.platform-dir }}/"
+          rm release.zip
+
+      - name: Pack platform and main packages
+        shell: bash
+        run: |
+          cd "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/${{ matrix.platform-dir }}"
+          npm pack
+          echo "PLATFORM_TGZ=$(pwd)/$(ls *.tgz)" >> $GITHUB_ENV
+
+          cd "$GITHUB_WORKSPACE/stylua-npm-bin"
+          npm pack
+          echo "MAIN_TGZ=$(pwd)/$(ls *.tgz)" >> $GITHUB_ENV
+
+      - name: Install in fresh test project
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-install"
+          cd "$GITHUB_WORKSPACE/test-install"
+          npm install --no-save "$PLATFORM_TGZ" "$MAIN_TGZ"
+
+      - name: Test via npx
+        working-directory: ${{ github.workspace }}/test-install
+        run: npx stylua --version

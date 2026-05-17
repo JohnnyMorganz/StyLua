@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau-full_moon/types_leading_union_generic.lua
+---
+-- Issue #350: leading | in generic type arguments
+type Test = Box<| string | number>
+
+type Test2 = Box<| string | number>
+
+-- Issue #311 comment: leading & in generic type arguments
+type Test3 = Generic<& boolean & string>
+
+type Test4 = Map<& string & number, | boolean | nil>
