@@ -1,0 +1,11 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/function_types_4.lua
+---
+-- https://github.com/JohnnyMorganz/StyLua/issues/896
+local function getData(player: Player): (
+	LongReturnValueWithTypeGeneric1<TypeParameter1>,
+	LongReturnValueWithTypeGeneric2<TypeParameter2>
+) end
+
