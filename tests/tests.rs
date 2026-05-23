@@ -177,6 +177,49 @@ fn test_sort_requires() {
 }
 
 #[test]
+#[cfg(feature = "luau")]
+fn test_sort_requires_luau_const() {
+    let input = r#"const Zebra = require("Zebra") :: any
+local Apple = require("Apple")
+const Banana: any = require("Banana")
+const Players = game:GetService("Players")
+const Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+const SplitZ = require("SplitZ")
+local value = 1
+const SplitA = require("SplitA")
+"#;
+
+    let output = format_code(
+        input,
+        Config {
+            syntax: LuaVersion::Luau,
+            sort_requires: SortRequiresConfig { enabled: true },
+            ..Config::default()
+        },
+        None,
+        OutputVerification::None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        output,
+        r#"local Apple = require("Apple")
+const Banana: any = require("Banana")
+const Zebra = require("Zebra") :: any
+const Lighting = game:GetService("Lighting")
+const Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+const SplitZ = require("SplitZ")
+local value = 1
+const SplitA = require("SplitA")
+"#
+    );
+}
+
+#[test]
 fn test_crlf_in_multiline_comments() {
     // We need to do this outside of insta since it normalises line endings to LF
     let code = r#"
