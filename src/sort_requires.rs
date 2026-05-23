@@ -146,7 +146,7 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
     let mut parts = Vec::new();
 
     for stmt in block.stmts_with_semicolon() {
-        if let Some((variable_name, expression_kind, current_line)) = get_sortable_assignment(&stmt)
+        if let Some((variable_name, expression_kind, current_line)) = get_sortable_assignment(stmt)
         {
             // Check if we need to start a new block:
             // Either, the parts list is empty, the last part was a BlockPartition::Other,
