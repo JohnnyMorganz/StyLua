@@ -4,7 +4,8 @@
 //! The following assumptions are made when using this codemod:
 //! - All requires are pure and have no side effects: resorting the requires is not an issue
 //! - Only requires at the top level block are to be sorted
-//! - Requires are of the form `local NAME = require(REQUIRE)`, with only a single require per local assignment
+//! - Requires are of the form `local NAME = require(REQUIRE)` or, in Luau,
+//!   `const NAME = require(REQUIRE)`, with only a single require per assignment
 //!
 //! Requires sorting works in the following way:
 //! - We group consecutive requires into a "block".
@@ -16,9 +17,9 @@
 //! - Blocks remain in-place in the file.
 
 use full_moon::{
-    ast::{Ast, Block, Call, Expression, Prefix, Stmt, Suffix},
+    ast::{punctuated::Punctuated, Ast, Block, Call, Expression, Prefix, Stmt, Suffix},
     node::Node,
-    tokenizer::{TokenReference, TokenType},
+    tokenizer::{Token, TokenReference, TokenType},
 };
 
 use crate::{
@@ -67,6 +68,69 @@ fn get_expression_kind(expression: &Expression) -> Option<GroupKind> {
 
 type StmtSemicolon = (Stmt, Option<TokenReference>);
 
+fn get_sortable_assignment_parts(
+    names: &Punctuated<TokenReference>,
+    expressions: &Punctuated<Expression>,
+) -> Option<(String, GroupKind, usize)> {
+    if names.len() != 1 || expressions.len() != 1 {
+        return None;
+    }
+
+    let name = names.iter().next().unwrap();
+    let expression = expressions.iter().next().unwrap();
+    let expression_kind = get_expression_kind(expression)?;
+    let variable_name =
+        extract_identifier_from_token(name).expect("require is stored as non-identifier");
+    let current_line = name.start_position().unwrap().line();
+
+    Some((variable_name, expression_kind, current_line))
+}
+
+fn get_sortable_assignment(stmt: &StmtSemicolon) -> Option<(String, GroupKind, usize)> {
+    match &stmt.0 {
+        Stmt::LocalAssignment(node) => {
+            get_sortable_assignment_parts(node.names(), node.expressions())
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(node) => {
+            get_sortable_assignment_parts(node.names(), node.expressions())
+        }
+        _ => None,
+    }
+}
+
+fn get_stmt_leading_trivia(stmt: &StmtSemicolon) -> Vec<Token> {
+    match &stmt.0 {
+        Stmt::LocalAssignment(local_assignment) => local_assignment
+            .local_token()
+            .leading_trivia()
+            .cloned()
+            .collect(),
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(const_assignment) => const_assignment
+            .const_token()
+            .leading_trivia()
+            .cloned()
+            .collect(),
+        _ => unreachable!(),
+    }
+}
+
+fn set_stmt_leading_trivia(stmt: &mut StmtSemicolon, leading_trivia: Vec<Token>) {
+    match &mut stmt.0 {
+        Stmt::LocalAssignment(local_assignment) => {
+            *local_assignment =
+                local_assignment.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+        }
+        #[cfg(feature = "luau")]
+        Stmt::ConstAssignment(const_assignment) => {
+            *const_assignment =
+                const_assignment.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
+        }
+        _ => unreachable!(),
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum GroupKind {
     Require,
@@ -82,57 +146,44 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
     let mut parts = Vec::new();
 
     for stmt in block.stmts_with_semicolon() {
-        if let Stmt::LocalAssignment(node) = &stmt.0 {
-            if node.names().len() == 1 && node.expressions().len() == 1 {
-                let name = node.names().iter().next().unwrap();
-                let expression = node.expressions().iter().next().unwrap();
-
-                let current_line = name.start_position().unwrap().line();
-
-                let expression_kind = get_expression_kind(expression);
-                if let Some(expression_kind) = expression_kind {
-                    let variable_name = extract_identifier_from_token(name)
-                        .expect("require is stored as non-identifier");
-
-                    // Check if we need to start a new block:
-                    // Either, the parts list is empty, the last part was a BlockPartition::Other,
-                    // the last part group was a different kind, or,
-                    // there is > 1 line in between the previous require and this one
-                    let create_new_block = match parts.last() {
-                        None => true,
-                        Some(BlockPartition::Other(_)) => true,
-                        Some(BlockPartition::RequiresGroup(other_kind, _))
-                            if *other_kind != expression_kind =>
-                        {
-                            true
-                        }
-                        Some(BlockPartition::RequiresGroup(_, list)) => {
-                            let previous_require =
-                                list.last().expect("unreachable!: empty require group");
-                            let position = previous_require
-                                .1
-                                .end_position()
-                                .expect("unreachable!: previous require stmt has no end position");
-
-                            let previous_require_line = position.line();
-                            current_line - previous_require_line > 1
-                        }
-                    };
-
-                    if create_new_block {
-                        parts.push(BlockPartition::RequiresGroup(expression_kind, Vec::new()))
-                    }
-
-                    match parts.last_mut() {
-                        Some(BlockPartition::RequiresGroup(_, map)) => {
-                            map.push((variable_name, stmt.clone()))
-                        }
-                        _ => unreachable!(),
-                    };
-
-                    continue;
+        if let Some((variable_name, expression_kind, current_line)) = get_sortable_assignment(stmt)
+        {
+            // Check if we need to start a new block:
+            // Either, the parts list is empty, the last part was a BlockPartition::Other,
+            // the last part group was a different kind, or,
+            // there is > 1 line in between the previous require and this one
+            let create_new_block = match parts.last() {
+                None => true,
+                Some(BlockPartition::Other(_)) => true,
+                Some(BlockPartition::RequiresGroup(other_kind, _))
+                    if *other_kind != expression_kind =>
+                {
+                    true
                 }
+                Some(BlockPartition::RequiresGroup(_, list)) => {
+                    let previous_require = list.last().expect("unreachable!: empty require group");
+                    let position = previous_require
+                        .1
+                        .end_position()
+                        .expect("unreachable!: previous require stmt has no end position");
+
+                    let previous_require_line = position.line();
+                    current_line - previous_require_line > 1
+                }
+            };
+
+            if create_new_block {
+                parts.push(BlockPartition::RequiresGroup(expression_kind, Vec::new()))
             }
+
+            match parts.last_mut() {
+                Some(BlockPartition::RequiresGroup(_, map)) => {
+                    map.push((variable_name, stmt.clone()))
+                }
+                _ => unreachable!(),
+            };
+
+            continue;
         }
 
         // Handle as a non-require
@@ -154,7 +205,7 @@ fn partition_nodes_into_groups(block: &Block) -> Vec<BlockPartition> {
 pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
     let block = input_ast.nodes();
 
-    // Find all `local NAME = require(EXPR)` lines
+    // Find all `local NAME = require(EXPR)` and Luau `const NAME = require(EXPR)` lines
     let parts = partition_nodes_into_groups(block);
 
     // If there is only one non-require partition, or no partitions at all
@@ -182,18 +233,10 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
                 // Get the leading trivia of the first statement in the list, as that will be what
                 // is appended to the new statement
                 let leading_trivia = match list.first_mut() {
-                    Some((_, (Stmt::LocalAssignment(local_assignment), _))) => {
-                        let trivia = local_assignment
-                            .local_token()
-                            .leading_trivia()
-                            .cloned()
-                            .collect();
-
-                        // Replace the trivia
-                        *local_assignment = local_assignment
-                            .update_leading_trivia(FormatTriviaType::Replace(vec![]));
-
-                        trivia
+                    Some((_, stmt)) => {
+                        let leading_trivia = get_stmt_leading_trivia(stmt);
+                        set_stmt_leading_trivia(stmt, Vec::new());
+                        leading_trivia
                     }
                     _ => unreachable!(),
                 };
@@ -203,9 +246,8 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
 
                 // Mutate the first element with our leading trivia
                 match list.first_mut() {
-                    Some((_, (Stmt::LocalAssignment(local_assignment), _))) => {
-                        *local_assignment = local_assignment
-                            .update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
+                    Some((_, stmt)) => {
+                        set_stmt_leading_trivia(stmt, leading_trivia);
                     }
                     _ => unreachable!(),
                 };
