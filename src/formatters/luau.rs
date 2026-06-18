@@ -293,10 +293,6 @@ fn format_type_info_internal(
                 || contains_comments(access)
                 || contains_comments(type_info);
 
-            let access = access.as_ref().map(|token_reference| {
-                format_token_reference(ctx, token_reference, shape + BRACKET_LEN)
-            });
-
             let access_shape_increment = access
                 .as_ref()
                 .map_or(0, |token| token.to_string().len() + 1);
@@ -322,7 +318,33 @@ fn format_type_info_internal(
             };
             let braces = create_table_braces(ctx, start_brace, end_brace, table_type, shape);
 
+            let access = access.as_ref().map(|token_reference| {
+                let mut formatted = format_token_reference(ctx, token_reference, shape + BRACKET_LEN)
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]));
+                if matches!(table_type, TableType::MultiLine) {
+                    formatted = formatted.update_leading_trivia(
+                        FormatTriviaType::Append(vec![create_indent_trivia(
+                            ctx,
+                            shape.increment_additional_indent(),
+                        )]),
+                    );
+                }
+                formatted
+            });
+
             let (new_type_info, leading_trivia, trailing_trivia) = match table_type {
+                TableType::MultiLine if access.is_some() => (
+                    format_hangable_type_info(
+                        ctx,
+                        type_info,
+                        shape.increment_additional_indent(),
+                        0,
+                    ),
+                    FormatTriviaType::NoChange,
+                    FormatTriviaType::Append(vec![create_newline_trivia(ctx)]),
+                ),
                 TableType::MultiLine => (
                     format_hangable_type_info(
                         ctx,
