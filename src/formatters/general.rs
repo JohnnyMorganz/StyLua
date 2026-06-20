@@ -12,7 +12,7 @@ use crate::{
         },
     },
     shape::Shape,
-    QuoteStyle,
+    QuoteStyle, TrailingCommentSpacing,
 };
 use full_moon::node::Node;
 use full_moon::tokenizer::{StringLiteralQuoteType, Token, TokenKind, TokenReference, TokenType};
@@ -236,8 +236,10 @@ pub fn format_token(
                     trailing_trivia = Some(vec![create_newline_trivia(ctx)]);
                 }
                 FormatTokenType::TrailingTrivia => {
-                    // Add a space before the comment
-                    leading_trivia = Some(vec![Token::new(TokenType::spaces(1))]);
+                    // Add a space before the comment (unless preserving original spacing)
+                    if ctx.config().trailing_comment_spacing == TrailingCommentSpacing::Compress {
+                        leading_trivia = Some(vec![Token::new(TokenType::spaces(1))]);
+                    }
                 }
                 _ => (),
             }
@@ -308,12 +310,31 @@ fn load_token_trivia(
                         }
                     }
                     FormatTokenType::TrailingTrivia => {
-                        // If the next trivia is a MultiLineComment, and this whitespace is just spacing, then we
-                        // will preserve a single space
-                        if let Some(next_trivia) = trivia_iter.peek() {
-                            if let TokenType::MultiLineComment { .. } = next_trivia.token_type() {
-                                if !characters.contains('\n') {
-                                    token_trivia.push(Token::new(TokenType::spaces(1)))
+                        // If the next trivia is a comment, preserve original spacing if configured
+                        if ctx.config().trailing_comment_spacing == TrailingCommentSpacing::Preserve
+                        {
+                            if let Some(next_trivia) = trivia_iter.peek() {
+                                match next_trivia.token_type() {
+                                    TokenType::SingleLineComment { .. }
+                                    | TokenType::MultiLineComment { .. } => {
+                                        if !characters.contains('\n') {
+                                            token_trivia.push(Token::new(TokenType::Whitespace {
+                                                characters: characters.to_owned(),
+                                            }));
+                                        }
+                                    }
+                                    _ => (),
+                                }
+                            }
+                        } else {
+                            // If the next trivia is a MultiLineComment, and this whitespace is just spacing, then we
+                            // will preserve a single space
+                            if let Some(next_trivia) = trivia_iter.peek() {
+                                if let TokenType::MultiLineComment { .. } = next_trivia.token_type()
+                                {
+                                    if !characters.contains('\n') {
+                                        token_trivia.push(Token::new(TokenType::spaces(1)))
+                                    }
                                 }
                             }
                         }

@@ -1,6 +1,6 @@
 use stylua_lib::{
     format_code, BlockNewlineGaps, CollapseSimpleStatement, Config, LuaVersion, OutputVerification,
-    SortRequiresConfig,
+    SortRequiresConfig, TrailingCommentSpacing,
 };
 
 fn format(input: &str, syntax: LuaVersion) -> String {
@@ -124,6 +124,23 @@ fn test_preserve_block_newline_gaps() {
             &contents,
             Config {
                 block_newline_gaps: BlockNewlineGaps::Preserve,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap());
+    })
+}
+
+#[test]
+fn test_preserve_trailing_comment_spacing() {
+    insta::glob!("inputs-preserve-trailing-comment-spacing/*.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        insta::assert_snapshot!(format_code(
+            &contents,
+            Config {
+                trailing_comment_spacing: TrailingCommentSpacing::Preserve,
                 ..Config::default()
             },
             None,
