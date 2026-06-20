@@ -275,6 +275,23 @@ If not found, we search for an `.editorconfig` file, otherwise fall back to the 
 This feature can be disabled using `--no-editorconfig`.
 See [EditorConfig](https://editorconfig.org/) for more details.
 
+The following EditorConfig properties are supported:
+
+| EditorConfig Property             | Maps to                      |
+| --------------------------------- | ---------------------------- |
+| `end_of_line`                     | `line_endings`               |
+| `indent_style`                    | `indent_type`                |
+| `indent_size`                     | `indent_width`               |
+| `max_line_length`                 | `column_width`               |
+| `quote_type`                      | `quote_style`                |
+| `call_parentheses`                | `call_parentheses`           |
+| `space_after_function_names`      | `space_after_function_names` |
+| `collapse_simple_statement`       | `collapse_simple_statement`  |
+| `sort_requires`                   | `sort_requires.enabled`      |
+| `stylua_syntax`                   | `syntax`                     |
+| `stylua_block_newline_gaps`       | `block_newline_gaps`         |
+| `stylua_trailing_comment_spacing` | `trailing_comment_spacing`   |
+
 Use `--config-path <path>` to provide a custom path to the configuration.
 If the file provided is not found/malformed, StyLua will exit with an error.
 
@@ -319,6 +336,7 @@ StyLua only offers the following options:
 | `call_parentheses`           | `Always`           | Whether parentheses should be applied on function calls with a single string/table argument. Possible options: `Always`, `NoSingleString`, `NoSingleTable`, `None`, `Input`. `Always` applies parentheses in all cases. `NoSingleString` omits parentheses on calls with a single string argument. Similarly, `NoSingleTable` omits parentheses on calls with a single table argument. `None` omits parentheses in both cases. Note: parentheses are still kept in situations where removal can lead to obscurity (e.g. `foo "bar".setup -> foo("bar").setup`, since the index is on the call result, not the string). `Input` removes all automation and preserves parentheses only if they were present in input code: consistency is not enforced. |
 | `space_after_function_names` | `Never`            | Specify whether to add a space between the function name and parentheses. Possible options: `Never`, `Definitions`, `Calls`, or `Always`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `block_newline_gaps`         | `Never`            | Specify whether to preserve leading and trailing newline gaps for blocks. Possible options: `Never`, `Preserve`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `trailing_comment_spacing`   | `Compress`         | Specify whether to preserve the original spacing before trailing inline comments. Possible options: `Compress` (always use a single space), `Preserve` (keep original spacing)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `collapse_simple_statement`  | `Never`            | Specify whether to collapse simple statements. Possible options: `Never`, `FunctionOnly`, `ConditionalOnly`, or `Always`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Default `stylua.toml`, note you do not need to explicitly specify each option if you want to use the defaults:
@@ -334,6 +352,7 @@ call_parentheses = "Always"
 collapse_simple_statement = "Never"
 space_after_function_names = "Never"
 block_newline_gaps = "Never"
+trailing_comment_spacing = "Compress"
 
 [sort_requires]
 enabled = false

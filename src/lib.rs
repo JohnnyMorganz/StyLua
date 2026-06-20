@@ -166,6 +166,19 @@ pub enum BlockNewlineGaps {
     Preserve,
 }
 
+/// How to handle spacing before trailing inline comments.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[cfg_attr(feature = "fromstr", derive(strum::EnumString))]
+pub enum TrailingCommentSpacing {
+    /// Always use a single space before trailing comments
+    #[default]
+    Compress,
+    /// Preserve the original spacing before trailing comments
+    Preserve,
+}
+
 /// An optional formatting range.
 /// If provided, only content within these boundaries (inclusive) will be formatted.
 /// Both boundaries are optional, and are given as byte offsets from the beginning of the file.
@@ -279,6 +292,10 @@ pub struct Config {
     /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Calls`] a space is used only for calls.
     /// * if space_after_function_names is set to [`SpaceAfterFunctionNames::Always`] a space is used for both definitions and calls.
     pub space_after_function_names: SpaceAfterFunctionNames,
+    /// How to handle spacing before trailing inline comments.
+    /// * if set to [`TrailingCommentSpacing::Compress`] a single space is always used before trailing comments.
+    /// * if set to [`TrailingCommentSpacing::Preserve`] the original spacing before trailing comments is preserved.
+    pub trailing_comment_spacing: TrailingCommentSpacing,
 }
 
 #[cfg_attr(all(target_arch = "wasm32", feature = "wasm-bindgen"), wasm_bindgen)]
@@ -305,6 +322,7 @@ impl Default for Config {
             sort_requires: SortRequiresConfig::default(),
             space_after_function_names: SpaceAfterFunctionNames::default(),
             block_newline_gaps: BlockNewlineGaps::default(),
+            trailing_comment_spacing: TrailingCommentSpacing::default(),
         }
     }
 }

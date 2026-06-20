@@ -292,6 +292,9 @@ fn load_overrides(config: Config, opt: &Opt) -> Config {
     if let Some(preserve_block_newline_gaps) = opt.format_opts.preserve_block_newline_gaps {
         new_config.block_newline_gaps = preserve_block_newline_gaps.into();
     };
+    if let Some(trailing_comment_spacing) = opt.format_opts.trailing_comment_spacing {
+        new_config.trailing_comment_spacing = trailing_comment_spacing.into();
+    };
     if opt.format_opts.sort_requires {
         new_config.sort_requires = SortRequiresConfig { enabled: true }
     }
