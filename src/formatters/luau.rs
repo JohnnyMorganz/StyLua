@@ -11,7 +11,10 @@ use crate::{
             format_contained_punctuated_multiline, format_contained_span, format_punctuated,
             format_symbol, format_token_reference,
         },
-        table::{create_table_braces, format_multiline_table, format_singleline_table, TableType},
+        table::{
+            create_table_braces, format_multiline_table, format_singleline_table,
+            format_table_constructor, TableType,
+        },
         trivia::{
             strip_leading_trivia, strip_trailing_trivia, strip_trivia, FormatTriviaType,
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
@@ -28,6 +31,7 @@ use full_moon::ast::{
     luau::{
         ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
         GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
+        LuauAttributeArgument, LuauAttributeItem, LuauAttributeKind, LuauAttributeParams,
         TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
         TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
     },
@@ -1607,7 +1611,101 @@ pub fn format_luau_attribute(
     shape: Shape,
 ) -> LuauAttribute {
     let at_sign = fmt_symbol!(ctx, attribute.at_sign(), "@", shape);
-    let name = format_token_reference(ctx, attribute.name(), shape);
+    let kind = format_luau_attribute_kind(ctx, attribute.kind(), shape);
 
-    attribute.clone().with_at_sign(at_sign).with_name(name)
+    attribute.clone().with_at_sign(at_sign).with_kind(kind)
+}
+
+fn format_luau_attribute_kind(
+    ctx: &Context,
+    kind: &LuauAttributeKind,
+    shape: Shape,
+) -> LuauAttributeKind {
+    match kind {
+        LuauAttributeKind::Name(name) => {
+            LuauAttributeKind::Name(format_token_reference(ctx, name, shape))
+        }
+        LuauAttributeKind::Bracketed {
+            brackets,
+            attributes,
+        } => {
+            let brackets = format_contained_span(ctx, brackets, shape);
+            let attributes =
+                format_punctuated(ctx, attributes, shape, format_luau_attribute_item);
+
+            LuauAttributeKind::Bracketed {
+                brackets,
+                attributes,
+            }
+        }
+    }
+}
+
+fn format_luau_attribute_item(
+    ctx: &Context,
+    item: &LuauAttributeItem,
+    shape: Shape,
+) -> LuauAttributeItem {
+    let name = format_token_reference(ctx, item.name(), shape);
+    let params = item.params().map(|params| {
+        let params = format_luau_attribute_params(ctx, params, shape);
+        // A bare literal (no parens) needs a space to separate it from the name,
+        // e.g. `deprecated "reason"`, not `deprecated"reason"`
+        match params {
+            LuauAttributeParams::Literal(argument) => {
+                LuauAttributeParams::Literal(argument.update_leading_trivia(
+                    FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]),
+                ))
+            }
+            parens => parens,
+        }
+    });
+
+    item.clone().with_name(name).with_params(params)
+}
+
+fn format_luau_attribute_params(
+    ctx: &Context,
+    params: &LuauAttributeParams,
+    shape: Shape,
+) -> LuauAttributeParams {
+    match params {
+        LuauAttributeParams::Parens { parens, arguments } => {
+            let parens = format_contained_span(ctx, parens, shape);
+            let arguments =
+                format_punctuated(ctx, arguments, shape, format_luau_attribute_argument);
+
+            LuauAttributeParams::Parens { parens, arguments }
+        }
+        LuauAttributeParams::Literal(argument) => {
+            LuauAttributeParams::Literal(format_luau_attribute_argument(ctx, argument, shape))
+        }
+    }
+}
+
+fn format_luau_attribute_argument(
+    ctx: &Context,
+    argument: &LuauAttributeArgument,
+    shape: Shape,
+) -> LuauAttributeArgument {
+    match argument {
+        LuauAttributeArgument::Nil(token) => {
+            LuauAttributeArgument::Nil(fmt_symbol!(ctx, token, "nil", shape))
+        }
+        LuauAttributeArgument::True(token) => {
+            LuauAttributeArgument::True(fmt_symbol!(ctx, token, "true", shape))
+        }
+        LuauAttributeArgument::False(token) => {
+            LuauAttributeArgument::False(fmt_symbol!(ctx, token, "false", shape))
+        }
+        LuauAttributeArgument::Number(token) => {
+            LuauAttributeArgument::Number(format_token_reference(ctx, token, shape))
+        }
+        LuauAttributeArgument::Str(token) => {
+            LuauAttributeArgument::Str(format_token_reference(ctx, token, shape))
+        }
+        LuauAttributeArgument::Table(table) => {
+            LuauAttributeArgument::Table(format_table_constructor(ctx, table, shape))
+        }
+    }
 }
