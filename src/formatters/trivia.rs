@@ -4,9 +4,9 @@ use full_moon::ast::lua54::Attribute;
 use full_moon::ast::luau::{
     ConstAssignment, ElseIfExpression, GenericDeclaration, GenericDeclarationParameter,
     GenericParameterInfo, IfExpression, IndexedTypeInfo, InterpolatedString,
-    InterpolatedStringSegment, LuauAttribute, TypeArgument, TypeAssertion, TypeDeclaration,
-    TypeField, TypeFieldKey, TypeFunction, TypeInfo, TypeInstantiation, TypeIntersection,
-    TypeSpecifier, TypeUnion,
+    InterpolatedStringSegment, LuauAttribute, LuauAttributeArgument, LuauAttributeKind,
+    TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction, TypeInfo,
+    TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
 };
 use full_moon::ast::{
     punctuated::Punctuated, span::ContainedSpan, AnonymousFunction, BinOp, Call, Expression,
@@ -770,6 +770,30 @@ define_update_trivia!(TableConstructor, |this, leading, trailing| {
         .with_braces(this.braces().update_trivia(leading, trailing))
 });
 
+#[cfg(feature = "luau")]
+define_update_trivia!(LuauAttributeArgument, |this, leading, trailing| {
+    match this {
+        LuauAttributeArgument::Nil(token) => {
+            LuauAttributeArgument::Nil(token.update_trivia(leading, trailing))
+        }
+        LuauAttributeArgument::True(token) => {
+            LuauAttributeArgument::True(token.update_trivia(leading, trailing))
+        }
+        LuauAttributeArgument::False(token) => {
+            LuauAttributeArgument::False(token.update_trivia(leading, trailing))
+        }
+        LuauAttributeArgument::Number(token) => {
+            LuauAttributeArgument::Number(token.update_trivia(leading, trailing))
+        }
+        LuauAttributeArgument::Str(token) => {
+            LuauAttributeArgument::Str(token.update_trivia(leading, trailing))
+        }
+        LuauAttributeArgument::Table(table) => {
+            LuauAttributeArgument::Table(table.update_trivia(leading, trailing))
+        }
+    }
+});
+
 define_update_leading_trivia!(UnOp, |this, leading| {
     match this {
         UnOp::Hash(token_reference) => UnOp::Hash(token_reference.update_leading_trivia(leading)),
@@ -1168,7 +1192,20 @@ define_update_leading_trivia!(InterpolatedStringSegment, |this, leading| {
 
 #[cfg(feature = "luau")]
 define_update_trivia!(LuauAttribute, |this, leading, trailing| {
+    let kind = match this.kind().to_owned() {
+        LuauAttributeKind::Name(name) => {
+            LuauAttributeKind::Name(name.update_trailing_trivia(trailing))
+        }
+        LuauAttributeKind::Bracketed {
+            brackets,
+            attributes,
+        } => LuauAttributeKind::Bracketed {
+            brackets: brackets.update_trailing_trivia(trailing),
+            attributes,
+        },
+    };
+
     this.clone()
         .with_at_sign(this.at_sign().update_leading_trivia(leading))
-        .with_name(this.name().update_trailing_trivia(trailing))
+        .with_kind(kind)
 });

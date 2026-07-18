@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support formatting Luau attributes with bracketed parameters (`@[name]`, `@[name(args...)]`, `@[name literal]`, and grouped `@[a, b(x), c]`), following full_moon's parser support for the same
+
 ## [2.5.2] - 2026-05-16
 
 ### Fixed
