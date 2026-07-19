@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed necessary parentheses being removed from the LHS of a binary operation when the expression is hung over multiple lines. This affected `(-X) ^ Y` (changing the meaning of the expression) and, in Luau, `(expr :: assertion) < Y` (causing a syntax error)
+
 ## [2.5.2] - 2026-05-16
 
 ### Fixed

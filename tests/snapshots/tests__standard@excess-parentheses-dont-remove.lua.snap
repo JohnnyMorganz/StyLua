@@ -11,3 +11,9 @@ local _ = (not true) and false
 -- Changes meaning
 local y = (-X) ^ Y
 
+-- The same holds when the expression is hung over multiple lines
+local someVeryLongVariableNameHere = (-someExtremelyLongOperandNameOnTheLeft)
+	^ someOtherExtremelyLongOperandNameOnTheRight
+local anotherVeryLongVariableNameHere = (not someExtremelyLongConditionNameOnTheLeft)
+	and someOtherExtremelyLongConditionNameOnTheRight
+

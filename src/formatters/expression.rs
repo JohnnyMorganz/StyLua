@@ -124,6 +124,15 @@ pub fn format_binop(ctx: &Context, binop: &BinOp, shape: Shape) -> BinOp {
     })
 }
 
+/// The context to use when formatting the expression on the LHS of the given binop
+fn binary_lhs_context(binop: &BinOp) -> ExpressionContext {
+    if let BinOp::Caret(_) = binop {
+        ExpressionContext::BinaryLHSExponent
+    } else {
+        ExpressionContext::BinaryLHS
+    }
+}
+
 /// Check to determine whether expression parentheses are required, depending on the provided
 /// internal expression contained within the parentheses
 fn check_excess_parentheses(internal_expression: &Expression, context: ExpressionContext) -> bool {
@@ -285,12 +294,7 @@ fn format_expression_internal(
             }
         }
         Expression::BinaryOperator { lhs, binop, rhs } => {
-            let context = if let BinOp::Caret(_) = binop {
-                ExpressionContext::BinaryLHSExponent
-            } else {
-                ExpressionContext::BinaryLHS
-            };
-            let lhs = format_expression_internal(ctx, lhs, context, shape);
+            let lhs = format_expression_internal(ctx, lhs, binary_lhs_context(binop), shape);
             let binop = format_binop(ctx, binop, shape);
             let shape = shape.take_last_line(&lhs) + binop.to_string().len();
             Expression::BinaryOperator {
@@ -1184,6 +1188,10 @@ fn hang_binop_expression(
                 new_binop = hang_binop(ctx, binop.to_owned(), shape, &rhs);
             }
 
+            // The context of the lhs is determined by the binop it is attached to, not by the
+            // context that this expression was hung in
+            let lhs_context = binary_lhs_context(&binop);
+
             let (lhs, rhs) = match should_hang {
                 true => {
                     let lhs_shape = shape;
@@ -1202,7 +1210,7 @@ fn hang_binop_expression(
                                 },
                                 lhs_shape,
                                 lhs_range,
-                                expression_context,
+                                lhs_context,
                             ),
                             if contains_comments(&*rhs) {
                                 hang_binop_expression(
@@ -1230,15 +1238,10 @@ fn hang_binop_expression(
                                     binop.clone(),
                                     shape,
                                     lhs_range,
-                                    expression_context,
+                                    lhs_context,
                                 )
                             } else {
-                                let context = if let BinOp::Caret(_) = binop {
-                                    ExpressionContext::BinaryLHSExponent
-                                } else {
-                                    ExpressionContext::BinaryLHS
-                                };
-                                format_expression_internal(ctx, &lhs, context, lhs_shape)
+                                format_expression_internal(ctx, &lhs, lhs_context, lhs_shape)
                             },
                             hang_binop_expression(
                                 ctx,
@@ -1265,15 +1268,10 @@ fn hang_binop_expression(
                             binop.to_owned(),
                             shape,
                             lhs_range,
-                            expression_context,
+                            lhs_context,
                         )
                     } else {
-                        let context = if let BinOp::Caret(_) = binop {
-                            ExpressionContext::BinaryLHSExponent
-                        } else {
-                            ExpressionContext::BinaryLHS
-                        };
-                        format_expression_internal(ctx, &lhs, context, shape)
+                        format_expression_internal(ctx, &lhs, lhs_context, shape)
                     };
 
                     let rhs = if contains_comments(&*rhs) {
@@ -1457,7 +1455,7 @@ fn format_hanging_expression_(
                 binop.to_owned(),
                 shape,
                 lhs_range,
-                ExpressionContext::UnaryOrBinary,
+                binary_lhs_context(binop),
             );
 
             let current_shape = shape.take_last_line(&lhs) + 1; // 1 = space before binop

@@ -6,3 +6,7 @@ local _ = (not true) and false
 -- https://github.com/JohnnyMorganz/StyLua/issues/623
 -- Changes meaning
 local y = (-X) ^ Y
+
+-- The same holds when the expression is hung over multiple lines
+local someVeryLongVariableNameHere = (-someExtremelyLongOperandNameOnTheLeft) ^ someOtherExtremelyLongOperandNameOnTheRight
+local anotherVeryLongVariableNameHere = (not someExtremelyLongConditionNameOnTheLeft) and someOtherExtremelyLongConditionNameOnTheRight
