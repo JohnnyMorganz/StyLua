@@ -455,6 +455,22 @@ pub fn format_code(
     range: Option<Range>,
     verify_output: OutputVerification,
 ) -> Result<String, Error> {
+    // Normalise the input to LF before parsing. A token keeps whatever line
+    // ending the source used - in particular, a single-line comment is
+    // tokenised as `SingleLineComment(" text\r")` with the `\n` as separate
+    // whitespace. Comments are relocated by `take_leading_comments` /
+    // `take_trailing_comments` without passing through `format_token`, so that
+    // `\r` reaches the output, and the configured line ending is then appended
+    // after it, producing `\r\r\n`. The output line ending is decided solely by
+    // the `line_endings` config, so the input's must not survive parsing.
+    let normalised;
+    let code = if code.contains('\r') {
+        normalised = code.replace("\r\n", "\n");
+        normalised.as_str()
+    } else {
+        code
+    };
+
     let input_ast = match full_moon::parse_fallible(code, config.syntax.into()).into_result() {
         Ok(ast) => ast,
         Err(error) => {
@@ -493,6 +509,28 @@ mod tests {
         )
         .unwrap();
         assert_eq!(output, "local x = 1\n");
+    }
+
+    #[test]
+    fn test_crlf_input_is_idempotent() {
+        // A comment carries the source's `\r` into the output, where the
+        // configured line ending is then appended after it. Formatting twice
+        // must not accumulate carriage returns.
+        let config = Config {
+            line_endings: LineEndings::Windows,
+            ..Config::default()
+        };
+        let input = "local x = \"a\"\r\n\t.. \"b\"\r\n\t-- comment\r\n\t.. \"c\"\r\nreturn x\r\n";
+
+        let once = format_code(input, config, None, OutputVerification::None).unwrap();
+        assert!(
+            !once.contains("\r\r"),
+            "doubled CR after one pass: {:?}",
+            once
+        );
+
+        let twice = format_code(&once, config, None, OutputVerification::None).unwrap();
+        assert_eq!(once, twice, "formatting is not idempotent for CRLF input");
     }
 
     #[test]
