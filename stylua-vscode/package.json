@@ -28,7 +28,8 @@
   ],
   "activationEvents": [
     "onLanguage:lua",
-    "onLanguage:luau"
+    "onLanguage:luau",
+    "onLanguage:glua"
   ],
   "main": "./dist/extension.js",
   "contributes": {
