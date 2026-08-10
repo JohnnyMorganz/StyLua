@@ -5,7 +5,7 @@ import { GitHub, GitHubRelease } from "./github";
 import { ResolveMode, StyluaDownloader, StyluaInfo } from "./download";
 import { getDesiredVersion } from "./util";
 
-const documentSelector = ["lua", "luau"];
+const documentSelector = ["lua", "luau", "glua"];
 
 /**
  * Convert a Position within a Document to a byte offset.
