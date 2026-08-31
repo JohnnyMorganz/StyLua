@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Luau: Fixed the `read`/`write` access modifier merging into the element type in array type shorthand, changing the meaning of the code (`{ read Foo }` was formatted as `{ readFoo }`) ([#1126](https://github.com/JohnnyMorganz/StyLua/issues/1126))
+
 ## [2.5.2] - 2026-05-16
 
 ### Fixed

@@ -293,13 +293,21 @@ fn format_type_info_internal(
                 || contains_comments(access)
                 || contains_comments(type_info);
 
-            let access = access.as_ref().map(|token_reference| {
-                format_token_reference(ctx, token_reference, shape + BRACKET_LEN)
-            });
+            // Format modifier comments at the multiline element indentation.
+            let access_shape = if contains_comments {
+                shape.increment_additional_indent()
+            } else {
+                shape + BRACKET_LEN
+            };
 
+            let access = access
+                .as_ref()
+                .map(|token_reference| format_token_reference(ctx, token_reference, access_shape));
+
+            // Count the modifier and its required separator without trivia.
             let access_shape_increment = access
                 .as_ref()
-                .map_or(0, |token| token.to_string().len() + 1);
+                .map_or(0, |token| strip_trivia(token).to_string().len() + 1);
 
             let (table_type, new_type_info) = if contains_comments {
                 (TableType::MultiLine, None)
@@ -343,10 +351,36 @@ fn format_type_info_internal(
                 ),
             };
 
+            let (access, type_info_leading_trivia) = match access {
+                Some(access) => {
+                    // A trailing line comment must end before the element type.
+                    let separator = if access.has_trailing_comments(CommentSearch::Single) {
+                        vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, shape.increment_additional_indent()),
+                        ]
+                    } else {
+                        vec![Token::new(TokenType::spaces(1))]
+                    };
+
+                    (
+                        Some(
+                            access
+                                .update_leading_trivia(leading_trivia)
+                                .update_trailing_trivia(FormatTriviaType::Append(separator)),
+                        ),
+                        FormatTriviaType::NoChange,
+                    )
+                }
+                None => (None, leading_trivia),
+            };
+
             TypeInfo::Array {
                 braces,
                 access,
-                type_info: Box::new(new_type_info.update_trivia(leading_trivia, trailing_trivia)),
+                type_info: Box::new(
+                    new_type_info.update_trivia(type_info_leading_trivia, trailing_trivia),
+                ),
             }
         }
 
