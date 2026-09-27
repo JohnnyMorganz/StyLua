@@ -411,3 +411,35 @@ local   e    = 5
     local e = 5
     "###);
 }
+
+#[test]
+fn test_range_keeps_semicolon_outside_range() {
+    insta::assert_snapshot!(
+        format(
+            r###"||local foo     =      bar||
+local a = 1;
+local b = 2;
+"###,
+        ),
+        @r###"
+    local foo = bar
+    local a = 1;
+    local b = 2;
+    "###
+    );
+}
+
+#[test]
+fn test_range_keeps_last_stmt_semicolon_outside_range() {
+    insta::assert_snapshot!(
+        format(
+            r###"||local foo     =      bar||
+return baz;
+"###,
+        ),
+        @r###"
+    local foo = bar
+    return baz;
+    "###
+    );
+}
