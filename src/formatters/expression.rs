@@ -15,7 +15,7 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::{
     assignment::calculate_hang_level,
-    luau::{format_type_assertion, format_type_instantiation},
+    luau::{format_if_condition_binding, format_type_assertion, format_type_instantiation},
     stmt::remove_condition_parentheses,
     trivia_util::HasInlineComments,
 };
@@ -515,13 +515,17 @@ fn format_else_if_expression_singleline(
     shape: Shape,
 ) -> ElseIfExpression {
     let else_if_token = fmt_symbol!(ctx, else_if_expression.else_if_token(), "elseif ", shape);
+    let binding = else_if_expression
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
     let else_if_condition = remove_condition_parentheses(else_if_expression.condition().to_owned());
-    let else_if_condition = format_expression(ctx, &else_if_condition, shape + 7); // 7 = "elseif "
+    let else_if_condition = format_expression(ctx, &else_if_condition, shape + 7 + binding_width); // 7 = "elseif "
     let (then_token, expression) = format_token_expression_sequence(
         ctx,
         else_if_expression.then_token(),
         else_if_expression.expression(),
-        shape.take_first_line(&else_if_condition) + 13, // 13 = "elseif " + " then ",
+        shape.take_first_line(&else_if_condition) + 13 + binding_width, // 13 = "elseif " + " then ",
     );
 
     // Add a space before the then token
@@ -531,6 +535,7 @@ fn format_else_if_expression_singleline(
 
     ElseIfExpression::new(else_if_condition, expression)
         .with_else_if_token(else_if_token)
+        .with_binding(binding)
         .with_then_token(then_token)
 }
 
@@ -600,6 +605,12 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     let condition = remove_condition_parentheses(if_expression.condition().to_owned());
     let if_token = fmt_symbol!(ctx, if_expression.if_token(), "if ", shape);
 
+    // Format the `local <name> =` binding (`if local` / `if const`), if present
+    let binding = if_expression
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
     let then_token = fmt_symbol!(ctx, if_expression.then_token(), " then ", shape);
@@ -634,7 +645,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     const ELSE_LENGTH: usize = 6; // " else "
 
     // Determine if we need to hang the expression
-    let singleline_shape = (shape + IF_LENGTH + THEN_LENGTH + ELSE_LENGTH)
+    let singleline_shape = (shape + IF_LENGTH + THEN_LENGTH + ELSE_LENGTH + binding_width)
         .take_first_line(&strip_trivia(&singleline_condition))
         .take_first_line(&strip_trivia(&singleline_expression))
         .take_first_line(&else_ifs.as_ref().map_or(String::new(), |x| {
@@ -748,8 +759,13 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                                     create_indent_trivia(ctx, hanging_shape),
                                 ]));
 
+                            let binding = else_if_expression.binding().map(|binding| {
+                                format_if_condition_binding(ctx, binding, hanging_shape)
+                            });
+
                             ElseIfExpression::new(else_if_condition, expression)
                                 .with_else_if_token(else_if_token)
+                                .with_binding(binding)
                                 .with_then_token(then_token)
                         } else {
                             singleline_else_if.update_leading_trivia(FormatTriviaType::Append(
@@ -776,6 +792,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
 
         IfExpression::new(condition, expression, else_expression)
             .with_if_token(if_token)
+            .with_binding(binding)
             .with_then_token(then_token)
             .with_else_if(else_ifs)
             .with_else_token(else_token)
@@ -797,6 +814,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
             singleline_else_expression,
         )
         .with_if_token(if_token)
+        .with_binding(binding)
         .with_then_token(then_token)
         .with_else_if(else_ifs)
         .with_else_token(else_token)

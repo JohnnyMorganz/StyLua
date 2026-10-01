@@ -27,9 +27,9 @@ use crate::{
 use full_moon::ast::{
     luau::{
         ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
-        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
-        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
-        TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
+        GenericDeclarationParameter, GenericParameterInfo, IfConditionBinding, IndexedTypeInfo,
+        LuauAttribute, TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey,
+        TypeFunction, TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
 };
@@ -1497,6 +1497,32 @@ pub fn format_type_specifier(
         .to_owned()
         .with_punctuation(punctuation)
         .with_type_info(type_info)
+}
+
+/// Formats an [`IfConditionBinding`] node - the `local <name> =` / `const <name> =` part of an
+/// `if local` / `if const` binding, as in `if local player = getPlayer() then ... end`.
+/// The formatted binding is `<local|const> <name>[: <type>] = ` (with a trailing space), so it
+/// slots directly between the `if `/`elseif ` token and the condition expression.
+pub fn format_if_condition_binding(
+    ctx: &Context,
+    binding: &IfConditionBinding,
+    shape: Shape,
+) -> IfConditionBinding {
+    // Preserve the keyword (`local` or `const`), normalising to a single trailing space
+    let local_token = format_token_reference(ctx, binding.local_token(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]));
+    let name = format_token_reference(ctx, binding.name(), shape);
+    let type_specifier = binding
+        .type_specifier()
+        .map(|type_specifier| format_type_specifier(ctx, type_specifier, shape));
+    let equal_token = fmt_symbol!(ctx, binding.equal_token(), " = ", shape);
+
+    binding
+        .to_owned()
+        .with_local_token(local_token)
+        .with_name(name)
+        .with_type_specifier(type_specifier)
+        .with_equal_token(equal_token)
 }
 
 pub fn format_type_instantiation(

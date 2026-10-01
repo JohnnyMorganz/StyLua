@@ -8,8 +8,8 @@ use crate::formatters::functions::format_const_function;
 use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_exported_type_declaration, format_exported_type_function, format_type_declaration_stmt,
-    format_type_function_stmt, format_type_specifier,
+    format_exported_type_declaration, format_exported_type_function, format_if_condition_binding,
+    format_type_declaration_stmt, format_type_function_stmt, format_type_specifier,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
@@ -346,6 +346,12 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
+    // Format the `local <name> =` binding (`if local` / `if const`), if present
+    let binding = else_if_node
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+
     // Compute the indent
     let end_token_type =
         if should_indent_further(else_if_node.else_if_token().leading_trivia(), shape) {
@@ -355,11 +361,12 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         };
 
     let elseif_token = format_end_token(ctx, else_if_node.else_if_token(), end_token_type, shape);
-    let singleline_condition = format_expression(ctx, &condition, shape + 7);
+    let singleline_condition = format_expression(ctx, &condition, shape + 7 + binding_width);
     let singleline_then_token = fmt_symbol!(ctx, else_if_node.then_token(), " then", shape);
 
     // Determine if we need to hang the condition
-    let singleline_shape = shape + (7 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 3 = " then"
+    let singleline_shape =
+        shape + (7 + 5 + binding_width + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 5 = " then"
     let require_multiline_expression = singleline_shape.over_budget()
         || else_if_node
             .else_if_token()
@@ -369,12 +376,25 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
             .has_leading_comments(CommentSearch::All)
         || trivia_util::contains_comments(&condition);
 
-    let elseif_token = match require_multiline_expression {
-        true => elseif_token
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
-        false => elseif_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+    // When multilining with a binding, the binding stays on the `elseif` line and the condition
+    // hangs below it, so the newline goes after the binding rather than after `elseif`.
+    let binding = match (require_multiline_expression, binding) {
+        (true, Some(binding)) => {
+            let equal_token = binding.equal_token().update_trailing_trivia(
+                FormatTriviaType::Replace(vec![create_newline_trivia(ctx)]),
+            );
+            Some(binding.with_equal_token(equal_token))
+        }
+        (_, binding) => binding,
+    };
+
+    let elseif_token = if require_multiline_expression && binding.is_none() {
+        elseif_token
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+    } else {
+        elseif_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
             TokenType::spaces(1),
-        )])),
+        )]))
     }
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
@@ -406,6 +426,7 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     else_if_node
         .to_owned()
         .with_else_if_token(elseif_token)
+        .with_binding(binding)
         .with_condition(condition)
         .with_then_token(then_token)
         .with_block(block)
@@ -441,13 +462,24 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
 
+    // Format the `local <name> =` binding (`if local` / `if const`), if present
+    #[cfg(feature = "luau")]
+    let binding = if_node
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    #[cfg(feature = "luau")]
+    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+    #[cfg(not(feature = "luau"))]
+    let binding_width = 0;
+
     let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
-    let singleline_condition = format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN);
+    let singleline_condition =
+        format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN + binding_width);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
 
     // Determine if we need to hang the condition
-    let singleline_shape =
-        shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
+    let singleline_shape = shape
+        + (IF_LEN + THEN_LEN + binding_width + strip_trivia(&singleline_condition).to_string().len());
     let require_multiline_expression = singleline_shape.over_budget()
         || if_node.if_token().has_trailing_comments(CommentSearch::All)
         || if_node
@@ -502,6 +534,9 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
             .with_block(block)
             .with_end_token(end_token);
 
+        #[cfg(feature = "luau")]
+        let singleline_if = singleline_if.with_binding(binding.clone());
+
         // See if it fits under the column width. If it does, bail early and return this singleline if
         if !shape
             .add_width(strip_trivia(&singleline_if).to_string().len())
@@ -511,10 +546,29 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         }
     }
 
-    let if_token = match require_multiline_expression {
-        true => fmt_symbol!(ctx, if_node.if_token(), "if", shape)
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
-        false => singleline_if_token,
+    // When multilining with a binding, the binding stays on the `if` line and the condition hangs
+    // below it, so the newline goes after the binding rather than after `if`.
+    #[cfg(feature = "luau")]
+    let binding = match (require_multiline_expression, binding) {
+        (true, Some(binding)) => {
+            let equal_token = binding.equal_token().update_trailing_trivia(
+                FormatTriviaType::Replace(vec![create_newline_trivia(ctx)]),
+            );
+            Some(binding.with_equal_token(equal_token))
+        }
+        (_, binding) => binding,
+    };
+
+    #[cfg(feature = "luau")]
+    let has_binding = binding.is_some();
+    #[cfg(not(feature = "luau"))]
+    let has_binding = false;
+
+    let if_token = if require_multiline_expression && !has_binding {
+        fmt_symbol!(ctx, if_node.if_token(), "if", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+    } else {
+        singleline_if_token
     }
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
@@ -584,7 +638,7 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         _ => unreachable!("Got an else token with no else block or vice versa"),
     };
 
-    if_node
+    let if_node = if_node
         .to_owned()
         .with_if_token(if_token)
         .with_condition(condition)
@@ -593,7 +647,12 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         .with_else_if(else_if)
         .with_else_token(else_token)
         .with_else(else_block)
-        .with_end_token(end_token)
+        .with_end_token(end_token);
+
+    #[cfg(feature = "luau")]
+    let if_node = if_node.with_binding(binding);
+
+    if_node
 }
 
 /// Format a NumericFor node
