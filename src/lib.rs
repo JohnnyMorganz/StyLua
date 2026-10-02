@@ -132,6 +132,9 @@ pub enum CallParenType {
     NoSingleTable,
     /// Skip call parentheses when only a table or string argument is used.
     None,
+    /// Like [`CallParenType::None`], but also removes parentheses when the call is followed by an
+    /// index or method call, e.g. `require("lib").setup -> require "lib".setup`.
+    Never,
     /// Keep call parentheses based on its presence in input code.
     Input,
 }

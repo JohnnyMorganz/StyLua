@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `call_parentheses = "Never"`, which behaves like `None` but also removes parentheses when the call is followed by an index or method call (e.g. `require("lib").setup -> require "lib".setup`)
+
 ## [2.5.2] - 2026-05-16
 
 ### Fixed

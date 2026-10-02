@@ -63,6 +63,7 @@ property_choice! {
     (NoSingleString, "nosinglestring"),
     (NoSingleTable, "nosingletable"),
     (None, "none"),
+    (Never, "never"),
     (Input, "input")
 }
 
@@ -148,6 +149,7 @@ fn load(mut config: Config, properties: &Properties) -> Config {
             CallParenthesesChoice::NoSingleString => CallParenType::NoSingleString,
             CallParenthesesChoice::NoSingleTable => CallParenType::NoSingleTable,
             CallParenthesesChoice::None => CallParenType::None,
+            CallParenthesesChoice::Never => CallParenType::Never,
             CallParenthesesChoice::Input => CallParenType::Input,
         };
     }

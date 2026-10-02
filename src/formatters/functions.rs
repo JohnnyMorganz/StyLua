@@ -1138,7 +1138,8 @@ pub fn format_function_call(
         let ambiguous_next_suffix = if matches!(
             suffixes.peek(),
             Some(Suffix::Index(_)) | Some(Suffix::Call(Call::MethodCall(_)))
-        ) {
+        ) && ctx.config().call_parentheses != CallParenType::Never
+        {
             FunctionCallNextNode::ObscureWithoutParens
         } else {
             FunctionCallNextNode::None

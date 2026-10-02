@@ -339,3 +339,19 @@ local x = New "TextLabel" {
     "###
     );
 }
+
+#[test]
+fn test_call_parens_never_removes_obscure_parens() {
+    insta::assert_snapshot!(
+        format(CallParenType::Never,
+            r#"
+local has_parens = require("configuration").has_parens
+local x = setup({ yes = true }):run()
+"#
+        ),
+        @r###"
+    local has_parens = require "configuration".has_parens
+    local x = setup { yes = true }:run()
+    "###
+    );
+}
