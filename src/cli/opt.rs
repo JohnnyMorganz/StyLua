@@ -273,6 +273,7 @@ convert_enum!(CallParenType, ArgCallParenType, {
     NoSingleString,
     NoSingleTable,
     None,
+    Never,
     Input,
 });
 
