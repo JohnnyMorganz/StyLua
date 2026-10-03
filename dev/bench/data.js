@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791047988503,
+  "lastUpdate": 1791048349679,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17975,6 +17975,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15535677,
             "range": "± 36115",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ahmadbannout191999@gmail.com",
+            "name": "GhostCoder6969",
+            "username": "GhostCoder6969"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0c78ebaf13fb23e4d136e308b91e2cb73aed9697",
+          "message": "Keep out-of-range semicolons when formatting a range (#1158)\n\n* Keep out-of-range semicolons when formatting a range\n\nStatements outside the given range kept their formatting except for semicolon removal, which ran unconditionally. Fixes #1147.\n\n* Add changelog entry\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-10-03T17:24:10Z",
+          "tree_id": "593e40978a5b0b5e6892017a4b890df1c2f86d23",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/0c78ebaf13fb23e4d136e308b91e2cb73aed9697"
+        },
+        "date": 1791048347745,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 21770796,
+            "range": "± 112184",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 185163911,
+            "range": "± 2068786",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 12773793,
+            "range": "± 36779",
             "unit": "ns/iter"
           }
         ]
