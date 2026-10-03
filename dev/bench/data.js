@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791042814294,
+  "lastUpdate": 1791046549339,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17891,6 +17891,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15415354,
             "range": "± 266766",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "96193209+ddashdev@users.noreply.github.com",
+            "name": "ddash",
+            "username": "ddashdev"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7119cdb21a076f13b8665669b8b5fa6a547ea322",
+          "message": "Fix sort_requires not recognizing `const` imports in luau (#1123)\n\n* fix sort_requires not recognizing const imports\n\n* remove unnecessary borrow of stmt (fix clippy lint)\n\n* Simplify logic\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-10-03T16:53:48Z",
+          "tree_id": "5db8d44132711506fd06b9ff3ede7916a9cb194a",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/7119cdb21a076f13b8665669b8b5fa6a547ea322"
+        },
+        "date": 1791046548729,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28844673,
+            "range": "± 717392",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 239377011,
+            "range": "± 802845",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15756741,
+            "range": "± 218695",
             "unit": "ns/iter"
           }
         ]
