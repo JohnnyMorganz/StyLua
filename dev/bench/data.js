@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791040957919,
+  "lastUpdate": 1791041015935,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17639,6 +17639,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15603069,
             "range": "± 69239",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "88e21cb201346383d94fad3975d23ec5d4099ae8",
+          "message": "Fix VSCode extension CI by bumping @vscode/test-electron (#1164)",
+          "timestamp": "2026-10-03T17:21:33+02:00",
+          "tree_id": "292de74658de6881b69ffc9f5eb4f49a9088eaa6",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/88e21cb201346383d94fad3975d23ec5d4099ae8"
+        },
+        "date": 1791041014902,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 29575491,
+            "range": "± 450845",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234021298,
+            "range": "± 783705",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15722165,
+            "range": "± 237775",
             "unit": "ns/iter"
           }
         ]
