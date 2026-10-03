@@ -122,7 +122,7 @@ aftman add johnnymorganz/stylua@2.5.2
 Note that these integrations require the StyLua binary to already be installed and available on your system.
 
 - Sublime: [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
-- Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim)
+- Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim) / [conform.nvim](https://github.com/stevearc/conform.nvim)
 - Zed: [Zed Lua StyLua formatter settings](https://zed.dev/docs/languages/lua#stylua)
 
 ## Usage
@@ -237,8 +237,9 @@ In editors, `Format Selection` is supported.
 StyLua has built-in support for sorting require statements. We group consecutive require statements into a single "block",
 and then requires are sorted only within that block. Blocks of requires do not move around the file.
 
-StyLua only considers requires of the form `local NAME = require(EXPR)`, and sorts lexicographically based on `NAME`.
-(StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`)
+StyLua only considers requires of the form `local NAME = require(EXPR)`, or `const NAME = require(EXPR)` in Luau,
+and sorts lexicographically based on `NAME`.
+(StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`, or `const NAME = game:GetService(EXPR)` in Luau)
 
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
@@ -307,6 +308,9 @@ Alternatively, you can specify it on the command line, with `stylua --syntax lua
 ### Options
 
 StyLua only offers the following options:
+
+> [!NOTE]  
+> When specifying the option on the command line, replace the underscore with a dash, e.g., `indent_type` becomes `--indent-type`.
 
 | Option                       | Default            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
