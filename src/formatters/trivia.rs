@@ -91,6 +91,19 @@ where
     }
 }
 
+impl<T> UpdateTrivia for Box<T>
+where
+    T: UpdateTrivia,
+{
+    fn update_trivia(
+        &self,
+        leading_trivia: FormatTriviaType,
+        trailing_trivia: FormatTriviaType,
+    ) -> Self {
+        Box::new(self.as_ref().update_trivia(leading_trivia, trailing_trivia))
+    }
+}
+
 impl UpdateTrivia for TokenReference {
     fn update_trivia(
         &self,
@@ -216,10 +229,10 @@ define_update_trivia!(ContainedSpan, |this, leading, trailing| {
 define_update_trivia!(Call, |this, leading, trailing| {
     match this {
         Call::AnonymousCall(function_args) => {
-            Call::AnonymousCall(Box::new(function_args.update_trivia(leading, trailing)))
+            Call::AnonymousCall(function_args.update_trivia(leading, trailing))
         }
         Call::MethodCall(method_call) => {
-            Call::MethodCall(Box::new(method_call.update_trivia(leading, trailing)))
+            Call::MethodCall(method_call.update_trivia(leading, trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -250,7 +263,7 @@ define_update_leading_trivia!(Expression, |this, leading| {
             rhs: rhs.to_owned(),
         },
         Expression::Function(anonymous_function) => {
-            Expression::Function(Box::new(anonymous_function.update_leading_trivia(leading)))
+            Expression::Function(anonymous_function.update_leading_trivia(leading))
         }
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_leading_trivia(leading))
@@ -265,7 +278,7 @@ define_update_leading_trivia!(Expression, |this, leading| {
             Expression::Symbol(token_reference.update_leading_trivia(leading))
         }
         Expression::TableConstructor(table_constructor) => {
-            Expression::TableConstructor(Box::new(table_constructor.update_leading_trivia(leading)))
+            Expression::TableConstructor(table_constructor.update_leading_trivia(leading))
         }
         Expression::Var(var) => Expression::Var(var.update_leading_trivia(leading)),
         #[cfg(feature = "luau")]
@@ -290,9 +303,9 @@ define_update_leading_trivia!(Expression, |this, leading| {
 
 define_update_trailing_trivia!(Expression, |this, trailing| {
     match this {
-        Expression::Function(anonymous_function) => Expression::Function(Box::new(
-            anonymous_function.update_trailing_trivia(trailing),
-        )),
+        Expression::Function(anonymous_function) => {
+            Expression::Function(anonymous_function.update_trailing_trivia(trailing))
+        }
         Expression::FunctionCall(function_call) => {
             Expression::FunctionCall(function_call.update_trailing_trivia(trailing))
         }
@@ -305,9 +318,9 @@ define_update_trailing_trivia!(Expression, |this, trailing| {
         Expression::Symbol(token_reference) => {
             Expression::Symbol(token_reference.update_trailing_trivia(trailing))
         }
-        Expression::TableConstructor(table_constructor) => Expression::TableConstructor(Box::new(
-            table_constructor.update_trailing_trivia(trailing),
-        )),
+        Expression::TableConstructor(table_constructor) => {
+            Expression::TableConstructor(table_constructor.update_trailing_trivia(trailing))
+        }
         Expression::Var(var) => Expression::Var(var.update_trailing_trivia(trailing)),
         #[cfg(feature = "luau")]
         Expression::IfExpression(if_expression) => {
@@ -323,7 +336,7 @@ define_update_trailing_trivia!(Expression, |this, trailing| {
             type_assertion,
         } => Expression::TypeAssertion {
             expression: expression.to_owned(),
-            type_assertion: Box::new(type_assertion.update_trailing_trivia(trailing)),
+            type_assertion: type_assertion.update_trailing_trivia(trailing),
         },
         // Add trailing trivia to the end of parentheses
         Expression::Parentheses {
@@ -361,9 +374,9 @@ define_update_trivia!(FunctionArgs, |this, leading, trailing| {
         FunctionArgs::String(token_reference) => {
             FunctionArgs::String(token_reference.update_trivia(leading, trailing))
         }
-        FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
-            Box::new(table_constructor.update_trivia(leading, trailing)),
-        ),
+        FunctionArgs::TableConstructor(table_constructor) => {
+            FunctionArgs::TableConstructor(table_constructor.update_trivia(leading, trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -654,7 +667,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
                     .with_end_token(end_token),
             ))
         }
-        Stmt::If(stmt) => Stmt::If(Box::new(stmt.update_trivia(leading, trailing))),
+        Stmt::If(stmt) => Stmt::If(stmt.update_trivia(leading, trailing)),
         Stmt::FunctionDeclaration(stmt) => {
             let function_token = stmt.function_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
@@ -724,9 +737,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
             ))
         }
         #[cfg(feature = "luau")]
-        Stmt::TypeDeclaration(stmt) => {
-            Stmt::TypeDeclaration(Box::new(stmt.update_trivia(leading, trailing)))
-        }
+        Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(stmt.update_trivia(leading, trailing)),
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeFunction(stmt) => {
             let export_token = stmt.export_token().update_leading_trivia(leading);
@@ -738,9 +749,7 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
             ))
         }
         #[cfg(feature = "luau")]
-        Stmt::TypeFunction(stmt) => {
-            Stmt::TypeFunction(Box::new(stmt.update_trivia(leading, trailing)))
-        }
+        Stmt::TypeFunction(stmt) => Stmt::TypeFunction(stmt.update_trivia(leading, trailing)),
         #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
@@ -762,9 +771,9 @@ define_update_trivia!(Suffix, |this, leading, trailing| {
         Suffix::Call(call) => Suffix::Call(call.update_trivia(leading, trailing)),
         Suffix::Index(index) => Suffix::Index(index.update_trivia(leading, trailing)),
         #[cfg(feature = "luau")]
-        Suffix::TypeInstantiation(type_instantiation) => Suffix::TypeInstantiation(Box::new(
-            type_instantiation.update_trivia(leading, trailing),
-        )),
+        Suffix::TypeInstantiation(type_instantiation) => {
+            Suffix::TypeInstantiation(type_instantiation.update_trivia(leading, trailing))
+        }
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -789,7 +798,7 @@ define_update_leading_trivia!(Var, |this, leading| {
     match this {
         Var::Name(token_reference) => Var::Name(token_reference.update_leading_trivia(leading)),
         Var::Expression(var_expresion) => {
-            Var::Expression(Box::new(var_expresion.update_leading_trivia(leading)))
+            Var::Expression(var_expresion.update_leading_trivia(leading))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -799,7 +808,7 @@ define_update_trailing_trivia!(Var, |this, trailing| {
     match this {
         Var::Name(token_reference) => Var::Name(token_reference.update_trailing_trivia(trailing)),
         Var::Expression(var_expression) => {
-            Var::Expression(Box::new(var_expression.update_trailing_trivia(trailing)))
+            Var::Expression(var_expression.update_trailing_trivia(trailing))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -905,7 +914,7 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
                 parentheses,
                 arguments: arguments.to_owned(),
                 arrow: arrow.to_owned(),
-                return_type: Box::new(return_type.update_trailing_trivia(trailing)),
+                return_type: return_type.update_trailing_trivia(trailing),
             }
         }
         TypeInfo::Generic {
@@ -941,7 +950,7 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             base,
             question_mark,
         } => TypeInfo::Optional {
-            base: Box::new(base.update_leading_trivia(leading)),
+            base: base.update_leading_trivia(leading),
             question_mark: question_mark.update_trailing_trivia(trailing),
         },
 
@@ -972,7 +981,7 @@ define_update_trivia!(TypeInfo, |this, leading, trailing| {
             type_info,
         } => TypeInfo::Variadic {
             ellipsis: ellipsis.update_leading_trivia(leading),
-            type_info: Box::new(type_info.update_trailing_trivia(trailing)),
+            type_info: type_info.update_trailing_trivia(trailing),
         },
 
         TypeInfo::VariadicPack { ellipsis, name } => TypeInfo::VariadicPack {

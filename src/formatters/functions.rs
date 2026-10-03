@@ -443,11 +443,11 @@ pub fn format_function_args(
                     {
                         return format_function_args(
                             ctx,
-                            &FunctionArgs::TableConstructor(Box::new(
+                            &FunctionArgs::TableConstructor(
                                 table_constructor.update_trailing_trivia(FormatTriviaType::Append(
                                     trailing_comments,
                                 )),
-                            )),
+                            ),
                             shape,
                             call_next_node,
                         );

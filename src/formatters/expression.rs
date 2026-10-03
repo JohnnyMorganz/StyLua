@@ -1331,7 +1331,7 @@ fn format_hanging_expression_(
             // to "force" the parentheses to hang if necessary
             let (expression_context, value_shape) = (
                 ExpressionContext::TypeAssertion,
-                shape.take_first_line(&strip_trivia(type_assertion.as_ref())),
+                shape.take_first_line(&strip_trivia(type_assertion)),
             );
 
             let expression = format_hanging_expression_(

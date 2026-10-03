@@ -36,6 +36,18 @@ pub trait GetLeadingTrivia {
     }
 }
 
+impl<T: GetLeadingTrivia> GetLeadingTrivia for Box<T> {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.as_ref().leading_trivia()
+    }
+}
+
+impl<T: GetTrailingTrivia> GetTrailingTrivia for Box<T> {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.as_ref().trailing_trivia()
+    }
+}
+
 pub trait GetTrailingTrivia {
     fn trailing_trivia(&self) -> Vec<Token>;
 
@@ -974,11 +986,8 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeDeclaration(stmt) => {
-            let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.as_ref());
-            (
-                Stmt::TypeDeclaration(Box::new(type_declaration)),
-                trailing_trivia,
-            )
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
+            (Stmt::TypeDeclaration(type_declaration), trailing_trivia)
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeFunction(stmt) => {
@@ -990,11 +999,8 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeFunction(stmt) => {
-            let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.as_ref());
-            (
-                Stmt::TypeFunction(Box::new(type_declaration)),
-                trailing_trivia,
-            )
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(&stmt);
+            (Stmt::TypeFunction(type_declaration), trailing_trivia)
         }
         #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => {
