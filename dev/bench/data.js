@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791048349679,
+  "lastUpdate": 1791049654698,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -18017,6 +18017,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 12773793,
             "range": "± 36779",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e28121bb71103c52a63a648c3df0e02550f873e1",
+          "message": "Fix stylua ignore ranges inside multiline tables (#1168)\n\n* Preserve fields inside stylua ignore ranges in multiline tables\n\nFixes #1134\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01N4AdoLF7wmg7syEYiYnxYr\n\n* Tidy changelog\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01N4AdoLF7wmg7syEYiYnxYr\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
+          "timestamp": "2026-10-03T17:45:27Z",
+          "tree_id": "54b64bd04020dc2594545b6f9c8552280d9683f9",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/e28121bb71103c52a63a648c3df0e02550f873e1"
+        },
+        "date": 1791049653446,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 30644341,
+            "range": "± 725763",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 240566218,
+            "range": "± 2339221",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16270501,
+            "range": "± 321779",
             "unit": "ns/iter"
           }
         ]
