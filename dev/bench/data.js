@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791039946716,
+  "lastUpdate": 1791040006558,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17513,6 +17513,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15611934,
             "range": "± 66823",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "derek.m.cormier@gmail.com",
+            "name": "Derek Cormier",
+            "username": "kormide"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c432308ae8d498523a5477bd25a2d1974c73acc6",
+          "message": "Clarify the syntax for command-line formatting configuration (#1132)",
+          "timestamp": "2026-10-03T17:04:43+02:00",
+          "tree_id": "9ea3ac32849018d1a49ff1e975428af9cbddad69",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c432308ae8d498523a5477bd25a2d1974c73acc6"
+        },
+        "date": 1791040004638,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 19386515,
+            "range": "± 766107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 162564796,
+            "range": "± 6029223",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 10567303,
+            "range": "± 518911",
             "unit": "ns/iter"
           }
         ]
