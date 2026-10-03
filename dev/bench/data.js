@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791040069292,
+  "lastUpdate": 1791040957919,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17597,6 +17597,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15594221,
             "range": "± 896397",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2b000c3f65ffb8fc0fd96508c89c56e84c28b930",
+          "message": "Move CLI tests to an integration test so they find the binary under new Cargo build-dir layout (#1163)",
+          "timestamp": "2026-10-03T17:20:41+02:00",
+          "tree_id": "9e5069723879ae66e0582c00d96536fce64e7f23",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/2b000c3f65ffb8fc0fd96508c89c56e84c28b930"
+        },
+        "date": 1791040956555,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27246244,
+            "range": "± 284166",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232653105,
+            "range": "± 2059840",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15603069,
+            "range": "± 69239",
             "unit": "ns/iter"
           }
         ]
