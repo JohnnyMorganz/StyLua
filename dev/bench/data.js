@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791041015935,
+  "lastUpdate": 1791041376806,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17681,6 +17681,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15722165,
             "range": "± 237775",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a9f89d294c79df563409e193326cfd2ec04f57fa",
+          "message": "Bump brace-expansion in /stylua-vscode (#1165)",
+          "timestamp": "2026-10-03T17:27:27+02:00",
+          "tree_id": "dcbaa8d3237e85756eb3bd954e651c1ba6363050",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/a9f89d294c79df563409e193326cfd2ec04f57fa"
+        },
+        "date": 1791041375672,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28295978,
+            "range": "± 716328",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 235098782,
+            "range": "± 999585",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15520556,
+            "range": "± 305866",
             "unit": "ns/iter"
           }
         ]
