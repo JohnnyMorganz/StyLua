@@ -89,7 +89,9 @@ impl ToFilePath for Uri {
         //
         // Made some modification because `lsp-types` currently use 0.1.4 instead of
         // 0.4.1 from the source.
-        let path = self.path().as_str();
+        // The path component is percent-encoded (e.g. spaces are `%20`), so decode it
+        let path = self.path().as_estr().decode().into_string_lossy();
+        let path = path.as_ref();
 
         #[cfg(windows)]
         {
@@ -1309,6 +1311,82 @@ mod tests {
                     assert_eq!(edits, serde_json::Value::Null);
                 },
                 |receiver| expect_server_shutdown(receiver, 4)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lsp_respects_editorconfig_in_percent_encoded_path() {
+        let contents = "do\n  foo()\nend\n";
+        let cwd = construct_tree!({
+            "my project/.editorconfig": "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
+            "my project/foo.lua": contents,
+        });
+
+        let file = cwd.child("my project/foo.lua");
+        let uri = Uri::from_str(&format!(
+            "file://{}",
+            file.to_str().unwrap().replace(' ', "%20")
+        ))
+        .unwrap();
+
+        lsp_test!(
+            [],
+            [
+                initialize(1, Some(cwd.path())),
+                initialized(),
+                open_text_document(uri.clone(), contents.to_string()),
+                format_document(2, uri.clone(), FormattingOptions::default()),
+                shutdown(3),
+                exit()
+            ],
+            [
+                |receiver| expect_server_initialized(receiver, 1),
+                |receiver| {
+                    let edits: Vec<TextEdit> = expect_response(receiver, 2);
+                    let formatted = apply_text_edits_to(contents, edits);
+                    assert_eq!(formatted, contents);
+                },
+                |receiver| expect_server_shutdown(receiver, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_lsp_respects_editorconfig() {
+        let contents = "do\n  if client:supports_method(vim.lsp.protocol.Methods.textDocument_completion) then\n    foo()\n  end\nend\n";
+        let cwd = construct_tree!({
+            ".editorconfig": "root = true\n\n[*]\ncharset = utf-8\nend_of_line = lf\nindent_size = 2\nindent_style = space\ninsert_final_newline = true\nmax_line_length = 80\ntrim_trailing_whitespace = true\n",
+            "sub/foo.lua": contents,
+        });
+
+        let uri = Uri::from_str(&format!(
+            "file://{}",
+            cwd.child("sub/foo.lua").to_str().unwrap()
+        ))
+        .unwrap();
+
+        lsp_test!(
+            [],
+            [
+                initialize(1, Some(cwd.path())),
+                initialized(),
+                open_text_document(uri.clone(), contents.to_string()),
+                format_document(2, uri.clone(), FormattingOptions::default()),
+                shutdown(3),
+                exit()
+            ],
+            [
+                |receiver| expect_server_initialized(receiver, 1),
+                |receiver| {
+                    let edits: Vec<TextEdit> = expect_response(receiver, 2);
+                    let formatted = apply_text_edits_to(contents, edits);
+                    assert_eq!(
+                        formatted,
+                        "do\n  if\n    client:supports_method(vim.lsp.protocol.Methods.textDocument_completion)\n  then\n    foo()\n  end\nend\n"
+                    );
+                },
+                |receiver| expect_server_shutdown(receiver, 3)
             ]
         );
     }
