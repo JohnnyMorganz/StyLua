@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791046549339,
+  "lastUpdate": 1791047988503,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17933,6 +17933,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15756741,
             "range": "± 218695",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "3773910+Companion@users.noreply.github.com",
+            "name": "owenn",
+            "username": "Companion"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4bc44dcd7c13fe95074953cddcae077d19f25265",
+          "message": "Fix Luau array access modifier formatting (#1148)\n\nPreserve access modifier separator in Luau array types\n\nCloses #1126\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-10-03T17:17:46Z",
+          "tree_id": "b836f7830e3bd1b393d637713950aedd945eb373",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/4bc44dcd7c13fe95074953cddcae077d19f25265"
+        },
+        "date": 1791047987219,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26939094,
+            "range": "± 102936",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233572914,
+            "range": "± 681899",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15535677,
+            "range": "± 36115",
             "unit": "ns/iter"
           }
         ]
