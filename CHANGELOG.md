@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `-- stylua: ignore start`/`end` ranges inside multiline tables reformatting the ignored fields ([#1134](https://github.com/JohnnyMorganz/StyLua/issues/1134))
+
 - When using range formatting, semicolons outside of the provided range are no longer incorrectly formatted ([#1147](https://github.com/JohnnyMorganz/StyLua/issues/1147))
 - Luau: Fixed sort requires not recognizing imports declared with `const`, e.g. `const Foo = require(path)`
 - Luau: Fixed the `read`/`write` access modifier merging into the element type in array type shorthand, changing the meaning of the code (`{ read Foo }` was formatted as `{ readFoo }`) ([#1126](https://github.com/JohnnyMorganz/StyLua/issues/1126))
