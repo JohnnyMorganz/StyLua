@@ -122,7 +122,7 @@ aftman add johnnymorganz/stylua@2.5.2
 Note that these integrations require the StyLua binary to already be installed and available on your system.
 
 - Sublime: [Sublime Text Package](https://github.com/aerobounce/Sublime-Pretty-Lua)
-- Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim)
+- Neovim: [stylua-nvim](https://github.com/ckipp01/stylua-nvim) / [stylua.nvim](https://github.com/wesleimp/stylua.nvim) / [conform.nvim](https://github.com/stevearc/conform.nvim)
 - Zed: [Zed Lua StyLua formatter settings](https://zed.dev/docs/languages/lua#stylua)
 
 ## Usage
@@ -308,6 +308,9 @@ Alternatively, you can specify it on the command line, with `stylua --syntax lua
 ### Options
 
 StyLua only offers the following options:
+
+> [!NOTE]  
+> When specifying the option on the command line, replace the underscore with a dash, e.g., `indent_type` becomes `--indent-type`.
 
 | Option                       | Default            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
