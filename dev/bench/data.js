@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791050528042,
+  "lastUpdate": 1791052258922,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -18101,6 +18101,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16061151,
             "range": "± 165833",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c10650b70d8af4d35f3e94d59a5bb04c421cb838",
+          "message": "Bump full-moon to 3.0.0 (#1170)\n\n* Bump full-moon to 3.0.0\n\nAdapt formatters to the boxed AST variants introduced in full-moon 3.0.0.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019MtfdMa4Px9uSiymRkt8U1\n\n* Simplify full-moon 3.0.0 migration and drop changelog entry\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019MtfdMa4Px9uSiymRkt8U1\n\n* Add Box<T> impls for trivia traits\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019MtfdMa4Px9uSiymRkt8U1\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
+          "timestamp": "2026-10-03T18:29:03Z",
+          "tree_id": "8736bd58fea65801baad102ffdde7f0879ce5e25",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c10650b70d8af4d35f3e94d59a5bb04c421cb838"
+        },
+        "date": 1791052257245,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27635173,
+            "range": "± 450464",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 237137041,
+            "range": "± 2018436",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16266275,
+            "range": "± 68599",
             "unit": "ns/iter"
           }
         ]
