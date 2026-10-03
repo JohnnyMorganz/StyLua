@@ -116,11 +116,14 @@ pub fn format_call(
             let formatted_function_args =
                 format_function_args(ctx, function_args, shape, call_next_node)
                     .update_leading_trivia(FormatTriviaType::Append(function_call_trivia));
-            Call::AnonymousCall(formatted_function_args)
+            Call::AnonymousCall(Box::new(formatted_function_args))
         }
-        Call::MethodCall(method_call) => {
-            Call::MethodCall(format_method_call(ctx, method_call, shape, call_next_node))
-        }
+        Call::MethodCall(method_call) => Call::MethodCall(Box::new(format_method_call(
+            ctx,
+            method_call,
+            shape,
+            call_next_node,
+        ))),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -577,7 +580,7 @@ pub fn format_function_args(
                         TokenType::spaces(1),
                     )])); // Single space before the table constructor
 
-                return FunctionArgs::TableConstructor(table_constructor);
+                return FunctionArgs::TableConstructor(Box::new(table_constructor));
             }
 
             let mut arguments = Punctuated::new();

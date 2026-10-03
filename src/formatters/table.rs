@@ -209,9 +209,9 @@ fn format_field(
 
             Field::ExpressionKey {
                 brackets,
-                key,
+                key: Box::new(key),
                 equal,
-                value,
+                value: Box::new(value),
             }
         }
         Field::NameKey { key, equal, value } => {
@@ -237,7 +237,11 @@ fn format_field(
                 (equal, value)
             };
 
-            Field::NameKey { key, equal, value }
+            Field::NameKey {
+                key,
+                equal,
+                value: Box::new(value),
+            }
         }
         #[cfg(feature = "cfxlua")]
         Field::SetConstructor { dot, name } => {
