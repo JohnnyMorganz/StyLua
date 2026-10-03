@@ -44,11 +44,11 @@ use full_moon::{
 };
 
 macro_rules! fmt_stmt {
-    ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
+    ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident => $wrap:path,)+ }) => {
         match $value {
             $(
                 $(#[$inner])*
-                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt, $shape)),
+                Stmt::$operator(stmt) => Stmt::$operator($wrap($output($ctx, stmt, $shape))),
             )+
             other => panic!("unknown node {:?}", other),
         }
@@ -119,24 +119,23 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
             // Test next 2 available suffixes
             match (suffixes.next(), suffixes.next()) {
                 // Ensure at least one suffix, and only one suffix
-                (Some(suffix), None) => match suffix {
-                    // Ensure suffix is a call with a single table constructor as argument
-                    Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(_))) => true,
-                    Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
-                        arguments,
-                        ..
-                    })) => {
-                        let mut arguments = arguments.iter();
-                        // Test next 2 available arguments
-                        match (arguments.next(), arguments.next()) {
-                            // Ensure at least one argument, and only one argument
-                            // And that the argument is a table constructor
-                            (Some(Expression::TableConstructor(_)), None) => true,
-                            _ => false,
+                (Some(Suffix::Call(Call::AnonymousCall(function_args))), None) => {
+                    match &**function_args {
+                        // Ensure suffix is a call with a single table constructor as argument
+                        FunctionArgs::TableConstructor(_) => true,
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            let mut arguments = arguments.iter();
+                            // Test next 2 available arguments
+                            match (arguments.next(), arguments.next()) {
+                                // Ensure at least one argument, and only one argument
+                                // And that the argument is a table constructor
+                                (Some(Expression::TableConstructor(_)), None) => true,
+                                _ => false,
+                            }
                         }
+                        _ => false,
                     }
-                    _ => false,
-                },
+                }
                 _ => false,
             }
         }
@@ -823,14 +822,14 @@ pub(crate) mod stmt_block {
                         value,
                     } => Field::ExpressionKey {
                         brackets,
-                        key: format_expression_block(ctx, &key, shape),
+                        key: Box::new(format_expression_block(ctx, &key, shape)),
                         equal,
-                        value: format_expression_block(ctx, &value, shape),
+                        value: Box::new(format_expression_block(ctx, &value, shape)),
                     },
                     Field::NameKey { key, equal, value } => Field::NameKey {
                         key,
                         equal,
-                        value: format_expression_block(ctx, &value, shape),
+                        value: Box::new(format_expression_block(ctx, &value, shape)),
                     },
                     #[cfg(feature = "cfxlua")]
                     Field::SetConstructor { dot, name } => Field::SetConstructor { dot, name },
@@ -864,9 +863,13 @@ pub(crate) mod stmt_block {
                     })
                     .collect(),
             },
-            FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
-                format_table_constructor_block(ctx, table_constructor, shape),
-            ),
+            FunctionArgs::TableConstructor(table_constructor) => {
+                FunctionArgs::TableConstructor(Box::new(format_table_constructor_block(
+                    ctx,
+                    table_constructor,
+                    shape,
+                )))
+            }
             _ => function_args.to_owned(),
         }
     }
@@ -888,12 +891,12 @@ pub(crate) mod stmt_block {
             .suffixes()
             .map(|suffix| match suffix {
                 Suffix::Call(call) => Suffix::Call(match call {
-                    Call::AnonymousCall(function_args) => {
-                        Call::AnonymousCall(format_function_args_block(ctx, function_args, shape))
-                    }
+                    Call::AnonymousCall(function_args) => Call::AnonymousCall(Box::new(
+                        format_function_args_block(ctx, function_args, shape),
+                    )),
                     Call::MethodCall(method_call) => {
                         let args = format_function_args_block(ctx, method_call.args(), shape);
-                        Call::MethodCall(method_call.to_owned().with_args(args))
+                        Call::MethodCall(Box::new(method_call.as_ref().to_owned().with_args(args)))
                     }
                     other => panic!("unknown node {:?}", other),
                 }),
@@ -903,7 +906,7 @@ pub(crate) mod stmt_block {
                         expression,
                     } => Index::Brackets {
                         brackets: brackets.to_owned(),
-                        expression: format_expression_block(ctx, expression, shape),
+                        expression: Box::new(format_expression_block(ctx, expression, shape)),
                     },
                     _ => index.to_owned(),
                 }),
@@ -963,9 +966,13 @@ pub(crate) mod stmt_block {
             Expression::FunctionCall(function_call) => {
                 Expression::FunctionCall(format_function_call_block(ctx, function_call, shape))
             }
-            Expression::TableConstructor(table_constructor) => Expression::TableConstructor(
-                format_table_constructor_block(ctx, table_constructor, shape),
-            ),
+            Expression::TableConstructor(table_constructor) => {
+                Expression::TableConstructor(Box::new(format_table_constructor_block(
+                    ctx,
+                    table_constructor,
+                    shape,
+                )))
+            }
             #[cfg(feature = "luau")]
             Expression::TypeAssertion {
                 expression,
@@ -1001,7 +1008,7 @@ pub(crate) mod stmt_block {
             }
             Stmt::Do(do_block) => {
                 let block = format_block(ctx, do_block.block(), block_shape);
-                Stmt::Do(do_block.to_owned().with_block(block))
+                Stmt::Do(Box::new(do_block.to_owned().with_block(block)))
             }
             Stmt::FunctionCall(function_call) => {
                 Stmt::FunctionCall(format_function_call_block(ctx, function_call, block_shape))
@@ -1009,11 +1016,11 @@ pub(crate) mod stmt_block {
             Stmt::FunctionDeclaration(function_declaration) => {
                 let block = format_block(ctx, function_declaration.body().block(), block_shape);
                 let body = function_declaration.body().to_owned().with_block(block);
-                Stmt::FunctionDeclaration(function_declaration.to_owned().with_body(body))
+                Stmt::FunctionDeclaration(Box::new(function_declaration.to_owned().with_body(body)))
             }
             Stmt::GenericFor(generic_for) => {
                 let block = format_block(ctx, generic_for.block(), block_shape);
-                Stmt::GenericFor(generic_for.to_owned().with_block(block))
+                Stmt::GenericFor(Box::new(generic_for.to_owned().with_block(block)))
             }
             Stmt::If(if_block) => {
                 let block = format_block(ctx, if_block.block(), block_shape);
@@ -1033,13 +1040,13 @@ pub(crate) mod stmt_block {
                     .else_block()
                     .map(|block| format_block(ctx, block, block_shape));
 
-                Stmt::If(
+                Stmt::If(Box::new(
                     if_block
                         .to_owned()
                         .with_block(block)
                         .with_else_if(else_if)
                         .with_else(else_block),
-                )
+                ))
             }
             Stmt::LocalAssignment(assignment) => {
                 let expressions = assignment
@@ -1057,24 +1064,24 @@ pub(crate) mod stmt_block {
             Stmt::LocalFunction(local_function) => {
                 let block = format_block(ctx, local_function.body().block(), block_shape);
                 let body = local_function.body().to_owned().with_block(block);
-                Stmt::LocalFunction(local_function.to_owned().with_body(body))
+                Stmt::LocalFunction(Box::new(local_function.to_owned().with_body(body)))
             }
             Stmt::NumericFor(numeric_for) => {
                 let block = format_block(ctx, numeric_for.block(), block_shape);
-                Stmt::NumericFor(numeric_for.to_owned().with_block(block))
+                Stmt::NumericFor(Box::new(numeric_for.to_owned().with_block(block)))
             }
             Stmt::Repeat(repeat) => {
                 let block = format_block(ctx, repeat.block(), block_shape);
-                Stmt::Repeat(repeat.to_owned().with_block(block))
+                Stmt::Repeat(Box::new(repeat.to_owned().with_block(block)))
             }
             Stmt::While(while_block) => {
                 let block = format_block(ctx, while_block.block(), block_shape);
-                Stmt::While(while_block.to_owned().with_block(block))
+                Stmt::While(Box::new(while_block.to_owned().with_block(block)))
             }
             #[cfg(any(feature = "luau", feature = "cfxlua"))]
             Stmt::CompoundAssignment(compound_assignment) => {
                 let rhs = format_expression_block(ctx, compound_assignment.rhs(), block_shape);
-                Stmt::CompoundAssignment(compound_assignment.to_owned().with_rhs(rhs))
+                Stmt::CompoundAssignment(Box::new(compound_assignment.to_owned().with_rhs(rhs)))
             }
             #[cfg(feature = "luau")]
             Stmt::ConstAssignment(const_assignment) => {
@@ -1093,7 +1100,7 @@ pub(crate) mod stmt_block {
             Stmt::ConstFunction(const_function) => {
                 let block = format_block(ctx, const_function.body().block(), block_shape);
                 let body = const_function.body().to_owned().with_block(block);
-                Stmt::ConstFunction(const_function.to_owned().with_body(body))
+                Stmt::ConstFunction(Box::new(const_function.to_owned().with_body(body)))
             }
             #[cfg(feature = "luau")]
             Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
@@ -1106,16 +1113,16 @@ pub(crate) mod stmt_block {
                     exported_type_function.type_function(),
                     block_shape,
                 );
-                Stmt::ExportedTypeFunction(
+                Stmt::ExportedTypeFunction(Box::new(
                     exported_type_function
                         .to_owned()
                         .with_type_function(type_function),
-                )
+                ))
             }
             #[cfg(feature = "luau")]
-            Stmt::TypeFunction(type_function) => {
-                Stmt::TypeFunction(format_type_function_block(ctx, type_function, block_shape))
-            }
+            Stmt::TypeFunction(type_function) => Stmt::TypeFunction(Box::new(
+                format_type_function_block(ctx, type_function, block_shape),
+            )),
             #[cfg(any(feature = "lua52", feature = "luajit"))]
             Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
             #[cfg(any(feature = "lua52", feature = "luajit"))]
@@ -1135,26 +1142,26 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
     }
 
     fmt_stmt!(ctx, stmt, shape, {
-        Assignment = format_assignment,
-        Do = format_do_block,
-        FunctionCall = format_function_call_stmt,
-        FunctionDeclaration = format_function_declaration,
-        GenericFor = format_generic_for,
-        If = format_if,
-        LocalAssignment = format_local_assignment,
-        LocalFunction = format_local_function,
-        NumericFor = format_numeric_for,
-        Repeat = format_repeat_block,
-        While = format_while_block,
-        #[cfg(any(feature = "luau", feature = "cfxlua"))] CompoundAssignment = format_compound_assignment,
-        #[cfg(feature = "luau")] ConstAssignment = format_const_assignment,
-        #[cfg(feature = "luau")] ConstFunction = format_const_function,
-        #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
-        #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
-        #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function,
-        #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt,
-        #[cfg(any(feature = "lua52", feature = "luajit"))] Goto = format_goto,
-        #[cfg(any(feature = "lua52", feature = "luajit"))] Label = format_label,
+        Assignment = format_assignment => std::convert::identity,
+        Do = format_do_block => Box::new,
+        FunctionCall = format_function_call_stmt => std::convert::identity,
+        FunctionDeclaration = format_function_declaration => Box::new,
+        GenericFor = format_generic_for => Box::new,
+        If = format_if => Box::new,
+        LocalAssignment = format_local_assignment => std::convert::identity,
+        LocalFunction = format_local_function => Box::new,
+        NumericFor = format_numeric_for => Box::new,
+        Repeat = format_repeat_block => Box::new,
+        While = format_while_block => Box::new,
+        #[cfg(any(feature = "luau", feature = "cfxlua"))] CompoundAssignment = format_compound_assignment => Box::new,
+        #[cfg(feature = "luau")] ConstAssignment = format_const_assignment => std::convert::identity,
+        #[cfg(feature = "luau")] ConstFunction = format_const_function => Box::new,
+        #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration => Box::new,
+        #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt => Box::new,
+        #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function => Box::new,
+        #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt => Box::new,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Goto = format_goto => std::convert::identity,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Label = format_label => std::convert::identity,
     })
 }
 

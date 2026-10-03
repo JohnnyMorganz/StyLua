@@ -204,7 +204,7 @@ fn format_expression_internal(
         }
         #[cfg(feature = "luau")]
         Expression::IfExpression(if_expression) => {
-            Expression::IfExpression(format_if_expression(ctx, if_expression, shape))
+            Expression::IfExpression(Box::new(format_if_expression(ctx, if_expression, shape)))
         }
         Expression::Number(token_reference) => {
             Expression::Number(format_token_reference(ctx, token_reference, shape))
@@ -214,14 +214,14 @@ fn format_expression_internal(
         }
         #[cfg(feature = "luau")]
         Expression::InterpolatedString(interpolated_string) => Expression::InterpolatedString(
-            format_interpolated_string(ctx, interpolated_string, shape),
+            Box::new(format_interpolated_string(ctx, interpolated_string, shape)),
         ),
         Expression::Symbol(token_reference) => {
             Expression::Symbol(format_token_reference(ctx, token_reference, shape))
         }
-        Expression::TableConstructor(table_constructor) => {
-            Expression::TableConstructor(format_table_constructor(ctx, table_constructor, shape))
-        }
+        Expression::TableConstructor(table_constructor) => Expression::TableConstructor(Box::new(
+            format_table_constructor(ctx, table_constructor, shape),
+        )),
         Expression::Var(var) => Expression::Var(format_var(ctx, var, shape)),
 
         #[cfg(feature = "luau")]
@@ -235,7 +235,7 @@ fn format_expression_internal(
                 ExpressionContext::TypeAssertion,
                 shape,
             )),
-            type_assertion: format_type_assertion(ctx, type_assertion, shape),
+            type_assertion: Box::new(format_type_assertion(ctx, type_assertion, shape)),
         },
         Expression::Parentheses {
             contained,
@@ -421,23 +421,25 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
 
                 Index::Brackets {
                     brackets,
-                    expression,
+                    expression: Box::new(expression),
                 }
             } else if is_brackets_string(expression) {
                 Index::Brackets {
                     brackets: format_contained_span(ctx, brackets, shape),
-                    expression: format_expression(ctx, expression, shape + 2) // 2 = "[ "
-                        .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
-                            TokenType::spaces(1),
-                        )]))
-                        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
-                            TokenType::spaces(1),
-                        )])),
+                    expression: Box::new(
+                        format_expression(ctx, expression, shape + 2) // 2 = "[ "
+                            .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                                TokenType::spaces(1),
+                            )]))
+                            .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                                TokenType::spaces(1),
+                            )])),
+                    ),
                 }
             } else {
                 Index::Brackets {
                     brackets: format_contained_span(ctx, brackets, shape),
-                    expression: format_expression(ctx, expression, shape + 1), // 1 = opening bracket
+                    expression: Box::new(format_expression(ctx, expression, shape + 1)), // 1 = opening bracket
                 }
             }
         }
@@ -499,9 +501,9 @@ pub fn format_suffix(
         Suffix::Call(call) => Suffix::Call(format_call(ctx, call, shape, call_next_node)),
         Suffix::Index(index) => Suffix::Index(format_index(ctx, index, shape)),
         #[cfg(feature = "luau")]
-        Suffix::TypeInstantiation(type_instantiation) => {
-            Suffix::TypeInstantiation(format_type_instantiation(ctx, type_instantiation, shape))
-        }
+        Suffix::TypeInstantiation(type_instantiation) => Suffix::TypeInstantiation(Box::new(
+            format_type_instantiation(ctx, type_instantiation, shape),
+        )),
         other => panic!("unknown node {:?}", other),
     }
 }
@@ -1329,7 +1331,7 @@ fn format_hanging_expression_(
             // to "force" the parentheses to hang if necessary
             let (expression_context, value_shape) = (
                 ExpressionContext::TypeAssertion,
-                shape.take_first_line(&strip_trivia(type_assertion)),
+                shape.take_first_line(&strip_trivia(type_assertion.as_ref())),
             );
 
             let expression = format_hanging_expression_(
@@ -1346,7 +1348,11 @@ fn format_hanging_expression_(
 
             Expression::TypeAssertion {
                 expression: Box::new(expression),
-                type_assertion: format_type_assertion(ctx, type_assertion, assertion_shape),
+                type_assertion: Box::new(format_type_assertion(
+                    ctx,
+                    type_assertion,
+                    assertion_shape,
+                )),
             }
         }
         Expression::Parentheses {

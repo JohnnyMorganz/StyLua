@@ -30,7 +30,7 @@ macro_rules! update_first_token {
     ($enum:ident, $var:ident, $token:expr, $update_method:ident) => {{
         let leading_trivia = trivia_remove_leading_newlines($token.leading_trivia().collect());
         let new_token = $token.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-        Stmt::$enum($var.$update_method(new_token))
+        Stmt::$enum($var.$update_method(new_token).into())
     }};
 }
 
@@ -383,7 +383,7 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
             #[cfg(feature = "luau")]
             if let Some(attributes) = strip_attribute_leading_newlines(local_function.attributes())
             {
-                return Stmt::LocalFunction(local_function.with_attributes(attributes));
+                return Stmt::LocalFunction(Box::new(local_function.with_attributes(attributes)));
             }
             update_first_token!(
                 LocalFunction,
@@ -417,7 +417,7 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(compound_assignment) => {
             let lhs = var_remove_leading_newline(compound_assignment.lhs().to_owned());
-            Stmt::CompoundAssignment(compound_assignment.with_lhs(lhs))
+            Stmt::CompoundAssignment(Box::new(compound_assignment.with_lhs(lhs)))
         }
         #[cfg(feature = "luau")]
         Stmt::ConstAssignment(const_assignment) => update_first_token!(
@@ -430,7 +430,7 @@ fn stmt_remove_leading_newlines(stmt: Stmt) -> Stmt {
         Stmt::ConstFunction(const_function) => {
             if let Some(attributes) = strip_attribute_leading_newlines(const_function.attributes())
             {
-                Stmt::ConstFunction(const_function.with_attributes(attributes))
+                Stmt::ConstFunction(Box::new(const_function.with_attributes(attributes)))
             } else {
                 update_first_token!(
                     ConstFunction,

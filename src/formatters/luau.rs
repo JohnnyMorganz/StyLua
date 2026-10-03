@@ -1063,12 +1063,12 @@ pub fn format_type_field_key(
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
             brackets: format_contained_span(ctx, brackets, shape)
                 .update_leading_trivia(leading_trivia),
-            inner: format_type_info_internal(
+            inner: Box::new(format_type_info_internal(
                 ctx,
                 inner,
                 TypeInfoContext::new().mark_within_table_indexer(),
                 shape + 1,
-            ), // 1 = "["
+            )), // 1 = "["
         },
         other => panic!("unknown node {:?}", other),
     }

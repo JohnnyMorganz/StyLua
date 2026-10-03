@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated full-moon to 3.0.0
+
 ### Fixed
 
 - Fixed `-- stylua: ignore start`/`end` ranges inside multiline tables reformatting the ignored fields ([#1134](https://github.com/JohnnyMorganz/StyLua/issues/1134))

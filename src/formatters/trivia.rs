@@ -216,10 +216,10 @@ define_update_trivia!(ContainedSpan, |this, leading, trailing| {
 define_update_trivia!(Call, |this, leading, trailing| {
     match this {
         Call::AnonymousCall(function_args) => {
-            Call::AnonymousCall(function_args.update_trivia(leading, trailing))
+            Call::AnonymousCall(Box::new(function_args.update_trivia(leading, trailing)))
         }
         Call::MethodCall(method_call) => {
-            Call::MethodCall(method_call.update_trivia(leading, trailing))
+            Call::MethodCall(Box::new(method_call.update_trivia(leading, trailing)))
         }
         other => panic!("unknown node {:?}", other),
     }
@@ -265,17 +265,17 @@ define_update_leading_trivia!(Expression, |this, leading| {
             Expression::Symbol(token_reference.update_leading_trivia(leading))
         }
         Expression::TableConstructor(table_constructor) => {
-            Expression::TableConstructor(table_constructor.update_leading_trivia(leading))
+            Expression::TableConstructor(Box::new(table_constructor.update_leading_trivia(leading)))
         }
         Expression::Var(var) => Expression::Var(var.update_leading_trivia(leading)),
         #[cfg(feature = "luau")]
         Expression::IfExpression(if_expression) => {
-            Expression::IfExpression(if_expression.update_leading_trivia(leading))
+            Expression::IfExpression(Box::new(if_expression.update_leading_trivia(leading)))
         }
         #[cfg(feature = "luau")]
-        Expression::InterpolatedString(interpolated_string) => {
-            Expression::InterpolatedString(interpolated_string.update_leading_trivia(leading))
-        }
+        Expression::InterpolatedString(interpolated_string) => Expression::InterpolatedString(
+            Box::new(interpolated_string.update_leading_trivia(leading)),
+        ),
         #[cfg(feature = "luau")]
         Expression::TypeAssertion {
             expression,
@@ -305,25 +305,25 @@ define_update_trailing_trivia!(Expression, |this, trailing| {
         Expression::Symbol(token_reference) => {
             Expression::Symbol(token_reference.update_trailing_trivia(trailing))
         }
-        Expression::TableConstructor(table_constructor) => {
-            Expression::TableConstructor(table_constructor.update_trailing_trivia(trailing))
-        }
+        Expression::TableConstructor(table_constructor) => Expression::TableConstructor(Box::new(
+            table_constructor.update_trailing_trivia(trailing),
+        )),
         Expression::Var(var) => Expression::Var(var.update_trailing_trivia(trailing)),
         #[cfg(feature = "luau")]
         Expression::IfExpression(if_expression) => {
-            Expression::IfExpression(if_expression.update_trailing_trivia(trailing))
+            Expression::IfExpression(Box::new(if_expression.update_trailing_trivia(trailing)))
         }
         #[cfg(feature = "luau")]
-        Expression::InterpolatedString(interpolated_string) => {
-            Expression::InterpolatedString(interpolated_string.update_trailing_trivia(trailing))
-        }
+        Expression::InterpolatedString(interpolated_string) => Expression::InterpolatedString(
+            Box::new(interpolated_string.update_trailing_trivia(trailing)),
+        ),
         #[cfg(feature = "luau")]
         Expression::TypeAssertion {
             expression,
             type_assertion,
         } => Expression::TypeAssertion {
             expression: expression.to_owned(),
-            type_assertion: type_assertion.update_trailing_trivia(trailing),
+            type_assertion: Box::new(type_assertion.update_trailing_trivia(trailing)),
         },
         // Add trailing trivia to the end of parentheses
         Expression::Parentheses {
@@ -361,9 +361,9 @@ define_update_trivia!(FunctionArgs, |this, leading, trailing| {
         FunctionArgs::String(token_reference) => {
             FunctionArgs::String(token_reference.update_trivia(leading, trailing))
         }
-        FunctionArgs::TableConstructor(table_constructor) => {
-            FunctionArgs::TableConstructor(table_constructor.update_trivia(leading, trailing))
-        }
+        FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
+            Box::new(table_constructor.update_trivia(leading, trailing)),
+        ),
         other => panic!("unknown node {:?}", other),
     }
 });
@@ -629,76 +629,76 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
         Stmt::Repeat(repeat_block) => {
             let repeat_token = repeat_block.repeat_token().update_leading_trivia(leading);
             let until = repeat_block.until().update_trailing_trivia(trailing);
-            Stmt::Repeat(
+            Stmt::Repeat(Box::new(
                 repeat_block
                     .to_owned()
                     .with_repeat_token(repeat_token)
                     .with_until(until),
-            )
+            ))
         }
         Stmt::Do(stmt) => {
             let do_token = stmt.do_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::Do(
+            Stmt::Do(Box::new(
                 stmt.to_owned()
                     .with_do_token(do_token)
                     .with_end_token(end_token),
-            )
+            ))
         }
         Stmt::GenericFor(stmt) => {
             let for_token = stmt.for_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::GenericFor(
+            Stmt::GenericFor(Box::new(
                 stmt.to_owned()
                     .with_for_token(for_token)
                     .with_end_token(end_token),
-            )
+            ))
         }
-        Stmt::If(stmt) => Stmt::If(stmt.update_trivia(leading, trailing)),
+        Stmt::If(stmt) => Stmt::If(Box::new(stmt.update_trivia(leading, trailing))),
         Stmt::FunctionDeclaration(stmt) => {
             let function_token = stmt.function_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);
-            Stmt::FunctionDeclaration(
+            Stmt::FunctionDeclaration(Box::new(
                 stmt.to_owned()
                     .with_function_token(function_token)
                     .with_body(body),
-            )
+            ))
         }
         Stmt::LocalFunction(stmt) => {
             let local_token = stmt.local_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);
-            Stmt::LocalFunction(
+            Stmt::LocalFunction(Box::new(
                 stmt.to_owned()
                     .with_local_token(local_token)
                     .with_body(body),
-            )
+            ))
         }
         Stmt::NumericFor(stmt) => {
             let for_token = stmt.for_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::NumericFor(
+            Stmt::NumericFor(Box::new(
                 stmt.to_owned()
                     .with_for_token(for_token)
                     .with_end_token(end_token),
-            )
+            ))
         }
         Stmt::While(stmt) => {
             let while_token = stmt.while_token().update_leading_trivia(leading);
             let end_token = stmt.end_token().update_trailing_trivia(trailing);
-            Stmt::While(
+            Stmt::While(Box::new(
                 stmt.to_owned()
                     .with_while_token(while_token)
                     .with_end_token(end_token),
-            )
+            ))
         }
 
         #[cfg(feature = "luau")]
         Stmt::CompoundAssignment(stmt) => {
             let lhs = stmt.lhs().update_leading_trivia(leading);
             let rhs = stmt.rhs().update_trailing_trivia(trailing);
-            Stmt::CompoundAssignment(stmt.to_owned().with_lhs(lhs).with_rhs(rhs))
+            Stmt::CompoundAssignment(Box::new(stmt.to_owned().with_lhs(lhs).with_rhs(rhs)))
         }
         #[cfg(feature = "luau")]
         Stmt::ConstAssignment(stmt) => Stmt::ConstAssignment(stmt.update_trivia(leading, trailing)),
@@ -707,36 +707,40 @@ define_update_trivia!(Stmt, |this, leading, trailing| {
             let const_token = stmt.const_token().update_leading_trivia(leading);
             let end_token = stmt.body().end_token().update_trailing_trivia(trailing);
             let body = stmt.body().to_owned().with_end_token(end_token);
-            Stmt::ConstFunction(
+            Stmt::ConstFunction(Box::new(
                 stmt.to_owned()
                     .with_const_token(const_token)
                     .with_body(body),
-            )
+            ))
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
             let export_token = stmt.export_token().update_leading_trivia(leading);
             let type_declaration = stmt.type_declaration().update_trailing_trivia(trailing);
-            Stmt::ExportedTypeDeclaration(
+            Stmt::ExportedTypeDeclaration(Box::new(
                 stmt.to_owned()
                     .with_export_token(export_token)
                     .with_type_declaration(type_declaration),
-            )
+            ))
         }
         #[cfg(feature = "luau")]
-        Stmt::TypeDeclaration(stmt) => Stmt::TypeDeclaration(stmt.update_trivia(leading, trailing)),
+        Stmt::TypeDeclaration(stmt) => {
+            Stmt::TypeDeclaration(Box::new(stmt.update_trivia(leading, trailing)))
+        }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeFunction(stmt) => {
             let export_token = stmt.export_token().update_leading_trivia(leading);
             let type_function = stmt.type_function().update_trailing_trivia(trailing);
-            Stmt::ExportedTypeFunction(
+            Stmt::ExportedTypeFunction(Box::new(
                 stmt.to_owned()
                     .with_export_token(export_token)
                     .with_type_function(type_function),
-            )
+            ))
         }
         #[cfg(feature = "luau")]
-        Stmt::TypeFunction(stmt) => Stmt::TypeFunction(stmt.update_trivia(leading, trailing)),
+        Stmt::TypeFunction(stmt) => {
+            Stmt::TypeFunction(Box::new(stmt.update_trivia(leading, trailing)))
+        }
         #[cfg(any(feature = "lua52", feature = "luajit"))]
         Stmt::Goto(stmt) => Stmt::Goto(
             stmt.to_owned()
@@ -758,9 +762,9 @@ define_update_trivia!(Suffix, |this, leading, trailing| {
         Suffix::Call(call) => Suffix::Call(call.update_trivia(leading, trailing)),
         Suffix::Index(index) => Suffix::Index(index.update_trivia(leading, trailing)),
         #[cfg(feature = "luau")]
-        Suffix::TypeInstantiation(type_instantiation) => {
-            Suffix::TypeInstantiation(type_instantiation.update_trivia(leading, trailing))
-        }
+        Suffix::TypeInstantiation(type_instantiation) => Suffix::TypeInstantiation(Box::new(
+            type_instantiation.update_trivia(leading, trailing),
+        )),
         other => panic!("unknown node {:?}", other),
     }
 });
