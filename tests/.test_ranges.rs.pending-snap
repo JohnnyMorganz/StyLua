@@ -1,0 +1,23 @@
+{"run_id":"1791048425-972904971","line":312,"new":{"module_name":"test_ranges","snapshot_name":"nested_range_function_call_table","metadata":{"source":"tests/test_ranges.rs","assertion_line":312,"expression":"format(r###\"call   {   x  =   function()\n   ||local    z   =    2||\nend}\n\"###)"},"snapshot":"call   {   x  =   function()\n\t\tlocal z = 2\nend}\n"},"old":{"module_name":"test_ranges","metadata":{},"snapshot":"call   {   x  =   function()\n\tlocal z = 2\nend}"}}
+{"run_id":"1791048434-892136500","line":83,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":44,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":28,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":59,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":244,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":370,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":276,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":296,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":312,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":260,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":228,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":192,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":328,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":175,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":401,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":212,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":348,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":386,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":417,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":434,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":449,"new":null,"old":null}
+{"run_id":"1791048434-892136500","line":96,"new":null,"old":null}

@@ -318,7 +318,7 @@ end}
         ),
     @r###"
     call   {   x  =   function()
-    	local z = 2
+    		local z = 2
     end}
     "###);
 }
@@ -337,7 +337,7 @@ fn test_nested_range_table_1() {
     @r###"
     local    z    = {
                           function()
-    	local z = 5
+    		local z = 5
                         end
                 }
     "###);
@@ -358,7 +358,7 @@ fn test_nested_range_table_2() {
     @r###"
     local    z    = {
                           [(function()
-    	return random_func()
+    		return random_func()
 
                 end)()] = true
                 }
@@ -440,6 +440,27 @@ return baz;
         @r###"
     local foo = bar
     return baz;
+    "###
+    );
+}
+
+#[test]
+fn test_range_nested_in_function_expression_in_table() {
+    insta::assert_snapshot!(
+        format(
+            "local M = {}\n\nM.catalog = {\n\tbuild = function()\n\t\t||local payload   =   {}||\n\t\treturn payload\n\tend,\n}\n\nreturn M\n",
+        ),
+        @r###"
+    local M = {}
+
+    M.catalog = {
+    	build = function()
+    		local payload = {}
+    		return payload
+    	end,
+    }
+
+    return M
     "###
     );
 }
