@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778946441432,
+  "lastUpdate": 1791039946716,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17471,6 +17471,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16300950,
             "range": "± 73442",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "caleb@alerque.com",
+            "name": "Caleb Maclennan",
+            "username": "alerque"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c560078a50ff68f857ecf525cafb80b7fb80dcfd",
+          "message": "Mention conform.nvim as a Neovim formatter plugin that supports stylua (#1124)",
+          "timestamp": "2026-10-03T17:03:54+02:00",
+          "tree_id": "6273f1f0135d7279a31a9497ba84019762d422e3",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/c560078a50ff68f857ecf525cafb80b7fb80dcfd"
+        },
+        "date": 1791039945186,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27084199,
+            "range": "± 232787",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 231526075,
+            "range": "± 959338",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15611934,
+            "range": "± 66823",
             "unit": "ns/iter"
           }
         ]
