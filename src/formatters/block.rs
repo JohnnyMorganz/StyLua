@@ -589,6 +589,10 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     while let Some((stmt, semi)) = stmt_iterator.next() {
         ctx = ctx.check_toggle_formatting(stmt);
 
+        // A statement outside the range keeps its original semicolon:
+        // stripping it would rewrite code the range did not ask for
+        let out_of_range = matches!(ctx.should_format_node(stmt), FormatNode::NotInRange);
+
         let shape = shape.reset();
         let mut stmt = format_stmt(&ctx, stmt, shape);
 
@@ -602,49 +606,53 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
 
         // If we have a semicolon, we need to push all the trailing trivia from the statement
         // and move it to the end of the semicolon
-        let semicolon = match check_stmt_requires_semicolon(&stmt, stmt_iterator.peek()) {
-            true => {
-                let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
-                stmt = updated_stmt;
-                Some(
-                    match semi {
-                        Some(semi) => crate::fmt_symbol!(&ctx, semi, ";", shape),
-                        None => TokenReference::symbol(";").expect("could not make semicolon"),
-                    }
-                    .update_trailing_trivia(FormatTriviaType::Append(trivia)),
-                )
-            }
-            false => match semi {
-                Some(semi) => {
-                    // We used to have a semicolon, but now we are removing it
-                    // We want to keep any old comments on the semicolon token, otherwise we will lose it
-                    // Move the comments to the end of the stmt, but before the newline token
-                    // TODO: this is a bit of a hack - we should probably move newline appending to this function
-                    let trivia = trivia_util::get_stmt_trailing_trivia(stmt.to_owned())
-                        .1
-                        .iter()
-                        .rev()
-                        .skip(1) // Remove the newline at the end
-                        .rev()
-                        .cloned()
-                        .chain(
-                            semi.leading_trivia()
-                                .chain(semi.trailing_trivia())
-                                .filter(|token| trivia_util::trivia_is_comment(token))
-                                .flat_map(|x| {
-                                    // Prepend a single space beforehand
-                                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                                }),
-                        )
-                        .chain(std::iter::once(create_newline_trivia(&ctx)))
-                        .collect();
-
-                    stmt = stmt.update_trailing_trivia(FormatTriviaType::Replace(trivia));
-
-                    None
+        let semicolon = if out_of_range {
+            semi.to_owned()
+        } else {
+            match check_stmt_requires_semicolon(&stmt, stmt_iterator.peek()) {
+                true => {
+                    let (updated_stmt, trivia) = trivia_util::get_stmt_trailing_trivia(stmt);
+                    stmt = updated_stmt;
+                    Some(
+                        match semi {
+                            Some(semi) => crate::fmt_symbol!(&ctx, semi, ";", shape),
+                            None => TokenReference::symbol(";").expect("could not make semicolon"),
+                        }
+                        .update_trailing_trivia(FormatTriviaType::Append(trivia)),
+                    )
                 }
-                None => None,
-            },
+                false => match semi {
+                    Some(semi) => {
+                        // We used to have a semicolon, but now we are removing it
+                        // We want to keep any old comments on the semicolon token, otherwise we will lose it
+                        // Move the comments to the end of the stmt, but before the newline token
+                        // TODO: this is a bit of a hack - we should probably move newline appending to this function
+                        let trivia = trivia_util::get_stmt_trailing_trivia(stmt.to_owned())
+                            .1
+                            .iter()
+                            .rev()
+                            .skip(1) // Remove the newline at the end
+                            .rev()
+                            .cloned()
+                            .chain(
+                                semi.leading_trivia()
+                                    .chain(semi.trailing_trivia())
+                                    .filter(|token| trivia_util::trivia_is_comment(token))
+                                    .flat_map(|x| {
+                                        // Prepend a single space beforehand
+                                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                                    }),
+                            )
+                            .chain(std::iter::once(create_newline_trivia(&ctx)))
+                            .collect();
+
+                        stmt = stmt.update_trailing_trivia(FormatTriviaType::Replace(trivia));
+
+                        None
+                    }
+                    None => None,
+                },
+            }
         };
 
         formatted_statements.push((stmt, semicolon))
@@ -656,6 +664,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let formatted_last_stmt = match block.last_stmt_with_semicolon() {
         Some((last_stmt, semi)) => {
             ctx = ctx.check_toggle_formatting(last_stmt);
+
+            // Like statements above, an out-of-range last statement keeps its semicolon
+            let out_of_range = matches!(ctx.should_format_node(last_stmt), FormatNode::NotInRange);
 
             let shape = shape.reset();
             let mut last_stmt = format_last_stmt(&ctx, last_stmt, shape);
@@ -669,6 +680,7 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
             // LastStmt will never need a semicolon
             // We need to check if we previously had a semicolon, and keep the comments if so
             let semicolon = match semi {
+                Some(semi) if out_of_range => Some(semi.to_owned()),
                 Some(semi) => {
                     // Append semicolon trailing trivia to the end, but before the newline
                     // TODO: this is a bit of a hack - we should probably move newline appending to this function
