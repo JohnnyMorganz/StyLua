@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791040006558,
+  "lastUpdate": 1791040069292,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17555,6 +17555,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 10567303,
             "range": "± 518911",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "18e460f306c0480972aa50f5b1a99f6f3ce0740e",
+          "message": "Bump form-data from 3.0.4 to 3.0.5 in /stylua-vscode (#1130)",
+          "timestamp": "2026-10-03T17:05:32+02:00",
+          "tree_id": "cd870cc7c95566b4adf1582c1018f5b70a79c09e",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/18e460f306c0480972aa50f5b1a99f6f3ce0740e"
+        },
+        "date": 1791040067930,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27751565,
+            "range": "± 325614",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233905437,
+            "range": "± 1621037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15594221,
+            "range": "± 896397",
             "unit": "ns/iter"
           }
         ]
