@@ -44,11 +44,11 @@ use full_moon::{
 };
 
 macro_rules! fmt_stmt {
-    ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident => $wrap:path,)+ }) => {
+    ($ctx:expr, $value:ident, $shape:ident, { $($(#[$inner:meta])* $operator:ident = $output:ident,)+ }) => {
         match $value {
             $(
                 $(#[$inner])*
-                Stmt::$operator(stmt) => Stmt::$operator($wrap($output($ctx, stmt, $shape))),
+                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt, $shape).into()),
             )+
             other => panic!("unknown node {:?}", other),
         }
@@ -120,7 +120,7 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
             match (suffixes.next(), suffixes.next()) {
                 // Ensure at least one suffix, and only one suffix
                 (Some(Suffix::Call(Call::AnonymousCall(function_args))), None) => {
-                    match &**function_args {
+                    match function_args.as_ref() {
                         // Ensure suffix is a call with a single table constructor as argument
                         FunctionArgs::TableConstructor(_) => true,
                         FunctionArgs::Parentheses { arguments, .. } => {
@@ -1142,26 +1142,26 @@ pub fn format_stmt(ctx: &Context, stmt: &Stmt, shape: Shape) -> Stmt {
     }
 
     fmt_stmt!(ctx, stmt, shape, {
-        Assignment = format_assignment => std::convert::identity,
-        Do = format_do_block => Box::new,
-        FunctionCall = format_function_call_stmt => std::convert::identity,
-        FunctionDeclaration = format_function_declaration => Box::new,
-        GenericFor = format_generic_for => Box::new,
-        If = format_if => Box::new,
-        LocalAssignment = format_local_assignment => std::convert::identity,
-        LocalFunction = format_local_function => Box::new,
-        NumericFor = format_numeric_for => Box::new,
-        Repeat = format_repeat_block => Box::new,
-        While = format_while_block => Box::new,
-        #[cfg(any(feature = "luau", feature = "cfxlua"))] CompoundAssignment = format_compound_assignment => Box::new,
-        #[cfg(feature = "luau")] ConstAssignment = format_const_assignment => std::convert::identity,
-        #[cfg(feature = "luau")] ConstFunction = format_const_function => Box::new,
-        #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration => Box::new,
-        #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt => Box::new,
-        #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function => Box::new,
-        #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt => Box::new,
-        #[cfg(any(feature = "lua52", feature = "luajit"))] Goto = format_goto => std::convert::identity,
-        #[cfg(any(feature = "lua52", feature = "luajit"))] Label = format_label => std::convert::identity,
+        Assignment = format_assignment,
+        Do = format_do_block,
+        FunctionCall = format_function_call_stmt,
+        FunctionDeclaration = format_function_declaration,
+        GenericFor = format_generic_for,
+        If = format_if,
+        LocalAssignment = format_local_assignment,
+        LocalFunction = format_local_function,
+        NumericFor = format_numeric_for,
+        Repeat = format_repeat_block,
+        While = format_while_block,
+        #[cfg(any(feature = "luau", feature = "cfxlua"))] CompoundAssignment = format_compound_assignment,
+        #[cfg(feature = "luau")] ConstAssignment = format_const_assignment,
+        #[cfg(feature = "luau")] ConstFunction = format_const_function,
+        #[cfg(feature = "luau")] ExportedTypeDeclaration = format_exported_type_declaration,
+        #[cfg(feature = "luau")] TypeDeclaration = format_type_declaration_stmt,
+        #[cfg(feature = "luau")] ExportedTypeFunction = format_exported_type_function,
+        #[cfg(feature = "luau")] TypeFunction = format_type_function_stmt,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Goto = format_goto,
+        #[cfg(any(feature = "lua52", feature = "luajit"))] Label = format_label,
     })
 }
 

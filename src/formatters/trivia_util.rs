@@ -142,7 +142,7 @@ fn is_expression_simple(expression: &Expression) -> bool {
             function_call.suffixes().all(|suffix| match suffix {
                 Suffix::Index(_) => true,
                 Suffix::Call(call) => match call {
-                    Call::AnonymousCall(function_args) => match &**function_args {
+                    Call::AnonymousCall(function_args) => match function_args.as_ref() {
                         FunctionArgs::Parentheses { arguments, .. } => {
                             arguments.iter().all(is_expression_simple)
                         }
@@ -290,7 +290,7 @@ pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
             other => panic!("unknown node {:?}", other),
         },
         Suffix::Call(call) => match call {
-            Call::AnonymousCall(function_args) => match &**function_args {
+            Call::AnonymousCall(function_args) => match function_args.as_ref() {
                 FunctionArgs::Parentheses { parentheses, .. } => {
                     parentheses.tokens().0.leading_trivia()
                 }
@@ -589,7 +589,7 @@ macro_rules! end_stmt_trailing_trivia {
         let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
         (
-            Stmt::$enum(Box::new($value.with_end_token(new_end_token))),
+            Stmt::$enum($value.with_end_token(new_end_token).into()),
             trailing_trivia,
         )
     }};
@@ -974,7 +974,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeDeclaration(stmt) => {
-            let (type_declaration, trailing_trivia) = take_trailing_trivia(&*stmt);
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.as_ref());
             (
                 Stmt::TypeDeclaration(Box::new(type_declaration)),
                 trailing_trivia,
@@ -990,7 +990,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         }
         #[cfg(feature = "luau")]
         Stmt::TypeFunction(stmt) => {
-            let (type_declaration, trailing_trivia) = take_trailing_trivia(&*stmt);
+            let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.as_ref());
             (
                 Stmt::TypeFunction(Box::new(type_declaration)),
                 trailing_trivia,

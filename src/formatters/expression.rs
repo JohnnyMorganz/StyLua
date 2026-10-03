@@ -424,17 +424,17 @@ pub fn format_index(ctx: &Context, index: &Index, shape: Shape) -> Index {
                     expression: Box::new(expression),
                 }
             } else if is_brackets_string(expression) {
+                let expression = format_expression(ctx, expression, shape + 2) // 2 = "[ "
+                    .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]))
+                    .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                        TokenType::spaces(1),
+                    )]));
+
                 Index::Brackets {
                     brackets: format_contained_span(ctx, brackets, shape),
-                    expression: Box::new(
-                        format_expression(ctx, expression, shape + 2) // 2 = "[ "
-                            .update_leading_trivia(FormatTriviaType::Append(vec![Token::new(
-                                TokenType::spaces(1),
-                            )]))
-                            .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
-                                TokenType::spaces(1),
-                            )])),
-                    ),
+                    expression: Box::new(expression),
                 }
             } else {
                 Index::Brackets {
