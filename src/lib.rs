@@ -496,6 +496,35 @@ mod tests {
     }
 
     #[test]
+    fn test_crlf_input_is_idempotent() {
+        // A single-line comment carries the source's `\r`, and the configured line ending
+        // used to be appended after it. Formatting must not accumulate carriage returns.
+        let input = "local x = \"a\"\r\n\t.. \"b\"\r\n\t-- comment\r\n\t.. \"c\"\r\nreturn x -- trailing\r\n";
+
+        for line_endings in [LineEndings::Windows, LineEndings::Unix] {
+            let config = Config {
+                line_endings,
+                ..Config::default()
+            };
+            let once = format_code(input, config, None, OutputVerification::None).unwrap();
+            let expected_eol = match line_endings {
+                LineEndings::Windows => "\r\n",
+                LineEndings::Unix => "\n",
+            };
+            assert_eq!(
+                once.replace("\r\n", "\n").replace('\n', expected_eol),
+                once,
+                "unexpected line endings: {:?}",
+                once
+            );
+            assert!(!once.contains("\r\r"), "doubled CR: {:?}", once);
+
+            let twice = format_code(&once, config, None, OutputVerification::None).unwrap();
+            assert_eq!(once, twice, "formatting is not idempotent for CRLF input");
+        }
+    }
+
+    #[test]
     fn test_invalid_input() {
         let output = format_code(
             "local   x   = ",

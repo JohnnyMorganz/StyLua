@@ -31,7 +31,7 @@ pub trait GetLeadingTrivia {
         self.leading_trivia()
             .iter()
             .filter(|token| trivia_is_comment(token))
-            .cloned()
+            .map(strip_comment_line_ending)
             .collect()
     }
 }
@@ -51,13 +51,31 @@ pub trait GetTrailingTrivia {
             .filter(|token| trivia_is_comment_search(token, search))
             .flat_map(|x| {
                 // Prepend a single space beforehand
-                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
+                vec![
+                    Token::new(TokenType::spaces(1)),
+                    strip_comment_line_ending(x),
+                ]
             })
             .collect()
     }
 
     fn trailing_comments(&self) -> Vec<Token> {
         self.trailing_comments_search(CommentSearch::All)
+    }
+}
+
+/// A single-line comment is tokenised including any `\r` of a CRLF line ending, with the `\n`
+/// as separate whitespace. Comments extracted from trivia are re-emitted without going through
+/// `format_token`, so drop the trailing whitespace here to stop the input's line ending leaking
+/// into the output (where the configured line ending is appended after it).
+fn strip_comment_line_ending(token: &Token) -> Token {
+    match token.token_type() {
+        TokenType::SingleLineComment { comment } if comment.ends_with('\r') => {
+            Token::new(TokenType::SingleLineComment {
+                comment: comment.trim_end().into(),
+            })
+        }
+        _ => token.to_owned(),
     }
 }
 
