@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791041949786,
+  "lastUpdate": 1791042814294,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17849,6 +17849,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15397289,
             "range": "± 144084",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "56969c4c3d73e9edf4e2f2cda6dccdfd7ee9d266",
+          "message": "Bump fast-uri from 3.1.2 to 3.1.8 in /stylua-vscode (#1149)",
+          "timestamp": "2026-10-03T17:51:34+02:00",
+          "tree_id": "441b7b60af773f371dfaa4c64152d5aa1461de1c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/56969c4c3d73e9edf4e2f2cda6dccdfd7ee9d266"
+        },
+        "date": 1791042813692,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28085653,
+            "range": "± 587664",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 237130670,
+            "range": "± 1970815",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15415354,
+            "range": "± 266766",
             "unit": "ns/iter"
           }
         ]
