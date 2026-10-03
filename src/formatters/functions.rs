@@ -764,6 +764,17 @@ fn block_contains_nested_function(block: &Block) -> bool {
 }
 
 pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody) -> bool {
+    // Under `Preserve`, an empty body spanning lines keeps its newlines instead of
+    // collapsing (collapsing dropped the gap and left a trailing space behind)
+    if ctx.should_preserve_trailing_block_newline_gaps()
+        && trivia_util::is_block_empty(function_body.block())
+        && function_body.end_token().leading_trivia().any(|trivia| {
+            matches!(trivia.token_type(), TokenType::Whitespace { characters } if characters.contains('\n'))
+        })
+    {
+        return false;
+    }
+
     // Test for presence of any comments
     let require_multiline_function = function_body
         .parameters_parentheses()

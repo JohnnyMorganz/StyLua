@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - When using range formatting, semicolons outside of the provided range are no longer incorrectly formatted ([#1147](https://github.com/JohnnyMorganz/StyLua/issues/1147))
+- When "preserve block newline gaps" is enabled, StyLua now correctly preserves an empty function with a newline block ([#1146](https://github.com/JohnnyMorganz/StyLua/issues/1146))
 - Luau: Fixed sort requires not recognizing imports declared with `const`, e.g. `const Foo = require(path)`
 - Luau: Fixed the `read`/`write` access modifier merging into the element type in array type shorthand, changing the meaning of the code (`{ read Foo }` was formatted as `{ readFoo }`) ([#1126](https://github.com/JohnnyMorganz/StyLua/issues/1126))
 
