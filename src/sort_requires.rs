@@ -19,7 +19,7 @@
 use full_moon::{
     ast::{punctuated::Punctuated, Ast, Block, Call, Expression, Prefix, Stmt, Suffix},
     node::Node,
-    tokenizer::{Token, TokenReference, TokenType},
+    tokenizer::{TokenReference, TokenType},
 };
 
 use crate::{
@@ -96,38 +96,6 @@ fn get_sortable_assignment(stmt: &StmtSemicolon) -> Option<(String, GroupKind, u
             get_sortable_assignment_parts(node.names(), node.expressions())
         }
         _ => None,
-    }
-}
-
-fn get_stmt_leading_trivia(stmt: &StmtSemicolon) -> Vec<Token> {
-    match &stmt.0 {
-        Stmt::LocalAssignment(local_assignment) => local_assignment
-            .local_token()
-            .leading_trivia()
-            .cloned()
-            .collect(),
-        #[cfg(feature = "luau")]
-        Stmt::ConstAssignment(const_assignment) => const_assignment
-            .const_token()
-            .leading_trivia()
-            .cloned()
-            .collect(),
-        _ => unreachable!(),
-    }
-}
-
-fn set_stmt_leading_trivia(stmt: &mut StmtSemicolon, leading_trivia: Vec<Token>) {
-    match &mut stmt.0 {
-        Stmt::LocalAssignment(local_assignment) => {
-            *local_assignment =
-                local_assignment.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-        }
-        #[cfg(feature = "luau")]
-        Stmt::ConstAssignment(const_assignment) => {
-            *const_assignment =
-                const_assignment.update_leading_trivia(FormatTriviaType::Replace(leading_trivia));
-        }
-        _ => unreachable!(),
     }
 }
 
@@ -233,9 +201,18 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
                 // Get the leading trivia of the first statement in the list, as that will be what
                 // is appended to the new statement
                 let leading_trivia = match list.first_mut() {
-                    Some((_, stmt)) => {
-                        let leading_trivia = get_stmt_leading_trivia(stmt);
-                        set_stmt_leading_trivia(stmt, Vec::new());
+                    Some((_, (stmt, _))) => {
+                        let leading_trivia = stmt
+                            .tokens()
+                            .next()
+                            .expect("stmt has no tokens")
+                            .leading_trivia()
+                            .cloned()
+                            .collect();
+
+                        // Replace the trivia
+                        *stmt = stmt.update_leading_trivia(FormatTriviaType::Replace(vec![]));
+
                         leading_trivia
                     }
                     _ => unreachable!(),
@@ -246,8 +223,9 @@ pub(crate) fn sort_requires(ctx: &Context, input_ast: Ast) -> Ast {
 
                 // Mutate the first element with our leading trivia
                 match list.first_mut() {
-                    Some((_, stmt)) => {
-                        set_stmt_leading_trivia(stmt, leading_trivia);
+                    Some((_, (stmt, _))) => {
+                        *stmt =
+                            stmt.update_leading_trivia(FormatTriviaType::Replace(leading_trivia))
                     }
                     _ => unreachable!(),
                 };
