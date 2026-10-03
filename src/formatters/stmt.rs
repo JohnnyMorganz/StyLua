@@ -811,6 +811,8 @@ pub(crate) mod stmt_block {
         table_constructor: &TableConstructor,
         shape: Shape,
     ) -> TableConstructor {
+        // Fields of a multiline table are indented one level deeper than the table itself
+        let shape = shape.increment_block_indent();
         let fields = table_constructor
             .fields()
             .pairs()
