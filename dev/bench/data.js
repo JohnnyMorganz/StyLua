@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791041498493,
+  "lastUpdate": 1791041799323,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -17765,6 +17765,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 15567345,
             "range": "± 206201",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1b5f5203d4d9db13aee619ac10ca532bb5c5022b",
+          "message": "Bump baseline-browser-mapping from 2.9.19 to 2.11.27 in /stylua-vscode (#1152)",
+          "timestamp": "2026-10-03T15:34:26Z",
+          "tree_id": "ea16c9a08a759463b19373bf78528af3c2953e91",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1b5f5203d4d9db13aee619ac10ca532bb5c5022b"
+        },
+        "date": 1791041797351,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27025665,
+            "range": "± 333489",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 233023893,
+            "range": "± 597243",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 15413557,
+            "range": "± 60911",
             "unit": "ns/iter"
           }
         ]
