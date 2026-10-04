@@ -1,6 +1,6 @@
 use crate::{
     BlockNewlineGaps, CallParenType, CollapseSimpleStatement, Config, IndentType, LineEndings,
-    LuaVersion, QuoteStyle, SortRequiresConfig, SpaceAfterFunctionNames,
+    LuaVersion, QuoteStyle, SortRequiresConfig, SpaceAfterFunctionNames, TrailingCommentSpacing,
 };
 use ec4rs::{
     properties_of,
@@ -106,6 +106,12 @@ property_choice! {
     (Preserve, "preserve")
 }
 
+property_choice! {
+    StyluaTrailingCommentSpacingChoice, "stylua_trailing_comment_spacing";
+    (Compress, "compress"),
+    (Preserve, "preserve")
+}
+
 // Override StyLua config with EditorConfig properties
 fn load(mut config: Config, properties: &Properties) -> Config {
     if let Ok(end_of_line) = properties.get::<EndOfLine>() {
@@ -200,6 +206,12 @@ fn load(mut config: Config, properties: &Properties) -> Config {
         config.block_newline_gaps = match block_newline_gaps {
             StyluaBlockNewlineGapsChoice::Never => BlockNewlineGaps::Never,
             StyluaBlockNewlineGapsChoice::Preserve => BlockNewlineGaps::Preserve,
+        };
+    }
+    if let Ok(trailing_comment_spacing) = properties.get::<StyluaTrailingCommentSpacingChoice>() {
+        config.trailing_comment_spacing = match trailing_comment_spacing {
+            StyluaTrailingCommentSpacingChoice::Compress => TrailingCommentSpacing::Compress,
+            StyluaTrailingCommentSpacingChoice::Preserve => TrailingCommentSpacing::Preserve,
         };
     }
 

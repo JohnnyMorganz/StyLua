@@ -2,7 +2,7 @@ use clap::{ArgEnum, StructOpt};
 use std::path::PathBuf;
 use stylua_lib::{
     BlockNewlineGaps, CallParenType, CollapseSimpleStatement, IndentType, LineEndings, LuaVersion,
-    QuoteStyle, SpaceAfterFunctionNames,
+    QuoteStyle, SpaceAfterFunctionNames, TrailingCommentSpacing,
 };
 
 lazy_static::lazy_static! {
@@ -202,6 +202,9 @@ pub struct FormatOpts {
     pub sort_requires: bool,
     #[structopt(long, arg_enum, ignore_case = true)]
     pub space_after_function_names: Option<ArgSpaceAfterFunctionNames>,
+    /// Specify whether to preserve spacing before trailing comments.
+    #[structopt(long, arg_enum, ignore_case = true)]
+    pub trailing_comment_spacing: Option<ArgTrailingCommentSpacing>,
 }
 
 // Convert [`stylua_lib::Config`] enums into clap-friendly enums
@@ -293,6 +296,11 @@ convert_enum!(SpaceAfterFunctionNames, ArgSpaceAfterFunctionNames, {
     Definitions,
     Calls,
     Always,
+});
+
+convert_enum!(TrailingCommentSpacing, ArgTrailingCommentSpacing, {
+    Compress,
+    Preserve,
 });
 
 #[cfg(test)]

@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+assertion_line: 140
+expression: "format_code(&contents, Config\n{\n    trailing_comment_spacing: TrailingCommentSpacing::Preserve,\n    ..Config::default()\n}, None, OutputVerification::None).unwrap()"
+input_file: tests/inputs-preserve-trailing-comment-spacing/aligned-comments.lua
+---
+local x = 1       -- x value
+local y = 2       -- y value
+local longname = 3 -- long name
+

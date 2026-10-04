@@ -1,0 +1,10 @@
+---
+source: tests/tests.rs
+assertion_line: 140
+expression: "format_code(&contents, Config\n{\n    trailing_comment_spacing: TrailingCommentSpacing::Preserve,\n    ..Config::default()\n}, None, OutputVerification::None).unwrap()"
+input_file: tests/inputs-preserve-trailing-comment-spacing/varying-spacing.lua
+---
+local a = 1 -- single space
+local b = 2  -- two spaces
+local c = 3    -- four spaces
+
