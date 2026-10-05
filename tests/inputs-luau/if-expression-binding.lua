@@ -1,0 +1,25 @@
+-- `if local` / `if const` bindings inside if-expressions
+local a = if local x = find() then x else default
+
+local b = if const y = compute() then y else 0
+
+-- with a type specifier
+local c = if local p: Player = getPlayer() then p.Name else "none"
+
+-- elseif binding
+local d = if local first = tryFirst() then first elseif const second = trySecond() then second else fallback
+
+-- whitespace normalisation around the binding
+local e = if   local   foo  =  bar   then  foo  else  baz
+
+-- long binding/branches that must hang
+local f = if local reallyLongBindingName: SomeLongType = someExpensiveComputationCall(argumentOne, argumentTwo) then reallyLongBindingName else fallbackValueThatIsAlsoQuiteLong
+
+local g = if const resolved = resolveSomethingExpensive(inputA, inputB, inputC) then transform(resolved) elseif const other = resolveOther(inputD, inputE) then transform(other) else defaultResultValue
+
+-- binding condition nested in a table
+local thing = makeSomething("Foo", {
+	Child = if local resolvedChild = resolveChild() then makeSomething("Bar", {
+		scale = 1,
+	}) else makeSomething("Baz"),
+})
