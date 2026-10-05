@@ -346,10 +346,16 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
     // Format the `local <name> =` binding (`if local` / `if const`), if present
+    #[cfg(feature = "luau")]
     let binding = else_if_node
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
-    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+    #[cfg(feature = "luau")]
+    let binding_width = binding
+        .as_ref()
+        .map_or(0, |binding| binding.to_string().len());
+    #[cfg(not(feature = "luau"))]
+    let binding_width = 0;
 
     // Compute the indent
     let end_token_type =
@@ -377,17 +383,26 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
 
     // When multilining with a binding, the binding stays on the `elseif` line and the condition
     // hangs below it, so the newline goes after the binding rather than after `elseif`.
+    #[cfg(feature = "luau")]
     let binding = match (require_multiline_expression, binding) {
         (true, Some(binding)) => {
-            let equal_token = binding.equal_token().update_trailing_trivia(
-                FormatTriviaType::Replace(vec![create_newline_trivia(ctx)]),
-            );
+            let equal_token =
+                binding
+                    .equal_token()
+                    .update_trailing_trivia(FormatTriviaType::Replace(vec![
+                        create_newline_trivia(ctx),
+                    ]));
             Some(binding.with_equal_token(equal_token))
         }
         (_, binding) => binding,
     };
 
-    let elseif_token = if require_multiline_expression && binding.is_none() {
+    #[cfg(feature = "luau")]
+    let has_binding = binding.is_some();
+    #[cfg(not(feature = "luau"))]
+    let has_binding = false;
+
+    let elseif_token = if require_multiline_expression && !has_binding {
         elseif_token
             .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
     } else {
@@ -422,13 +437,17 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, else_if_node.block(), block_shape);
 
-    else_if_node
+    let else_if_node = else_if_node
         .to_owned()
         .with_else_if_token(elseif_token)
-        .with_binding(binding)
         .with_condition(condition)
         .with_then_token(then_token)
-        .with_block(block)
+        .with_block(block);
+
+    #[cfg(feature = "luau")]
+    let else_if_node = else_if_node.with_binding(binding);
+
+    else_if_node
 }
 
 /// Checks to see whether an [`If`] statement matches the structure of an "if guard".
@@ -467,7 +486,9 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
     #[cfg(feature = "luau")]
-    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+    let binding_width = binding
+        .as_ref()
+        .map_or(0, |binding| binding.to_string().len());
     #[cfg(not(feature = "luau"))]
     let binding_width = 0;
 
@@ -478,7 +499,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
 
     // Determine if we need to hang the condition
     let singleline_shape = shape
-        + (IF_LEN + THEN_LEN + binding_width + strip_trivia(&singleline_condition).to_string().len());
+        + (IF_LEN
+            + THEN_LEN
+            + binding_width
+            + strip_trivia(&singleline_condition).to_string().len());
     let require_multiline_expression = singleline_shape.over_budget()
         || if_node.if_token().has_trailing_comments(CommentSearch::All)
         || if_node
@@ -550,9 +574,12 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     #[cfg(feature = "luau")]
     let binding = match (require_multiline_expression, binding) {
         (true, Some(binding)) => {
-            let equal_token = binding.equal_token().update_trailing_trivia(
-                FormatTriviaType::Replace(vec![create_newline_trivia(ctx)]),
-            );
+            let equal_token =
+                binding
+                    .equal_token()
+                    .update_trailing_trivia(FormatTriviaType::Replace(vec![
+                        create_newline_trivia(ctx),
+                    ]));
             Some(binding.with_equal_token(equal_token))
         }
         (_, binding) => binding,

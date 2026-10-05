@@ -520,7 +520,9 @@ fn format_else_if_expression_singleline(
     let binding = else_if_expression
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
-    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+    let binding_width = binding
+        .as_ref()
+        .map_or(0, |binding| binding.to_string().len());
     let else_if_condition = remove_condition_parentheses(else_if_expression.condition().to_owned());
     let else_if_condition = format_expression(ctx, &else_if_condition, shape + 7 + binding_width); // 7 = "elseif "
     let (then_token, expression) = format_token_expression_sequence(
@@ -611,7 +613,9 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     let binding = if_expression
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
-    let binding_width = binding.as_ref().map_or(0, |binding| binding.to_string().len());
+    let binding_width = binding
+        .as_ref()
+        .map_or(0, |binding| binding.to_string().len());
 
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());

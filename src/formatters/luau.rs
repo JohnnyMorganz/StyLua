@@ -1544,7 +1544,9 @@ pub fn format_if_condition_binding(
 ) -> IfConditionBinding {
     // Preserve the keyword (`local` or `const`), normalising to a single trailing space
     let local_token = format_token_reference(ctx, binding.local_token(), shape)
-        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(TokenType::spaces(1))]));
+        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+            TokenType::spaces(1),
+        )]));
     let name = format_token_reference(ctx, binding.name(), shape);
     let type_specifier = binding
         .type_specifier()
