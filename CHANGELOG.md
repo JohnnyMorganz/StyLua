@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Luau: Added support for `if local` / `if const` condition bindings in both `if` statements and `if` expressions (e.g. `if local x = getValue() then ... end`)
+
 ### Fixed
 
 - Fixed range formatting indenting statements one level too shallow when nested inside a function expression within a table constructor ([#1145](https://github.com/JohnnyMorganz/StyLua/issues/1145))
