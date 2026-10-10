@@ -40,7 +40,6 @@ use full_moon::{
         punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
         GenericFor, If, NumericFor, Repeat, Stmt, Suffix, While,
     },
-    node::Node,
     tokenizer::{Token, TokenKind, TokenReference, TokenType},
 };
 
@@ -430,13 +429,6 @@ fn is_if_guard(if_node: &If) -> bool {
         && !trivia_util::contains_comments(if_node.then_token())
 }
 
-fn node_spans_single_line(node: &impl Node) -> bool {
-    match (node.start_position(), node.end_position()) {
-        (Some(start), Some(end)) => start.line() == end.line(),
-        _ => false,
-    }
-}
-
 /// Format an If node
 pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     const IF_LEN: usize = "if ".len();
@@ -452,14 +444,13 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
     let singleline_condition = format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
-    let preserve_input_singleline_conditional =
-        ctx.should_preserve_input_simple_statements() && node_spans_single_line(if_node);
+    let preserve_input_singleline_conditional = ctx.should_preserve_input_simple_statements()
+        && trivia_util::node_spans_single_line(if_node);
 
     // Determine if we need to hang the condition
     let singleline_shape =
         shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
-    let require_multiline_expression = (!preserve_input_singleline_conditional
-        && singleline_shape.over_budget())
+    let require_multiline_expression = singleline_shape.over_budget()
         || if_node.if_token().has_trailing_comments(CommentSearch::All)
         || if_node
             .then_token()
@@ -514,10 +505,9 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
             .with_end_token(end_token);
 
         // See if it fits under the column width. If it does, bail early and return this singleline if
-        if preserve_input_singleline_conditional
-            || !shape
-                .add_width(strip_trivia(&singleline_if).to_string().len())
-                .over_budget()
+        if !shape
+            .add_width(strip_trivia(&singleline_if).to_string().len())
+            .over_budget()
         {
             return singleline_if;
         }

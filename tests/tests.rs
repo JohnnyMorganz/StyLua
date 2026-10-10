@@ -199,7 +199,7 @@ end
 }
 
 #[test]
-fn test_collapse_simple_statement_input_preserves_singleline_over_width() {
+fn test_collapse_simple_statement_input_respects_column_width() {
     let config = Config {
         collapse_simple_statement: CollapseSimpleStatement::Input,
         column_width: 40,
@@ -208,8 +208,8 @@ fn test_collapse_simple_statement_input_preserves_singleline_over_width() {
 
     insta::assert_snapshot!(
         format_code(
-            r#"function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return  bar end
-if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return  bar end
+            r#"if foooooooooooooooooooooooooooooooooooooooo then return  bar end
+local function foo(aaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbb, cccccccccccccccc) local x = 1 end
 "#,
             config,
             None,
@@ -217,8 +217,18 @@ if foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
         )
         .unwrap(),
         @r###"
-    function fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo() return bar end
-    if fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo then return bar end
+    if
+    	foooooooooooooooooooooooooooooooooooooooo
+    then
+    	return bar
+    end
+    local function foo(
+    	aaaaaaaaaaaaaaaaaaaa,
+    	bbbbbbbbbbbbbbbbbbbb,
+    	cccccccccccccccc
+    )
+    	local x = 1
+    end
     "###
     );
 }
@@ -227,13 +237,15 @@ if foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 fn test_collapse_simple_statement_input_preserves_function_argument_hug() {
     let config = Config {
         collapse_simple_statement: CollapseSimpleStatement::Input,
-        column_width: 20,
         ..Config::default()
     };
 
     insta::assert_snapshot!(
         format_code(
             r#"task.spawn(function()
+
+end)
+x.SomeMethod("something", function()
 
 end)
 "#,
@@ -245,30 +257,6 @@ end)
         @r###"
     task.spawn(function()
     end)
-    "###
-    );
-}
-
-#[test]
-fn test_collapse_simple_statement_input_preserves_multi_argument_function_hug() {
-    let config = Config {
-        collapse_simple_statement: CollapseSimpleStatement::Input,
-        column_width: 20,
-        ..Config::default()
-    };
-
-    insta::assert_snapshot!(
-        format_code(
-            r#"x.SomeMethod("something", function()
-
-end)
-"#,
-            config,
-            None,
-            OutputVerification::None
-        )
-        .unwrap(),
-        @r###"
     x.SomeMethod("something", function()
     end)
     "###
