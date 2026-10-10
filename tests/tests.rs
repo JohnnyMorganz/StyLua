@@ -260,16 +260,11 @@ local x = 1
 /// doing that is exercised: the source's `\r` must not survive into the output, otherwise the
 /// configured line ending gets appended after it (`\r\r\n`) and formatting is not idempotent.
 fn assert_crlf_normalised(input: &str) {
-    assert_crlf_normalised_with_syntax(input, LuaVersion::default());
-}
-
-fn assert_crlf_normalised_with_syntax(input: &str, syntax: LuaVersion) {
     let input = input.replace('\n', "\r\n");
 
     for line_endings in [LineEndings::Windows, LineEndings::Unix] {
         let config = Config {
             line_endings,
-            syntax,
             ..Config::default()
         };
         let once = format_code(&input, config, None, OutputVerification::None).unwrap();
