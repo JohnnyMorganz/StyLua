@@ -8,8 +8,9 @@ use crate::formatters::functions::format_const_function;
 use crate::formatters::goto::{format_goto, format_goto_no_trivia, format_label};
 #[cfg(feature = "luau")]
 use crate::formatters::luau::{
-    format_exported_type_declaration, format_exported_type_function, format_type_declaration_stmt,
-    format_type_function_stmt, format_type_specifier,
+    format_exported_type_declaration, format_exported_type_function, format_if_condition_binding,
+    format_type_declaration_stmt, format_type_function_stmt, format_type_specifier,
+    if_condition_binding_width,
 };
 use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context, FormatNode},
@@ -35,6 +36,8 @@ use crate::{
     },
     shape::Shape,
 };
+#[cfg(feature = "luau")]
+use full_moon::ast::luau::IfConditionBinding;
 use full_moon::{
     ast::{
         punctuated::Punctuated, Block, Call, Do, ElseIf, Expression, FunctionArgs, FunctionCall,
@@ -48,7 +51,7 @@ macro_rules! fmt_stmt {
         match $value {
             $(
                 $(#[$inner])*
-                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt, $shape)),
+                Stmt::$operator(stmt) => Stmt::$operator($output($ctx, stmt, $shape).into()),
             )+
             other => panic!("unknown node {:?}", other),
         }
@@ -119,24 +122,23 @@ fn hug_generic_for(expressions: &Punctuated<Expression>) -> bool {
             // Test next 2 available suffixes
             match (suffixes.next(), suffixes.next()) {
                 // Ensure at least one suffix, and only one suffix
-                (Some(suffix), None) => match suffix {
-                    // Ensure suffix is a call with a single table constructor as argument
-                    Suffix::Call(Call::AnonymousCall(FunctionArgs::TableConstructor(_))) => true,
-                    Suffix::Call(Call::AnonymousCall(FunctionArgs::Parentheses {
-                        arguments,
-                        ..
-                    })) => {
-                        let mut arguments = arguments.iter();
-                        // Test next 2 available arguments
-                        match (arguments.next(), arguments.next()) {
-                            // Ensure at least one argument, and only one argument
-                            // And that the argument is a table constructor
-                            (Some(Expression::TableConstructor(_)), None) => true,
-                            _ => false,
+                (Some(Suffix::Call(Call::AnonymousCall(function_args))), None) => {
+                    match function_args.as_ref() {
+                        // Ensure suffix is a call with a single table constructor as argument
+                        FunctionArgs::TableConstructor(_) => true,
+                        FunctionArgs::Parentheses { arguments, .. } => {
+                            let mut arguments = arguments.iter();
+                            // Test next 2 available arguments
+                            match (arguments.next(), arguments.next()) {
+                                // Ensure at least one argument, and only one argument
+                                // And that the argument is a table constructor
+                                (Some(Expression::TableConstructor(_)), None) => true,
+                                _ => false,
+                            }
                         }
+                        _ => false,
                     }
-                    _ => false,
-                },
+                }
                 _ => false,
             }
         }
@@ -336,6 +338,44 @@ fn should_indent_further<'a>(trivia: impl Iterator<Item = &'a Token>, shape: Sha
     false
 }
 
+/// Prepares a multilined `if local` / `if const` binding: puts a newline after `=` when the condition
+/// hangs below it, and moves the binding onto its own line when the keyword has trailing comments.
+#[cfg(feature = "luau")]
+fn hang_if_condition_binding(
+    ctx: &Context,
+    binding: IfConditionBinding,
+    shape: Shape,
+    hang_condition: bool,
+    keyword_has_comments: bool,
+) -> IfConditionBinding {
+    let newline = vec![create_newline_trivia(ctx)];
+    let equal_token = if !hang_condition {
+        binding.equal_token().to_owned()
+    } else if binding
+        .equal_token()
+        .has_trailing_comments(CommentSearch::All)
+    {
+        binding
+            .equal_token()
+            .update_trailing_trivia(FormatTriviaType::Append(newline))
+    } else {
+        binding
+            .equal_token()
+            .update_trailing_trivia(FormatTriviaType::Replace(newline))
+    };
+    let binding = binding.with_equal_token(equal_token);
+
+    if keyword_has_comments {
+        let indent = create_indent_trivia(ctx, shape.reset().increment_additional_indent());
+        let local_token = binding
+            .local_token()
+            .update_leading_trivia(FormatTriviaType::Append(vec![indent]));
+        binding.with_local_token(local_token)
+    } else {
+        binding
+    }
+}
+
 /// Formats an ElseIf node - This must always reside within format_if
 fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf {
     // Calculate trivia
@@ -346,6 +386,22 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(else_if_node.condition().to_owned());
 
+    // Format the `local <name> =` binding (`if local` / `if const`), if present
+    #[cfg(feature = "luau")]
+    let binding_has_comments = else_if_node
+        .binding()
+        .is_some_and(trivia_util::contains_comments);
+    #[cfg(not(feature = "luau"))]
+    let binding_has_comments = false;
+    #[cfg(feature = "luau")]
+    let binding = else_if_node
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    #[cfg(feature = "luau")]
+    let binding_width = binding.as_ref().map_or(0, if_condition_binding_width);
+    #[cfg(not(feature = "luau"))]
+    let binding_width = 0;
+
     // Compute the indent
     let end_token_type =
         if should_indent_further(else_if_node.else_if_token().leading_trivia(), shape) {
@@ -355,11 +411,12 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         };
 
     let elseif_token = format_end_token(ctx, else_if_node.else_if_token(), end_token_type, shape);
-    let singleline_condition = format_expression(ctx, &condition, shape + 7);
+    let singleline_condition = format_expression(ctx, &condition, shape + 7 + binding_width);
     let singleline_then_token = fmt_symbol!(ctx, else_if_node.then_token(), " then", shape);
 
     // Determine if we need to hang the condition
-    let singleline_shape = shape + (7 + 5 + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 3 = " then"
+    let singleline_shape =
+        shape + (7 + 5 + binding_width + strip_trivia(&singleline_condition).to_string().len()); // 7 = "elseif ", 5 = " then"
     let require_multiline_expression = singleline_shape.over_budget()
         || else_if_node
             .else_if_token()
@@ -367,24 +424,63 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         || else_if_node
             .then_token()
             .has_leading_comments(CommentSearch::All)
+        || binding_has_comments
         || trivia_util::contains_comments(&condition);
 
-    let elseif_token = match require_multiline_expression {
-        true => elseif_token
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
-        false => elseif_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
-            TokenType::spaces(1),
-        )])),
-    }
-    .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+    // When multilining with a binding, the binding stays on the `elseif` line and the condition
+    // hangs below it, so the newline goes after the binding rather than after `elseif`.
+    #[cfg(feature = "luau")]
+    let elseif_token_has_comments = else_if_node
+        .else_if_token()
+        .has_trailing_comments(CommentSearch::All);
+    #[cfg(not(feature = "luau"))]
+    let elseif_token_has_comments = false;
 
-    let condition = match require_multiline_expression {
+    #[cfg(feature = "luau")]
+    let hang_condition = require_multiline_expression
+        && (binding.is_none()
+            || singleline_shape.over_budget()
+            || binding_has_comments
+            || trivia_util::contains_comments(&condition));
+    #[cfg(not(feature = "luau"))]
+    let hang_condition = require_multiline_expression;
+
+    #[cfg(feature = "luau")]
+    let binding = binding.map(|binding| {
+        hang_if_condition_binding(
+            ctx,
+            binding,
+            shape,
+            hang_condition,
+            elseif_token_has_comments,
+        )
+    });
+
+    #[cfg(feature = "luau")]
+    let has_binding = binding.is_some();
+    #[cfg(not(feature = "luau"))]
+    let has_binding = false;
+
+    let elseif_token =
+        if require_multiline_expression && (!has_binding || elseif_token_has_comments) {
+            elseif_token
+                .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+        } else {
+            elseif_token.update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+                TokenType::spaces(1),
+            )]))
+        }
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
+
+    let condition = match hang_condition {
         true => {
             let shape = shape.reset().increment_additional_indent();
             hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
                 FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
             )
         }
+        false if require_multiline_expression => singleline_condition
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         false => singleline_condition,
     };
 
@@ -403,12 +499,17 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, else_if_node.block(), block_shape);
 
-    else_if_node
+    let else_if_node = else_if_node
         .to_owned()
         .with_else_if_token(elseif_token)
         .with_condition(condition)
         .with_then_token(then_token)
-        .with_block(block)
+        .with_block(block);
+
+    #[cfg(feature = "luau")]
+    let else_if_node = else_if_node.with_binding(binding);
+
+    else_if_node
 }
 
 /// Checks to see whether an [`If`] statement matches the structure of an "if guard".
@@ -441,20 +542,41 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     // Remove parentheses around the condition
     let condition = remove_condition_parentheses(if_node.condition().to_owned());
 
+    // Format the `local <name> =` binding (`if local` / `if const`), if present
+    #[cfg(feature = "luau")]
+    let binding_has_comments = if_node
+        .binding()
+        .is_some_and(trivia_util::contains_comments);
+    #[cfg(not(feature = "luau"))]
+    let binding_has_comments = false;
+    #[cfg(feature = "luau")]
+    let binding = if_node
+        .binding()
+        .map(|binding| format_if_condition_binding(ctx, binding, shape));
+    #[cfg(feature = "luau")]
+    let binding_width = binding.as_ref().map_or(0, if_condition_binding_width);
+    #[cfg(not(feature = "luau"))]
+    let binding_width = 0;
+
     let singleline_if_token = fmt_symbol!(ctx, if_node.if_token(), "if ", shape);
-    let singleline_condition = format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN);
+    let singleline_condition =
+        format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN + binding_width);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
     let preserve_input_singleline_conditional = ctx.should_preserve_input_simple_statements()
         && trivia_util::node_spans_single_line(if_node);
 
     // Determine if we need to hang the condition
-    let singleline_shape =
-        shape + (IF_LEN + THEN_LEN + strip_trivia(&singleline_condition).to_string().len());
+    let singleline_shape = shape
+        + (IF_LEN
+            + THEN_LEN
+            + binding_width
+            + strip_trivia(&singleline_condition).to_string().len());
     let require_multiline_expression = singleline_shape.over_budget()
         || if_node.if_token().has_trailing_comments(CommentSearch::All)
         || if_node
             .then_token()
             .has_leading_comments(CommentSearch::All)
+        || binding_has_comments
         || trivia_util::contains_comments(&condition);
 
     let should_collapse_simple_conditional =
@@ -504,6 +626,9 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
             .with_block(block)
             .with_end_token(end_token);
 
+        #[cfg(feature = "luau")]
+        let singleline_if = singleline_if.with_binding(binding.clone());
+
         // See if it fits under the column width. If it does, bail early and return this singleline if
         if !shape
             .add_width(strip_trivia(&singleline_if).to_string().len())
@@ -513,20 +638,49 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         }
     }
 
-    let if_token = match require_multiline_expression {
-        true => fmt_symbol!(ctx, if_node.if_token(), "if", shape)
-            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
-        false => singleline_if_token,
+    // When multilining with a binding, the binding stays on the `if` line and the condition hangs
+    // below it, so the newline goes after the binding rather than after `if`.
+    #[cfg(feature = "luau")]
+    let if_token_has_comments = if_node.if_token().has_trailing_comments(CommentSearch::All);
+    #[cfg(not(feature = "luau"))]
+    let if_token_has_comments = false;
+
+    #[cfg(feature = "luau")]
+    let hang_condition = require_multiline_expression
+        && (binding.is_none()
+            || singleline_shape.over_budget()
+            || binding_has_comments
+            || trivia_util::contains_comments(&condition));
+    #[cfg(not(feature = "luau"))]
+    let hang_condition = require_multiline_expression;
+
+    #[cfg(feature = "luau")]
+    let binding = binding.map(|binding| {
+        hang_if_condition_binding(ctx, binding, shape, hang_condition, if_token_has_comments)
+    });
+
+    #[cfg(feature = "luau")]
+    let has_binding = binding.is_some();
+    #[cfg(not(feature = "luau"))]
+    let has_binding = false;
+
+    let if_token = if require_multiline_expression && (!has_binding || if_token_has_comments) {
+        fmt_symbol!(ctx, if_node.if_token(), "if", shape)
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)]))
+    } else {
+        singleline_if_token
     }
     .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned()));
 
-    let condition = match require_multiline_expression {
+    let condition = match hang_condition {
         true => {
             let shape = shape.reset().increment_additional_indent();
             hang_expression_trailing_newline(ctx, &condition, shape, None).update_leading_trivia(
                 FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
             )
         }
+        false if require_multiline_expression => singleline_condition
+            .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         false => singleline_condition,
     };
 
@@ -586,7 +740,7 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         _ => unreachable!("Got an else token with no else block or vice versa"),
     };
 
-    if_node
+    let if_node = if_node
         .to_owned()
         .with_if_token(if_token)
         .with_condition(condition)
@@ -595,7 +749,12 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         .with_else_if(else_if)
         .with_else_token(else_token)
         .with_else(else_block)
-        .with_end_token(end_token)
+        .with_end_token(end_token);
+
+    #[cfg(feature = "luau")]
+    let if_node = if_node.with_binding(binding);
+
+    if_node
 }
 
 /// Format a NumericFor node
@@ -813,6 +972,8 @@ pub(crate) mod stmt_block {
         table_constructor: &TableConstructor,
         shape: Shape,
     ) -> TableConstructor {
+        // Fields of a multiline table are indented one level deeper than the table itself
+        let shape = shape.increment_block_indent();
         let fields = table_constructor
             .fields()
             .pairs()
@@ -825,14 +986,14 @@ pub(crate) mod stmt_block {
                         value,
                     } => Field::ExpressionKey {
                         brackets,
-                        key: format_expression_block(ctx, &key, shape),
+                        key: Box::new(format_expression_block(ctx, &key, shape)),
                         equal,
-                        value: format_expression_block(ctx, &value, shape),
+                        value: Box::new(format_expression_block(ctx, &value, shape)),
                     },
                     Field::NameKey { key, equal, value } => Field::NameKey {
                         key,
                         equal,
-                        value: format_expression_block(ctx, &value, shape),
+                        value: Box::new(format_expression_block(ctx, &value, shape)),
                     },
                     #[cfg(feature = "cfxlua")]
                     Field::SetConstructor { dot, name } => Field::SetConstructor { dot, name },
@@ -866,9 +1027,13 @@ pub(crate) mod stmt_block {
                     })
                     .collect(),
             },
-            FunctionArgs::TableConstructor(table_constructor) => FunctionArgs::TableConstructor(
-                format_table_constructor_block(ctx, table_constructor, shape),
-            ),
+            FunctionArgs::TableConstructor(table_constructor) => {
+                FunctionArgs::TableConstructor(Box::new(format_table_constructor_block(
+                    ctx,
+                    table_constructor,
+                    shape,
+                )))
+            }
             _ => function_args.to_owned(),
         }
     }
@@ -890,12 +1055,12 @@ pub(crate) mod stmt_block {
             .suffixes()
             .map(|suffix| match suffix {
                 Suffix::Call(call) => Suffix::Call(match call {
-                    Call::AnonymousCall(function_args) => {
-                        Call::AnonymousCall(format_function_args_block(ctx, function_args, shape))
-                    }
+                    Call::AnonymousCall(function_args) => Call::AnonymousCall(Box::new(
+                        format_function_args_block(ctx, function_args, shape),
+                    )),
                     Call::MethodCall(method_call) => {
                         let args = format_function_args_block(ctx, method_call.args(), shape);
-                        Call::MethodCall(method_call.to_owned().with_args(args))
+                        Call::MethodCall(Box::new(method_call.as_ref().to_owned().with_args(args)))
                     }
                     other => panic!("unknown node {:?}", other),
                 }),
@@ -905,7 +1070,7 @@ pub(crate) mod stmt_block {
                         expression,
                     } => Index::Brackets {
                         brackets: brackets.to_owned(),
-                        expression: format_expression_block(ctx, expression, shape),
+                        expression: Box::new(format_expression_block(ctx, expression, shape)),
                     },
                     _ => index.to_owned(),
                 }),
@@ -965,9 +1130,13 @@ pub(crate) mod stmt_block {
             Expression::FunctionCall(function_call) => {
                 Expression::FunctionCall(format_function_call_block(ctx, function_call, shape))
             }
-            Expression::TableConstructor(table_constructor) => Expression::TableConstructor(
-                format_table_constructor_block(ctx, table_constructor, shape),
-            ),
+            Expression::TableConstructor(table_constructor) => {
+                Expression::TableConstructor(Box::new(format_table_constructor_block(
+                    ctx,
+                    table_constructor,
+                    shape,
+                )))
+            }
             #[cfg(feature = "luau")]
             Expression::TypeAssertion {
                 expression,
@@ -1003,7 +1172,7 @@ pub(crate) mod stmt_block {
             }
             Stmt::Do(do_block) => {
                 let block = format_block(ctx, do_block.block(), block_shape);
-                Stmt::Do(do_block.to_owned().with_block(block))
+                Stmt::Do(Box::new(do_block.to_owned().with_block(block)))
             }
             Stmt::FunctionCall(function_call) => {
                 Stmt::FunctionCall(format_function_call_block(ctx, function_call, block_shape))
@@ -1011,11 +1180,11 @@ pub(crate) mod stmt_block {
             Stmt::FunctionDeclaration(function_declaration) => {
                 let block = format_block(ctx, function_declaration.body().block(), block_shape);
                 let body = function_declaration.body().to_owned().with_block(block);
-                Stmt::FunctionDeclaration(function_declaration.to_owned().with_body(body))
+                Stmt::FunctionDeclaration(Box::new(function_declaration.to_owned().with_body(body)))
             }
             Stmt::GenericFor(generic_for) => {
                 let block = format_block(ctx, generic_for.block(), block_shape);
-                Stmt::GenericFor(generic_for.to_owned().with_block(block))
+                Stmt::GenericFor(Box::new(generic_for.to_owned().with_block(block)))
             }
             Stmt::If(if_block) => {
                 let block = format_block(ctx, if_block.block(), block_shape);
@@ -1035,13 +1204,13 @@ pub(crate) mod stmt_block {
                     .else_block()
                     .map(|block| format_block(ctx, block, block_shape));
 
-                Stmt::If(
+                Stmt::If(Box::new(
                     if_block
                         .to_owned()
                         .with_block(block)
                         .with_else_if(else_if)
                         .with_else(else_block),
-                )
+                ))
             }
             Stmt::LocalAssignment(assignment) => {
                 let expressions = assignment
@@ -1059,24 +1228,24 @@ pub(crate) mod stmt_block {
             Stmt::LocalFunction(local_function) => {
                 let block = format_block(ctx, local_function.body().block(), block_shape);
                 let body = local_function.body().to_owned().with_block(block);
-                Stmt::LocalFunction(local_function.to_owned().with_body(body))
+                Stmt::LocalFunction(Box::new(local_function.to_owned().with_body(body)))
             }
             Stmt::NumericFor(numeric_for) => {
                 let block = format_block(ctx, numeric_for.block(), block_shape);
-                Stmt::NumericFor(numeric_for.to_owned().with_block(block))
+                Stmt::NumericFor(Box::new(numeric_for.to_owned().with_block(block)))
             }
             Stmt::Repeat(repeat) => {
                 let block = format_block(ctx, repeat.block(), block_shape);
-                Stmt::Repeat(repeat.to_owned().with_block(block))
+                Stmt::Repeat(Box::new(repeat.to_owned().with_block(block)))
             }
             Stmt::While(while_block) => {
                 let block = format_block(ctx, while_block.block(), block_shape);
-                Stmt::While(while_block.to_owned().with_block(block))
+                Stmt::While(Box::new(while_block.to_owned().with_block(block)))
             }
             #[cfg(any(feature = "luau", feature = "cfxlua"))]
             Stmt::CompoundAssignment(compound_assignment) => {
                 let rhs = format_expression_block(ctx, compound_assignment.rhs(), block_shape);
-                Stmt::CompoundAssignment(compound_assignment.to_owned().with_rhs(rhs))
+                Stmt::CompoundAssignment(Box::new(compound_assignment.to_owned().with_rhs(rhs)))
             }
             #[cfg(feature = "luau")]
             Stmt::ConstAssignment(const_assignment) => {
@@ -1095,7 +1264,7 @@ pub(crate) mod stmt_block {
             Stmt::ConstFunction(const_function) => {
                 let block = format_block(ctx, const_function.body().block(), block_shape);
                 let body = const_function.body().to_owned().with_block(block);
-                Stmt::ConstFunction(const_function.to_owned().with_body(body))
+                Stmt::ConstFunction(Box::new(const_function.to_owned().with_body(body)))
             }
             #[cfg(feature = "luau")]
             Stmt::ExportedTypeDeclaration(node) => Stmt::ExportedTypeDeclaration(node.to_owned()),
@@ -1108,16 +1277,16 @@ pub(crate) mod stmt_block {
                     exported_type_function.type_function(),
                     block_shape,
                 );
-                Stmt::ExportedTypeFunction(
+                Stmt::ExportedTypeFunction(Box::new(
                     exported_type_function
                         .to_owned()
                         .with_type_function(type_function),
-                )
+                ))
             }
             #[cfg(feature = "luau")]
-            Stmt::TypeFunction(type_function) => {
-                Stmt::TypeFunction(format_type_function_block(ctx, type_function, block_shape))
-            }
+            Stmt::TypeFunction(type_function) => Stmt::TypeFunction(Box::new(
+                format_type_function_block(ctx, type_function, block_shape),
+            )),
             #[cfg(any(feature = "lua52", feature = "luajit"))]
             Stmt::Goto(node) => Stmt::Goto(node.to_owned()),
             #[cfg(any(feature = "lua52", feature = "luajit"))]

@@ -1,0 +1,60 @@
+-- `if local` / `if const` statement bindings
+if local x = getValue() then
+    print(x)
+end
+
+if const y = compute() then
+    print(y)
+end
+
+-- with type specifiers
+if local player: Player = getPlayer() then
+    greet(player)
+end
+
+if const count: number = tally() then
+    print(count)
+end
+
+-- elseif bindings, mixing local/const and plain conditions
+if local a = first() then
+    useA(a)
+elseif const b = second() then
+    useB(b)
+elseif c then
+    useC()
+else
+    fallback()
+end
+
+-- normalisation of extra whitespace around the binding
+if   local    foo   =   bar   then
+    baz()
+end
+
+if const  qux :  string  =  thing()  then
+    quux()
+end
+
+-- long binding where the condition hangs below (newline goes after the binding `=`)
+if local resultValue: ResultType = someLongConditionPredicateFunction() and someOtherLongConditionPredicateFunction() and theThirdConditionPredicate() then
+    consume(resultValue)
+end
+
+if const aggregatedTotal = firstPredicateCheckFunction() or secondPredicateCheckFunction() or thirdPredicateCheckFunction() or fourthPredicateCheckFunction() then
+    report(aggregatedTotal)
+end
+
+-- long binding on an elseif branch, condition hangs below
+if quickCheck then
+    fast()
+elseif local resolvedEntity: Entity = resolveEntityFromTheRegistry() and validateTheResolvedEntityValue() and entityIsStillActive() then
+    process(resolvedEntity)
+end
+
+-- nested if-local inside a block
+if local outer = openOuter() then
+    if const inner = openInner(outer) then
+        combine(outer, inner)
+    end
+end

@@ -17,9 +17,9 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, contains_singleline_comments, spans_multiple_lines,
-            token_contains_comments, trivia_is_comment, trivia_is_newline, CommentSearch,
-            GetLeadingTrivia, GetTrailingTrivia,
+            comments, contains_comments, contains_singleline_comments, space_prefixed_comments,
+            spans_multiple_lines, token_contains_comments, trivia_is_comment, trivia_is_newline,
+            CommentSearch, GetLeadingTrivia, GetTrailingTrivia,
         },
     },
     shape::Shape,
@@ -27,9 +27,9 @@ use crate::{
 use full_moon::ast::{
     luau::{
         ExportedTypeDeclaration, ExportedTypeFunction, GenericDeclaration,
-        GenericDeclarationParameter, GenericParameterInfo, IndexedTypeInfo, LuauAttribute,
-        TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey, TypeFunction,
-        TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
+        GenericDeclarationParameter, GenericParameterInfo, IfConditionBinding, IndexedTypeInfo,
+        LuauAttribute, TypeArgument, TypeAssertion, TypeDeclaration, TypeField, TypeFieldKey,
+        TypeFunction, TypeInfo, TypeInstantiation, TypeIntersection, TypeSpecifier, TypeUnion,
     },
     punctuated::Pair,
 };
@@ -293,13 +293,21 @@ fn format_type_info_internal(
                 || contains_comments(access)
                 || contains_comments(type_info);
 
-            let access = access.as_ref().map(|token_reference| {
-                format_token_reference(ctx, token_reference, shape + BRACKET_LEN)
-            });
+            // Format modifier comments at the multiline element indentation.
+            let access_shape = if contains_comments {
+                shape.increment_additional_indent()
+            } else {
+                shape + BRACKET_LEN
+            };
 
+            let access = access
+                .as_ref()
+                .map(|token_reference| format_token_reference(ctx, token_reference, access_shape));
+
+            // Count the modifier and its required separator without trivia.
             let access_shape_increment = access
                 .as_ref()
-                .map_or(0, |token| token.to_string().len() + 1);
+                .map_or(0, |token| strip_trivia(token).to_string().len() + 1);
 
             let (table_type, new_type_info) = if contains_comments {
                 (TableType::MultiLine, None)
@@ -343,10 +351,36 @@ fn format_type_info_internal(
                 ),
             };
 
+            let (access, type_info_leading_trivia) = match access {
+                Some(access) => {
+                    // A trailing line comment must end before the element type.
+                    let separator = if access.has_trailing_comments(CommentSearch::Single) {
+                        vec![
+                            create_newline_trivia(ctx),
+                            create_indent_trivia(ctx, shape.increment_additional_indent()),
+                        ]
+                    } else {
+                        vec![Token::new(TokenType::spaces(1))]
+                    };
+
+                    (
+                        Some(
+                            access
+                                .update_leading_trivia(leading_trivia)
+                                .update_trailing_trivia(FormatTriviaType::Append(separator)),
+                        ),
+                        FormatTriviaType::NoChange,
+                    )
+                }
+                None => (None, leading_trivia),
+            };
+
             TypeInfo::Array {
                 braces,
                 access,
-                type_info: Box::new(new_type_info.update_trivia(leading_trivia, trailing_trivia)),
+                type_info: Box::new(
+                    new_type_info.update_trivia(type_info_leading_trivia, trailing_trivia),
+                ),
             }
         }
 
@@ -731,24 +765,16 @@ fn hang_type_info_binop(
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
     // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
-    let leading_comments = binop
-        .leading_trivia()
-        .filter(|token| trivia_is_comment(token))
+    let leading_comments = comments(binop.leading_trivia())
         .flat_map(|x| {
             vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
-                x.to_owned(),
+                x,
             ]
         })
         // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-        .chain(
-            binop
-                .trailing_trivia()
-                .filter(|token| trivia_is_comment(token))
-                // Prepend a single space beforehand
-                .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
-        )
+        .chain(space_prefixed_comments(binop.trailing_trivia()))
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
         .chain(next_comments.iter().flat_map(|x| {
             vec![
@@ -1029,12 +1055,12 @@ pub fn format_type_field_key(
         TypeFieldKey::IndexSignature { brackets, inner } => TypeFieldKey::IndexSignature {
             brackets: format_contained_span(ctx, brackets, shape)
                 .update_leading_trivia(leading_trivia),
-            inner: format_type_info_internal(
+            inner: Box::new(format_type_info_internal(
                 ctx,
                 inner,
                 TypeInfoContext::new().mark_within_table_indexer(),
                 shape + 1,
-            ), // 1 = "["
+            )), // 1 = "["
         },
         other => panic!("unknown node {:?}", other),
     }
@@ -1260,26 +1286,20 @@ fn format_type_declaration(
         if let Some(generics) = generics {
             let (start_arrow, end_arrow) = generics.arrows().tokens();
 
-            let type_name_comments = type_name
-                .trailing_trivia()
-                .chain(start_arrow.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect::<Vec<_>>();
+            let type_name_comments = space_prefixed_comments(
+                type_name
+                    .trailing_trivia()
+                    .chain(start_arrow.leading_trivia()),
+            )
+            .collect::<Vec<_>>();
             let type_name_comments_len = type_name_comments.len();
 
-            let arrow_comments = end_arrow
-                .trailing_trivia()
-                .chain(equal_token.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
+            let arrow_comments = space_prefixed_comments(
+                end_arrow
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia()),
+            )
+            .collect();
 
             (
                 type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
@@ -1300,18 +1320,15 @@ fn format_type_declaration(
                 ))),
             )
         } else {
-            let comments = type_name
-                .trailing_trivia()
-                .chain(equal_token.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
+            let name_comments = space_prefixed_comments(
+                type_name
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia()),
+            )
+            .collect();
 
             (
-                type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                type_name.update_trailing_trivia(FormatTriviaType::Replace(name_comments)),
                 equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
                     TokenType::spaces(1),
                 )])),
@@ -1497,6 +1514,57 @@ pub fn format_type_specifier(
         .to_owned()
         .with_punctuation(punctuation)
         .with_type_info(type_info)
+}
+
+/// The width of the last line of an [`IfConditionBinding`], ignoring comments.
+pub fn if_condition_binding_width(binding: &IfConditionBinding) -> usize {
+    let text = format!(
+        "{} {}{} =",
+        strip_trivia(binding.local_token()),
+        strip_trivia(binding.name()),
+        binding
+            .type_specifier()
+            .map_or(String::new(), |specifier| format!(
+                ": {}",
+                strip_trivia(specifier.type_info())
+            )),
+    );
+    text.lines().last().map_or(0, |line| line.chars().count())
+}
+
+/// Formats an [`IfConditionBinding`] node - the `local <name> =` / `const <name> =` part of an
+/// `if local` / `if const` binding, as in `if local player = getPlayer() then ... end`.
+/// The formatted binding is `<local|const> <name>[: <type>] = ` (with a trailing space), so it
+/// slots directly between the `if `/`elseif ` token and the condition expression.
+pub fn format_if_condition_binding(
+    ctx: &Context,
+    binding: &IfConditionBinding,
+    shape: Shape,
+) -> IfConditionBinding {
+    // Preserve the keyword (`local` or `const`), normalising to a single trailing space
+    let local_token = format_token_reference(ctx, binding.local_token(), shape)
+        .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
+            TokenType::spaces(1),
+        )]));
+    let name_shape = shape
+        + (strip_trivia(binding.local_token())
+            .to_string()
+            .chars()
+            .count()
+            + 1);
+    let name = format_token_reference(ctx, binding.name(), name_shape);
+    let specifier_shape = name_shape + strip_trivia(binding.name()).to_string().chars().count();
+    let type_specifier = binding
+        .type_specifier()
+        .map(|type_specifier| format_type_specifier(ctx, type_specifier, specifier_shape));
+    let equal_token = fmt_symbol!(ctx, binding.equal_token(), " = ", shape);
+
+    binding
+        .to_owned()
+        .with_local_token(local_token)
+        .with_name(name)
+        .with_type_specifier(type_specifier)
+        .with_equal_token(equal_token)
 }
 
 pub fn format_type_instantiation(

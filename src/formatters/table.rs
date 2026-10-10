@@ -102,19 +102,13 @@ fn handle_field_key_equals_comments<T: Node>(
     let (key_leading_trivia, key_trailing_trivia) = key.surrounding_trivia();
 
     // Take leading and trailing comments from the equal sign, and put it before the key
-    let equal_sign_comments = equal
-        .leading_trivia()
-        .chain(equal.trailing_trivia())
-        .filter(|token| trivia_util::trivia_is_comment(token));
+    let equal_sign_comments =
+        trivia_util::comments(equal.leading_trivia().chain(equal.trailing_trivia()));
 
     // Join the key trailing comments with the equal sign comments, as we will move them to before the key.
     // Also adds in the necessary whitespace trivia
-    let key_leading_comments = key_trailing_trivia
-        .iter()
-        .filter(|token| trivia_util::trivia_is_comment(token))
-        .map(|x| x.to_owned())
+    let key_leading_comments = trivia_util::comments(key_trailing_trivia.iter().copied())
         .chain(equal_sign_comments)
-        .map(|x| x.to_owned())
         .flat_map(|trivia| {
             // Prepend an indent before the comment, and append a newline after the comments
             vec![
@@ -209,9 +203,9 @@ fn format_field(
 
             Field::ExpressionKey {
                 brackets,
-                key,
+                key: Box::new(key),
                 equal,
-                value,
+                value: Box::new(value),
             }
         }
         Field::NameKey { key, equal, value } => {
@@ -237,7 +231,11 @@ fn format_field(
                 (equal, value)
             };
 
-            Field::NameKey { key, equal, value }
+            Field::NameKey {
+                key,
+                equal,
+                value: Box::new(value),
+            }
         }
         #[cfg(feature = "cfxlua")]
         Field::SetConstructor { dot, name } => {
@@ -381,7 +379,7 @@ pub fn format_multiline_table<T, U>(
     shape: Shape,
 ) -> (ContainedSpan, Punctuated<T>)
 where
-    T: std::fmt::Display + Node,
+    T: std::fmt::Display + Node + Clone,
     U: Fn(&Context, &T, TableType, Shape) -> (T, Vec<Token>),
 {
     let table_type = TableType::MultiLine;
@@ -399,6 +397,12 @@ where
         let (field, punctuation) = (pair.value(), pair.punctuation());
 
         ctx = ctx.check_toggle_formatting(field);
+
+        // If the field is ignored, leave it and its punctuation exactly as written
+        if ctx.should_format_node(field) == FormatNode::Skip {
+            fields.push(Pair::new(field.clone(), punctuation.cloned()));
+            continue;
+        }
 
         // Reset the shape onto a new line, as we are a new field
         shape = shape.reset().add_width(1); // Add 1 to include the trailing comma at the end

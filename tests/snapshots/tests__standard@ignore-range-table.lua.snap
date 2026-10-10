@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/ignore-range-table.lua
+---
+local args = {
+	-- stylua: ignore start
+	"--foo", "foo",
+	"--bar", "bar",
+	"pos1",
+	"pos2",
+	-- stylua: ignore end
+}
+

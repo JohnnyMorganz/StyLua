@@ -28,11 +28,19 @@ pub trait GetLeadingTrivia {
     }
 
     fn leading_comments(&self) -> Vec<Token> {
-        self.leading_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment(token))
-            .cloned()
-            .collect()
+        comments(self.leading_trivia().iter()).collect()
+    }
+}
+
+impl<T: GetLeadingTrivia> GetLeadingTrivia for Box<T> {
+    fn leading_trivia(&self) -> Vec<Token> {
+        self.as_ref().leading_trivia()
+    }
+}
+
+impl<T: GetTrailingTrivia> GetTrailingTrivia for Box<T> {
+    fn trailing_trivia(&self) -> Vec<Token> {
+        self.as_ref().trailing_trivia()
     }
 }
 
@@ -46,18 +54,49 @@ pub trait GetTrailingTrivia {
     // Retrieves all the trailing comments from the token
     // Prepends a space before each comment
     fn trailing_comments_search(&self, search: CommentSearch) -> Vec<Token> {
-        self.trailing_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment_search(token, search))
-            .flat_map(|x| {
-                // Prepend a single space beforehand
-                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-            })
-            .collect()
+        space_prefixed_comments(
+            self.trailing_trivia()
+                .iter()
+                .filter(|token| trivia_is_comment_search(token, search)),
+        )
+        .collect()
     }
 
     fn trailing_comments(&self) -> Vec<Token> {
         self.trailing_comments_search(CommentSearch::All)
+    }
+}
+
+/// Selects the comments out of some trivia.
+///
+/// Comments extracted from trivia are re-emitted without going through `format_token`, so always
+/// extract them through this (or [`space_prefixed_comments`]) rather than filtering by
+/// [`trivia_is_comment`] directly, so that the source's line ending doesn't leak into the output.
+pub fn comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(strip_comment_line_ending)
+}
+
+/// Selects the comments out of some trivia, preceding each with a single space.
+pub fn space_prefixed_comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    comments(trivia).flat_map(|comment| [Token::new(TokenType::spaces(1)), comment])
+}
+
+/// A single-line comment is tokenised including the `\r` of a CRLF line ending, with the `\n` as
+/// separate whitespace. Drop it, as the configured line ending is appended after the comment.
+fn strip_comment_line_ending(token: &Token) -> Token {
+    match token.token_type() {
+        TokenType::SingleLineComment { comment } if comment.ends_with('\r') => {
+            Token::new(TokenType::SingleLineComment {
+                comment: comment.trim_end().into(),
+            })
+        }
+        _ => token.to_owned(),
     }
 }
 
@@ -150,7 +189,7 @@ fn is_expression_simple(expression: &Expression) -> bool {
             function_call.suffixes().all(|suffix| match suffix {
                 Suffix::Index(_) => true,
                 Suffix::Call(call) => match call {
-                    Call::AnonymousCall(function_args) => match function_args {
+                    Call::AnonymousCall(function_args) => match function_args.as_ref() {
                         FunctionArgs::Parentheses { arguments, .. } => {
                             arguments.iter().all(is_expression_simple)
                         }
@@ -298,7 +337,7 @@ pub fn suffix_leading_trivia(suffix: &Suffix) -> impl Iterator<Item = &Token> {
             other => panic!("unknown node {:?}", other),
         },
         Suffix::Call(call) => match call {
-            Call::AnonymousCall(function_args) => match function_args {
+            Call::AnonymousCall(function_args) => match function_args.as_ref() {
                 FunctionArgs::Parentheses { parentheses, .. } => {
                     parentheses.tokens().0.leading_trivia()
                 }
@@ -597,7 +636,7 @@ macro_rules! end_stmt_trailing_trivia {
         let new_end_token = end_token.update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
         (
-            Stmt::$enum($value.with_end_token(new_end_token)),
+            Stmt::$enum($value.with_end_token(new_end_token).into()),
             trailing_trivia,
         )
     }};
@@ -900,7 +939,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
 
             (
-                Stmt::Repeat(repeat_block.with_until(until_expr)),
+                Stmt::Repeat(Box::new(repeat_block.with_until(until_expr))),
                 trailing_trivia,
             )
         }
@@ -917,13 +956,16 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::FunctionDeclaration(stmt) => {
             let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
             (
-                Stmt::FunctionDeclaration(stmt.with_body(body)),
+                Stmt::FunctionDeclaration(Box::new(stmt.with_body(body))),
                 trailing_trivia,
             )
         }
         Stmt::LocalFunction(stmt) => {
             let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
-            (Stmt::LocalFunction(stmt.with_body(body)), trailing_trivia)
+            (
+                Stmt::LocalFunction(Box::new(stmt.with_body(body))),
+                trailing_trivia,
+            )
         }
         Stmt::NumericFor(stmt) => {
             end_stmt_trailing_trivia!(NumericFor, stmt)
@@ -939,7 +981,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
                 .rhs()
                 .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
             (
-                Stmt::CompoundAssignment(stmt.with_rhs(expr)),
+                Stmt::CompoundAssignment(Box::new(stmt.with_rhs(expr))),
                 trailing_trivia,
             )
         }
@@ -962,13 +1004,18 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         #[cfg(feature = "luau")]
         Stmt::ConstFunction(stmt) => {
             let (body, trailing_trivia) = take_trailing_trivia(stmt.body());
-            (Stmt::ConstFunction(stmt.with_body(body)), trailing_trivia)
+            (
+                Stmt::ConstFunction(Box::new(stmt.with_body(body))),
+                trailing_trivia,
+            )
         }
         #[cfg(feature = "luau")]
         Stmt::ExportedTypeDeclaration(stmt) => {
             let (type_declaration, trailing_trivia) = take_trailing_trivia(stmt.type_declaration());
             (
-                Stmt::ExportedTypeDeclaration(stmt.with_type_declaration(type_declaration)),
+                Stmt::ExportedTypeDeclaration(Box::new(
+                    stmt.with_type_declaration(type_declaration),
+                )),
                 trailing_trivia,
             )
         }
@@ -981,7 +1028,7 @@ pub fn get_stmt_trailing_trivia(stmt: Stmt) -> (Stmt, Vec<Token>) {
         Stmt::ExportedTypeFunction(stmt) => {
             let (type_function, trailing_trivia) = take_trailing_trivia(stmt.type_function());
             (
-                Stmt::ExportedTypeFunction(stmt.with_type_function(type_function)),
+                Stmt::ExportedTypeFunction(Box::new(stmt.with_type_function(type_function))),
                 trailing_trivia,
             )
         }
