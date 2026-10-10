@@ -1,6 +1,7 @@
 use crate::{
-    shape::Shape, BlockNewlineGaps, CallParenType, CollapseSimpleStatement, Config, IndentType,
-    LineEndings, Range as FormatRange, SpaceAfterFunctionNames,
+    formatters::trivia_util, shape::Shape, BlockNewlineGaps, CallParenType,
+    CollapseSimpleStatement, Config, IndentType, LineEndings, Range as FormatRange,
+    SpaceAfterFunctionNames,
 };
 use full_moon::{
     node::Node,
@@ -141,17 +142,33 @@ impl Context {
             || self.config().call_parentheses == CallParenType::NoSingleTable
     }
 
-    pub fn should_collapse_simple_functions(&self) -> bool {
+    /// Whether a function with a simple body should be collapsed onto a single line
+    pub fn should_collapse_simple_function(&self, node: &impl Node) -> bool {
         matches!(
             self.config().collapse_simple_statement,
             CollapseSimpleStatement::FunctionOnly | CollapseSimpleStatement::Always
-        )
+        ) || (self.should_preserve_input_simple_statements()
+            && trivia_util::node_spans_single_line(node))
     }
 
-    pub fn should_collapse_simple_conditionals(&self) -> bool {
+    /// Whether a function with an empty body should be collapsed onto a single line
+    pub fn should_collapse_empty_function(&self, node: &impl Node) -> bool {
+        !self.should_preserve_input_simple_statements() || trivia_util::node_spans_single_line(node)
+    }
+
+    /// Whether an `if` guard with a simple body should be collapsed onto a single line
+    pub fn should_collapse_simple_conditional(&self, node: &impl Node) -> bool {
         matches!(
             self.config().collapse_simple_statement,
             CollapseSimpleStatement::ConditionalOnly | CollapseSimpleStatement::Always
+        ) || (self.should_preserve_input_simple_statements()
+            && trivia_util::node_spans_single_line(node))
+    }
+
+    fn should_preserve_input_simple_statements(&self) -> bool {
+        matches!(
+            self.config().collapse_simple_statement,
+            CollapseSimpleStatement::Input
         )
     }
 

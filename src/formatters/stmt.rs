@@ -578,8 +578,8 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         || trivia_util::contains_comments(&condition);
 
     if !require_multiline_expression
-        && ctx.should_collapse_simple_conditionals()
         && is_if_guard(if_node)
+        && ctx.should_collapse_simple_conditional(if_node)
     {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want

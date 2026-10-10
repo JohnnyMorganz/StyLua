@@ -151,6 +151,14 @@ pub fn spans_multiple_lines<T: std::fmt::Display>(item: &T) -> bool {
     string.lines().count() > 1
 }
 
+/// Whether a node (as written in the input) starts and ends on the same line
+pub fn node_spans_single_line(node: &impl full_moon::node::Node) -> bool {
+    match (node.start_position(), node.end_position()) {
+        (Some(start), Some(end)) => start.line() == end.line(),
+        _ => false,
+    }
+}
+
 pub fn can_hang_expression(expression: &Expression) -> bool {
     match expression {
         Expression::Parentheses { .. } => true, // Can always hang parentheses if necessary

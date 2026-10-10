@@ -145,6 +145,8 @@ pub enum CollapseSimpleStatement {
     /// Never collapse
     #[default]
     Never,
+    /// Preserve whether simple statements were collapsed in the input
+    Input,
     /// Collapse simple functions onto a single line
     FunctionOnly,
     /// Collapse simple if guards onto a single line
@@ -264,7 +266,8 @@ pub struct Config {
     /// function is called with only one table or string argument (same as no_call_parentheses).
     pub call_parentheses: CallParenType,
     /// Whether we should collapse simple structures like functions or guard statements
-    /// if set to [`CollapseSimpleStatement::None`] structures are never collapsed.
+    /// if set to [`CollapseSimpleStatement::Never`] structures are never collapsed.
+    /// if set to [`CollapseSimpleStatement::Input`] simple structures preserve their input shape.
     /// if set to [`CollapseSimpleStatement::FunctionOnly`] then simple functions (i.e., functions with a single laststmt) can be collapsed
     pub collapse_simple_statement: CollapseSimpleStatement,
     /// Whether we should allow blocks to preserve leading and trailing newline gaps.

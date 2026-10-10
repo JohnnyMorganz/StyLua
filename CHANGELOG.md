@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Luau: Added support for `if local` / `if const` condition bindings in both `if` statements and `if` expressions (e.g. `if local x = getValue() then ... end`)
+- Added `Input` mode for `collapse_simple_statement`, preserving whether simple statements are single-line or multi-line in the input while still formatting their contents ([#1112](https://github.com/JohnnyMorganz/StyLua/pull/1112))
 
 ### Fixed
 

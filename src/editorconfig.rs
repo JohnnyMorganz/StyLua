@@ -77,6 +77,7 @@ property_choice! {
 property_choice! {
     CollapseSimpleStatementChoice, "collapse_simple_statement";
     (Never, "never"),
+    (Input, "input"),
     (FunctionOnly, "functiononly"),
     (ConditionalOnly, "conditionalonly"),
     (Always, "always")
@@ -162,6 +163,7 @@ fn load(mut config: Config, properties: &Properties) -> Config {
     if let Ok(collapse_simple_statement) = properties.get::<CollapseSimpleStatementChoice>() {
         config.collapse_simple_statement = match collapse_simple_statement {
             CollapseSimpleStatementChoice::Never => CollapseSimpleStatement::Never,
+            CollapseSimpleStatementChoice::Input => CollapseSimpleStatement::Input,
             CollapseSimpleStatementChoice::FunctionOnly => CollapseSimpleStatement::FunctionOnly,
             CollapseSimpleStatementChoice::ConditionalOnly => {
                 CollapseSimpleStatement::ConditionalOnly
@@ -419,6 +421,17 @@ mod tests {
         assert_eq!(
             config.collapse_simple_statement,
             CollapseSimpleStatement::Never
+        );
+    }
+
+    #[test]
+    fn test_collapse_simple_statement_input() {
+        let mut properties = Properties::new();
+        properties.insert_raw_for_key("collapse_simple_statement", "Input");
+        let config = Config::from(&properties);
+        assert_eq!(
+            config.collapse_simple_statement,
+            CollapseSimpleStatement::Input
         );
     }
 

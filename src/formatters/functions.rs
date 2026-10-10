@@ -781,9 +781,10 @@ pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody
         || trivia_util::contains_comments(function_body.block());
 
     !require_multiline_function
-        && (trivia_util::is_block_empty(function_body.block())
+        && ((trivia_util::is_block_empty(function_body.block())
+            && ctx.should_collapse_empty_function(function_body))
             || (trivia_util::is_block_simple(function_body.block())
-                && ctx.should_collapse_simple_functions()
+                && ctx.should_collapse_simple_function(function_body)
                 && !block_contains_nested_function(function_body.block())))
 }
 
