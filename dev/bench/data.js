@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791052258922,
+  "lastUpdate": 1791639921016,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -18143,6 +18143,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16266275,
             "range": "± 68599",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "98965493+annieetang@users.noreply.github.com",
+            "name": "Annie Tang",
+            "username": "annieetang"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "499cfcdab9885ee2ce9962e24e4387035651b456",
+          "message": "support if-local and if-const (#1160)\n\n* support if-local and if-const\n\n* formatting and small fixes\n\n* tests\n\n* changelog\n\n* Improve handling of formatting in complex situations\n\n- Check for comments after `if` / `elseif`, which would format to `if --commentlocal x`\n- Check for comments after `=` sign\n- Bug where `elseif local` hanging would go to `elseiflocal`\n\n* Simplify comments and code\n\n* Fix clippy issues\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-10-10T13:42:39Z",
+          "tree_id": "283f9bc4194ab0980e3f3eb88e04ecdf12e53ea4",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/499cfcdab9885ee2ce9962e24e4387035651b456"
+        },
+        "date": 1791639919689,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 26953178,
+            "range": "± 164728",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 232998259,
+            "range": "± 1245683",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16273518,
+            "range": "± 333279",
             "unit": "ns/iter"
           }
         ]
