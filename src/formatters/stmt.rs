@@ -562,8 +562,6 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let singleline_condition =
         format_expression(ctx, &condition, shape + IF_LEN + THEN_LEN + binding_width);
     let singleline_then_token = fmt_symbol!(ctx, if_node.then_token(), " then", shape);
-    let preserve_input_singleline_conditional = ctx.should_preserve_input_simple_statements()
-        && trivia_util::node_spans_single_line(if_node);
 
     // Determine if we need to hang the condition
     let singleline_shape = shape
@@ -579,10 +577,10 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
         || binding_has_comments
         || trivia_util::contains_comments(&condition);
 
-    let should_collapse_simple_conditional =
-        ctx.should_collapse_simple_conditionals() || preserve_input_singleline_conditional;
-
-    if !require_multiline_expression && should_collapse_simple_conditional && is_if_guard(if_node) {
+    if !require_multiline_expression
+        && is_if_guard(if_node)
+        && ctx.should_collapse_simple_conditional(if_node)
+    {
         // Rather than deferring to `format_block()`, since we know that there is only a single Stmt or LastStmt in the block, we can format it immediately
         // We need to modify the formatted LastStmt, since it will have automatically added leading/trailing trivia we don't want
         // We assume that there is only a laststmt present in the block - the callee of this function should have already checked for this

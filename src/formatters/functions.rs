@@ -780,16 +780,11 @@ pub fn should_collapse_function_body(ctx: &Context, function_body: &FunctionBody
             .any(trivia_util::trivia_is_comment)
         || trivia_util::contains_comments(function_body.block());
 
-    let input_single_line = trivia_util::node_spans_single_line(function_body);
-    let preserve_input_simple_statements = ctx.should_preserve_input_simple_statements();
-    let should_collapse_empty_function = !preserve_input_simple_statements || input_single_line;
-    let should_collapse_simple_function = ctx.should_collapse_simple_functions()
-        || (preserve_input_simple_statements && input_single_line);
-
     !require_multiline_function
-        && ((trivia_util::is_block_empty(function_body.block()) && should_collapse_empty_function)
+        && ((trivia_util::is_block_empty(function_body.block())
+            && ctx.should_collapse_empty_function(function_body))
             || (trivia_util::is_block_simple(function_body.block())
-                && should_collapse_simple_function
+                && ctx.should_collapse_simple_function(function_body)
                 && !block_contains_nested_function(function_body.block())))
 }
 
