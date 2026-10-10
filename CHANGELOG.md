@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed single-line comments in CRLF files gaining an extra carriage return (`\r\r\n`) on every format when `line_endings = "Windows"`, and keeping their original `\r\n` when formatting to Unix line endings ([#1167](https://github.com/JohnnyMorganz/StyLua/pull/1167))
+
 ## [2.5.2] - 2026-05-16
 
 ### Fixed
