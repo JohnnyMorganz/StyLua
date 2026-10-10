@@ -634,15 +634,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                             .skip(1) // Remove the newline at the end
                             .rev()
                             .cloned()
-                            .chain(
-                                semi.leading_trivia()
-                                    .chain(semi.trailing_trivia())
-                                    .filter(|token| trivia_util::trivia_is_comment(token))
-                                    .flat_map(|x| {
-                                        // Prepend a single space beforehand
-                                        vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                                    }),
-                            )
+                            .chain(trivia_util::space_prefixed_comments(
+                                semi.leading_trivia().chain(semi.trailing_trivia()),
+                            ))
                             .chain(std::iter::once(create_newline_trivia(&ctx)))
                             .collect();
 
@@ -691,15 +685,9 @@ pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
                         .skip(1) // Remove the newline at the end
                         .rev()
                         .cloned()
-                        .chain(
-                            semi.leading_trivia()
-                                .chain(semi.trailing_trivia())
-                                .filter(|token| trivia_util::trivia_is_comment(token))
-                                .flat_map(|x| {
-                                    // Prepend a single space beforehand
-                                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                                }),
-                        )
+                        .chain(trivia_util::space_prefixed_comments(
+                            semi.leading_trivia().chain(semi.trailing_trivia()),
+                        ))
                         .chain(std::iter::once(create_newline_trivia(&ctx)))
                         .collect();
 

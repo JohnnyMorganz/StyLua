@@ -1,15 +1,12 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{ConstAssignment, TypeSpecifier};
-#[cfg(feature = "cfxlua")]
-use full_moon::tokenizer::Symbol;
-use full_moon::tokenizer::{Token, TokenReference};
-use full_moon::{
-    ast::{
-        punctuated::{Pair, Punctuated},
-        Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix,
-    },
-    tokenizer::TokenType,
+use full_moon::ast::{
+    punctuated::{Pair, Punctuated},
+    Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix,
 };
+use full_moon::tokenizer::TokenReference;
+#[cfg(feature = "cfxlua")]
+use full_moon::tokenizer::{Symbol, TokenType};
 
 #[cfg(feature = "luau")]
 use crate::formatters::general::format_symbol;
@@ -115,12 +112,10 @@ pub fn hang_equal_token(
         ))
     }
 
-    let equal_token_trailing_trivia = equal_token
-        .trailing_trivia()
-        .filter(|x| trivia_util::trivia_is_comment(x))
-        .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()])
-        .chain(equal_token_trailing_trivia.iter().map(|x| x.to_owned()))
-        .collect();
+    let equal_token_trailing_trivia =
+        trivia_util::space_prefixed_comments(equal_token.trailing_trivia())
+            .chain(equal_token_trailing_trivia.iter().map(|x| x.to_owned()))
+            .collect();
 
     equal_token.update_trailing_trivia(FormatTriviaType::Replace(equal_token_trailing_trivia))
 }

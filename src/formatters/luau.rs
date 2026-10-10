@@ -17,9 +17,9 @@ use crate::{
             UpdateLeadingTrivia, UpdateTrailingTrivia, UpdateTrivia,
         },
         trivia_util::{
-            contains_comments, contains_singleline_comments, spans_multiple_lines,
-            token_contains_comments, trivia_is_comment, trivia_is_newline, CommentSearch,
-            GetLeadingTrivia, GetTrailingTrivia,
+            comments, contains_comments, contains_singleline_comments, space_prefixed_comments,
+            spans_multiple_lines, token_contains_comments, trivia_is_comment, trivia_is_newline,
+            CommentSearch, GetLeadingTrivia, GetTrailingTrivia,
         },
     },
     shape::Shape,
@@ -765,24 +765,16 @@ fn hang_type_info_binop(
     // Get the leading comments of a binop, as we need to preserve them
     // Intersperse a newline and indent trivia between them
     // iter_intersperse is currently not available, so we need to do something different. Tracking issue: https://github.com/rust-lang/rust/issues/79524
-    let leading_comments = binop
-        .leading_trivia()
-        .filter(|token| trivia_is_comment(token))
+    let leading_comments = comments(binop.leading_trivia())
         .flat_map(|x| {
             vec![
                 create_newline_trivia(ctx),
                 create_indent_trivia(ctx, shape),
-                x.to_owned(),
+                x,
             ]
         })
         // If there are any comments trailing the BinOp, we need to move them to before the BinOp
-        .chain(
-            binop
-                .trailing_trivia()
-                .filter(|token| trivia_is_comment(token))
-                // Prepend a single space beforehand
-                .flat_map(|x| vec![Token::new(TokenType::spaces(1)), x.to_owned()]),
-        )
+        .chain(space_prefixed_comments(binop.trailing_trivia()))
         // If there are any leading comments to the RHS expression, we need to move them to before the BinOp
         .chain(next_comments.iter().flat_map(|x| {
             vec![
@@ -1294,26 +1286,20 @@ fn format_type_declaration(
         if let Some(generics) = generics {
             let (start_arrow, end_arrow) = generics.arrows().tokens();
 
-            let type_name_comments = type_name
-                .trailing_trivia()
-                .chain(start_arrow.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect::<Vec<_>>();
+            let type_name_comments = space_prefixed_comments(
+                type_name
+                    .trailing_trivia()
+                    .chain(start_arrow.leading_trivia()),
+            )
+            .collect::<Vec<_>>();
             let type_name_comments_len = type_name_comments.len();
 
-            let arrow_comments = end_arrow
-                .trailing_trivia()
-                .chain(equal_token.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
+            let arrow_comments = space_prefixed_comments(
+                end_arrow
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia()),
+            )
+            .collect();
 
             (
                 type_name.update_trailing_trivia(FormatTriviaType::Replace(type_name_comments)),
@@ -1334,18 +1320,15 @@ fn format_type_declaration(
                 ))),
             )
         } else {
-            let comments = type_name
-                .trailing_trivia()
-                .chain(equal_token.leading_trivia())
-                .filter(|token| trivia_is_comment(token))
-                .flat_map(|x| {
-                    // Prepend a single space beforehand
-                    vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-                })
-                .collect();
+            let name_comments = space_prefixed_comments(
+                type_name
+                    .trailing_trivia()
+                    .chain(equal_token.leading_trivia()),
+            )
+            .collect();
 
             (
-                type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                type_name.update_trailing_trivia(FormatTriviaType::Replace(name_comments)),
                 equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
                     TokenType::spaces(1),
                 )])),

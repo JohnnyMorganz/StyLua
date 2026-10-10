@@ -28,11 +28,7 @@ pub trait GetLeadingTrivia {
     }
 
     fn leading_comments(&self) -> Vec<Token> {
-        self.leading_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment(token))
-            .cloned()
-            .collect()
+        comments(self.leading_trivia().iter()).collect()
     }
 }
 
@@ -58,18 +54,49 @@ pub trait GetTrailingTrivia {
     // Retrieves all the trailing comments from the token
     // Prepends a space before each comment
     fn trailing_comments_search(&self, search: CommentSearch) -> Vec<Token> {
-        self.trailing_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment_search(token, search))
-            .flat_map(|x| {
-                // Prepend a single space beforehand
-                vec![Token::new(TokenType::spaces(1)), x.to_owned()]
-            })
-            .collect()
+        space_prefixed_comments(
+            self.trailing_trivia()
+                .iter()
+                .filter(|token| trivia_is_comment_search(token, search)),
+        )
+        .collect()
     }
 
     fn trailing_comments(&self) -> Vec<Token> {
         self.trailing_comments_search(CommentSearch::All)
+    }
+}
+
+/// Selects the comments out of some trivia.
+///
+/// Comments extracted from trivia are re-emitted without going through `format_token`, so always
+/// extract them through this (or [`space_prefixed_comments`]) rather than filtering by
+/// [`trivia_is_comment`] directly, so that the source's line ending doesn't leak into the output.
+pub fn comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(strip_comment_line_ending)
+}
+
+/// Selects the comments out of some trivia, preceding each with a single space.
+pub fn space_prefixed_comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    comments(trivia).flat_map(|comment| [Token::new(TokenType::spaces(1)), comment])
+}
+
+/// A single-line comment is tokenised including the `\r` of a CRLF line ending, with the `\n` as
+/// separate whitespace. Drop it, as the configured line ending is appended after the comment.
+fn strip_comment_line_ending(token: &Token) -> Token {
+    match token.token_type() {
+        TokenType::SingleLineComment { comment } if comment.ends_with('\r') => {
+            Token::new(TokenType::SingleLineComment {
+                comment: comment.trim_end().into(),
+            })
+        }
+        _ => token.to_owned(),
     }
 }
 

@@ -572,12 +572,8 @@ where
                 // Also add any trailing comments we have taken from the expression
                 let symbol = fmt_symbol!(ctx, punctuation, ",", shape);
 
-                let mut trailing_trivia: Vec<_> = symbol
-                    .leading_trivia()
-                    .filter(|trivia| trivia_util::trivia_is_comment(trivia))
-                    .cloned()
+                let mut trailing_trivia: Vec<_> = trivia_util::comments(symbol.leading_trivia())
                     .flat_map(|x| {
-                        // Prepend a single space beforehand
                         vec![
                             create_newline_trivia(ctx),
                             create_indent_trivia(ctx, shape),
