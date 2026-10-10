@@ -1,15 +1,12 @@
 #[cfg(feature = "luau")]
 use full_moon::ast::luau::{ConstAssignment, TypeSpecifier};
+use full_moon::ast::{
+    punctuated::{Pair, Punctuated},
+    Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix,
+};
 #[cfg(feature = "cfxlua")]
 use full_moon::tokenizer::Symbol;
 use full_moon::tokenizer::TokenReference;
-use full_moon::{
-    ast::{
-        punctuated::{Pair, Punctuated},
-        Assignment, Call, Expression, FunctionArgs, FunctionCall, LocalAssignment, Suffix,
-    },
-    tokenizer::TokenType,
-};
 
 #[cfg(feature = "luau")]
 use crate::formatters::general::format_symbol;
