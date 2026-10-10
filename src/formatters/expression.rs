@@ -15,7 +15,10 @@ use std::boxed::Box;
 #[cfg(feature = "luau")]
 use crate::formatters::{
     assignment::calculate_hang_level,
-    luau::{format_if_condition_binding, format_type_assertion, format_type_instantiation},
+    luau::{
+        format_if_condition_binding, format_type_assertion, format_type_instantiation,
+        if_condition_binding_width,
+    },
     stmt::remove_condition_parentheses,
     trivia_util::HasInlineComments,
 };
@@ -520,9 +523,7 @@ fn format_else_if_expression_singleline(
     let binding = else_if_expression
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
-    let binding_width = binding
-        .as_ref()
-        .map_or(0, |binding| binding.to_string().len());
+    let binding_width = binding.as_ref().map_or(0, if_condition_binding_width);
     let else_if_condition = remove_condition_parentheses(else_if_expression.condition().to_owned());
     let else_if_condition = format_expression(ctx, &else_if_condition, shape + 7 + binding_width); // 7 = "elseif "
     let (then_token, expression) = format_token_expression_sequence(
@@ -613,9 +614,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
     let binding = if_expression
         .binding()
         .map(|binding| format_if_condition_binding(ctx, binding, shape));
-    let binding_width = binding
-        .as_ref()
-        .map_or(0, |binding| binding.to_string().len());
+    let binding_width = binding.as_ref().map_or(0, if_condition_binding_width);
 
     // Initially format the remainder on a single line
     let singleline_condition = format_expression(ctx, &condition, shape.with_infinite_width());
@@ -682,7 +681,7 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
         let condition = hang_expression_trailing_newline(
             ctx,
             if_expression.condition(),
-            shape.increment_additional_indent(),
+            (shape + binding_width).increment_additional_indent(),
             Some(1),
         );
         let hanging_shape = shape.reset().increment_additional_indent();
@@ -765,9 +764,23 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                                     create_indent_trivia(ctx, hanging_shape),
                                 ]));
 
+                            // The condition hangs on the line below the binding, so the binding must
+                            // be separated from `elseif` by a space, and have no trailing space
                             let binding = else_if_expression.binding().map(|binding| {
-                                format_if_condition_binding(ctx, binding, hanging_shape)
+                                let binding =
+                                    format_if_condition_binding(ctx, binding, hanging_shape);
+                                let equal_token = binding
+                                    .equal_token()
+                                    .update_trailing_trivia(FormatTriviaType::Replace(vec![]));
+                                binding.with_equal_token(equal_token)
                             });
+                            let else_if_token = if binding.is_some() {
+                                else_if_token.update_trailing_trivia(FormatTriviaType::Append(
+                                    vec![Token::new(TokenType::spaces(1))],
+                                ))
+                            } else {
+                                else_if_token
+                            };
 
                             ElseIfExpression::new(else_if_condition, expression)
                                 .with_else_if_token(else_if_token)

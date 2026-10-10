@@ -1,0 +1,51 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Luau)"
+input_file: tests/inputs-luau/if-local-if-const-comments.lua
+---
+if -- note
+	local x = f()
+then
+	print(x)
+elseif -- c
+	local y = g()
+then
+	print(y)
+end
+
+if local x =  -- why
+	getValue()
+then
+	print(x)
+end
+
+if local x = 1 then
+	print(x)
+elseif local y =  -- why2
+	h()
+then
+	print(y)
+end
+
+local w = if a
+	then b
+	elseif local otherBindingName =
+		resolveOtherThingWithAVeryLongFunctionName(argumentNumberOne, argumentNumberTwo)
+	then cccccccccccccccccccc
+	else dddddddddddddddddddd
+
+if local x = a then
+	print(x)
+elseif local y = b then
+	print(y)
+else
+	print("none")
+end
+
+local w = if a
+	then b
+	elseif local otherBindingName =
+		resolveOtherThingWithAVeryLongFunctionName(argumentNumberOne, argumentNumberTwo)
+	then cccccccccccccccccccc
+	else dddddddddddddddddddd
+

@@ -1537,6 +1537,24 @@ pub fn format_type_specifier(
 /// `if local` / `if const` binding, as in `if local player = getPlayer() then ... end`.
 /// The formatted binding is `<local|const> <name>[: <type>] = ` (with a trailing space), so it
 /// slots directly between the `if `/`elseif ` token and the condition expression.
+/// The width of a formatted [`IfConditionBinding`] on the line it ends on, ignoring comments.
+/// Counts characters rather than bytes, and only the last line if the binding spans multiple lines
+/// (e.g. due to a multiline type specifier), as the condition continues from there.
+pub fn if_condition_binding_width(binding: &IfConditionBinding) -> usize {
+    let text = format!(
+        "{} {}{} =",
+        strip_trivia(binding.local_token()),
+        strip_trivia(binding.name()),
+        binding
+            .type_specifier()
+            .map_or(String::new(), |specifier| format!(
+                ": {}",
+                strip_trivia(specifier.type_info())
+            )),
+    );
+    text.lines().last().map_or(0, |line| line.chars().count())
+}
+
 pub fn format_if_condition_binding(
     ctx: &Context,
     binding: &IfConditionBinding,
@@ -1547,10 +1565,18 @@ pub fn format_if_condition_binding(
         .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
             TokenType::spaces(1),
         )]));
-    let name = format_token_reference(ctx, binding.name(), shape);
+    // `<local|const> ` precedes the name, then the name precedes the type specifier
+    let name_shape = shape
+        + (strip_trivia(binding.local_token())
+            .to_string()
+            .chars()
+            .count()
+            + 1);
+    let name = format_token_reference(ctx, binding.name(), name_shape);
+    let specifier_shape = name_shape + strip_trivia(binding.name()).to_string().chars().count();
     let type_specifier = binding
         .type_specifier()
-        .map(|type_specifier| format_type_specifier(ctx, type_specifier, shape));
+        .map(|type_specifier| format_type_specifier(ctx, type_specifier, specifier_shape));
     let equal_token = fmt_symbol!(ctx, binding.equal_token(), " = ", shape);
 
     binding
