@@ -1,6 +1,6 @@
 [package]
 name = "stylua"
-version = "2.5.2"
+version = "2.6.0"
 authors = ["JohnnyMorganz <johnnymorganz@outlook.com>"]
 description = "A code formatter for Lua"
 license = "MPL-2.0"

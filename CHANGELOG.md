@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-10
+
 ### Added
 
 - Luau: Added support for `if local` / `if const` condition bindings in both `if` statements and `if` expressions (e.g. `if local x = getValue() then ... end`)
@@ -933,7 +935,8 @@ This feature is enabled by default, it can be disabled using `--no-editorconfig`
 
 Initial alpha release
 
-[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.5.2...HEAD
+[unreleased]: https://github.com/JohnnyMorganz/StyLua/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.6.0
 [2.5.2]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.2
 [2.5.1]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.1
 [2.5.0]: https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.5.0

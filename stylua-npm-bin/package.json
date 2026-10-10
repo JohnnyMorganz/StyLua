@@ -1,6 +1,6 @@
 {
   "name": "@johnnymorganz/stylua-bin",
-  "version": "2.5.2",
+  "version": "2.6.0",
   "description": "A code formatter for Lua",
   "bin": {
     "stylua": "run.js"
@@ -33,10 +33,10 @@
   },
   "homepage": "https://github.com/johnnymorganz/stylua#readme",
   "optionalDependencies": {
-    "@johnnymorganz/stylua-bin-linux-x64": "2.5.2",
-    "@johnnymorganz/stylua-bin-linux-arm64": "2.5.2",
-    "@johnnymorganz/stylua-bin-darwin-x64": "2.5.2",
-    "@johnnymorganz/stylua-bin-darwin-arm64": "2.5.2",
-    "@johnnymorganz/stylua-bin-win32-x64": "2.5.2"
+    "@johnnymorganz/stylua-bin-linux-x64": "2.6.0",
+    "@johnnymorganz/stylua-bin-linux-arm64": "2.6.0",
+    "@johnnymorganz/stylua-bin-darwin-x64": "2.6.0",
+    "@johnnymorganz/stylua-bin-darwin-arm64": "2.6.0",
+    "@johnnymorganz/stylua-bin-win32-x64": "2.6.0"
   }
 }
