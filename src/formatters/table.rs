@@ -102,19 +102,13 @@ fn handle_field_key_equals_comments<T: Node>(
     let (key_leading_trivia, key_trailing_trivia) = key.surrounding_trivia();
 
     // Take leading and trailing comments from the equal sign, and put it before the key
-    let equal_sign_comments = equal
-        .leading_trivia()
-        .chain(equal.trailing_trivia())
-        .filter(|token| trivia_util::trivia_is_comment(token));
+    let equal_sign_comments =
+        trivia_util::comments(equal.leading_trivia().chain(equal.trailing_trivia()));
 
     // Join the key trailing comments with the equal sign comments, as we will move them to before the key.
     // Also adds in the necessary whitespace trivia
-    let key_leading_comments = key_trailing_trivia
-        .iter()
-        .filter(|token| trivia_util::trivia_is_comment(token))
-        .map(|x| x.to_owned())
+    let key_leading_comments = trivia_util::comments(key_trailing_trivia.iter().copied())
         .chain(equal_sign_comments)
-        .map(|x| x.to_owned())
         .flat_map(|trivia| {
             // Prepend an indent before the comment, and append a newline after the comments
             vec![

@@ -28,11 +28,7 @@ pub trait GetLeadingTrivia {
     }
 
     fn leading_comments(&self) -> Vec<Token> {
-        self.leading_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment(token))
-            .map(strip_comment_line_ending)
-            .collect()
+        comments(self.leading_trivia().iter()).collect()
     }
 }
 
@@ -62,6 +58,26 @@ pub trait GetTrailingTrivia {
     fn trailing_comments(&self) -> Vec<Token> {
         self.trailing_comments_search(CommentSearch::All)
     }
+}
+
+/// Selects the comments out of some trivia.
+///
+/// Comments extracted from trivia are re-emitted without going through `format_token`, so always
+/// extract them through this (or [`space_prefixed_comments`]) rather than filtering by
+/// [`trivia_is_comment`] directly, so that the source's line ending doesn't leak into the output.
+pub fn comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    trivia
+        .filter(|token| trivia_is_comment(token))
+        .map(strip_comment_line_ending)
+}
+
+/// Selects the comments out of some trivia, preceding each with a single space.
+pub fn space_prefixed_comments<'a>(
+    trivia: impl Iterator<Item = &'a Token> + 'a,
+) -> impl Iterator<Item = Token> + 'a {
+    comments(trivia).flat_map(|comment| [Token::new(TokenType::spaces(1)), comment])
 }
 
 /// A single-line comment is tokenised including any `\r` of a CRLF line ending, with the `\n`
