@@ -39,6 +39,9 @@ export const getAssetFilenamePatternForPlatform = (
     case "arm64":
       archPattern = "aarch64";
       break;
+    case "loongarch64":
+      archPattern = "loongarch64";
+      break;
     case "x64":
       archPattern = "x86_64";
       break;
