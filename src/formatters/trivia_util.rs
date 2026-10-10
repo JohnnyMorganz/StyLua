@@ -54,17 +54,12 @@ pub trait GetTrailingTrivia {
     // Retrieves all the trailing comments from the token
     // Prepends a space before each comment
     fn trailing_comments_search(&self, search: CommentSearch) -> Vec<Token> {
-        self.trailing_trivia()
-            .iter()
-            .filter(|token| trivia_is_comment_search(token, search))
-            .flat_map(|x| {
-                // Prepend a single space beforehand
-                vec![
-                    Token::new(TokenType::spaces(1)),
-                    strip_comment_line_ending(x),
-                ]
-            })
-            .collect()
+        space_prefixed_comments(
+            self.trailing_trivia()
+                .iter()
+                .filter(|token| trivia_is_comment_search(token, search)),
+        )
+        .collect()
     }
 
     fn trailing_comments(&self) -> Vec<Token> {
@@ -92,10 +87,8 @@ pub fn space_prefixed_comments<'a>(
     comments(trivia).flat_map(|comment| [Token::new(TokenType::spaces(1)), comment])
 }
 
-/// A single-line comment is tokenised including any `\r` of a CRLF line ending, with the `\n`
-/// as separate whitespace. Comments extracted from trivia are re-emitted without going through
-/// `format_token`, so drop the trailing whitespace here to stop the input's line ending leaking
-/// into the output (where the configured line ending is appended after it).
+/// A single-line comment is tokenised including the `\r` of a CRLF line ending, with the `\n` as
+/// separate whitespace. Drop it, as the configured line ending is appended after the comment.
 fn strip_comment_line_ending(token: &Token) -> Token {
     match token.token_type() {
         TokenType::SingleLineComment { comment } if comment.ends_with('\r') => {

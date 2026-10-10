@@ -1320,7 +1320,7 @@ fn format_type_declaration(
                 ))),
             )
         } else {
-            let comments = space_prefixed_comments(
+            let name_comments = space_prefixed_comments(
                 type_name
                     .trailing_trivia()
                     .chain(equal_token.leading_trivia()),
@@ -1328,7 +1328,7 @@ fn format_type_declaration(
             .collect();
 
             (
-                type_name.update_trailing_trivia(FormatTriviaType::Replace(comments)),
+                type_name.update_trailing_trivia(FormatTriviaType::Replace(name_comments)),
                 equal_token.update_leading_trivia(FormatTriviaType::Replace(vec![Token::new(
                     TokenType::spaces(1),
                 )])),
