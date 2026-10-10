@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791639921016,
+  "lastUpdate": 1791640336894,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -18185,6 +18185,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16273518,
             "range": "± 333279",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "johnnymorganz@outlook.com",
+            "name": "JohnnyMorganz",
+            "username": "JohnnyMorganz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8b5a7a00a2a63c9990ebdd6b36ebaa16c438d6bd",
+          "message": "Fix CRLF line ending accumulation in comment formatting (#1167)\n\n* Strip CR from relocated single-line comments to fix CRLF output\n\nSingle-line comments are tokenised with the source's trailing \\r. Comments\nextracted via leading_comments/trailing_comments skip format_token, so the \\r\nleaked and the configured line ending was appended after it (\\r\\r\\n),\nmaking formatting non-idempotent for CRLF input.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n* Extract trivia comments through shared helpers and add CRLF tests\n\nEvery place that lifts comments out of trivia now goes through\ntrivia_util::comments / space_prefixed_comments, which strip the source's\ntrailing CR, rather than each filtering with trivia_is_comment by hand. This\nfixes the CR leaking for comments around semicolons, table field equals,\nparentheses and Luau type declarations, in addition to the binop chain case.\n\nAdds CRLF regression tests covering each extraction path.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n* Move CRLF comment tests to tests/tests.rs and drop unused import\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n* Fix unused import breaking cfxlua build and add changelog entry\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n* Simplify trailing_comments_search and avoid shadowing comments helper\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n* Use default syntax in CRLF test helper\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01VKx1JCoPaPJfLhwxUNT1Fx\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
+          "timestamp": "2026-10-10T13:50:21Z",
+          "tree_id": "1722bdac116a5b7f5a82fa76c611c196bce1388c",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/8b5a7a00a2a63c9990ebdd6b36ebaa16c438d6bd"
+        },
+        "date": 1791640335634,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 28083827,
+            "range": "± 239046",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 234322195,
+            "range": "± 895204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16583277,
+            "range": "± 93826",
             "unit": "ns/iter"
           }
         ]
