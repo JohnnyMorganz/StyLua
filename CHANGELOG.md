@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed range formatting indenting statements one level too shallow when nested inside a function expression within a table constructor ([#1145](https://github.com/JohnnyMorganz/StyLua/issues/1145))
+- Fixed `-- stylua: ignore start`/`end` ranges inside multiline tables reformatting the ignored fields ([#1134](https://github.com/JohnnyMorganz/StyLua/issues/1134))
+- When using range formatting, semicolons outside of the provided range are no longer incorrectly formatted ([#1147](https://github.com/JohnnyMorganz/StyLua/issues/1147))
+- Luau: Fixed sort requires not recognizing imports declared with `const`, e.g. `const Foo = require(path)`
+- Luau: Fixed the `read`/`write` access modifier merging into the element type in array type shorthand, changing the meaning of the code (`{ read Foo }` was formatted as `{ readFoo }`) ([#1126](https://github.com/JohnnyMorganz/StyLua/issues/1126))
 - Fixed single-line comments in CRLF files gaining an extra carriage return (`\r\r\n`) on every format when `line_endings = "Windows"`, and keeping their original `\r\n` when formatting to Unix line endings ([#1167](https://github.com/JohnnyMorganz/StyLua/pull/1167))
 
 ## [2.5.2] - 2026-05-16

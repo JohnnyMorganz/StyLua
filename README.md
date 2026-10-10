@@ -237,8 +237,9 @@ In editors, `Format Selection` is supported.
 StyLua has built-in support for sorting require statements. We group consecutive require statements into a single "block",
 and then requires are sorted only within that block. Blocks of requires do not move around the file.
 
-StyLua only considers requires of the form `local NAME = require(EXPR)`, and sorts lexicographically based on `NAME`.
-(StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`)
+StyLua only considers requires of the form `local NAME = require(EXPR)`, or `const NAME = require(EXPR)` in Luau,
+and sorts lexicographically based on `NAME`.
+(StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`, or `const NAME = game:GetService(EXPR)` in Luau)
 
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
