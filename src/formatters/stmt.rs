@@ -390,7 +390,7 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     #[cfg(feature = "luau")]
     let binding_has_comments = else_if_node
         .binding()
-        .is_some_and(|binding| trivia_util::contains_comments(binding));
+        .is_some_and(trivia_util::contains_comments);
     #[cfg(not(feature = "luau"))]
     let binding_has_comments = false;
     #[cfg(feature = "luau")]
@@ -546,7 +546,7 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     #[cfg(feature = "luau")]
     let binding_has_comments = if_node
         .binding()
-        .is_some_and(|binding| trivia_util::contains_comments(binding));
+        .is_some_and(trivia_util::contains_comments);
     #[cfg(not(feature = "luau"))]
     let binding_has_comments = false;
     #[cfg(feature = "luau")]
