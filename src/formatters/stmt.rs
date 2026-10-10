@@ -338,10 +338,8 @@ fn should_indent_further<'a>(trivia: impl Iterator<Item = &'a Token>, shape: Sha
     false
 }
 
-/// Moves the newline after a multilined `if local` / `if const` binding if the condition has to
-/// hang below it. The newline is appended rather than replacing the trivia so that comments after `=`
-/// are kept. If the keyword token had trailing comments, the binding is moved onto its own
-/// indented line.
+/// Prepares a multilined `if local` / `if const` binding: puts a newline after `=` when the condition
+/// hangs below it, and moves the binding onto its own line when the keyword has trailing comments.
 #[cfg(feature = "luau")]
 fn hang_if_condition_binding(
     ctx: &Context,
@@ -429,10 +427,8 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
         || binding_has_comments
         || trivia_util::contains_comments(&condition);
 
-    // When multilining with a binding, the binding stays on the `elseif` line and the condition hangs
-    // below it, so the newline goes after the binding rather than after `elseif`.
-    // If the `elseif` token has trailing comments, the newline must come straight after them, and the
-    // binding moves onto its own indented line.
+    // When multilining with a binding, the binding stays on the `elseif` line and the condition
+    // hangs below it, so the newline goes after the binding rather than after `elseif`.
     #[cfg(feature = "luau")]
     let elseif_token_has_comments = else_if_node
         .else_if_token()
@@ -440,8 +436,6 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     #[cfg(not(feature = "luau"))]
     let elseif_token_has_comments = false;
 
-    // Only hang the condition below the binding when needed - a comment on the `elseif` token only
-    // needs a newline after the comment, not after the binding
     #[cfg(feature = "luau")]
     let hang_condition = require_multiline_expression
         && (binding.is_none()
@@ -452,19 +446,15 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
     let hang_condition = require_multiline_expression;
 
     #[cfg(feature = "luau")]
-    let binding = if require_multiline_expression {
-        binding.map(|binding| {
-            hang_if_condition_binding(
-                ctx,
-                binding,
-                shape,
-                hang_condition,
-                elseif_token_has_comments,
-            )
-        })
-    } else {
-        binding
-    };
+    let binding = binding.map(|binding| {
+        hang_if_condition_binding(
+            ctx,
+            binding,
+            shape,
+            hang_condition,
+            elseif_token_has_comments,
+        )
+    });
 
     #[cfg(feature = "luau")]
     let has_binding = binding.is_some();
@@ -489,7 +479,6 @@ fn format_else_if(ctx: &Context, else_if_node: &ElseIf, shape: Shape) -> ElseIf 
                 FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
             )
         }
-        // The condition stays on the binding line, but `then` still goes on its own line
         false if require_multiline_expression => singleline_condition
             .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         false => singleline_condition,
@@ -649,15 +638,11 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
 
     // When multilining with a binding, the binding stays on the `if` line and the condition hangs
     // below it, so the newline goes after the binding rather than after `if`.
-    // If the `if` token has trailing comments, the newline must come straight after them, and the
-    // binding moves onto its own indented line.
     #[cfg(feature = "luau")]
     let if_token_has_comments = if_node.if_token().has_trailing_comments(CommentSearch::All);
     #[cfg(not(feature = "luau"))]
     let if_token_has_comments = false;
 
-    // Only hang the condition below the binding when needed - a comment on the `if` token only
-    // needs a newline after the comment, not after the binding
     #[cfg(feature = "luau")]
     let hang_condition = require_multiline_expression
         && (binding.is_none()
@@ -668,13 +653,9 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
     let hang_condition = require_multiline_expression;
 
     #[cfg(feature = "luau")]
-    let binding = if require_multiline_expression {
-        binding.map(|binding| {
-            hang_if_condition_binding(ctx, binding, shape, hang_condition, if_token_has_comments)
-        })
-    } else {
-        binding
-    };
+    let binding = binding.map(|binding| {
+        hang_if_condition_binding(ctx, binding, shape, hang_condition, if_token_has_comments)
+    });
 
     #[cfg(feature = "luau")]
     let has_binding = binding.is_some();
@@ -696,7 +677,6 @@ pub fn format_if(ctx: &Context, if_node: &If, shape: Shape) -> If {
                 FormatTriviaType::Append(vec![create_indent_trivia(ctx, shape)]),
             )
         }
-        // The condition stays on the binding line, but `then` still goes on its own line
         false if require_multiline_expression => singleline_condition
             .update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
         false => singleline_condition,

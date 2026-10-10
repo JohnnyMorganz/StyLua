@@ -1533,13 +1533,7 @@ pub fn format_type_specifier(
         .with_type_info(type_info)
 }
 
-/// Formats an [`IfConditionBinding`] node - the `local <name> =` / `const <name> =` part of an
-/// `if local` / `if const` binding, as in `if local player = getPlayer() then ... end`.
-/// The formatted binding is `<local|const> <name>[: <type>] = ` (with a trailing space), so it
-/// slots directly between the `if `/`elseif ` token and the condition expression.
-/// The width of a formatted [`IfConditionBinding`] on the line it ends on, ignoring comments.
-/// Counts characters rather than bytes, and only the last line if the binding spans multiple lines
-/// (e.g. due to a multiline type specifier), as the condition continues from there.
+/// The width of the last line of an [`IfConditionBinding`], ignoring comments.
 pub fn if_condition_binding_width(binding: &IfConditionBinding) -> usize {
     let text = format!(
         "{} {}{} =",
@@ -1555,6 +1549,10 @@ pub fn if_condition_binding_width(binding: &IfConditionBinding) -> usize {
     text.lines().last().map_or(0, |line| line.chars().count())
 }
 
+/// Formats an [`IfConditionBinding`] node - the `local <name> =` / `const <name> =` part of an
+/// `if local` / `if const` binding, as in `if local player = getPlayer() then ... end`.
+/// The formatted binding is `<local|const> <name>[: <type>] = ` (with a trailing space), so it
+/// slots directly between the `if `/`elseif ` token and the condition expression.
 pub fn format_if_condition_binding(
     ctx: &Context,
     binding: &IfConditionBinding,
@@ -1565,7 +1563,6 @@ pub fn format_if_condition_binding(
         .update_trailing_trivia(FormatTriviaType::Append(vec![Token::new(
             TokenType::spaces(1),
         )]));
-    // `<local|const> ` precedes the name, then the name precedes the type specifier
     let name_shape = shape
         + (strip_trivia(binding.local_token())
             .to_string()

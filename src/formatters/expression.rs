@@ -764,8 +764,6 @@ fn format_if_expression(ctx: &Context, if_expression: &IfExpression, shape: Shap
                                     create_indent_trivia(ctx, hanging_shape),
                                 ]));
 
-                            // The condition hangs on the line below the binding, so the binding must
-                            // be separated from `elseif` by a space, and have no trailing space
                             let binding = else_if_expression.binding().map(|binding| {
                                 let binding =
                                     format_if_condition_binding(ctx, binding, hanging_shape);
