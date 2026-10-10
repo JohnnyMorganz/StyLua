@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791640336894,
+  "lastUpdate": 1791641599780,
   "repoUrl": "https://github.com/JohnnyMorganz/StyLua",
   "entries": {
     "Rust Benchmark": [
@@ -18227,6 +18227,48 @@ window.BENCHMARK_DATA = {
             "name": "format nested_tables.lua",
             "value": 16583277,
             "range": "± 93826",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "96193209+ddashdev@users.noreply.github.com",
+            "name": "ddash",
+            "username": "ddashdev"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1c5060e002ff7b1b7e9b5d757d6130bb86d0068c",
+          "message": "Add Input mode for collapse_simple_statement (#1112)\n\n* implement Input collapse mode\n\n* bypass column width for collapse_simple_statements input mode\n\n* Preserve function argument hugging in collapse input mode\n\n* changelog\n\n* Respect column width even when collapse simple statement is set to Input\n\nDon't bypass the width check so that over-wide functions still fall back to their multiline form\n\n* Move changelog spot\n\n* Simplify settings checks\n\n---------\n\nCo-authored-by: JohnnyMorganz <johnnymorganz@outlook.com>",
+          "timestamp": "2026-10-10T16:11:28+02:00",
+          "tree_id": "50d91b9276834fa523fca53d4dfdc5bd11d48329",
+          "url": "https://github.com/JohnnyMorganz/StyLua/commit/1c5060e002ff7b1b7e9b5d757d6130bb86d0068c"
+        },
+        "date": 1791641598306,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "format date.lua",
+            "value": 27656697,
+            "range": "± 328771",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format docgen.lua",
+            "value": 237325205,
+            "range": "± 939265",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "format nested_tables.lua",
+            "value": 16004857,
+            "range": "± 492254",
             "unit": "ns/iter"
           }
         ]
