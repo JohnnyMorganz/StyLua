@@ -194,16 +194,28 @@ jobs:
               -d "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/$PLATFORM/"
           done
 
+      # Skip versions that are already on the registry so a failed run can be re-run
       - name: Publish platform packages to npm
         run: |
           for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
             cd "$GITHUB_WORKSPACE/stylua-npm-bin/platforms/$PLATFORM"
-            npm publish
+            SPEC="$(node -p "require('./package.json').name + '@' + require('./package.json').version")"
+            if npm view "$SPEC" version >/dev/null 2>&1; then
+              echo "$SPEC is already published, skipping"
+            else
+              npm publish
+            fi
           done
 
       - name: Publish main package to npm
         working-directory: stylua-npm-bin
-        run: npm publish
+        run: |
+          SPEC="$(node -p "require('./package.json').name + '@' + require('./package.json').version")"
+          if npm view "$SPEC" version >/dev/null 2>&1; then
+            echo "$SPEC is already published, skipping"
+          else
+            npm publish
+          fi
 
   release_docker:
     name: Publish image to container registry
