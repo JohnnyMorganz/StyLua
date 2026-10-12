@@ -297,8 +297,15 @@ fn attempt_assignment_tactics(
             let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
+            // `take_first_line` only measures up to the first newline, which hides overflow when the
+            // expression starts with a multiline string. Also compare how many lines go over budget.
+            let normal_over_budget = shape.count_lines_over_budget(&expr_list);
+            let hanging_over_budget = shape.count_lines_over_budget(&hanging_expr_list);
+
             if expression.has_inline_comments()
-                || hanging_shape.used_width() < formatting_shape.used_width()
+                || hanging_over_budget < normal_over_budget
+                || (hanging_over_budget == normal_over_budget
+                    && hanging_shape.used_width() < formatting_shape.used_width())
             {
                 (hanging_expr_list, equal_token)
             } else {

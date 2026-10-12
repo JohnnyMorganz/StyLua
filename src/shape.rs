@@ -218,6 +218,27 @@ impl Shape {
         self.add_width(width)
     }
 
+    /// Counts the number of lines of an item which go over the column width. The first line is measured
+    /// from the current shape, whilst subsequent lines are measured from the start of the line (leading tabs
+    /// are counted as one indent each).
+    #[must_use]
+    pub fn count_lines_over_budget<T: Display>(&self, item: &T) -> usize {
+        let string = format!("{item}");
+        string
+            .lines()
+            .enumerate()
+            .filter(|(idx, line)| {
+                if *idx == 0 {
+                    self.add_width(line.len()).over_budget()
+                } else {
+                    let tabs = line.chars().take_while(|c| *c == '\t').count();
+                    let width = line.len() - tabs + tabs * self.indent.configured_indent_width();
+                    width > self.column_width
+                }
+            })
+            .count()
+    }
+
     /// Takes an item which could possibly span multiple lines. If it spans multiple lines, the shape is reset
     /// and the last line is added to the width. If it only takes a single line, we just continue adding to the current
     /// width
