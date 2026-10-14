@@ -1,0 +1,14 @@
+---
+source: tests/tests.rs
+assertion_line: 123
+expression: "format_code(&contents, Config\n{ block_newline_gaps: BlockNewlineGaps::Preserve, ..Config::default() }, None,\nOutputVerification::None).unwrap()"
+input_file: tests/inputs-preserve-block-newline-gaps/empty-function-gap.lua
+---
+function FuncWithBlankLine()
+
+end
+
+function FuncEmpty() end
+
+function FuncOneLiner() end
+
