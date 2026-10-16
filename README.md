@@ -84,7 +84,7 @@ StyLua is available on the [Docker Hub](https://hub.docker.com/r/johnnymorganz/s
 If you are using Docker, the easiest way to install StyLua is:
 
 ```dockerfile
-COPY --from=JohnnyMorganz/StyLua:2.6.0 /stylua /usr/bin/stylua
+COPY --from=johnnymorganz/stylua:2.6.0 /stylua /usr/bin/stylua
 ```
 
 ### Homebrew
@@ -198,7 +198,7 @@ Note that this may produce false positives and negatives - we recommend manual v
 ### Ignoring parts of a file
 
 To skip formatting a particular part of a file, you can add `-- stylua: ignore` before it.
-This is useful if there is a particular style you want to preseve for readability, e.g.:
+This is useful if there is a particular style you want to preserve for readability, e.g.:
 
 ```lua
 -- stylua: ignore

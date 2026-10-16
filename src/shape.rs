@@ -189,7 +189,7 @@ impl Shape {
     }
 
     /// Whether simple heuristics should be used when calculating formatting shape
-    /// This is to reduce the expontential blowup of discarded test formatting
+    /// This is to reduce the exponential blowup of discarded test formatting
     #[must_use]
     pub fn using_simple_heuristics(&self) -> bool {
         self.simple_heuristics
