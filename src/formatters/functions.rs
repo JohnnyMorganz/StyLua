@@ -322,7 +322,7 @@ fn function_args_multiline_heuristic(
             expression => {
                 current_state = current_state.record_standard_arg();
 
-                // TODO: BACKWARDS COMPATABILITY - THIS CODEPATH WAS ONLY FOLLOWED THROUGH WHEN
+                // TODO: BACKWARDS COMPATIBILITY - THIS CODEPATH WAS ONLY FOLLOWED THROUGH WHEN
                 // IT WASN'T PARENTHESES / UNOP, AND THE PATHS MERGED WHEN REMOVING EXPRESSION::VALUE
                 // WE SHOULD SEE IF THIS IS ACTUALLY NECESSARY
                 if !matches!(

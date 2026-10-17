@@ -69,7 +69,7 @@ with open(CHANGELOG_FILE, "w") as file:
 # Update version in README.md
 README_REPLACEMENTS = (
     ("rev: v{old}", "rev: v{new}"),
-    ("StyLua:{old}", "StyLua:{new}"),
+    ("stylua:{old}", "stylua:{new}"),
     ("stylua@{old}", "stylua@{new}"),
 )
 

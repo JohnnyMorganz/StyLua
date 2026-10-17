@@ -119,7 +119,7 @@ fn create_diff(
                         vec.push(b'\n');
                         vec
                     })
-                    // Covert to anyhow::Error
+                    // Convert to anyhow::Error
                     .map_err(|err| err.into())
                 })
                 .transpose()
