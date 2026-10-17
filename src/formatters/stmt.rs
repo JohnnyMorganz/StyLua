@@ -785,8 +785,41 @@ pub fn format_numeric_for(ctx: &Context, numeric_for: &NumericFor, shape: Shape)
         _ => unreachable!("Got numeric for end step comma with no step or vice versa"),
     };
 
-    let do_token = fmt_symbol!(ctx, numeric_for.do_token(), " do", shape)
-        .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
+    // A single-line comment before `do` would comment it out, so put `do` on its own line,
+    // as for `while` and generic `for`
+    let do_on_own_line = numeric_for
+        .step()
+        .unwrap_or(numeric_for.end())
+        .has_trailing_comments(CommentSearch::Single)
+        || numeric_for
+            .do_token()
+            .has_leading_comments(CommentSearch::Single);
+
+    let (end, step) = match (do_on_own_line, step) {
+        (true, Some(step)) => (
+            end,
+            Some(step.update_trailing_trivia(FormatTriviaType::Append(vec![
+                create_newline_trivia(ctx),
+            ]))),
+        ),
+        (true, None) => (
+            end.update_trailing_trivia(FormatTriviaType::Append(vec![create_newline_trivia(ctx)])),
+            None,
+        ),
+        (false, step) => (end, step),
+    };
+
+    let do_token = match do_on_own_line {
+        true => format_end_token(
+            ctx,
+            numeric_for.do_token(),
+            EndTokenType::IndentComments,
+            shape,
+        )
+        .update_leading_trivia(FormatTriviaType::Append(leading_trivia.to_owned())),
+        false => fmt_symbol!(ctx, numeric_for.do_token(), " do", shape),
+    }
+    .update_trailing_trivia(FormatTriviaType::Append(trailing_trivia.to_owned()));
     let block_shape = shape.reset().increment_block_indent();
     let block = format_block(ctx, numeric_for.block(), block_shape);
     let end_token = format_end_token(

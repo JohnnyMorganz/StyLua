@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a single-line comment before `do` in a numeric `for` loop, or right after the opening parenthesis of a hanging condition, commenting out the code that followed it ([#1176](https://github.com/JohnnyMorganz/StyLua/issues/1176))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

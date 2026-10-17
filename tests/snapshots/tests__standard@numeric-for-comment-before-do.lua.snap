@@ -1,0 +1,25 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/numeric-for-comment-before-do.lua
+---
+for i = 1, 2 -- comment
+do
+	print(i)
+end
+
+for i = 1, 10, 2 -- comment
+do
+	print(i)
+end
+
+for i = 1, 2
+	-- comment
+do
+	print(i)
+end
+
+for i = 1, 2 --[[ comment ]] do
+	print(i)
+end
+
