@@ -1422,7 +1422,12 @@ fn format_hanging_expression_(
                 let formatted_expression = format_expression(ctx, expression, lhs_shape + 1); // 1 = opening parentheses
 
                 let expression_str = formatted_expression.to_string();
+                // A single-line comment after the opening parenthesis needs the expression on the next line
                 if !contains_comments(expression)
+                    && !contained
+                        .tokens()
+                        .0
+                        .has_trailing_comments(CommentSearch::Single)
                     && !lhs_shape.add_width(2 + expression_str.len()).over_budget()
                 {
                     // The expression inside the parentheses is small, we do not need to break it down further
