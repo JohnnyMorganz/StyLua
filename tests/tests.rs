@@ -263,6 +263,68 @@ end)
     );
 }
 
+const COLLAPSE_FUNCTION_ARGUMENT_INPUT: &str = r#"pcall(function()
+	return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb
+end, 5)
+pcall(function() return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb end, 5)
+foo(1, function()
+	return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb
+end)
+pcall(function() return x end, 5)
+"#;
+
+#[test]
+fn test_collapse_simple_statement_input_keeps_multiline_function_argument_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Input,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(COLLAPSE_FUNCTION_ARGUMENT_INPUT, config, None, OutputVerification::None).unwrap(),
+        @r###"
+    pcall(function()
+    	return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb
+    end, 5)
+    pcall(
+    	function() return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb end,
+    	5
+    )
+    foo(1, function()
+    	return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb
+    end)
+    pcall(function() return x end, 5)
+    "###
+    );
+}
+
+#[test]
+fn test_collapse_simple_statement_always_function_argument_hug() {
+    let config = Config {
+        collapse_simple_statement: CollapseSimpleStatement::Always,
+        ..Config::default()
+    };
+
+    insta::assert_snapshot!(
+        format_code(COLLAPSE_FUNCTION_ARGUMENT_INPUT, config, None, OutputVerification::None).unwrap(),
+        @r###"
+    pcall(
+    	function() return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb end,
+    	5
+    )
+    pcall(
+    	function() return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb end,
+    	5
+    )
+    foo(
+    	1,
+    	function() return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa == bbb end
+    )
+    pcall(function() return x end, 5)
+    "###
+    );
+}
+
 #[test]
 fn test_preserve_block_newline_gaps() {
     insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {

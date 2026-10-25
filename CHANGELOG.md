@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed function calls with a multiline anonymous function argument being expanded when `collapse_simple_statement = "Input"`, instead of keeping the function hugged to the call parentheses ([#1175](https://github.com/JohnnyMorganz/StyLua/issues/1175))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added
