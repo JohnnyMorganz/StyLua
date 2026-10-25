@@ -260,12 +260,17 @@ fn function_args_multiline_heuristic(
     // Use state values to determine the type of arguments we have seen so far
     let mut current_state = ArgumentState::new();
 
-    for pair in first_iter_formatted_arguments {
+    for (pair, original_argument) in first_iter_formatted_arguments.zip(arguments.iter()) {
         let argument = pair.value();
         match argument {
             Expression::Function(anonymous_function) => {
-                // Check to see whether it has been expanded
-                let is_expanded = !should_collapse_function_body(ctx, anonymous_function.body());
+                // Check to see whether it has been expanded. Use the original function body where possible:
+                // the formatted one has lost the input positions that `CollapseSimpleStatement::Input` relies on
+                let function_body = match original_argument {
+                    Expression::Function(original_function) => original_function.body(),
+                    _ => anonymous_function.body(),
+                };
+                let is_expanded = !should_collapse_function_body(ctx, function_body);
                 if is_expanded {
                     // If we have a mixture of multiline args, and other arguments
                     // Then the function args should be expanded
