@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `--verify` panicking on hexadecimal floats such as `0x1p4` or `0xA.8p0` (Lua 5.2+) and on hexadecimal integers above `0x7fffffffffffffff`
+
 ## [2.6.0] - 2026-10-10
 
 ### Added
