@@ -139,16 +139,16 @@ impl VisitorMut for AstVerifier {
                 let number = match text.as_str().parse::<f64>() {
                     Ok(num) => num.to_string(),
                     // Try parsing as Hex (0x)
-                    Err(_) => match i64::from_str_radix(&text.as_str()[2..], 16) {
+                    Err(_) => match u64::from_str_radix(&text.as_str()[2..], 16) {
                         Ok(num) => num.to_string(),
                         // If in Luau, try parsing as binary (0b)
                         #[cfg(feature = "luau")]
-                        Err(_) => match i64::from_str_radix(&text.as_str()[2..], 2) {
+                        Err(_) => match u64::from_str_radix(&text.as_str()[2..], 2) {
                             Ok(num) => num.to_string(),
-                            Err(_) => unreachable!(),
+                            Err(_) => normalise_hex_float(&text),
                         },
                         #[cfg(not(feature = "luau"))]
-                        Err(_) => unreachable!(),
+                        Err(_) => normalise_hex_float(&text),
                     },
                 };
 
@@ -184,6 +184,28 @@ impl VisitorMut for AstVerifier {
     #[cfg(feature = "luau")]
     fn visit_type_info(&mut self, type_info: TypeInfo) -> TypeInfo {
         remove_type_parentheses(type_info)
+    }
+}
+
+/// Normalises a hexadecimal number with a fraction or a binary exponent, such as `0xA.8p0` (Lua 5.2+),
+/// or a hexadecimal integer too large for 64 bits. Anything else is kept as written.
+fn normalise_hex_float(text: &str) -> String {
+    let Some(digits) = text.strip_prefix("0x").or_else(|| text.strip_prefix("0X")) else {
+        return text.to_string();
+    };
+    let (mantissa, exponent) = digits.split_once(['p', 'P']).unwrap_or((digits, "0"));
+    let (integer, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+
+    let mut value = 0.0;
+    for digit in integer.chars().chain(fraction.chars()) {
+        match digit.to_digit(16) {
+            Some(digit) => value = value * 16.0 + f64::from(digit),
+            None => return text.to_string(),
+        }
+    }
+    match exponent.parse::<i32>() {
+        Ok(exponent) => (value * 2f64.powi(exponent - 4 * fraction.len() as i32)).to_string(),
+        Err(_) => text.to_string(),
     }
 }
 
@@ -282,6 +304,53 @@ mod tests {
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_hex_numbers_beyond_i64() {
+        let input_ast = full_moon::parse("local x = 0xffffffffffffffff").unwrap();
+        let output_ast = full_moon::parse("local x = 0xFFFFFFFFFFFFFFFF").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "lua52")]
+    fn test_equivalent_hex_float_numbers() {
+        use full_moon::LuaVersion;
+
+        let input_ast = full_moon::parse_fallible(
+            "local x = 0x1p4 + 0xA.8p0 + 0x.1p1 + 0x1.8 + 0x1p-1",
+            LuaVersion::lua52(),
+        )
+        .into_result()
+        .unwrap();
+        let output_ast = full_moon::parse_fallible(
+            "local x = 0X1P4 + 0xa.8P0 + 0x.1p1 + 0x1.8 + 0X1P-1",
+            LuaVersion::lua52(),
+        )
+        .into_result()
+        .unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    #[cfg(feature = "lua52")]
+    fn test_different_hex_float_numbers() {
+        use full_moon::LuaVersion;
+
+        let input_ast = full_moon::parse_fallible("local x = 0x1p4", LuaVersion::lua52())
+            .into_result()
+            .unwrap();
+        let output_ast = full_moon::parse_fallible("local x = 0x1p5", LuaVersion::lua52())
+            .into_result()
+            .unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(!ast_verifier.compare(input_ast, output_ast));
     }
 
     #[test]
