@@ -31,7 +31,8 @@ impl AstVerifier {
 
 fn remove_parentheses(expression: Expression) -> Expression {
     match expression {
-        Expression::Parentheses { expression, .. } => *expression,
+        // Remove every level, as the formatter can collapse `((x))` into `x`
+        Expression::Parentheses { expression, .. } => remove_parentheses(*expression),
         _ => expression,
     }
 }
@@ -279,6 +280,15 @@ mod tests {
     fn test_equivalent_hex_numbers_very_large_number() {
         let input_ast = full_moon::parse("max = max or 0xffffffff").unwrap();
         let output_ast = full_moon::parse("max = max or 0xffffffff").unwrap();
+
+        let mut ast_verifier = AstVerifier::new();
+        assert!(ast_verifier.compare(input_ast, output_ast));
+    }
+
+    #[test]
+    fn test_equivalent_removed_nested_parentheses() {
+        let input_ast = full_moon::parse("local x = a and ((b >= 1 and b <= 2)) and c").unwrap();
+        let output_ast = full_moon::parse("local x = a and (b >= 1 and b <= 2) and c").unwrap();
 
         let mut ast_verifier = AstVerifier::new();
         assert!(ast_verifier.compare(input_ast, output_ast));

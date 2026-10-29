@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `--verify` reporting that the output AST may be different when the input has nested parentheses such as `((x))`
+
 ## [2.6.0] - 2026-10-10
 
 ### Added
