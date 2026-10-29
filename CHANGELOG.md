@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the language server not applying `.stylua.toml` / `.editorconfig` configuration for files whose path contains percent-encoded characters such as spaces or non-ASCII characters ([#1122](https://github.com/JohnnyMorganz/StyLua/issues/1122))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

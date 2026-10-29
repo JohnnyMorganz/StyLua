@@ -89,7 +89,8 @@ impl ToFilePath for Uri {
         //
         // Made some modification because `lsp-types` currently use 0.1.4 instead of
         // 0.4.1 from the source.
-        let path = self.path().as_str();
+        let path = self.path().as_estr().decode().into_string_lossy();
+        let path: &str = &path;
 
         #[cfg(windows)]
         {
@@ -1313,6 +1314,107 @@ mod tests {
         );
     }
 
+    /// Builds a `file://` URI for a real path, percent-encoding it like editors (e.g. VS Code) do
+    fn file_uri(path: &Path) -> Uri {
+        let mut uri = String::from("file://");
+        for byte in path.to_str().unwrap().bytes() {
+            match byte {
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                    uri.push(byte as char)
+                }
+                _ => uri.push_str(&format!("%{byte:02X}")),
+            }
+        }
+        Uri::from_str(&uri).unwrap()
+    }
+
+    /// Formats `file_name` inside `directory` through the LSP (using percent-encoded URIs) and
+    /// through the CLI configuration resolution, and returns both outputs
+    #[allow(deprecated)]
+    fn format_with_lsp_and_cli(root: &Path, file_name: &str, contents: &str) -> (String, String) {
+        let file_path = root.join(file_name);
+        let root_uri = file_uri(root);
+        let uri = file_uri(&file_path);
+
+        let opt = Opt::parse_from(vec!["BINARY_NAME"]);
+        let mut config_resolver = ConfigResolver::new(&opt).unwrap();
+        let cli_config = config_resolver
+            .load_configuration_with_search_root(&file_path, Some(root.to_path_buf()))
+            .unwrap();
+        let cli_output = stylua_lib::format_code(
+            contents,
+            cli_config,
+            None,
+            stylua_lib::OutputVerification::None,
+        )
+        .unwrap();
+
+        let (server, client) = Connection::memory();
+        for message in [
+            Message::Request(Request {
+                id: RequestId::from(1),
+                method: <Initialize as lsp_types::request::Request>::METHOD.to_string(),
+                params: to_value(InitializeParams {
+                    #[allow(deprecated)]
+                    root_uri: Some(root_uri),
+                    ..Default::default()
+                })
+                .unwrap(),
+            }),
+            initialized(),
+            open_text_document(uri.clone(), contents.to_string()),
+            format_document(2, uri, FormattingOptions::default()),
+            shutdown(3),
+            exit(),
+        ] {
+            client.sender.send(message).unwrap();
+        }
+        main_loop(server, false, &mut config_resolver).unwrap();
+
+        expect_server_initialized(&client.receiver, 1);
+        let edits: Vec<TextEdit> = expect_response(&client.receiver, 2);
+        let lsp_output = apply_text_edits_to(contents, edits);
+        expect_server_shutdown(&client.receiver, 3);
+
+        (lsp_output, cli_output)
+    }
+
+    #[test]
+    fn test_lsp_matches_cli_editorconfig_in_path_with_special_characters() {
+        let contents = "if true then\nlocal x = 1\nend\n";
+        let cwd = construct_tree!({
+            "my project/.editorconfig": "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
+            "my project/foo.lua": contents,
+            "caf\u{e9}/.editorconfig": "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
+            "caf\u{e9}/foo.lua": contents,
+        });
+
+        for directory in ["my project", "caf\u{e9}"] {
+            let (lsp_output, cli_output) =
+                format_with_lsp_and_cli(&cwd.path().join(directory), "foo.lua", contents);
+            assert_eq!(lsp_output, cli_output, "in {directory}");
+            assert_eq!(
+                lsp_output, "if true then\n  local x = 1\nend\n",
+                "in {directory}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_lsp_stylua_toml_takes_precedence_over_editorconfig_in_path_with_space() {
+        let contents = "if true then\nlocal x = 1\nend\n";
+        let cwd = construct_tree!({
+            "my project/.stylua.toml": "indent_type = \"Spaces\"\nindent_width = 3\n",
+            "my project/.editorconfig": "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
+            "my project/foo.lua": contents,
+        });
+
+        let (lsp_output, cli_output) =
+            format_with_lsp_and_cli(&cwd.path().join("my project"), "foo.lua", contents);
+        assert_eq!(lsp_output, cli_output);
+        assert_eq!(lsp_output, "if true then\n   local x = 1\nend\n");
+    }
+
     #[cfg(windows)]
     #[test]
     fn test_to_file_path_strips_leading_slash_on_windows() {
@@ -1361,5 +1463,44 @@ mod tests {
             uri.to_file_path(),
             PathBuf::from("/home/user/project/foo.lua")
         );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn test_to_file_path_unix_percent_decodes() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///home/user/my%20project/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("/home/user/my project/foo.lua")
+        );
+
+        let uri = Uri::from_str("file:///home/user/caf%C3%A9/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("/home/user/caf\u{e9}/foo.lua")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_to_file_path_windows_percent_decodes() {
+        use super::ToFilePath;
+
+        let uri = Uri::from_str("file:///C:/Users/My%20Documents/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("C:/Users/My Documents/foo.lua")
+        );
+
+        let uri = Uri::from_str("file:///C:/Users/caf%C3%A9/foo.lua").unwrap();
+        assert_eq!(
+            uri.to_file_path(),
+            PathBuf::from("C:/Users/caf\u{e9}/foo.lua")
+        );
+
+        let uri = Uri::from_str("file:///c%3A/Users/user/foo.lua").unwrap();
+        assert_eq!(uri.to_file_path(), PathBuf::from("c:/Users/user/foo.lua"));
     }
 }
