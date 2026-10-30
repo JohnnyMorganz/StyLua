@@ -18,7 +18,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{format_expression, format_var, hang_expression},
+        expression::{format_expression, format_var, hang_expression, is_brackets_string},
         general::{
             format_punctuated, format_punctuated_multiline, format_token_reference,
             try_format_punctuated,
@@ -201,6 +201,29 @@ pub fn hang_at_equals_due_to_comments(
     (equal_token, expression)
 }
 
+/// Whether the expression is a `..` chain whose leftmost operand is a multiline long string (`[[ ]]` / `[=[ ]=]`)
+fn is_multiline_long_string_concat(expression: &Expression) -> bool {
+    fn leftmost(expression: &Expression) -> &Expression {
+        match expression {
+            Expression::BinaryOperator { lhs, .. } => leftmost(lhs),
+            _ => expression,
+        }
+    }
+
+    matches!(
+        expression,
+        Expression::BinaryOperator {
+            binop: full_moon::ast::BinOp::TwoDots(_),
+            ..
+        }
+    ) && match leftmost(expression) {
+        Expression::String(token) => {
+            is_brackets_string(leftmost(expression)) && token.token().to_string().contains('\n')
+        }
+        _ => false,
+    }
+}
+
 /// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
 /// formatting output.
 fn attempt_assignment_tactics(
@@ -297,8 +320,14 @@ fn attempt_assignment_tactics(
             let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
+            // A `..` chain led by a multiline long string (e.g. `[[ ]]`) has a short first line, so the
+            // comparison above never hangs it, even when a later line is over budget. Only hang if that fixes it
             if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
+                // Check the formatted expression (e.g. with parentheses removed), as that is what is output
+                || (is_multiline_long_string_concat(expr_list.iter().next().unwrap())
+                    && shape.test_over_budget(&strip_trailing_trivia(&expr_list))
+                    && !shape.test_over_budget(&strip_trivia(&hanging_expr_list)))
             {
                 (hanging_expr_list, equal_token)
             } else {

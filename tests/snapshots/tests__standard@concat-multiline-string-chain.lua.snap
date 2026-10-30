@@ -1,0 +1,61 @@
+---
+source: tests/tests.rs
+expression: "format(&contents, LuaVersion::Lua51)"
+input_file: tests/inputs/concat-multiline-string-chain.lua
+---
+local x = [[
+box[0,0;1,1;]
+dropdown[4,0.75;6.4;contributor_grouping;]]
+	.. S("Group by name")
+	.. ","
+	.. S("Group by contribution")
+	.. ";"
+	.. mail.selected_idxs.contributor_grouping[name]
+	.. [[;true]
+]]
+local y = "dropdown[4,0.75;6.4;contributor_grouping;"
+	.. S("Group by name")
+	.. ","
+	.. S("Group by contribution")
+	.. ";"
+	.. mail.selected_idxs.contributor_grouping[name]
+	.. ";true]"
+local z = [[
+short]] .. foo .. [[bar]]
+x = [[
+box[0,0;1,1;]
+dropdown[4,0.75;6.4;contributor_grouping;]]
+	.. S("Group by name")
+	.. ","
+	.. S("Group by contribution")
+	.. ";"
+	.. mail.selected_idxs.contributor_grouping[name]
+	.. [[;true]
+]]
+-- regression: function-led multiline RHS must be unchanged
+local f = (function()
+	return 1
+end)() .. "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" .. b
+-- regression: call-led multiline RHS (reduced from jest-lua TestScheduler) must be unchanged
+local function g()
+	local message = ("%sYour test suite is leaking memory. Please ensure all references are cleaned.\n"):format(
+		tostring(chalk.red:bold("EXPERIMENTAL FEATURE!\n"))
+	) .. "\n" .. "There is a number of things that can leak memory:\n" .. "  - Async operations that have not finished (e.g. fs.readFile).\n" .. "  - Keeping references to the global scope."
+end
+-- regression: over-long line inside the long string itself; hanging cannot help, so must be unchanged
+local s = [[
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+]] .. a .. b
+-- parenthesised long string lead: parentheses are removed, so the chain must hang in a single pass
+local p = [[
+foo
+]]
+	.. "dropdown[4,0.75;6.4;contributor_grouping;"
+	.. S("Group by name")
+	.. ","
+	.. S("Group by contribution")
+	.. ";"
+	.. mail.selected_idxs.contributor_grouping[name]
+	.. [[;true]
+]]
+
