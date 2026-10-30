@@ -9,3 +9,13 @@ x = [[
 box[0,0;1,1;]
 dropdown[4,0.75;6.4;contributor_grouping;]] .. S("Group by name") .. "," .. S("Group by contribution") .. ";" .. mail.selected_idxs.contributor_grouping[name] .. [[;true]
 ]]
+-- regression: function-led multiline RHS must be unchanged
+local f = (function()
+  return 1
+end)() .. "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" .. b
+-- regression: call-led multiline RHS (reduced from jest-lua TestScheduler) must be unchanged
+local function g()
+	local message = ("%sYour test suite is leaking memory. Please ensure all references are cleaned.\n"):format(
+		tostring(chalk.red:bold("EXPERIMENTAL FEATURE!\n"))
+	) .. "\n" .. "There is a number of things that can leak memory:\n" .. "  - Async operations that have not finished (e.g. fs.readFile).\n" .. "  - Keeping references to the global scope."
+end

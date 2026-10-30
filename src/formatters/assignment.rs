@@ -18,7 +18,7 @@ use crate::{
     context::{create_indent_trivia, create_newline_trivia, Context},
     fmt_symbol,
     formatters::{
-        expression::{format_expression, format_var, hang_expression},
+        expression::{format_expression, format_var, hang_expression, is_brackets_string},
         general::{
             format_punctuated, format_punctuated_multiline, format_token_reference,
             try_format_punctuated,
@@ -201,6 +201,29 @@ pub fn hang_at_equals_due_to_comments(
     (equal_token, expression)
 }
 
+/// Whether the expression is a `..` chain whose leftmost operand is a multiline long string (`[[ ]]` / `[=[ ]=]`)
+fn is_multiline_long_string_concat(expression: &Expression) -> bool {
+    fn leftmost(expression: &Expression) -> &Expression {
+        match expression {
+            Expression::BinaryOperator { lhs, .. } => leftmost(lhs),
+            _ => expression,
+        }
+    }
+
+    matches!(
+        expression,
+        Expression::BinaryOperator {
+            binop: full_moon::ast::BinOp::TwoDots(_),
+            ..
+        }
+    ) && match leftmost(expression) {
+        Expression::String(token) => {
+            is_brackets_string(leftmost(expression)) && token.token().to_string().contains('\n')
+        }
+        _ => false,
+    }
+}
+
 /// Attempts different formatting tactics on an expression list being assigned (`= foo, bar`), to find the best
 /// formatting output.
 fn attempt_assignment_tactics(
@@ -297,19 +320,12 @@ fn attempt_assignment_tactics(
             let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
-            // A multiline expression (e.g. one starting with a `[[ ]]` string) may have a short first line
-            // whilst a later line is over budget. In that case, hang if it makes the longest line shorter
-            let expr_string = strip_trailing_trivia(&expr_list).to_string();
-            let longest_line = |string: &str| string.lines().map(str::len).max().unwrap_or(0);
-            let unhung_longest_line = longest_line(&expr_string);
-            let later_line_over_budget = expr_string.lines().count() > 1
-                && shape.reset().add_width(unhung_longest_line).over_budget()
-                && longest_line(&strip_trivia(&hanging_expr_list).to_string())
-                    < unhung_longest_line;
-
+            // A `..` chain led by a multiline long string (e.g. `[[ ]]`) has a short first line, so the
+            // comparison above never hangs it, even when a later line is over budget
             if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
-                || later_line_over_budget
+                || (is_multiline_long_string_concat(expression)
+                    && shape.test_over_budget(&strip_trailing_trivia(&expr_list)))
             {
                 (hanging_expr_list, equal_token)
             } else {

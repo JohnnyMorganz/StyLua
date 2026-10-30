@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Fixed a `..` concatenation chain starting with a multiline `[[ ]]` string never being split when over the column width ([#1174](https://github.com/JohnnyMorganz/StyLua/issues/1174))
-
 ## [2.6.0] - 2026-10-10
 
 ### Added
