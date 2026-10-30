@@ -297,8 +297,19 @@ fn attempt_assignment_tactics(
             let hanging_expr_list = hang_punctuated_list(ctx, expressions, shape);
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
+            // A multiline expression (e.g. one starting with a `[[ ]]` string) may have a short first line
+            // whilst a later line is over budget. In that case, hang if it makes the longest line shorter
+            let expr_string = strip_trailing_trivia(&expr_list).to_string();
+            let longest_line = |string: &str| string.lines().map(str::len).max().unwrap_or(0);
+            let unhung_longest_line = longest_line(&expr_string);
+            let later_line_over_budget = expr_string.lines().count() > 1
+                && shape.reset().add_width(unhung_longest_line).over_budget()
+                && longest_line(&strip_trivia(&hanging_expr_list).to_string())
+                    < unhung_longest_line;
+
             if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
+                || later_line_over_budget
             {
                 (hanging_expr_list, equal_token)
             } else {
