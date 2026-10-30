@@ -321,11 +321,12 @@ fn attempt_assignment_tactics(
             let hanging_shape = shape.take_first_line(&strip_trivia(&hanging_expr_list));
 
             // A `..` chain led by a multiline long string (e.g. `[[ ]]`) has a short first line, so the
-            // comparison above never hangs it, even when a later line is over budget
+            // comparison above never hangs it, even when a later line is over budget. Only hang if that fixes it
             if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
                 || (is_multiline_long_string_concat(expression)
-                    && shape.test_over_budget(&strip_trailing_trivia(&expr_list)))
+                    && shape.test_over_budget(&strip_trailing_trivia(&expr_list))
+                    && !shape.test_over_budget(&strip_trivia(&hanging_expr_list)))
             {
                 (hanging_expr_list, equal_token)
             } else {

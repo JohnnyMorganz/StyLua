@@ -42,4 +42,8 @@ local function g()
 		tostring(chalk.red:bold("EXPERIMENTAL FEATURE!\n"))
 	) .. "\n" .. "There is a number of things that can leak memory:\n" .. "  - Async operations that have not finished (e.g. fs.readFile).\n" .. "  - Keeping references to the global scope."
 end
+-- regression: over-long line inside the long string itself; hanging cannot help, so must be unchanged
+local s = [[
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+]] .. a .. b
 
