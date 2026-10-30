@@ -324,7 +324,8 @@ fn attempt_assignment_tactics(
             // comparison above never hangs it, even when a later line is over budget. Only hang if that fixes it
             if expression.has_inline_comments()
                 || hanging_shape.used_width() < formatting_shape.used_width()
-                || (is_multiline_long_string_concat(expression)
+                // Check the formatted expression (e.g. with parentheses removed), as that is what is output
+                || (is_multiline_long_string_concat(expr_list.iter().next().unwrap())
                     && shape.test_over_budget(&strip_trailing_trivia(&expr_list))
                     && !shape.test_over_budget(&strip_trivia(&hanging_expr_list)))
             {

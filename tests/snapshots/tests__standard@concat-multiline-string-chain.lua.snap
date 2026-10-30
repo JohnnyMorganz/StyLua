@@ -46,4 +46,16 @@ end
 local s = [[
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ]] .. a .. b
+-- parenthesised long string lead: parentheses are removed, so the chain must hang in a single pass
+local p = [[
+foo
+]]
+	.. "dropdown[4,0.75;6.4;contributor_grouping;"
+	.. S("Group by name")
+	.. ","
+	.. S("Group by contribution")
+	.. ";"
+	.. mail.selected_idxs.contributor_grouping[name]
+	.. [[;true]
+]]
 
