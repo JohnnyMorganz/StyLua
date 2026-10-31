@@ -1,0 +1,7 @@
+local require = require(ReplicatedStorage:WaitForChild("Sonar"))
+local DisplayUtils = require("DisplayUtils")
+local Maid = require("Maid")
+local FormatNumber = require("FormatNumber")
+local GameUtils = require("GameUtils")
+local RemoteUtils = require("RemoteUtils")
+local Button = require("Button")

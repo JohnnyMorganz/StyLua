@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed sort requires moving requires above a `local require = require(...)` statement they depend on: a statement that rebinds `require` now stays in place and splits its block ([#993](https://github.com/JohnnyMorganz/StyLua/issues/993))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

@@ -14,6 +14,9 @@
 //!   This allows us to solve the assumption of depending on local variables
 //!   (if there is a local variable in between requires, it would split them into two separate blocks,
 //!   so a require will always be after any local variable it uses)
+//! - A require which rebinds `require` itself (e.g. `local require = require(...)`) is not sorted:
+//!   the requires after it call the new local, so it stays in place and splits the block,
+//!   keeping those requires below it.
 //! - Blocks remain in-place in the file.
 
 use full_moon::{
@@ -81,6 +84,11 @@ fn get_sortable_assignment_parts(
     let expression_kind = get_expression_kind(expression)?;
     let variable_name =
         extract_identifier_from_token(name).expect("require is stored as non-identifier");
+    // `local require = require(...)` rebinds the function that the following requires call.
+    // Moving it within its block would change which `require` they use, so it is not sortable.
+    if expression_kind == GroupKind::Require && variable_name == "require" {
+        return None;
+    }
     let current_line = name.start_position().unwrap().line();
 
     Some((variable_name, expression_kind, current_line))
@@ -332,5 +340,16 @@ mod tests {
         let expression = extract_test_expression(&ast);
 
         assert_eq!(get_expression_kind(expression), Some(GroupKind::Require));
+    }
+
+    #[test]
+    fn rebinding_require_is_not_sortable() {
+        let ast = full_moon::parse("local require = require(EXPR)").unwrap();
+        let stmt = ast.nodes().stmts_with_semicolon().next().unwrap();
+        assert_eq!(get_sortable_assignment(stmt), None);
+
+        let ast = full_moon::parse("local other = require(EXPR)").unwrap();
+        let stmt = ast.nodes().stmts_with_semicolon().next().unwrap();
+        assert!(get_sortable_assignment(stmt).is_some());
     }
 }

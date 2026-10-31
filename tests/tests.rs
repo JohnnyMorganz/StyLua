@@ -367,6 +367,41 @@ const SplitA = require("SplitA")
 }
 
 #[test]
+#[cfg(feature = "luau")]
+fn test_sort_requires_luau_rebound_require() {
+    let input = r#"local Beta = require("Beta")
+local utils = require("utils")
+local Alpha = require("Alpha")
+const require = require(script.Loader) :: any
+local Zebra = require("Zebra")
+const Apple = require("Apple")
+"#;
+
+    let output = format_code(
+        input,
+        Config {
+            syntax: LuaVersion::Luau,
+            sort_requires: SortRequiresConfig { enabled: true },
+            ..Config::default()
+        },
+        None,
+        OutputVerification::None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        output,
+        r#"local Alpha = require("Alpha")
+local Beta = require("Beta")
+local utils = require("utils")
+const require = require(script.Loader) :: any
+const Apple = require("Apple")
+local Zebra = require("Zebra")
+"#
+    );
+}
+
+#[test]
 fn test_crlf_in_multiline_comments() {
     // We need to do this outside of insta since it normalises line endings to LF
     let code = r#"
