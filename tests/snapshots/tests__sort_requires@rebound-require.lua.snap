@@ -1,0 +1,13 @@
+---
+source: tests/tests.rs
+expression: "format_code(&contents, Config\n{ sort_requires: SortRequiresConfig { enabled: true }, ..Config::default() },\nNone, OutputVerification::None).unwrap()"
+input_file: tests/inputs-sort-requires/rebound-require.lua
+---
+local require = require(ReplicatedStorage:WaitForChild("Sonar"))
+local Button = require("Button")
+local DisplayUtils = require("DisplayUtils")
+local FormatNumber = require("FormatNumber")
+local GameUtils = require("GameUtils")
+local Maid = require("Maid")
+local RemoteUtils = require("RemoteUtils")
+

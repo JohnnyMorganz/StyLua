@@ -241,6 +241,9 @@ StyLua only considers requires of the form `local NAME = require(EXPR)`, or `con
 and sorts lexicographically based on `NAME`.
 (StyLua can also sort Roblox services of the form `local NAME = game:GetService(EXPR)`, or `const NAME = game:GetService(EXPR)` in Luau)
 
+A require which rebinds `require` itself, such as `local require = require(EXPR)`, is never moved.
+It splits the block, so the requires after it, which call the new `require`, stay below it.
+
 Requires sorting is off by default. To enable it, add the following to your `stylua.toml`:
 
 ```toml
