@@ -11,6 +11,10 @@ To view the changelog of the StyLua binary, see [here](https://github.com/Johnny
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed "Format Modified Lines" (`formatOnSaveMode: modifications`) formatting everything between separate modified regions. Formatting now only replaces the changed lines instead of the whole document, so VSCode no longer merges the ranges (#1055)
+
 ## [1.7.2] - 2026-05-16
 
 ### Fixed
