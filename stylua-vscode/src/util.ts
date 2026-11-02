@@ -72,3 +72,38 @@ export const fileExists = (path: vscode.Uri | string): Thenable<boolean> => {
     () => false
   );
 };
+
+/**
+ * Find the smallest run of whole lines that differs between `original` and `formatted`.
+ * Returns the char offsets in `original` to replace, and the text to replace them with.
+ * VSCode merges modified ranges whose edits intersect, so replacing the whole document
+ * would cause unrelated modifications to be formatted together.
+ */
+export const getMinimalEdit = (original: string, formatted: string) => {
+  let prefix = 0;
+  const maxPrefix = Math.min(original.length, formatted.length);
+  while (prefix < maxPrefix && original[prefix] === formatted[prefix]) {
+    prefix++;
+  }
+
+  let suffix = 0;
+  const maxSuffix = maxPrefix - prefix;
+  while (
+    suffix < maxSuffix &&
+    original[original.length - 1 - suffix] ===
+      formatted[formatted.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+
+  // Align both ends to line starts so we never split a CRLF or surrogate pair
+  prefix = prefix > 0 ? original.lastIndexOf("\n", prefix - 1) + 1 : 0;
+  const suffixLineEnd = original.indexOf("\n", original.length - suffix);
+  suffix = suffixLineEnd === -1 ? 0 : original.length - suffixLineEnd - 1;
+
+  return {
+    start: prefix,
+    end: original.length - suffix,
+    newText: formatted.slice(prefix, formatted.length - suffix),
+  };
+};

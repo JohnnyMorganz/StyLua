@@ -3,7 +3,7 @@ import * as semver from "semver";
 import { formatCode } from "./stylua";
 import { GitHub, GitHubRelease } from "./github";
 import { ResolveMode, StyluaDownloader, StyluaInfo } from "./download";
-import { getDesiredVersion } from "./util";
+import { getDesiredVersion, getMinimalEdit } from "./util";
 
 const documentSelector = ["lua", "luau"];
 
@@ -253,17 +253,14 @@ export async function activate(context: vscode.ExtensionContext) {
             byteOffset(document, range.start),
             byteOffset(document, range.end)
           );
-          // Replace the whole document with our new formatted version
-          const lastLineNumber = document.lineCount - 1;
-          const fullDocumentRange = new vscode.Range(
-            0,
-            0,
-            lastLineNumber,
-            document.lineAt(lastLineNumber).text.length
-          );
+          // Only replace the lines that changed, so that edits for separate ranges don't overlap
+          const { start, end, newText } = getMinimalEdit(text, formattedText);
           const format = vscode.TextEdit.replace(
-            fullDocumentRange,
-            formattedText
+            new vscode.Range(
+              document.positionAt(start),
+              document.positionAt(end)
+            ),
+            newText
           );
           statusItem.updateFormatSuccess();
           return [format];
