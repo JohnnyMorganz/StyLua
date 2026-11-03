@@ -367,15 +367,15 @@ pub fn format_assignment_no_trivia(
         equal_token = prepend_newline_indent(ctx, &equal_token, shape);
     }
 
-    // Test the assignment to see if its over width
-    let singleline_shape = shape
-        + (strip_leading_trivia(&var_list).to_string().len()
-            + 3
-            + strip_trailing_trivia(&expr_list).to_string().len());
+    // Test the assignment to see if its over width. The variable list may span multiple lines
+    // (e.g. a multiline table constructor), so only its last line is followed by the equals token.
+    let singleline_shape = shape.take_last_line(&strip_leading_trivia(&var_list))
+        + 3 // 3 = " = "
+        + strip_trailing_trivia(&expr_list).to_string().len();
     if contains_comments || singleline_shape.over_budget() {
         // We won't attempt anything else with the var_list. Format it normally
         var_list = try_format_punctuated(ctx, assignment.variables(), shape, format_var, Some(1));
-        let shape = shape + (strip_leading_trivia(&var_list).to_string().len() + 3);
+        let shape = shape.take_last_line(&strip_leading_trivia(&var_list)) + 3; // 3 = " = "
 
         let (new_expr_list, new_equal_token) =
             attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
@@ -489,20 +489,25 @@ pub fn format_local_assignment_no_trivia(
             .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
             .collect();
 
+        // Attributes and type specifiers follow the name list, before the equals token. Only their
+        // last line shares a line with the equals token, so collect their text and measure the
+        // last line of the whole variable list rather than summing up lengths.
         #[allow(unused_mut)]
-        let mut type_specifier_len = 0;
+        let mut var_list_suffix = String::new();
         #[cfg(feature = "lua54")]
-        {
-            type_specifier_len += attributes.iter().fold(0, |acc, x| {
-                acc + x.as_ref().map_or(0, |y| y.to_string().len())
-            });
-        }
+        var_list_suffix.extend(
+            attributes
+                .iter()
+                .flatten()
+                .map(|attribute| attribute.to_string()),
+        );
         #[cfg(feature = "luau")]
-        {
-            type_specifier_len += type_specifiers.iter().fold(0, |acc, x| {
-                acc + x.as_ref().map_or(0, |y| y.to_string().len())
-            });
-        }
+        var_list_suffix.extend(
+            type_specifiers
+                .iter()
+                .flatten()
+                .map(|specifier| specifier.to_string()),
+        );
 
         #[cfg(feature = "luau")]
         let var_list_ends_with_comments = match type_specifiers.last() {
@@ -525,13 +530,14 @@ pub fn format_local_assignment_no_trivia(
             equal_token = prepend_newline_indent(ctx, &equal_token, shape);
         }
 
-        // Test the assignment to see if its over width
-        let singleline_shape = shape
-            + (strip_leading_trivia(&name_list).to_string().len()
-                + 6 // 6 = "local "
-                + 3 // 3 = " = "
-                + type_specifier_len
-                + strip_trailing_trivia(&expr_list).to_string().len());
+        // Test the assignment to see if its over width. The name list, attributes and type
+        // specifiers may all span multiple lines, so only their last line is followed by the
+        // equals token.
+        let var_list = format!("{}{}", strip_leading_trivia(&name_list), var_list_suffix);
+        let singleline_shape = (shape + 6) // 6 = "local "
+            .take_last_line(&var_list)
+            + 3 // 3 = " = "
+            + strip_trailing_trivia(&expr_list).to_string().len();
 
         if contains_comments || singleline_shape.over_budget() {
             // We won't attempt anything else with the name_list. Format it normally
@@ -542,8 +548,9 @@ pub fn format_local_assignment_no_trivia(
                 format_token_reference,
                 Some(1),
             );
-            let shape = shape
-                + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
+            let shape = (shape + 6) // 6 = "local "
+                .take_last_line(&var_list)
+                + 3; // 3 = " = "
 
             let (new_expr_list, new_equal_token) =
                 attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);
@@ -621,9 +628,17 @@ pub fn format_const_assignment_no_trivia(
         .map(|x| x.map(|type_specifier| format_type_specifier(ctx, type_specifier, shape)))
         .collect();
 
-    let type_specifier_len = type_specifiers.iter().fold(0, |acc, x| {
-        acc + x.as_ref().map_or(0, |y| y.to_string().len())
-    });
+    // Type specifiers follow the name list, before the equals token. Only their last line shares a
+    // line with the equals token, so append their text to the name list and measure the last line.
+    let var_list = format!(
+        "{}{}",
+        strip_leading_trivia(&name_list),
+        type_specifiers
+            .iter()
+            .flatten()
+            .map(|specifier| specifier.to_string())
+            .collect::<String>()
+    );
 
     let var_list_ends_with_comments = match type_specifiers.last() {
         Some(Some(specifier)) => {
@@ -641,12 +656,12 @@ pub fn format_const_assignment_no_trivia(
         equal_token = prepend_newline_indent(ctx, &equal_token, shape);
     }
 
-    let singleline_shape = shape
-        + (strip_leading_trivia(&name_list).to_string().len()
-            + 6 // 6 = "const "
-            + 3 // 3 = " = "
-            + type_specifier_len
-            + strip_trailing_trivia(&expr_list).to_string().len());
+    // The name list and type specifiers may span multiple lines (e.g. due to comments), so only
+    // their last line is followed by the equals token.
+    let singleline_shape = (shape + 6) // 6 = "const "
+        .take_last_line(&var_list)
+        + 3 // 3 = " = "
+        + strip_trailing_trivia(&expr_list).to_string().len();
 
     if contains_comments || singleline_shape.over_budget() {
         name_list = try_format_punctuated(
@@ -656,8 +671,9 @@ pub fn format_const_assignment_no_trivia(
             format_token_reference,
             Some(1),
         );
-        let shape = shape
-            + (strip_leading_trivia(&name_list).to_string().len() + 6 + 3 + type_specifier_len);
+        let shape = (shape + 6) // 6 = "const "
+            .take_last_line(&var_list)
+            + 3; // 3 = " = "
 
         let (new_expr_list, new_equal_token) =
             attempt_assignment_tactics(ctx, assignment.expressions(), shape, equal_token);

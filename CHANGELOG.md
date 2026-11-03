@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the parameters of an assigned function being expanded unnecessarily when the variable list, type specifier or attribute spans multiple lines
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

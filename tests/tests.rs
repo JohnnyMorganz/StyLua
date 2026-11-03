@@ -264,6 +264,207 @@ end)
 }
 
 #[test]
+fn test_assignment_var_list_spanning_multiple_lines() {
+    // The variable list spans multiple lines (a multiline table constructor passed to a function
+    // call), so only its last line (`}).g`) shares a line with the equals token. The width check
+    // must measure that line, not the total length of the variable list: otherwise the function
+    // parameters are incorrectly expanded onto multiple lines once the table grows.
+    insta::assert_snapshot!(
+        format_code(
+            r#"f("s", {
+	{ a = 1 },
+	{ b = 2 },
+	{ c = 3 },
+}).g = function(h)
+	return h
+end
+"#,
+            Config {
+                column_width: 40,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    f("s", {
+    	{ a = 1 },
+    	{ b = 2 },
+    	{ c = 3 },
+    }).g = function(h)
+    	return h
+    end
+    "###
+    );
+}
+
+#[test]
+fn test_assignment_var_list_spanning_multiple_lines_still_expands_when_over_budget() {
+    // Same shape as above, but the parameters genuinely do not fit after the last line of the
+    // variable list, so they must still be expanded. This guards the fix from being too permissive.
+    insta::assert_snapshot!(
+        format_code(
+            r#"f("s", {
+	{ a = 1 },
+}).g = function(first_argument, second_argument)
+	return first_argument
+end
+"#,
+            Config {
+                column_width: 40,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    f("s", {
+    	{ a = 1 },
+    }).g = function(
+    	first_argument,
+    	second_argument
+    )
+    	return first_argument
+    end
+    "###
+    );
+}
+
+#[test]
+fn test_local_assignment_name_list_spanning_multiple_lines() {
+    // The name list spans multiple lines because of the comment, so only its last line
+    // (`variable_06, variable_07`) shares a line with the equals token. Measuring the total
+    // length of the name list instead would expand the function parameters unnecessarily.
+    insta::assert_snapshot!(
+        format_code(
+            r#"local variable_01, variable_02, variable_03, variable_04, variable_05, -- note
+	variable_06, variable_07 = function(h)
+	return h
+end
+"#,
+            Config::default(),
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    local variable_01,
+    	variable_02,
+    	variable_03,
+    	variable_04,
+    	variable_05, -- note
+    	variable_06,
+    	variable_07 = function(h)
+    	return h
+    end
+    "###
+    );
+}
+
+#[test]
+#[cfg(feature = "luau")]
+fn test_const_assignment_name_list_spanning_multiple_lines() {
+    // Same as above, for Luau `const` declarations.
+    insta::assert_snapshot!(
+        format_code(
+            r#"const a, -- note
+	b = function(h)
+	return h
+end, 2
+"#,
+            Config {
+                syntax: LuaVersion::Luau,
+                column_width: 40,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    const a, -- note
+    	b = function(h)
+    	return h
+    end, 2
+    "###
+    );
+}
+
+#[test]
+#[cfg(feature = "luau")]
+fn test_local_assignment_multiline_type_specifier() {
+    // The type specifier spans multiple lines, so only its last line (`}`) shares a line with the
+    // equals token. Its total length must not be counted, or the function parameters get expanded
+    // unnecessarily.
+    insta::assert_snapshot!(
+        format_code(
+            r#"local x: {
+	a: string,
+	b: string,
+	c: string,
+} = function(h)
+	return h
+end
+"#,
+            Config {
+                syntax: LuaVersion::Luau,
+                column_width: 40,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    local x: {
+    	a: string,
+    	b: string,
+    	c: string,
+    } = function(h)
+    	return h
+    end
+    "###
+    );
+}
+
+#[test]
+#[cfg(feature = "luau")]
+fn test_const_assignment_multiline_type_specifier() {
+    // Same as above, for Luau `const` declarations.
+    insta::assert_snapshot!(
+        format_code(
+            r#"const x: {
+	a: string,
+	b: string,
+	c: string,
+} = function(h)
+	return h
+end
+"#,
+            Config {
+                syntax: LuaVersion::Luau,
+                column_width: 40,
+                ..Config::default()
+            },
+            None,
+            OutputVerification::None
+        )
+        .unwrap(),
+        @r###"
+    const x: {
+    	a: string,
+    	b: string,
+    	c: string,
+    } = function(h)
+    	return h
+    end
+    "###
+    );
+}
+
+#[test]
 fn test_preserve_block_newline_gaps() {
     insta::glob!("inputs-preserve-block-newline-gaps/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
