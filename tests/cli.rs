@@ -88,6 +88,85 @@ fn deeply_unterminated_functions_are_a_parse_error() {
     cwd.close().unwrap();
 }
 
+#[cfg(feature = "luau")]
+#[test]
+fn interpolated_nested_functions_do_not_abort() {
+    let mut body = "nil".to_string();
+    for _ in 0..100 {
+        body = format!("function() local a = {body} end");
+    }
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("interp.lua")
+        .write_str(&format!("local x = `{{{body}}}`\n"))
+        .unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--syntax", "luau", "--check", "interp.lua"])
+        .output()
+        .unwrap();
+    let code = output.status.code();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        code == Some(0) || code == Some(1),
+        "interpolated nesting should format or diff, got exit {:?} stderr {}",
+        code,
+        stderr
+    );
+    assert!(
+        !stderr.contains("overflowed its stack"),
+        "interpolated nesting aborted: {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
+#[cfg(any(feature = "lua52", feature = "luau"))]
+#[test]
+fn z_escape_nested_functions_do_not_abort() {
+    const SEGMENT: usize = 40;
+    const SEGMENTS: usize = 4;
+    let mut source = String::new();
+    for segment in 0..SEGMENTS {
+        for i in 0..SEGMENT {
+            source.push_str(&format!("function S{segment}_{i}()\n"));
+        }
+        source.push_str("local s = \"\\z\n");
+        for _ in 0..SEGMENT {
+            source.push_str("end ");
+        }
+        source.push_str("\"\n");
+    }
+    for _ in 0..(SEGMENT * SEGMENTS) {
+        source.push_str("end\n");
+    }
+
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("zreset.lua").write_str(&source).unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "zreset.lua"])
+        .output()
+        .unwrap();
+    let code = output.status.code();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        code == Some(0) || code == Some(1),
+        "\\z nesting should format or diff, got exit {:?} stderr {}",
+        code,
+        stderr
+    );
+    assert!(
+        !stderr.contains("overflowed its stack"),
+        "\\z nesting aborted: {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
 #[test]
 fn test_no_files_provided() {
     let mut cmd = create_stylua();

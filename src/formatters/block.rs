@@ -581,13 +581,6 @@ fn check_stmt_requires_semicolon(
 
 /// Formats a block node. Note: the given shape to the block formatter should already be at the correct indentation level
 pub fn format_block(ctx: &Context, block: &Block, shape: Shape) -> Block {
-    // Nested blocks recurse through statement formatting back into this function.
-    // Switch stacks before allocating that chain so deep trees do not abort.
-    crate::recursion::with_block_stack(|| format_block_inner(ctx, block, shape))
-}
-
-#[inline(never)]
-fn format_block_inner(ctx: &Context, block: &Block, shape: Shape) -> Block {
     let mut ctx = *ctx;
     let mut formatted_statements: Vec<(Stmt, Option<TokenReference>)> = Vec::new();
     let mut remove_next_stmt_leading_newlines = !ctx.should_preserve_leading_block_newline_gaps();
