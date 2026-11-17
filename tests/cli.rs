@@ -17,6 +17,156 @@ fn create_stylua() -> Command {
     Command::new(assert_cmd::cargo::cargo_bin!("stylua"))
 }
 
+fn nested_function_source(depth: usize, close: bool) -> String {
+    let mut source = String::new();
+    for i in 1..=depth {
+        source.push_str(&format!("function F{i}()\n"));
+    }
+    if close {
+        for _ in 0..depth {
+            source.push_str("end\n");
+        }
+    }
+    source
+}
+
+#[test]
+fn deeply_nested_functions_check_and_format() {
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("nested.lua")
+        .write_str(&nested_function_source(100, true))
+        .unwrap();
+
+    // Unformatted but valid: --check reports a diff (exit 1) and must not abort.
+    create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "nested.lua"])
+        .assert()
+        .code(1);
+
+    create_stylua()
+        .current_dir(cwd.path())
+        .arg("nested.lua")
+        .assert()
+        .success();
+
+    create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "nested.lua"])
+        .assert()
+        .success();
+
+    cwd.close().unwrap();
+}
+
+#[test]
+fn deeply_unterminated_functions_are_a_parse_error() {
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("open.lua")
+        .write_str(&nested_function_source(100, false))
+        .unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "open.lua"])
+        .output()
+        .unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error parsing"),
+        "expected a parse error, got {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
+#[cfg(feature = "luau")]
+#[test]
+fn interpolated_nested_functions_do_not_abort() {
+    let mut body = "nil".to_string();
+    for _ in 0..100 {
+        body = format!("function() local a = {body} end");
+    }
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("interp.lua")
+        .write_str(&format!("local x = `{{{body}}}`\n"))
+        .unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--syntax", "luau", "--check", "interp.lua"])
+        .output()
+        .unwrap();
+    let code = output.status.code();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        code == Some(0) || code == Some(1),
+        "interpolated nesting should format or diff, got exit {:?} stderr {}",
+        code,
+        stderr
+    );
+    assert!(
+        !stderr.contains("overflowed its stack"),
+        "interpolated nesting aborted: {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
+#[cfg(any(feature = "lua52", feature = "luau"))]
+#[test]
+fn z_escape_nested_functions_do_not_abort() {
+    const SEGMENT: usize = 40;
+    const SEGMENTS: usize = 4;
+    let mut source = String::new();
+    for segment in 0..SEGMENTS {
+        for i in 0..SEGMENT {
+            source.push_str(&format!("function S{segment}_{i}()\n"));
+        }
+        source.push_str("local s = \"\\z\n");
+        for _ in 0..SEGMENT {
+            source.push_str("end ");
+        }
+        source.push_str("\"\n");
+    }
+    for _ in 0..(SEGMENT * SEGMENTS) {
+        source.push_str("end\n");
+    }
+
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("zreset.lua").write_str(&source).unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "zreset.lua"])
+        .output()
+        .unwrap();
+    let code = output.status.code();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        code == Some(0) || code == Some(1),
+        "\\z nesting should format or diff, got exit {:?} stderr {}",
+        code,
+        stderr
+    );
+    assert!(
+        !stderr.contains("overflowed its stack"),
+        "\\z nesting aborted: {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
 #[test]
 fn test_no_files_provided() {
     let mut cmd = create_stylua();

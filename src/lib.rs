@@ -12,6 +12,7 @@ mod context;
 #[cfg(feature = "editorconfig")]
 pub mod editorconfig;
 mod formatters;
+mod recursion;
 mod shape;
 mod sort_requires;
 mod verify_ast;
@@ -453,6 +454,19 @@ pub fn format_ast(
 /// Formats given Lua code
 #[allow(clippy::result_large_err)]
 pub fn format_code(
+    code: &str,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<String, Error> {
+    // Parsing and formatting recurse once per nested block, and the parser
+    // keeps a large frame live across that recursion. A 2MiB worker thread
+    // aborts around 100 nested functions; give the call a fixed segment when
+    // the caller does not already have that much stack.
+    recursion::with_sufficient_stack(|| format_code_impl(code, config, range, verify_output))
+}
+
+fn format_code_impl(
     code: &str,
     config: Config,
     range: Option<Range>,

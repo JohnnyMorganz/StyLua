@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a stack overflow abort on the reported case of about 100–200 nested `function` bodies, including that nesting inside a one-line Luau interpolated string or split by a `\z` string that contains the word `end`. Valid input formats. The same nesting with the closing `end`s missing reports a parse error instead of aborting. `format_code` switches to one fixed 16MiB stack when the caller has less than that free (about 8MiB covers the release build of the reported range; debug formatting needs the rest). A few thousand nested blocks can still overflow ([#1189](https://github.com/JohnnyMorganz/StyLua/issues/1189))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added
