@@ -64,6 +64,11 @@ lsp-textdocument = { version = "0.4.2", optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.108", optional = true }
 
+# Non-wasm builds grow the stack before recursive parsing/formatting. wasm has no
+# portable stack switch, and the host supplies the call stack there.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+stacker = "0.1.25"
+
 # full-moon should be compiled to release optimisations in debug mode due to stack overflows
 # https://github.com/Kampfkarren/full-moon/issues/140
 [profile.dev.package.full_moon]

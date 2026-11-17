@@ -17,6 +17,77 @@ fn create_stylua() -> Command {
     Command::new(assert_cmd::cargo::cargo_bin!("stylua"))
 }
 
+fn nested_function_source(depth: usize, close: bool) -> String {
+    let mut source = String::new();
+    for i in 1..=depth {
+        source.push_str(&format!("function F{i}()\n"));
+    }
+    if close {
+        for _ in 0..depth {
+            source.push_str("end\n");
+        }
+    }
+    source
+}
+
+#[test]
+fn deeply_nested_functions_check_and_format() {
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("nested.lua")
+        .write_str(&nested_function_source(100, true))
+        .unwrap();
+
+    // Unformatted but valid: --check reports a diff (exit 1) and must not abort.
+    create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "nested.lua"])
+        .assert()
+        .code(1);
+
+    create_stylua()
+        .current_dir(cwd.path())
+        .arg("nested.lua")
+        .assert()
+        .success();
+
+    create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "nested.lua"])
+        .assert()
+        .success();
+
+    cwd.close().unwrap();
+}
+
+#[test]
+fn deeply_unterminated_functions_are_a_parse_error() {
+    let cwd = assert_fs::TempDir::new().unwrap();
+    cwd.child("open.lua")
+        .write_str(&nested_function_source(100, false))
+        .unwrap();
+
+    let output = create_stylua()
+        .current_dir(cwd.path())
+        .args(["--check", "open.lua"])
+        .output()
+        .unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error parsing"),
+        "expected a parse error, got {}",
+        stderr
+    );
+
+    cwd.close().unwrap();
+}
+
 #[test]
 fn test_no_files_provided() {
     let mut cmd = create_stylua();

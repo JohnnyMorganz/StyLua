@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a stack overflow abort when formatting or checking deeply nested blocks (about 100 nested `function` bodies, and the same nesting with the closing `end`s missing). The process now formats valid input and reports a normal parse error for invalid input ([#1189](https://github.com/JohnnyMorganz/StyLua/issues/1189))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

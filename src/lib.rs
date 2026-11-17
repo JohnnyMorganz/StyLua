@@ -12,6 +12,7 @@ mod context;
 #[cfg(feature = "editorconfig")]
 pub mod editorconfig;
 mod formatters;
+mod recursion;
 mod shape;
 mod sort_requires;
 mod verify_ast;
@@ -433,13 +434,14 @@ pub fn format_ast(
     // If we are verifying, reparse the output then check it matches the original input
     if let Some(input_ast) = input_ast_for_verification {
         let output = ast.to_string();
-        let reparsed_output =
-            match full_moon::parse_fallible(&output, config.syntax.into()).into_result() {
-                Ok(ast) => ast,
-                Err(error) => {
-                    return Err(Error::VerificationAstError(error));
-                }
-            };
+        let reparsed_output = match recursion::with_parser_stack(&output, || {
+            full_moon::parse_fallible(&output, config.syntax.into()).into_result()
+        }) {
+            Ok(ast) => ast,
+            Err(error) => {
+                return Err(Error::VerificationAstError(error));
+            }
+        };
 
         let mut ast_verifier = verify_ast::AstVerifier::new();
         if !ast_verifier.compare(input_ast, reparsed_output) {
@@ -453,6 +455,20 @@ pub fn format_ast(
 /// Formats given Lua code
 #[allow(clippy::result_large_err)]
 pub fn format_code(
+    code: &str,
+    config: Config,
+    range: Option<Range>,
+    verify_output: OutputVerification,
+) -> Result<String, Error> {
+    // Parsing and formatting both recurse once per nested block, and the parser
+    // keeps a large frame live across that recursion. Give the call a stack
+    // sized for this input so a 2MiB worker thread does not abort.
+    recursion::with_parser_stack(code, || {
+        format_code_impl(code, config, range, verify_output)
+    })
+}
+
+fn format_code_impl(
     code: &str,
     config: Config,
     range: Option<Range>,
