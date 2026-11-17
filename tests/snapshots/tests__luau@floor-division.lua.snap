@@ -1,7 +1,13 @@
 ---
 source: tests/tests.rs
-expression: format(&contents)
+expression: "format(&contents, LuaVersion::Luau)"
 input_file: tests/inputs-luau/floor-division.lua
 ---
 local x = 1 // 2
+local column = (mousePosition.X - inventoryFrame.AbsolutePosition.X + scrollingFrame.CanvasPosition.X)
+	// (SLOT_SIZE + SLOT_PADDING)
+local y = a -- comment
+	// b
+local z = a -- comment
+	// b
 
