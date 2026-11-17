@@ -545,9 +545,10 @@ impl GetLeadingTrivia for BinOp {
             | BinOp::TildeEqual(token)
             | BinOp::TwoDots(token)
             | BinOp::TwoEqual(token) => GetLeadingTrivia::leading_trivia(token),
+            #[cfg(any(feature = "luau", feature = "lua53"))]
+            BinOp::DoubleSlash(token) => GetLeadingTrivia::leading_trivia(token),
             #[cfg(feature = "lua53")]
             BinOp::Ampersand(token)
-            | BinOp::DoubleSlash(token)
             | BinOp::DoubleLessThan(token)
             | BinOp::Pipe(token)
             | BinOp::DoubleGreaterThan(token)
@@ -575,9 +576,10 @@ impl GetTrailingTrivia for BinOp {
             | BinOp::TildeEqual(token)
             | BinOp::TwoDots(token)
             | BinOp::TwoEqual(token) => GetTrailingTrivia::trailing_trivia(token),
+            #[cfg(any(feature = "luau", feature = "lua53"))]
+            BinOp::DoubleSlash(token) => GetTrailingTrivia::trailing_trivia(token),
             #[cfg(feature = "lua53")]
             BinOp::Ampersand(token)
-            | BinOp::DoubleSlash(token)
             | BinOp::DoubleLessThan(token)
             | BinOp::Pipe(token)
             | BinOp::DoubleGreaterThan(token)

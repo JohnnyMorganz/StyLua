@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a panic when hanging a floor division (`//`) expression, or formatting one with comments around the operator, when only the `luau` feature is enabled ([#1190](https://github.com/JohnnyMorganz/StyLua/issues/1190))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added

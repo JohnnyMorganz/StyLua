@@ -205,7 +205,7 @@ define_update_trivia!(BinOp, |this, leading, trailing| {
         TwoEqual,
         #[cfg(feature = "lua53")]
         Ampersand,
-        #[cfg(feature = "lua53")]
+        #[cfg(any(feature = "luau", feature = "lua53"))]
         DoubleSlash,
         #[cfg(feature = "lua53")]
         DoubleLessThan,
