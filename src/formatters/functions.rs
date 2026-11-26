@@ -291,9 +291,19 @@ fn function_args_multiline_heuristic(
             }
             Expression::TableConstructor(table) => {
                 // Check to see whether it has been expanded (there is a newline after the start brace)
-                let is_expanded = trivia_util::trivia_contains_newline(
+                let input_expanded = trivia_util::trivia_contains_newline(
                     table.braces().tokens().0.trailing_trivia(),
                 );
+                // A table written on one line is still expanded if it cannot fit on a line of its own
+                // when the arguments are expanded. Treat it as expanded already, otherwise formatting
+                // the expanded output again would hug it and give a different result.
+                let is_expanded = input_expanded || {
+                    let trailing_comma = if pair.punctuation().is_some() { 1 } else { 0 };
+                    (shape.reset().increment_additional_indent()
+                        + argument.to_string().len()
+                        + trailing_comma)
+                        .over_budget()
+                };
 
                 if is_expanded {
                     // If we have a mixture of multiline args, and other arguments
@@ -303,7 +313,11 @@ fn function_args_multiline_heuristic(
                     }
 
                     // Include the first brace to check if we are over the column width already
-                    singleline_shape = singleline_shape.take_first_line(table);
+                    singleline_shape = if input_expanded {
+                        singleline_shape.take_first_line(table)
+                    } else {
+                        singleline_shape + BRACKET_LEN
+                    };
                     if singleline_shape.over_budget() {
                         return true;
                     }

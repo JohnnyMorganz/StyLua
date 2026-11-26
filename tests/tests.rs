@@ -20,6 +20,16 @@ fn test_standard() {
 }
 
 #[test]
+fn test_standard_is_idempotent() {
+    insta::glob!("inputs/function-call-hug-table-idempotent.lua", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        let first = format(&contents, LuaVersion::Lua51);
+        let second = format(&first, LuaVersion::Lua51);
+        assert_eq!(first, second);
+    })
+}
+
+#[test]
 fn test_full_moon_test_suite() {
     insta::glob!("inputs-full_moon/*.lua", |path| {
         let contents = std::fs::read_to_string(path).unwrap();

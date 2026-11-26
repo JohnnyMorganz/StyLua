@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed formatting not being idempotent when the last argument of a function call is a table written on one line that is too long to fit: the first pass put every argument on its own line, and a second pass hugged the table with the parentheses ([#1193](https://github.com/JohnnyMorganz/StyLua/issues/1193))
+
 ## [2.6.0] - 2026-10-10
 
 ### Added
